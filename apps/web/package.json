@@ -1,0 +1,30 @@
+{
+  "name": "@meigi/web",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Meigi app: registry explorer, business registration, company changes, the AP agent console and the x402 guard demo.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json",
+    "shots": "node scripts/screenshots.mjs"
+  },
+  "dependencies": {
+    "@meigi/abi": "workspace:*",
+    "@worldcoin/idkit": "^4.3.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-router": "^7.18.4",
+    "viem": "~2.56.8"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "playwright": "^1.63.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.1"
+  }
+}

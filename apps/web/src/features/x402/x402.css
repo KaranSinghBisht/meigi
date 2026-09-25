@@ -1,0 +1,66 @@
+.x402 {
+  display: grid;
+  gap: 20px;
+}
+
+.x402 .page-head {
+  margin-bottom: 4px;
+}
+
+.x402__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  align-items: start;
+}
+
+.merchant {
+  display: grid;
+  gap: 16px;
+}
+
+.merchant .panel__header {
+  margin-bottom: 0;
+}
+
+.merchant .btn {
+  justify-self: start;
+}
+
+.merchant--compromised {
+  background: radial-gradient(120% 120% at 100% 0%, rgba(224, 69, 43, 0.1), transparent 60%), var(--glass);
+}
+
+.merchant__body {
+  color: var(--ink-soft);
+  font-size: 16px;
+}
+
+.merchant__result:empty {
+  display: none;
+}
+
+.purchase {
+  display: grid;
+  gap: 10px;
+}
+
+.purchase__screen {
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.purchase__screen--flagged {
+  color: var(--seal-deep);
+  font-weight: 600;
+}
+
+.x402__code pre {
+  margin-bottom: 10px;
+}
+
+@media (max-width: 900px) {
+  .x402__grid {
+    grid-template-columns: 1fr;
+  }
+}

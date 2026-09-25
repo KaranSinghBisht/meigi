@@ -1,0 +1,113 @@
+.refusal {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: clamp(20px, 3vw, 40px);
+  align-items: center;
+  overflow: hidden;
+  padding: clamp(24px, 3.5vw, 48px);
+  border: 2px solid rgba(200, 55, 45, 0.55);
+  border-radius: 28px;
+  background:
+    radial-gradient(90% 140% at 0% 0%, rgba(224, 69, 43, 0.2), transparent 60%),
+    linear-gradient(120deg, #fff6f2, #ffffff 55%, #fdf0f3);
+  box-shadow: 0 30px 80px -40px rgba(200, 55, 45, 0.7);
+  animation: refusal-in 0.5s var(--ease-out);
+}
+
+.refusal:focus {
+  outline: none;
+}
+
+.refusal__seal {
+  transform: rotate(-8deg);
+  animation: stamp 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+.refusal__body {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.refusal__kicker {
+  color: var(--seal-deep);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.refusal__title {
+  color: var(--seal);
+  font-size: clamp(44px, 5.6vw, 84px);
+  font-weight: 600;
+  letter-spacing: -0.05em;
+  line-height: 0.98;
+}
+
+.refusal__line {
+  color: var(--ink);
+  font-size: clamp(20px, 2.1vw, 30px);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.35;
+}
+
+.refusal__line .mono {
+  font-size: 0.9em;
+}
+
+.refusal__good {
+  padding: 0 6px;
+  border-radius: 8px;
+  background: rgba(63, 157, 120, 0.16);
+  color: var(--jade-deep);
+}
+
+.refusal__bad {
+  padding: 0 6px;
+  border-radius: 8px;
+  background: rgba(224, 69, 43, 0.14);
+  color: var(--seal-deep);
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
+
+.refusal__meta {
+  max-width: 900px;
+  color: var(--ink-soft);
+  font-size: 16px;
+}
+
+@keyframes refusal-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes stamp {
+  from {
+    opacity: 0;
+    transform: rotate(-8deg) scale(1.8);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(-8deg) scale(1);
+  }
+}
+
+@media (max-width: 720px) {
+  .refusal {
+    grid-template-columns: 1fr;
+  }
+
+  .refusal__seal svg {
+    width: 72px;
+    height: 72px;
+  }
+}

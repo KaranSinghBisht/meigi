@@ -1,0 +1,5 @@
+.world-proof {
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+}

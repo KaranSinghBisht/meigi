@@ -1,0 +1,59 @@
+.fuji-backdrop {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: -1;
+  display: block;
+  width: 100%;
+  height: clamp(200px, 34vh, 400px);
+  opacity: 0.62;
+  pointer-events: none;
+}
+
+.hanko {
+  display: block;
+  flex: none;
+}
+
+.hanko__glyph {
+  fill: #fff6f2;
+  font-family: var(--font-jp);
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.vlabel {
+  display: block;
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-jp);
+  writing-mode: vertical-rl;
+}
+
+.vlabel__name {
+  display: block;
+  margin-left: 14px;
+  font-size: 34px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+}
+
+.vlabel__line {
+  display: block;
+  padding-top: 0.6em;
+  color: var(--ink-soft);
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.4em;
+}
+
+.vlabel__seal {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-inline-start: 0.7em;
+  border-radius: 1.5px;
+  background: var(--vermilion);
+  vertical-align: middle;
+}

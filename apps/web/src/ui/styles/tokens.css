@@ -1,0 +1,47 @@
+/* Meigi app tokens. Same dawn palette, type and vermilion hanko accent as the landing, tuned for reading:
+   panels are more opaque and every text colour below meets WCAG AA on white. */
+:root {
+  --ink: #2a2730;
+  --ink-soft: #5d5965; /* 6.6:1 on white */
+  --ink-muted: #6f6b77; /* 5.2:1 on white */
+  --line: rgba(42, 39, 48, 0.1);
+  --line-strong: rgba(42, 39, 48, 0.18);
+
+  --vermilion: #e0452b; /* decoration, large text, rings */
+  --seal: #c8372d; /* white text on it: 5.0:1 */
+  --seal-deep: #9e2a1d; /* small text on white: 7.4:1 */
+  --seal-tint: rgba(224, 69, 43, 0.1);
+  --jade: #3f9d78;
+  --jade-deep: #22684d; /* 6.9:1 on white */
+  --jade-tint: rgba(63, 157, 120, 0.13);
+  --amber-deep: #7a4d00;
+  --amber-tint: rgba(245, 166, 35, 0.16);
+  --iris-deep: #4b3f99;
+  --iris-tint: rgba(125, 110, 214, 0.12);
+
+  --sky-top: #e3ddf8;
+  --sky-mid: #f7e2ea;
+  --sky-low: #fff1e5;
+  --lake: #efe6f3;
+
+  --glass: rgba(255, 255, 255, 0.72);
+  --glass-strong: rgba(255, 255, 255, 0.9);
+  --glass-edge: rgba(255, 255, 255, 0.92);
+  --shadow-soft: 0 10px 30px -16px rgba(42, 39, 48, 0.4);
+  --shadow-panel: 0 24px 60px -34px rgba(42, 39, 48, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+
+  --font-latin:
+    'Inter Tight', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'Hiragino Sans', 'Noto Sans JP', 'Yu Gothic',
+    sans-serif;
+  --font-jp: 'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  --radius-lg: 22px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+  --gutter: clamp(16px, 3vw, 40px);
+  --content: 1240px;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  color-scheme: light;
+}

@@ -1,0 +1,155 @@
+.change {
+  display: grid;
+  gap: 20px;
+}
+
+.change .page-head {
+  margin-bottom: 4px;
+}
+
+.change__search {
+  max-width: 620px;
+}
+
+.change__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.picker {
+  display: grid;
+  gap: 16px;
+}
+
+.picker__options {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.picker__options legend {
+  margin-bottom: 8px;
+}
+
+.picker__option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition:
+    border-color 0.2s var(--ease-out),
+    background-color 0.2s var(--ease-out);
+}
+
+.picker__option:hover {
+  background: #fff;
+}
+
+.picker__option:has(input:checked) {
+  border-color: var(--seal);
+  background: #fff;
+  box-shadow: inset 0 0 0 1px var(--seal);
+}
+
+.picker__option:has(input:focus-visible) {
+  outline: 2px solid var(--vermilion);
+  outline-offset: 2px;
+}
+
+.picker__option.is-blocked {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.picker__option input {
+  margin-top: 4px;
+  accent-color: var(--seal);
+}
+
+.picker__text {
+  display: grid;
+  gap: 2px;
+}
+
+.picker__title {
+  font-weight: 600;
+}
+
+.picker__body {
+  color: var(--ink-soft);
+  font-size: 14.5px;
+}
+
+.approvals__head {
+  display: grid;
+  gap: 4px;
+}
+
+.approvals__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.approvals {
+  display: grid;
+  gap: 8px;
+}
+
+.approvals__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.approvals__row.is-done {
+  border-color: rgba(63, 157, 120, 0.35);
+  background: var(--jade-tint);
+}
+
+.approvals__who {
+  display: grid;
+  gap: 2px;
+}
+
+.approvals__name {
+  font-weight: 600;
+}
+
+.approvals__ok {
+  color: var(--jade-deep);
+  font-weight: 600;
+}
+
+.approvals__impostor {
+  display: grid;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--line-strong);
+}
+
+@media (max-width: 1100px) {
+  .change__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.change__payee > .notice {
+  margin-bottom: 14px;
+}

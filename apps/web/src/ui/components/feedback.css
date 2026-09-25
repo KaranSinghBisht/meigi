@@ -1,0 +1,155 @@
+.spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  flex: none;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  opacity: 0.8;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.badge::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.badge--active {
+  background: var(--jade-tint);
+  color: var(--jade-deep);
+}
+
+.badge--disputed {
+  background: var(--seal-tint);
+  color: var(--seal-deep);
+}
+
+.badge--pending {
+  background: var(--amber-tint);
+  color: var(--amber-deep);
+}
+
+.badge--info {
+  background: var(--iris-tint);
+  color: var(--iris-deep);
+}
+
+.badge--neutral {
+  background: rgba(42, 39, 48, 0.07);
+  color: var(--ink-soft);
+}
+
+.notice {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid transparent;
+  border-left-width: 4px;
+  border-radius: var(--radius-md);
+  font-size: 15px;
+}
+
+.notice__body {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.notice__title {
+  font-weight: 600;
+}
+
+.notice__detail {
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.notice__detail code {
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgba(42, 39, 48, 0.07);
+  color: var(--ink);
+}
+
+.notice__action {
+  flex: none;
+}
+
+.notice--info {
+  border-color: rgba(125, 110, 214, 0.28);
+  border-left-color: #7d6ed6;
+  background: var(--iris-tint);
+}
+
+.notice--success {
+  border-color: rgba(63, 157, 120, 0.3);
+  border-left-color: var(--jade);
+  background: var(--jade-tint);
+}
+
+.notice--success .notice__title {
+  color: var(--jade-deep);
+}
+
+.notice--warn,
+.notice--offline {
+  border-color: rgba(245, 166, 35, 0.35);
+  border-left-color: #e0a030;
+  background: var(--amber-tint);
+}
+
+.notice--warn .notice__title,
+.notice--offline .notice__title {
+  color: var(--amber-deep);
+}
+
+.notice--danger {
+  border-color: rgba(224, 69, 43, 0.3);
+  border-left-color: var(--vermilion);
+  background: var(--seal-tint);
+}
+
+.notice--danger .notice__title {
+  color: var(--seal-deep);
+}
+
+/* A refusal the user should feel: bigger, stamped. */
+.notice--denied {
+  padding: 18px 20px;
+  border-color: rgba(200, 55, 45, 0.45);
+  border-left-width: 6px;
+  border-left-color: var(--seal);
+  background: linear-gradient(100deg, rgba(224, 69, 43, 0.16), rgba(224, 69, 43, 0.05));
+}
+
+.notice--denied .notice__title {
+  color: var(--seal-deep);
+  font-size: 19px;
+  letter-spacing: -0.015em;
+}

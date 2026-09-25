@@ -1,0 +1,301 @@
+.registry__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.registry__lookup {
+  display: grid;
+  gap: 20px;
+}
+
+.tsearch {
+  display: grid;
+  gap: 6px;
+}
+
+.tsearch__row {
+  display: flex;
+  gap: 10px;
+}
+
+.tsearch__input {
+  flex: 1;
+}
+
+.directory {
+  display: grid;
+  gap: 8px;
+}
+
+.directory__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.directory__chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.75);
+  cursor: pointer;
+  transition:
+    background-color 0.2s var(--ease-out),
+    border-color 0.2s var(--ease-out);
+}
+
+.directory__chip:hover {
+  background: #fff;
+}
+
+.directory__chip:focus-visible {
+  border-radius: 999px;
+}
+
+.directory__chip[aria-pressed='true'] {
+  border-color: var(--seal);
+  background: #fff;
+  box-shadow: inset 0 0 0 1px var(--seal);
+}
+
+.directory__t {
+  color: var(--ink-muted);
+  font-size: 12.5px;
+}
+
+.payee-slot {
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.payee-slot__hint,
+.payee-slot__loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink-soft);
+}
+
+.payee {
+  display: grid;
+  gap: 14px;
+  container-type: inline-size;
+}
+
+.payee__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.payee__ids {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.payee__tnumber {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.payee__ens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: baseline;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.payee__ens-note {
+  font-size: 13px;
+}
+
+.payee__ens-note--ok {
+  color: var(--jade-deep);
+  font-weight: 500;
+}
+
+.payee__ens-note--muted {
+  color: var(--ink-muted);
+}
+
+.payee__ens-note--bad {
+  color: var(--seal-deep);
+  font-weight: 600;
+}
+
+.payee__name {
+  font-size: clamp(28px, 3vw, 38px);
+  line-height: 1.15;
+}
+
+.payee__sub {
+  margin-top: -8px;
+  color: var(--ink-muted);
+  font-size: 13.5px;
+}
+
+.payee__label {
+  margin-bottom: 6px;
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.payee__payout {
+  padding: 16px 18px;
+  border: 1px solid rgba(63, 157, 120, 0.3);
+  border-radius: var(--radius-md);
+  background: linear-gradient(100deg, rgba(63, 157, 120, 0.1), rgba(255, 255, 255, 0.6));
+}
+
+.payee__payout-value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.payee__payout-value .address__value {
+  font-size: 17px;
+  font-weight: 500;
+}
+
+/* Keep the payout on one line wherever the card is narrow (e.g. beside the change form). */
+@container (max-width: 560px) {
+  .payee__payout-value .address__value {
+    font-size: 14.5px;
+  }
+}
+
+@container (max-width: 440px) {
+  .payee__payout-value .address__value {
+    font-size: 12.5px;
+  }
+}
+
+.payee__frozen {
+  padding: 16px 18px;
+  border: 1px solid rgba(224, 69, 43, 0.35);
+  border-radius: var(--radius-md);
+  background: var(--seal-tint);
+}
+
+.payee__frozen-text {
+  color: var(--seal-deep);
+  font-weight: 600;
+}
+
+.payee__facts {
+  padding-top: 4px;
+}
+
+.payee__empty {
+  display: grid;
+  gap: 10px;
+  padding: 16px 18px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-md);
+}
+
+.payee__actions {
+  font-weight: 500;
+}
+
+.pending {
+  display: grid;
+  gap: 8px;
+  padding: 16px 18px;
+  border: 1px solid rgba(224, 69, 43, 0.4);
+  border-left: 6px solid var(--vermilion);
+  border-radius: var(--radius-md);
+  background: linear-gradient(100deg, rgba(224, 69, 43, 0.14), rgba(255, 236, 222, 0.7));
+}
+
+.pending__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.pending__title {
+  color: var(--seal-deep);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.pending__clock {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.pending__lands {
+  color: var(--seal-deep);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.pending__countdown {
+  color: var(--seal-deep);
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.pending__body {
+  color: var(--ink-soft);
+  font-size: 14.5px;
+}
+
+.pending__when {
+  white-space: nowrap;
+}
+
+.feed-panel {
+  position: sticky;
+  top: 88px;
+  max-height: calc(100vh - 110px);
+  overflow: auto;
+}
+
+@media (max-width: 1100px) {
+  .registry__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .feed-panel {
+    position: static;
+    max-height: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .tsearch__row {
+    flex-direction: column;
+  }
+
+  .tsearch__input {
+    flex: none;
+  }
+}
+
+.payee-slot > .notice {
+  margin-bottom: 14px;
+}

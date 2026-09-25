@@ -1,0 +1,67 @@
+.steps {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: 8px;
+}
+
+.steps__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--glass-edge);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--ink-muted);
+  font-size: 14.5px;
+}
+
+.steps__marker {
+  display: inline-grid;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  place-items: center;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.steps__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.steps__item--current {
+  border-color: rgba(42, 39, 48, 0.2);
+  background: #fff;
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: var(--shadow-soft);
+}
+
+.steps__item--current .steps__marker {
+  border-color: var(--seal);
+  background: var(--seal);
+  color: #fff;
+}
+
+.steps__item--done {
+  color: var(--jade-deep);
+}
+
+.steps__item--done .steps__marker {
+  border-color: var(--jade);
+  background: var(--jade);
+  color: #fff;
+}
+
+@media (max-width: 760px) {
+  .steps {
+    grid-auto-flow: row;
+  }
+}
