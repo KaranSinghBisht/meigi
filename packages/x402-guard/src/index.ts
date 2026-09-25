@@ -10,4 +10,5 @@ export {
   type ScreenResult,
 } from "./check.js";
 export { meigiPayeeDeclaration, meigiPayeeExtension, requireMeigiPayee, type GuardOptions } from "./extension.js";
+export { interceptaScreen, type InterceptaOptions } from "./intercepta.js";
 export { registryReader } from "./registry.js";

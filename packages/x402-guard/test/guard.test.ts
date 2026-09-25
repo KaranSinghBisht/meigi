@@ -51,6 +51,12 @@ describe("checkPayee", () => {
     const verdict = await checkPayee(deps({ screen }), declared, { payTo: REGISTERED, network: NETWORK });
     expect(verdict).toMatchObject({ ok: false, code: "screened" });
   });
+
+  it("reports the screening of a swapped payTo alongside the registry mismatch", async () => {
+    const screen = async (a: Address) => ({ flagged: a === SWAPPED.toLowerCase() || a.toLowerCase() === SWAPPED, summary: "toxicScore 95: known_scammer" });
+    const verdict = await checkPayee(deps({ screen }), declared, { payTo: SWAPPED, network: NETWORK });
+    expect(verdict).toMatchObject({ ok: false, code: "payto_mismatch", screening: { flagged: true } });
+  });
 });
 
 function context(payTo: string, extensions?: Record<string, unknown>): PaymentCreationContext {

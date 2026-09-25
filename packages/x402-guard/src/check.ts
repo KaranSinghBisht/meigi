@@ -38,8 +38,8 @@ export type GuardCode =
   | "screened";
 
 export type GuardVerdict =
-  | { ok: true; tNumber: string; legalName: string; payTo: Address }
-  | { ok: false; code: GuardCode; reason: string };
+  | { ok: true; tNumber: string; legalName: string; payTo: Address; screening?: ScreenResult }
+  | { ok: false; code: GuardCode; reason: string; screening?: ScreenResult };
 
 const T_NUMBER = /^T?(\d{13})$/u;
 
@@ -70,22 +70,19 @@ export async function checkPayee(
   }
 
   const tNumber = `T${digits}`;
-  const payee = await deps.payee(BigInt(digits));
+  const payTo = getAddress(requirements.payTo);
+  // Screen the address actually requested, so a refusal can show both the registry and the screening signal.
+  const [payee, screening] = await Promise.all([deps.payee(BigInt(digits)), deps.screen?.(payTo)]);
   if (payee.status !== 1) {
     const state = payee.status === 2 ? "disputed (payments frozen)" : "not registered";
-    return { ok: false, code: "payee_not_active", reason: `${tNumber} is ${state}` };
+    return { ok: false, code: "payee_not_active", reason: `${tNumber} is ${state}`, screening };
   }
-  const payTo = getAddress(requirements.payTo);
   if (payTo !== getAddress(payee.payout)) {
-    return {
-      ok: false,
-      code: "payto_mismatch",
-      reason: `payTo ${short(payTo)} is not ${payee.legalName} (${tNumber})'s registered payout ${short(payee.payout)}`,
-    };
+    const reason = `payTo ${short(payTo)} is not ${payee.legalName} (${tNumber})'s registered payout ${short(payee.payout)}`;
+    return { ok: false, code: "payto_mismatch", reason, screening };
   }
-  if (deps.screen) {
-    const screened = await deps.screen(payTo);
-    if (screened.flagged) return { ok: false, code: "screened", reason: `screening flagged ${short(payTo)}: ${screened.summary}` };
+  if (screening?.flagged) {
+    return { ok: false, code: "screened", reason: `screening flagged ${short(payTo)}: ${screening.summary}`, screening };
   }
-  return { ok: true, tNumber, legalName: payee.legalName, payTo };
+  return { ok: true, tNumber, legalName: payee.legalName, payTo, screening };
 }
