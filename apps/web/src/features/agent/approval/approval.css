@@ -114,6 +114,23 @@
   list-style: decimal;
 }
 
+/* 承認: stamped once when the approval arrives. */
+.approval__stamp {
+  transform: rotate(-6deg);
+  animation: approval-stamp 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+@keyframes approval-stamp {
+  from {
+    opacity: 0;
+    transform: rotate(-6deg) scale(1.7);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(-6deg) scale(1);
+  }
+}
+
 @media (max-width: 640px) {
   .approval {
     grid-template-columns: 1fr;

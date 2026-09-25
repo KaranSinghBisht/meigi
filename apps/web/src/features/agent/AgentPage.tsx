@@ -8,7 +8,7 @@ export default function AgentPage() {
   return (
     <div className="agent">
       <header className="agent__head">
-        <div>
+        <div className="on-scene agent__head-text">
           <p className="eyebrow">AP agent console</p>
           <h1 className="agent__title">Please try to rob our AI accountant.</h1>
           <p className="agent__lede">

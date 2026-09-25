@@ -4,6 +4,7 @@ import { shortAddress } from '../../lib/chain/format'
 import { prefersReducedMotion } from '../../lib/hooks/motion'
 import { HankoMark } from '../../ui/brand/HankoMark'
 import { TxLink } from '../../ui/components/Address'
+import { useSceneMood } from '../../ui/stage/useSceneMood'
 import './refusal.css'
 
 type Reverted = Extract<PayOutcome, { status: 'reverted' }>
@@ -72,6 +73,8 @@ export function Refusal({ outcome, analysis, live = true }: RefusalProps) {
     ref.current?.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'center' })
     ref.current?.focus({ preventScroll: true })
   }, [live])
+  // The world darkens with the refusal while it is on screen (not for a recorded run).
+  useSceneMood(live ? 'refused' : null)
   const mismatch = outcome.error.name === 'PayeeMismatch'
   return (
     <section
@@ -82,7 +85,7 @@ export function Refusal({ outcome, analysis, live = true }: RefusalProps) {
       aria-labelledby="refusal-title"
     >
       <div className="refusal__seal" aria-hidden="true">
-        <HankoMark size={120} />
+        <HankoMark size={120} glyphs="拒否" />
       </div>
       <div className="refusal__body">
         <p className="refusal__kicker">

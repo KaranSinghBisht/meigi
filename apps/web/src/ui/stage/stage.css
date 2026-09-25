@@ -1,0 +1,97 @@
+/* The fixed world behind the shell. The still scene eases between stations like the camera would. */
+
+.scene-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: linear-gradient(180deg, #d6cff1 0%, #ecd3e6 34%, #f8dcd9 52%, #f1dde8 60%, #ddd3ee 100%);
+  pointer-events: none;
+}
+
+.scene-still {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 58%;
+  transition: transform 1.8s var(--ease-out);
+}
+
+/* The canvas fades in over the still world once it has drawn its first frame. */
+.scene-canvas {
+  position: absolute !important;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.9s var(--ease-out);
+}
+
+.scene-canvas.is-ready {
+  opacity: 1;
+}
+
+.scene-layer[data-station='fuji'] .scene-still {
+  transform: scale(1.14);
+}
+
+.scene-layer[data-station='lake'] .scene-still {
+  transform: translateY(-12vh) scale(1.08);
+}
+
+.scene-layer[data-station='shore'] .scene-still {
+  transform: translateX(6vw) scale(1.06);
+}
+
+.scene-layer[data-station='torii'] .scene-still {
+  transform: translateX(-6vw) scale(1.06);
+}
+
+.scene-layer[data-station='sky'] .scene-still {
+  transform: translateY(14vh) scale(0.96);
+}
+
+/* Moods on the still world: a wash over the scene, eased in and out. The live stage tints itself instead. */
+.scene-layer[data-kind='still']::after {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  content: '';
+  transition: opacity 1.2s var(--ease-out);
+}
+
+:root[data-scene-mood='refused'] .scene-layer[data-kind='still']::after {
+  opacity: 1;
+  background: radial-gradient(120% 90% at 50% 62%, rgba(224, 69, 43, 0.2), rgba(158, 42, 29, 0.12));
+}
+
+:root[data-scene-mood='ok'] .scene-layer[data-kind='still']::after {
+  opacity: 1;
+  background: radial-gradient(120% 90% at 50% 62%, rgba(255, 236, 190, 0.34), rgba(63, 157, 120, 0.1));
+}
+
+:root[data-scene-mood='frozen'] .scene-layer[data-kind='still']::after {
+  opacity: 1;
+  background: linear-gradient(180deg, rgba(150, 170, 215, 0.3), rgba(210, 222, 240, 0.35));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene-still,
+  .scene-layer[data-kind='still']::after {
+    transition: none;
+  }
+}
+
+/* The landing's enter glide ends in white; the app picks up from there. */
+.arrival {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: #fff;
+  pointer-events: none;
+  animation: arrival 0.9s var(--ease-out) forwards;
+}
+
+@keyframes arrival {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}

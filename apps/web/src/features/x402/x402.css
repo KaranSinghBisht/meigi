@@ -9,7 +9,8 @@
 
 .x402__grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 480px));
+  justify-content: space-between;
   gap: 20px;
   align-items: start;
 }
@@ -130,6 +131,7 @@
 .x402__row-head {
   display: grid;
   gap: 4px;
+  width: fit-content;
   max-width: 860px;
 }
 

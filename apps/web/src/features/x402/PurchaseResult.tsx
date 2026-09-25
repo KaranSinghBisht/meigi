@@ -1,6 +1,7 @@
 import type { GuardVerdictView, Purchase } from '../../lib/api/merchant'
 import { Address, TxLink } from '../../ui/components/Address'
 import { Notice } from '../../ui/components/Notice'
+import { useSceneMood } from '../../ui/stage/useSceneMood'
 import { InterceptaScreen } from './InterceptaScreen'
 import './x402.css'
 
@@ -47,6 +48,7 @@ function title(purchase: Purchase, verdict: GuardVerdictView): string {
 }
 
 export function PurchaseResult({ purchase, recorded = false }: PurchaseResultProps) {
+  useSceneMood(!recorded && purchase.paid ? 'ok' : null)
   const verdict = purchase.verdict
   if (verdict && !verdict.ok) return <Refused verdict={verdict} recorded={recorded} />
   if (!verdict) {

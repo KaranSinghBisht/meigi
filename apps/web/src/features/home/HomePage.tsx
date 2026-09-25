@@ -1,6 +1,5 @@
 import { Link } from 'react-router'
 import { env } from '../../lib/env/env'
-import { VerticalLabel } from '../../ui/brand/VerticalLabel'
 import { LinkButton } from '../../ui/components/Button'
 import { FixtureStrip } from './FixtureStrip'
 import './home.css'
@@ -35,7 +34,7 @@ const FLOWS = [
 function Hero() {
   return (
     <section className="home__hero" aria-labelledby="home-title">
-      <div className="home__hero-text">
+      <div className="home__hero-text on-scene">
         <p className="eyebrow">
           <span className="jp home__jp">名義</span> Confirmation of Payee for stablecoins and AI agents
         </p>
@@ -49,7 +48,6 @@ function Hero() {
         </p>
         <FixtureStrip />
       </div>
-      <VerticalLabel />
     </section>
   )
 }

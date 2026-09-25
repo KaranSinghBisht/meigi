@@ -4,6 +4,7 @@ import type { PayeeSnapshot } from '../../lib/chain/registry'
 import { Address } from '../../ui/components/Address'
 import { Badge } from '../../ui/components/Badge'
 import { CopyButton } from '../../ui/components/CopyButton'
+import { useSceneMood } from '../../ui/stage/useSceneMood'
 import { PendingBanner } from './PendingBanner'
 import { useEnsCheck, type EnsCheck } from './usePayee'
 import './registry.css'
@@ -162,6 +163,8 @@ interface PayeeCardProps {
 }
 
 export function PayeeCard({ payee, onElapsed, showChangeLink = true }: PayeeCardProps) {
+  // A frozen payee freezes the world around it too, while it is on screen.
+  useSceneMood(payee.status === 'disputed' ? 'frozen' : null)
   const badge = STATUS_BADGE[payee.status]
   return (
     <article className="payee" aria-labelledby="payee-name">

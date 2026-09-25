@@ -1,5 +1,6 @@
 import type { Reason } from '../../../lib/api/agentTypes'
 import { formatJstTime } from '../../../lib/chain/format'
+import { HankoMark } from '../../../ui/brand/HankoMark'
 import { Button } from '../../../ui/components/Button'
 import { ErrorNotice, Notice } from '../../../ui/components/Notice'
 import { ApprovalRequest } from './ApprovalRequest'
@@ -31,7 +32,11 @@ type Approved = Extract<ApprovalFlow, { kind: 'approved' }>
 function ApprovedNotice({ flow }: { readonly flow: Approved }) {
   const when = flow.approvedAt ? ` at ${formatJstTime(flow.approvedAt)}` : ''
   return (
-    <Notice tone="success" title={`Approved by a verified human: fresh World ID proof${when}.`}>
+    <Notice
+      tone="success"
+      title={`Approved by a verified human: fresh World ID proof${when}.`}
+      action={<HankoMark size={52} glyphs="承認" tone="jade" className="approval__stamp" />}
+    >
       {flow.approver === 'enrolled' ? <p>First approval: this human is now the enrolled approver.</p> : null}
       {flow.approver === 'matched' ? <p>The same human who enrolled as the approver.</p> : null}
       <p>The agent pays once with this approval, and the vault still pays only the registered payout.</p>

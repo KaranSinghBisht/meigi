@@ -7,15 +7,14 @@
 html {
   -webkit-text-size-adjust: 100%;
   scroll-behavior: smooth;
-  /* Below the first screen the page continues as the lake. */
-  background: var(--lake);
+  /* The world is a fixed layer behind the shell; this only shows before it paints. */
+  background: var(--sky-mid);
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 40%, var(--sky-low) 74%, var(--lake) 100%) top /
-    100% 100vh no-repeat;
+  background: transparent;
   color: var(--ink);
   font-family: var(--font-latin);
   font-size: 16px;

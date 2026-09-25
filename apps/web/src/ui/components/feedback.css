@@ -63,6 +63,8 @@
   color: var(--ink-soft);
 }
 
+/* Notices often sit straight on the world (under the agent's decision, for one), so the tint rides on a nearly
+   opaque white base rather than on the scene. */
 .notice {
   display: flex;
   align-items: flex-start;
@@ -72,6 +74,9 @@
   border: 1px solid transparent;
   border-left-width: 4px;
   border-radius: var(--radius-md);
+  background-color: rgba(255, 255, 255, 0.88);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
   font-size: 15px;
 }
 
@@ -104,13 +109,13 @@
 .notice--info {
   border-color: rgba(125, 110, 214, 0.28);
   border-left-color: #7d6ed6;
-  background: var(--iris-tint);
+  background-image: linear-gradient(var(--iris-tint), var(--iris-tint));
 }
 
 .notice--success {
   border-color: rgba(63, 157, 120, 0.3);
   border-left-color: var(--jade);
-  background: var(--jade-tint);
+  background-image: linear-gradient(var(--jade-tint), var(--jade-tint));
 }
 
 .notice--success .notice__title {
@@ -121,7 +126,7 @@
 .notice--offline {
   border-color: rgba(245, 166, 35, 0.35);
   border-left-color: #e0a030;
-  background: var(--amber-tint);
+  background-image: linear-gradient(var(--amber-tint), var(--amber-tint));
 }
 
 .notice--warn .notice__title,
@@ -132,7 +137,7 @@
 .notice--danger {
   border-color: rgba(224, 69, 43, 0.3);
   border-left-color: var(--vermilion);
-  background: var(--seal-tint);
+  background-image: linear-gradient(var(--seal-tint), var(--seal-tint));
 }
 
 .notice--danger .notice__title {
@@ -145,7 +150,7 @@
   border-color: rgba(200, 55, 45, 0.45);
   border-left-width: 6px;
   border-left-color: var(--seal);
-  background: linear-gradient(100deg, rgba(224, 69, 43, 0.16), rgba(224, 69, 43, 0.05));
+  background-image: linear-gradient(100deg, rgba(224, 69, 43, 0.16), rgba(224, 69, 43, 0.05));
 }
 
 .notice--denied .notice__title {

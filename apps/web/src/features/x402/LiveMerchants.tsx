@@ -6,7 +6,7 @@ export function LiveMerchants() {
   return (
     <>
       <section className="x402__row" aria-labelledby="declared-title">
-        <div className="x402__row-head">
+        <div className="x402__row-head on-scene">
           <h2 id="declared-title" className="x402__row-title">
             Merchants that declare a Meigi payee
           </h2>
@@ -20,7 +20,7 @@ export function LiveMerchants() {
         </div>
       </section>
       <section className="x402__row" aria-labelledby="undeclared-title">
-        <div className="x402__row-head">
+        <div className="x402__row-head on-scene">
           <h2 id="undeclared-title" className="x402__row-title">
             Merchants with no Meigi record
           </h2>

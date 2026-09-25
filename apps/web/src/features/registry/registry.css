@@ -1,6 +1,7 @@
 .registry__grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 560px) minmax(0, 420px);
+  justify-content: space-between;
   gap: 20px;
   align-items: start;
 }

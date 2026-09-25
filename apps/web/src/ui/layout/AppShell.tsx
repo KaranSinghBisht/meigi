@@ -1,7 +1,9 @@
 import { Suspense, useEffect, useRef } from 'react'
 import { Outlet, useLocation } from 'react-router'
-import { FujiBackdrop } from '../brand/FujiBackdrop'
+import { VerticalLabel } from '../brand/VerticalLabel'
 import { Spinner } from '../components/Spinner'
+import { Arrival } from '../stage/Arrival'
+import { SceneLayer } from '../stage/SceneLayer'
 import { Footer } from './Footer'
 import { Header } from './Header'
 import './layout.css'
@@ -46,14 +48,18 @@ export function AppShell() {
       <a className="skip-link" href="#main">
         Skip to content
       </a>
-      <FujiBackdrop />
+      <SceneLayer />
       <Header />
+      <div className="shell__vlabel" aria-hidden="true">
+        <VerticalLabel />
+      </div>
       <main id="main" className="shell__main" tabIndex={-1}>
         <Suspense fallback={<RouteFallback />}>
           <Outlet />
         </Suspense>
       </main>
       <Footer />
+      <Arrival />
     </div>
   )
 }

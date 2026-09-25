@@ -12,6 +12,20 @@ agent console and the x402 guard demo. Vite + React 19 + TypeScript, viem on Sep
 | `/change/:tNumber?` | Approval request → officers prove their World ID session → controller queues it | verifier, wallet |
 | `/x402` | Guarded buyer vs honest / compromised merchant, and Intercepta-screened merchants with no Meigi record | x402 demo |
 
+## The world behind the pages
+
+Every route floats over the Sakasa Fuji world from `@meigi/scene` (shared with the landing): one persistent,
+fixed canvas behind the shell (`src/ui/stage/SceneLayer.tsx`), with each flow at its own camera station
+(home→gate, registry→fuji, register→shore, change→torii, agent→lake, x402→sky). Pages are frosted glass over it.
+
+- three.js loads lazily (`@meigi/scene/stage`), in low-power mode (frames only while something moves) and without
+  pointer input, so forms stay responsive. The still `FallbackScene` shows until the canvas has drawn, and for
+  good without WebGL2 or after a lost context; reduced motion renders one still frame.
+- Moments (`useSceneMood`): the chain refusing → `refused` plus a 拒否 stamp, a settled payment → `ok`, a disputed
+  payee → `frozen`, an approval → a 承認 stamp; leaving returns to `calm`. `src/ui/stage/scene.ts` is the only
+  seam to the package.
+- Arriving from the landing's enter glide (which ends in white), the app fades in from white.
+
 ## Run
 
 ```sh
@@ -55,6 +69,8 @@ the repo root builds it this way, checks the bundle for secrets and deploys.
 ```sh
 pnpm --filter @meigi/web build && pnpm --filter @meigi/web shots   # docs/web/*.png, 1440 × 900
 ```
+
+Shots run headless Chromium with SwiftShader, so the live world renders; each waits for its first frame.
 
 `registry-pending.png` rewrites `payeeOf` answers in flight (the live chain has no queued change) to show the
 countdown banner and that the queued address isn't shown. The agent, change-approvals and x402 shots need their

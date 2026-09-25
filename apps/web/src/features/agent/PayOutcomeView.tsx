@@ -3,6 +3,7 @@ import { shortAddress } from '../../lib/chain/format'
 import { TxLink } from '../../ui/components/Address'
 import { Button } from '../../ui/components/Button'
 import { Notice } from '../../ui/components/Notice'
+import { useSceneMood } from '../../ui/stage/useSceneMood'
 import { attackDemoFits } from './holds'
 import { Refusal } from './Refusal'
 import './agent.css'
@@ -22,6 +23,7 @@ function kicker(outcome: Paid, approved: boolean): string {
 }
 
 function PaidView({ outcome, analysis, approved }: PaidViewProps) {
+  useSceneMood('ok')
   const payee = analysis.kernel.payee
   return (
     <section className="paid" role="status">

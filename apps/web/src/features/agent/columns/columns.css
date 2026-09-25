@@ -16,7 +16,9 @@
   border: 1px solid var(--glass-edge);
   border-top: 5px solid var(--line-strong);
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.84);
+  background: var(--glass-dense);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
   box-shadow: var(--shadow-soft);
   font-size: 16px;
 }

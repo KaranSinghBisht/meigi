@@ -11,9 +11,15 @@
   max-width: 620px;
 }
 
+/* The torii station puts vermilion pillars right behind these panels, so they are denser than elsewhere. */
+.change .panel {
+  background: var(--glass-strong);
+}
+
 .change__grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  grid-template-columns: minmax(0, 500px) minmax(0, 520px);
+  justify-content: space-between;
   gap: 20px;
   align-items: start;
 }

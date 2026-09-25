@@ -10,7 +10,8 @@
 .register__layout {
   scroll-margin-top: 84px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-columns: minmax(0, 660px) 300px;
+  justify-content: space-between;
   gap: 20px;
   align-items: start;
 }

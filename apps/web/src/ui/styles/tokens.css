@@ -1,9 +1,10 @@
-/* Meigi app tokens. Same dawn palette, type and vermilion hanko accent as the landing, tuned for reading:
-   panels are more opaque and every text colour below meets WCAG AA on white. */
+/* Meigi app tokens. Same dawn palette, type and vermilion hanko accent as the landing. Pages float over the
+   Sakasa Fuji world as frosted glass: panels are translucent, and the backdrop is blurred and brightened behind
+   them, so every text colour below still meets WCAG AA over the darkest part of the scene. */
 :root {
   --ink: #2a2730;
-  --ink-soft: #5d5965; /* 6.6:1 on white */
-  --ink-muted: #6f6b77; /* 5.2:1 on white */
+  --ink-soft: #55515d; /* 7.6:1 on white, 5.4:1 on glass over the mountain */
+  --ink-muted: #5d5965; /* 6.6:1 on white, 4.8:1 on glass over the mountain */
   --line: rgba(42, 39, 48, 0.1);
   --line-strong: rgba(42, 39, 48, 0.18);
 
@@ -24,9 +25,11 @@
   --sky-low: #fff1e5;
   --lake: #efe6f3;
 
-  --glass: rgba(255, 255, 255, 0.72);
-  --glass-strong: rgba(255, 255, 255, 0.9);
-  --glass-edge: rgba(255, 255, 255, 0.92);
+  --glass: rgba(255, 255, 255, 0.62);
+  --glass-strong: rgba(255, 255, 255, 0.84);
+  --glass-dense: rgba(255, 255, 255, 0.86);
+  --glass-edge: rgba(255, 255, 255, 0.8);
+  --glass-blur: blur(22px) saturate(1.35) brightness(1.12);
   --shadow-soft: 0 10px 30px -16px rgba(42, 39, 48, 0.4);
   --shadow-panel: 0 24px 60px -34px rgba(42, 39, 48, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.85);
 
@@ -40,7 +43,7 @@
   --radius-md: 14px;
   --radius-sm: 10px;
   --gutter: clamp(16px, 3vw, 40px);
-  --content: 1240px;
+  --content: 1120px;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 
   color-scheme: light;

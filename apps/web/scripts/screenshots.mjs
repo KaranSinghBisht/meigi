@@ -54,6 +54,12 @@ async function settle(page, selector, timeout = 45_000) {
   await page.waitForTimeout(600)
 }
 
+/** The live world draws its first frame (software WebGL here, so give it time), then the camera settles. */
+async function sceneReady(page) {
+  await page.waitForSelector('.scene-canvas.is-ready', { timeout: 60_000 }).catch(() => {})
+  await page.waitForTimeout(1600)
+}
+
 async function snap(page, name, fullPage = false) {
   await page.screenshot({ path: resolve(outDir, `${hosted ? 'hosted-' : ''}${name}.png`), fullPage })
 }
@@ -161,6 +167,7 @@ async function run(browser, shot) {
   page.on('pageerror', (error) => problems.push(`pageerror: ${error.message}`))
   if (shot.setup) await shot.setup(page)
   await page.goto(`${base}${shot.path}`, { waitUntil: 'networkidle' })
+  await sceneReady(page)
   await settle(page, shot.ready)
   if (shot.after) await settle(page, shot.after)
   if (shot.act) await shot.act(page)
@@ -188,7 +195,11 @@ function selectShots() {
 async function main() {
   await mkdir(outDir, { recursive: true })
   const preview = await startPreview()
-  const browser = await chromium.launch({ channel: 'chromium' })
+  // Headless Chromium has no GPU: SwiftShader gives the scene WebGL2.
+  const browser = await chromium.launch({
+    channel: 'chromium',
+    args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+  })
   try {
     for (const shot of selectShots()) {
       try {
