@@ -1,36 +1,60 @@
 # AI usage
 
-ETHGlobal asks teams to disclose how AI was used. We used it heavily and deliberately.
+ETHGlobal asks teams to disclose how AI was used. We used it heavily and deliberately. This file lists each
+area.
 
 ## Tools
 
-- **Claude Code** (Anthropic, Claude Opus 5.5) as the main pair programmer and orchestrator. It ran several
-  parallel sub-agents: landing page, ENS scripts, security review, benchmark and fine-tuning, AP agent service.
-- Commits written with AI assistance carry a `Co-Authored-By: Claude` trailer.
+- **Claude Code** (Anthropic, Claude Opus 5.5) was the main pair programmer and orchestrator. One lead
+  session wrote the core and ran parallel sub-agents for the landing page, ENS scripts, security reviews, the
+  benchmark and fine-tuning, the AP agent service and the web app.
+- Every sub-agent's brief and every later instruction is committed verbatim in [`docs/ai/briefs`](docs/ai/briefs).
+  The specs are in `docs/`.
+- AI-assisted commits carry a `Co-Authored-By: Claude` trailer.
 
-## What AI did
+## Who wrote what
 
-- Research: event rules, sponsor docs (ENS v2, World ID 4.0, Intercepta, JPYC), NTA data formats.
-- Code: Solidity contracts and tests, the verifier and agent services, scripts, the landing page.
-- AI security review in three rounds, each by a separate read-only agent with proof-of-concept exploits.
-  Of 16 findings, 14 are fixed. Two are accepted by design and documented: the fixed 30-day cap window, and
-  trusting the attester to verify World ID off-chain. See the two `fix(contracts): address … review findings`
-  commits. Round 3 verified the fixes with mutation testing.
-- Benchmark data generation (PayeeBench-JA) and the fine-tuning pipeline.
+The code and docs were written by AI. The people provided direction, choices, accounts and testing (next
+section).
 
-## What we decided
+| Area | Written by |
+|---|---|
+| `contracts/` (registry, resolver, vault, router, mock JPYC, tests, deploy scripts) | AI (lead session) |
+| `contracts/script/ens/` | AI (`ens` sub-agent) |
+| `services/verifier/`, `packages/x402-guard/`, `services/x402-demo/`, `workers/ai-proxy/`, `scripts/` | AI (lead session) |
+| `services/agent/` | AI (`apagent` sub-agent) |
+| `apps/web/` | AI (`webapp` sub-agent) |
+| `apps/landing/` | AI (`landing` sub-agent), from our art direction: a Tokyo / Mt Fuji take inspired by, not copied from, an existing landing page |
+| `bench/` (PayeeBench-JA, fine-tuning runs) | AI (`bench` sub-agent) |
+| Docs (`README.md`, `docs/`) | AI |
 
-Product direction, the threat model, sponsor choices, demo design, and every trust assumption documented in
-`contracts/README.md`. We reviewed AI-generated changes before committing; tests gate every commit.
+## What the people did
 
-## Spec files
+- **Chose** the idea from AI-researched options, and chose the sponsor prizes and the team.
+- **Set** the direction and constraints: full scope, the landing page's look, conventional commits as we go,
+  and security and coding rules for all code.
+- **Handled** accounts, keys and funds: the World Developer Portal, Cloudflare, Sepolia ETH and the Intercepta
+  key request.
+- **Tested** the demos and recorded the video.
 
-- `docs/spec.md`: product and architecture
-- `docs/landing-spec.md`: landing page brief
-- `contracts/README.md`: contract roles, delays and trust model
+## Reviews
+
+Every review was done by a separate AI reviewer, not by the author agent.
+
+- **Contracts:** three read-only rounds with proof-of-concept exploits. Of 16 findings, 14 are fixed. Two are
+  accepted by design and documented: the fixed 30-day cap window, and trusting the attester to verify World
+  ID off-chain. Round 3 mutation-tested the fixes.
+- **AP agent:** three review rounds and a final pass. Every bypass found is now a regression test: hidden
+  content, markup, refund notices, ambiguous totals and bidi controls.
 
 ## Third-party code
 
-Public libraries only, disclosed in each package's manifest: OpenZeppelin Contracts, forge-std, viem, Hono,
-zod, World IDKit, three.js / react-three-fiber, and the Kev training code (Apache-2.0) used for fine-tuning.
-No pre-hackathon project code or designs.
+Public libraries only, disclosed in each package's manifest:
+- OpenZeppelin Contracts, forge-std
+- viem, Hono, zod
+- World IDKit, the x402 packages
+- three.js / react-three-fiber, React
+- the Kev training code (Apache-2.0, used from its own repository for fine-tuning)
+
+There is no pre-hackathon project code or design. Ideation research before the event used AI but produced no
+code.
