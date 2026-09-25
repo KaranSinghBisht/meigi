@@ -7,11 +7,12 @@ import {IPayeeRegistry} from "../registry/IPayeeRegistry.sol";
 import {TNumber} from "../registry/TNumber.sol";
 
 /// @title PayeeResolver
-/// @notice ENSIP-10 wildcard resolver that answers for `t<13 digits>.payee.eth` straight from the registry.
-/// @dev Set it as the resolver of the parent name. Only an active payee resolves to an address. A disputed
-///      or unknown T-number resolves to zero, so ENS-aware wallets fail closed. Text records:
-///      `name` (NTA-registered name), `meigi.tNumber`, `meigi.status`, `meigi.pending`,
-///      `meigi.effectiveAt` and `meigi.registry`.
+/// @notice ENSIP-10 wildcard resolver that answers for `t<13 digits>.<parent>` straight from the registry.
+/// @dev Set it as the resolver of the parent name (e.g. payee.eth). It only answers names exactly one label
+///      below that parent, so pointing another name at it resolves to nothing. Only an active payee resolves
+///      to an address; disputed or unknown T-numbers resolve to zero, so ENS-aware wallets fail closed.
+///      Text records: `name` (NTA-registered name), `meigi.tNumber`, `meigi.status`, `meigi.changePending`,
+///      `meigi.effectiveAt`, `meigi.registry`. A queued (unconfirmed) payout address is never published.
 contract PayeeResolver is IERC165 {
     bytes4 private constant EXTENDED_RESOLVER = 0x9061b923; // resolve(bytes,bytes)
     bytes4 private constant ADDR = 0x3b3b57de; // addr(bytes32)
@@ -22,19 +23,24 @@ contract PayeeResolver is IERC165 {
     uint256 private constant EVM_COIN_TYPE_FLAG = 0x80000000; // ENSIP-11
 
     IPayeeRegistry public immutable registry;
+    bytes32 public immutable parentNameHash; // keccak256 of the DNS-encoded parent, e.g. "\x05payee\x03eth\x00"
 
     error UnsupportedRecord(bytes4 selector);
+    error InvalidParentName();
 
-    constructor(IPayeeRegistry registry_) {
+    constructor(IPayeeRegistry registry_, bytes memory parentDnsName) {
+        uint256 n = parentDnsName.length;
+        if (n < 2 || parentDnsName[n - 1] != 0x00) revert InvalidParentName();
         registry = registry_;
+        parentNameHash = keccak256(parentDnsName);
     }
 
-    /// @notice ENSIP-10 entry point. `name` is DNS-encoded; only its first label is read.
+    /// @notice ENSIP-10 entry point. `name` is DNS-encoded.
     function resolve(bytes calldata name, bytes calldata data) external view returns (bytes memory) {
         if (data.length < 4) revert UnsupportedRecord(bytes4(0));
         bytes4 selector = bytes4(data[:4]);
         if (selector == MULTICALL) return _multicall(name, data);
-        (, uint64 tNumber) = TNumber.tryParse(_firstLabel(name)); // zero when the label is not a T-number
+        uint64 tNumber = _tNumberOf(name); // zero unless `name` is t<13 digits>.<parent>
         if (selector == ADDR) return abi.encode(_activePayout(tNumber));
         if (selector == ADDR_COIN) return abi.encode(_addrForCoin(tNumber, data));
         if (selector == TEXT) return abi.encode(_textRecord(tNumber, data));
@@ -42,17 +48,30 @@ contract PayeeResolver is IERC165 {
     }
 
     function supportsInterface(bytes4 interfaceId) external pure returns (bool) {
-        return interfaceId == type(IERC165).interfaceId || interfaceId == EXTENDED_RESOLVER
-            || interfaceId == ADDR || interfaceId == ADDR_COIN || interfaceId == TEXT;
+        return interfaceId == type(IERC165).interfaceId || interfaceId == EXTENDED_RESOLVER;
     }
 
+    /// @dev Each sub-call resolves independently; an unsupported record yields empty bytes instead of
+    ///      sinking the whole batch (ENS multicall semantics).
     function _multicall(bytes calldata name, bytes calldata data) private view returns (bytes memory) {
         bytes[] memory calls = abi.decode(data[4:], (bytes[]));
         bytes[] memory results = new bytes[](calls.length);
         for (uint256 i; i < calls.length; i++) {
-            results[i] = this.resolve(name, calls[i]);
+            try this.resolve(name, calls[i]) returns (bytes memory result) {
+                results[i] = result;
+            } catch {
+                results[i] = "";
+            }
         }
         return abi.encode(results);
+    }
+
+    function _tNumberOf(bytes calldata name) private view returns (uint64) {
+        if (name.length == 0) return 0;
+        uint256 end = 1 + uint8(name[0]);
+        if (name.length <= end || keccak256(name[end:]) != parentNameHash) return 0;
+        (, uint64 tNumber) = TNumber.tryParse(name[1:end]);
+        return tNumber;
     }
 
     function _activePayout(uint64 tNumber) private view returns (address) {
@@ -77,18 +96,9 @@ contract PayeeResolver is IERC165 {
         if (k == keccak256("name")) return v.legalName;
         if (k == keccak256("meigi.tNumber")) return TNumber.toString(tNumber);
         if (k == keccak256("meigi.status")) return v.status == IPayeeRegistry.Status.Active ? "active" : "disputed";
-        if (k == keccak256("meigi.pending")) {
-            return v.pending == address(0) ? "" : Strings.toChecksumHexString(v.pending);
-        }
+        if (k == keccak256("meigi.changePending")) return v.pending == address(0) ? "" : "true";
         if (k == keccak256("meigi.effectiveAt")) return v.effectiveAt == 0 ? "" : Strings.toString(v.effectiveAt);
         if (k == keccak256("meigi.registry")) return Strings.toChecksumHexString(address(registry));
         return "";
-    }
-
-    function _firstLabel(bytes calldata name) private pure returns (bytes memory) {
-        if (name.length == 0) return "";
-        uint256 len = uint8(name[0]);
-        if (name.length < 1 + len) return "";
-        return name[1:1 + len];
     }
 }

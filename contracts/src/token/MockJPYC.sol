@@ -3,12 +3,14 @@ pragma solidity ^0.8.24;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
 /// @title MockJPYC
-/// @notice Testnet-only stand-in for JPYC in case the official Sepolia faucet is dry. It has the same
-///         shape as the real token: 18 decimals, EIP-2612 permit and EIP-3009 transfer authorizations
-///         (the x402 "exact" scheme). Signatures can come from EOAs or EIP-1271 smart wallets. Anyone can mint.
+/// @notice Testnet-only stand-in for JPYC in case the official Sepolia faucet is dry. Same shape as the real
+///         token: 18 decimals, EIP-2612 permit and EIP-3009 transfer authorizations (the x402 "exact" scheme).
+///         Signatures may come from EOAs (including EIP-7702 delegated ones) or EIP-1271 smart wallets.
+///         Anyone can mint, up to a cap per call.
 contract MockJPYC is ERC20, ERC20Permit {
     bytes32 public constant TRANSFER_WITH_AUTHORIZATION_TYPEHASH = keccak256(
         "TransferWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)"
@@ -48,6 +50,8 @@ contract MockJPYC is ERC20, ERC20Permit {
         return _authorizationStates[authorizer][nonce];
     }
 
+    // ------------------------------------------------------------- EIP-3009
+
     function transferWithAuthorization(
         address from,
         address to,
@@ -85,8 +89,22 @@ contract MockJPYC is ERC20, ERC20Permit {
         uint256 validAfter,
         uint256 validBefore,
         bytes32 nonce,
-        bytes memory signature
+        uint8 v,
+        bytes32 r,
+        bytes32 s
     ) external {
+        receiveWithAuthorization(from, to, value, validAfter, validBefore, nonce, abi.encodePacked(r, s, v));
+    }
+
+    function receiveWithAuthorization(
+        address from,
+        address to,
+        uint256 value,
+        uint256 validAfter,
+        uint256 validBefore,
+        bytes32 nonce,
+        bytes memory signature
+    ) public {
         if (msg.sender != to) revert CallerMustBePayee();
         bytes32 structHash = keccak256(
             abi.encode(RECEIVE_WITH_AUTHORIZATION_TYPEHASH, from, to, value, validAfter, validBefore, nonce)
@@ -95,15 +113,19 @@ contract MockJPYC is ERC20, ERC20Permit {
         _transfer(from, to, value);
     }
 
-    function cancelAuthorization(address authorizer, bytes32 nonce, bytes memory signature) external {
+    function cancelAuthorization(address authorizer, bytes32 nonce, uint8 v, bytes32 r, bytes32 s) external {
+        cancelAuthorization(authorizer, nonce, abi.encodePacked(r, s, v));
+    }
+
+    function cancelAuthorization(address authorizer, bytes32 nonce, bytes memory signature) public {
         if (_authorizationStates[authorizer][nonce]) revert AuthorizationAlreadyUsed();
         bytes32 digest = _hashTypedDataV4(keccak256(abi.encode(CANCEL_AUTHORIZATION_TYPEHASH, authorizer, nonce)));
-        if (!SignatureChecker.isValidSignatureNow(authorizer, digest, signature)) {
-            revert InvalidAuthorizationSignature();
-        }
+        if (!_isValidSignature(authorizer, digest, signature)) revert InvalidAuthorizationSignature();
         _authorizationStates[authorizer][nonce] = true;
         emit AuthorizationCanceled(authorizer, nonce);
     }
+
+    // ------------------------------------------------------------- internal
 
     function _useAuthorization(
         address from,
@@ -116,10 +138,18 @@ contract MockJPYC is ERC20, ERC20Permit {
         if (block.timestamp <= validAfter) revert AuthorizationNotYetValid();
         if (block.timestamp >= validBefore) revert AuthorizationExpired();
         if (_authorizationStates[from][nonce]) revert AuthorizationAlreadyUsed();
-        if (!SignatureChecker.isValidSignatureNow(from, _hashTypedDataV4(structHash), signature)) {
+        if (!_isValidSignature(from, _hashTypedDataV4(structHash), signature)) {
             revert InvalidAuthorizationSignature();
         }
         _authorizationStates[from][nonce] = true;
         emit AuthorizationUsed(from, nonce);
+    }
+
+    /// @dev ECDSA first, so EIP-7702 delegated EOAs (which have code) can still sign as plain EOAs,
+    ///      then EIP-1271 for smart wallets.
+    function _isValidSignature(address signer, bytes32 digest, bytes memory signature) private view returns (bool) {
+        (address recovered, ECDSA.RecoverError err,) = ECDSA.tryRecover(digest, signature);
+        if (err == ECDSA.RecoverError.NoError && recovered == signer) return true;
+        return SignatureChecker.isValidERC1271SignatureNow(signer, digest, signature);
     }
 }

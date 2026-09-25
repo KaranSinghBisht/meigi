@@ -13,14 +13,19 @@ import {PayeeGuard} from "./PayeeGuard.sol";
 
 /// @title AgentVault
 /// @notice The wallet an AI accounts-payable agent spends from. The agent's key can do exactly one thing:
-///         pay an approved vendor (by T-number), within that vendor's caps, to the registry's active address.
-///         There is no call that sends to an arbitrary address, so a fully prompt-injected agent still can't
-///         move money anywhere else. Vendors, caps and withdrawals belong to the human owner.
+///         pay an approved vendor (by T-number), within that vendor's caps, to the address the owner approved
+///         for it, which must also be the registry's active address. No call sends to an arbitrary address,
+///         so a fully prompt-injected agent still can't move money anywhere else.
+/// @dev Approving a vendor pins its current registry payout. If the registry payout later changes (even
+///      through the registry's own timelock), payments stop until the owner re-approves, which restarts
+///      `vendorDelay`. Caps use fixed 30-day windows, so up to 2x `capPerPeriod` can move around a window
+///      boundary.
 contract AgentVault is PayeeGuard, Ownable2Step, Pausable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     struct Vendor {
-        uint64 activeAt; // 0 = not approved
+        address payout; // pinned registry payout; zero = not approved
+        uint64 activeAt;
         uint64 periodStart;
         uint128 capPerPayment;
         uint128 capPerPeriod;
@@ -34,10 +39,12 @@ contract AgentVault is PayeeGuard, Ownable2Step, Pausable, ReentrancyGuard {
     address public agent;
 
     mapping(uint64 => Vendor) public vendors;
-    mapping(bytes32 => bool) private _invoicePaid;
+    mapping(bytes32 => uint256) private _invoicePaid;
 
     event AgentSet(address indexed agent);
-    event VendorApproved(uint64 indexed tNumber, uint128 capPerPayment, uint128 capPerPeriod, uint64 activeAt);
+    event VendorApproved(
+        uint64 indexed tNumber, address payout, uint128 capPerPayment, uint128 capPerPeriod, uint64 activeAt
+    );
     event VendorRemoved(uint64 indexed tNumber);
     event InvoicePaid(uint64 indexed tNumber, address indexed payout, uint256 amount, bytes32 indexed invoiceRef);
     event Withdrawn(address indexed to, uint256 amount);
@@ -45,11 +52,13 @@ contract AgentVault is PayeeGuard, Ownable2Step, Pausable, ReentrancyGuard {
     error NotAgent(address caller);
     error VendorNotApproved(uint64 tNumber);
     error VendorNotYetActive(uint64 tNumber, uint64 activeAt);
+    error VendorPayoutChanged(uint64 tNumber, address approved, address registered);
     error OverPaymentCap(uint64 tNumber, uint256 amount, uint256 cap);
     error OverPeriodCap(uint64 tNumber, uint256 amount, uint256 remaining);
-    error InvoiceAlreadyPaid(uint64 tNumber, bytes32 invoiceRef);
+    error InvoiceAlreadyPaid(uint64 tNumber, bytes32 invoiceRef, uint256 paid);
     error InvalidInvoiceRef();
     error InvalidCaps();
+    error RenounceDisabled();
 
     modifier onlyAgentOrOwner() {
         if (msg.sender != agent && msg.sender != owner()) revert NotAgent(msg.sender);
@@ -68,10 +77,11 @@ contract AgentVault is PayeeGuard, Ownable2Step, Pausable, ReentrancyGuard {
 
     // ------------------------------------------------------------ agent path
 
-    /// @notice Pays one invoice. Checks run in this order: vendor approved, payee active and address match,
-    ///         caps, then not already paid.
+    /// @notice Pays one invoice. Checks, in order: vendor approved and active, payee active and matching the
+    ///         invoice's address, still the pinned address, caps, and the invoice not paid before.
     /// @param expectedPayout The address printed on the invoice. A mismatch with the registry reverts.
-    /// @param invoiceRef The invoice's own id (e.g. keccak of its number); each is payable once per vendor.
+    /// @param invoiceRef The invoice's own id (e.g. keccak of its number). The agent can pay each once per
+    ///        vendor; only the owner can add to an invoice that already has a payment.
     function payInvoice(uint64 tNumber, address expectedPayout, uint256 amount, bytes32 invoiceRef)
         external
         onlyAgentOrOwner
@@ -81,33 +91,34 @@ contract AgentVault is PayeeGuard, Ownable2Step, Pausable, ReentrancyGuard {
     {
         if (amount == 0) revert ZeroAmount();
         if (invoiceRef == bytes32(0)) revert InvalidInvoiceRef();
-        _requireVendorActive(tNumber);
+        Vendor storage v = _activeVendor(tNumber);
         payout = _checkedPayout(tNumber, expectedPayout);
-        _spend(tNumber, amount);
-        bytes32 key = keccak256(abi.encode(tNumber, invoiceRef));
-        if (_invoicePaid[key]) revert InvoiceAlreadyPaid(tNumber, invoiceRef);
-        _invoicePaid[key] = true;
+        if (payout != v.payout) revert VendorPayoutChanged(tNumber, v.payout, payout);
+        _spend(v, tNumber, amount);
+        _recordInvoice(tNumber, invoiceRef, amount);
         token.safeTransfer(payout, amount);
         emit InvoicePaid(tNumber, payout, amount, invoiceRef);
     }
 
     // ------------------------------------------------------------ owner path
 
-    /// @notice Approves or updates a vendor. New vendors and raised caps only apply after `vendorDelay`;
-    ///         lowered caps apply at once.
+    /// @notice Approves or updates a vendor and pins its current registry payout. New vendors, a new payout
+    ///         and raised caps only apply after `vendorDelay`; lowered caps apply at once.
     function approveVendor(uint64 tNumber, uint128 capPerPayment, uint128 capPerPeriod) external onlyOwner {
         if (!TNumber.isValid(tNumber)) revert TNumber.InvalidTNumber();
         if (capPerPayment == 0 || capPerPayment > capPerPeriod) revert InvalidCaps();
+        address current = _checkedPayout(tNumber, address(0));
         Vendor storage v = vendors[tNumber];
-        bool raises = v.activeAt == 0 || capPerPayment > v.capPerPayment || capPerPeriod > v.capPerPeriod;
+        bool raises = v.payout != current || capPerPayment > v.capPerPayment || capPerPeriod > v.capPerPeriod;
         if (raises) v.activeAt = uint64(block.timestamp) + vendorDelay;
+        v.payout = current;
         v.capPerPayment = capPerPayment;
         v.capPerPeriod = capPerPeriod;
-        emit VendorApproved(tNumber, capPerPayment, capPerPeriod, v.activeAt);
+        emit VendorApproved(tNumber, current, capPerPayment, capPerPeriod, v.activeAt);
     }
 
     function removeVendor(uint64 tNumber) external onlyOwner {
-        if (vendors[tNumber].activeAt == 0) revert VendorNotApproved(tNumber);
+        if (vendors[tNumber].payout == address(0)) revert VendorNotApproved(tNumber);
         delete vendors[tNumber];
         emit VendorRemoved(tNumber);
     }
@@ -131,40 +142,65 @@ contract AgentVault is PayeeGuard, Ownable2Step, Pausable, ReentrancyGuard {
         _unpause();
     }
 
+    /// @notice Disabled: an ownerless vault could never re-approve vendors or recover funds.
+    function renounceOwnership() public pure override {
+        revert RenounceDisabled();
+    }
+
     // ------------------------------------------------------------------ views
 
+    /// @return The total already paid against this invoice reference (0 if never paid).
+    function invoicePaidAmount(uint64 tNumber, bytes32 invoiceRef) public view returns (uint256) {
+        return _invoicePaid[_invoiceKey(tNumber, invoiceRef)];
+    }
+
     function isInvoicePaid(uint64 tNumber, bytes32 invoiceRef) external view returns (bool) {
-        return _invoicePaid[keccak256(abi.encode(tNumber, invoiceRef))];
+        return invoicePaidAmount(tNumber, invoiceRef) > 0;
     }
 
     /// @return What the vendor can still receive in the current period (0 if not active).
     function remainingInPeriod(uint64 tNumber) external view returns (uint256) {
         Vendor storage v = vendors[tNumber];
-        if (v.activeAt == 0 || block.timestamp < v.activeAt) return 0;
+        if (v.payout == address(0) || block.timestamp < v.activeAt) return 0;
         if (block.timestamp >= uint256(v.periodStart) + PERIOD) return v.capPerPeriod;
-        return v.capPerPeriod - v.spentInPeriod;
+        return _remaining(v);
     }
 
     // --------------------------------------------------------------- internal
 
-    function _requireVendorActive(uint64 tNumber) private view {
-        Vendor storage v = vendors[tNumber];
-        if (v.activeAt == 0) revert VendorNotApproved(tNumber);
+    function _activeVendor(uint64 tNumber) private view returns (Vendor storage v) {
+        v = vendors[tNumber];
+        if (v.payout == address(0)) revert VendorNotApproved(tNumber);
         if (block.timestamp < v.activeAt) revert VendorNotYetActive(tNumber, v.activeAt);
     }
 
-    function _spend(uint64 tNumber, uint256 amount) private {
-        Vendor storage v = vendors[tNumber];
+    function _spend(Vendor storage v, uint64 tNumber, uint256 amount) private {
         if (amount > v.capPerPayment) revert OverPaymentCap(tNumber, amount, v.capPerPayment);
         if (block.timestamp >= uint256(v.periodStart) + PERIOD) {
             v.periodStart = uint64(block.timestamp);
             v.spentInPeriod = 0;
         }
         uint256 spent = uint256(v.spentInPeriod) + amount;
-        if (spent > v.capPerPeriod) revert OverPeriodCap(tNumber, amount, v.capPerPeriod - v.spentInPeriod);
+        if (spent > v.capPerPeriod) revert OverPeriodCap(tNumber, amount, _remaining(v));
         // casting to 'uint128' is safe because spent <= capPerPeriod, which is a uint128
         // forge-lint: disable-next-line(unsafe-typecast)
         v.spentInPeriod = uint128(spent);
+    }
+
+    function _recordInvoice(uint64 tNumber, bytes32 invoiceRef, uint256 amount) private {
+        bytes32 key = _invoiceKey(tNumber, invoiceRef);
+        uint256 paid = _invoicePaid[key];
+        if (paid > 0 && msg.sender != owner()) revert InvoiceAlreadyPaid(tNumber, invoiceRef, paid);
+        _invoicePaid[key] = paid + amount;
+    }
+
+    /// @dev Saturating: the owner may lower `capPerPeriod` below what was already spent.
+    function _remaining(Vendor storage v) private view returns (uint256) {
+        return v.capPerPeriod > v.spentInPeriod ? v.capPerPeriod - v.spentInPeriod : 0;
+    }
+
+    function _invoiceKey(uint64 tNumber, bytes32 invoiceRef) private pure returns (bytes32) {
+        return keccak256(abi.encode(tNumber, invoiceRef));
     }
 
     function _setAgent(address agent_) private {

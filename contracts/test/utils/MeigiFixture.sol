@@ -2,10 +2,11 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
+import {OfficerQuorum} from "../../src/registry/OfficerQuorum.sol";
 import {PayeeRegistry} from "../../src/registry/PayeeRegistry.sol";
 
-/// @notice Shared setup: a registry with one trusted attester (the verifier service) and helpers that
-///         sign officer approvals the way the verifier does after a World ID check.
+/// @notice Shared setup: a registry with one trusted attester (the verifier service) and helpers that sign
+///         officer approvals the way the verifier does after a World ID session proof.
 abstract contract MeigiFixture is Test {
     uint256 internal constant ATTESTER_PK = 0xA77E57;
     uint64 internal constant CHANGE_DELAY = 72 hours;
@@ -15,7 +16,7 @@ abstract contract MeigiFixture is Test {
     uint64 internal constant OTHER_VENDOR = 2010401000001;
     string internal constant VENDOR_NAME = unicode"株式会社メイギ商事";
 
-    // World ID nullifier hashes for the officer action. Same human => same value.
+    // Officer ids: hashes of each officer's World ID session id. Same human => same id.
     bytes32 internal constant OFFICER_A = bytes32(uint256(0xA1));
     bytes32 internal constant OFFICER_B = bytes32(uint256(0xB2));
     bytes32 internal constant STRANGER = bytes32(uint256(0xBAD));
@@ -71,30 +72,55 @@ abstract contract MeigiFixture is Test {
 
     function _approval(
         uint64 tNumber,
-        PayeeRegistry.Action action,
+        OfficerQuorum.Action action,
         bytes32 target,
-        bytes32[] memory nullifiers,
+        bytes32[] memory officerIds,
         uint256 signerPk
-    ) internal view returns (PayeeRegistry.OfficerApproval memory a) {
-        a.nullifiers = nullifiers;
-        a.deadline = block.timestamp + 10 minutes;
-        bytes32 digest = registry.approvalDigest(tNumber, action, target, nullifiers, a.deadline);
+    ) internal view returns (OfficerQuorum.OfficerApproval memory) {
+        return _approvalUntil(tNumber, action, target, officerIds, signerPk, block.timestamp + 10 minutes);
+    }
+
+    function _approvalUntil(
+        uint64 tNumber,
+        OfficerQuorum.Action action,
+        bytes32 target,
+        bytes32[] memory officerIds,
+        uint256 signerPk,
+        uint256 deadline
+    ) internal view returns (OfficerQuorum.OfficerApproval memory a) {
+        a.officerIds = officerIds;
+        a.deadline = deadline;
+        bytes32 digest = registry.approvalDigest(tNumber, action, target, officerIds, a.deadline);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, digest);
         a.signature = abi.encodePacked(r, s, v);
     }
 
-    function _payoutApproval(uint64 tNumber, address to, bytes32[] memory nullifiers)
+    function _payoutApproval(uint64 tNumber, address to, bytes32[] memory officerIds)
         internal
         view
-        returns (PayeeRegistry.OfficerApproval memory)
+        returns (OfficerQuorum.OfficerApproval memory)
     {
-        return _approval(tNumber, PayeeRegistry.Action.PayoutChange, _target(to), nullifiers, ATTESTER_PK);
+        return _approval(tNumber, OfficerQuorum.Action.PayoutChange, _target(to), officerIds, ATTESTER_PK);
     }
 
-    /// @dev The legitimate flow: business key + one enrolled officer's fresh World ID.
+    function _rotationApproval(uint64 tNumber, address to, bytes32[] memory officerIds)
+        internal
+        view
+        returns (OfficerQuorum.OfficerApproval memory)
+    {
+        return _approval(tNumber, OfficerQuorum.Action.ControllerRotation, _target(to), officerIds, ATTESTER_PK);
+    }
+
+    /// @dev The legitimate flow: business key + one enrolled officer's fresh World ID session proof.
     function _queueChange(uint64 tNumber, address to) internal {
-        PayeeRegistry.OfficerApproval memory a = _payoutApproval(tNumber, to, _one(OFFICER_A));
+        OfficerQuorum.OfficerApproval memory a = _payoutApproval(tNumber, to, _one(OFFICER_A));
         vm.prank(controller);
         registry.requestPayoutChange(tNumber, to, a);
+    }
+
+    /// @dev Recovery flow: officers ask for a new business key; anyone may relay the approval.
+    function _queueRotation(uint64 tNumber, address to, bytes32 officer) internal {
+        OfficerQuorum.OfficerApproval memory a = _rotationApproval(tNumber, to, _one(officer));
+        registry.requestControllerRotation(tNumber, to, a);
     }
 }

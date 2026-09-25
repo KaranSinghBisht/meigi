@@ -43,7 +43,7 @@ contract AgentVaultTest is MeigiFixture {
         emit AgentVault.InvoicePaid(VENDOR, payout, 120_000 ether, INVOICE);
         _pay(payout, 120_000 ether, INVOICE);
         assertEq(jpyc.balanceOf(payout), 120_000 ether);
-        assertTrue(vault.isInvoicePaid(VENDOR, INVOICE));
+        assertEq(vault.invoicePaidAmount(VENDOR, INVOICE), 120_000 ether);
     }
 
     /// "Our bank details changed": the agent believes the fake invoice, the chain does not.
@@ -83,8 +83,16 @@ contract AgentVaultTest is MeigiFixture {
     function test_rob_sameInvoiceOnlyOnce() public {
         _pay(payout, 1 ether, INVOICE);
         vm.prank(aiAgent);
-        vm.expectRevert(abi.encodeWithSelector(AgentVault.InvoiceAlreadyPaid.selector, VENDOR, INVOICE));
+        vm.expectRevert(abi.encodeWithSelector(AgentVault.InvoiceAlreadyPaid.selector, VENDOR, INVOICE, 1 ether));
         vault.payInvoice(VENDOR, payout, 1 ether, INVOICE);
+    }
+
+    /// Review finding 10: a 1-wei payment can't burn an invoice; the owner can still pay the rest.
+    function test_owner_canCompleteAnInvoiceTheAgentUnderpaid() public {
+        _pay(payout, 1, INVOICE);
+        vm.prank(human);
+        vault.payInvoice(VENDOR, payout, 120_000 ether, INVOICE);
+        assertEq(vault.invoicePaidAmount(VENDOR, INVOICE), 120_000 ether + 1);
     }
 
     function test_rob_agentCannotManageTheVault() public {
@@ -117,6 +125,14 @@ contract AgentVaultTest is MeigiFixture {
         // A revert is an acceptable outcome here; the assertion below is what matters.
         try vault.payInvoice(VENDOR, to, amount, INVOICE) {} catch {}
         assertEq(vaultBefore - jpyc.balanceOf(address(vault)), jpyc.balanceOf(payout) - payoutBefore);
+    }
+
+    // ---------------------------------------------------------------- vendors
+
+    function test_vendor_approvalNeedsAnActivePayee() public {
+        vm.prank(human);
+        vm.expectRevert(abi.encodeWithSelector(PayeeGuard.PayeeNotActive.selector, OTHER_VENDOR));
+        vault.approveVendor(OTHER_VENDOR, CAP, MONTHLY);
     }
 
     function test_vendor_newVendorWaitsOutTheDelay() public {
@@ -156,6 +172,42 @@ contract AgentVaultTest is MeigiFixture {
         assertEq(vault.remainingInPeriod(VENDOR), 1 ether);
     }
 
+    /// Review finding 9: lowering the period cap below what was already spent must not panic.
+    function test_vendor_capBelowSpendSaturates() public {
+        _pay(payout, 3 ether, INVOICE);
+        vm.prank(human);
+        vault.approveVendor(VENDOR, 1 ether, 1 ether);
+        assertEq(vault.remainingInPeriod(VENDOR), 0);
+        vm.prank(aiAgent);
+        vm.expectRevert(abi.encodeWithSelector(AgentVault.OverPeriodCap.selector, VENDOR, 1 ether, 0));
+        vault.payInvoice(VENDOR, payout, 1 ether, keccak256("next"));
+    }
+
+    // -------------------------------------------------------- registry changes
+
+    /// Review finding 5: a registry payout change stops payments until the payer re-approves the vendor.
+    function test_registry_payoutChangeNeedsPayerReapproval() public {
+        _queueChange(VENDOR, newPayout);
+        vm.prank(aiAgent);
+        vm.expectRevert(abi.encodeWithSelector(PayeeGuard.PayeeMismatch.selector, VENDOR, newPayout, payout));
+        vault.payInvoice(VENDOR, newPayout, 1 ether, INVOICE);
+
+        vm.warp(block.timestamp + CHANGE_DELAY);
+        vm.prank(aiAgent);
+        vm.expectRevert(abi.encodeWithSelector(AgentVault.VendorPayoutChanged.selector, VENDOR, payout, newPayout));
+        vault.payInvoice(VENDOR, newPayout, 1 ether, INVOICE);
+
+        vm.prank(human);
+        vault.approveVendor(VENDOR, CAP, MONTHLY);
+        vm.prank(aiAgent);
+        vm.expectPartialRevert(AgentVault.VendorNotYetActive.selector);
+        vault.payInvoice(VENDOR, newPayout, 1 ether, INVOICE);
+
+        vm.warp(block.timestamp + VENDOR_DELAY);
+        _pay(newPayout, 1 ether, INVOICE);
+        assertEq(jpyc.balanceOf(newPayout), 1 ether);
+    }
+
     function test_registry_disputedPayeeIsFrozen() public {
         vm.prank(attester);
         registry.fileDispute(VENDOR, scammer, bytes32(0));
@@ -164,18 +216,9 @@ contract AgentVaultTest is MeigiFixture {
         vault.payInvoice(VENDOR, payout, 1 ether, INVOICE);
     }
 
-    function test_registry_paymentsFollowTheTimelockedChange() public {
-        _queueChange(VENDOR, newPayout);
-        vm.prank(aiAgent);
-        vm.expectRevert(abi.encodeWithSelector(PayeeGuard.PayeeMismatch.selector, VENDOR, newPayout, payout));
-        vault.payInvoice(VENDOR, newPayout, 1 ether, INVOICE);
+    // ------------------------------------------------------------ misc paths
 
-        vm.warp(block.timestamp + CHANGE_DELAY);
-        _pay(newPayout, 1 ether, INVOICE);
-        assertEq(jpyc.balanceOf(newPayout), 1 ether);
-    }
-
-    function test_pay_withoutAnExpectationPaysTheRegistry() public {
+    function test_pay_withoutAnExpectationPaysTheApprovedAddress() public {
         _pay(address(0), 1 ether, INVOICE);
         assertEq(jpyc.balanceOf(payout), 1 ether);
     }
@@ -207,5 +250,11 @@ contract AgentVaultTest is MeigiFixture {
         vm.prank(aiAgent);
         vm.expectRevert(abi.encodeWithSelector(AgentVault.VendorNotApproved.selector, VENDOR));
         vault.payInvoice(VENDOR, payout, 1 ether, INVOICE);
+    }
+
+    function test_owner_cannotRenounce() public {
+        vm.prank(human);
+        vm.expectRevert(AgentVault.RenounceDisabled.selector);
+        vault.renounceOwnership();
     }
 }

@@ -153,6 +153,36 @@ contract MockJPYCTest is Test {
         assertEq(jpyc.balanceOf(merchant), VALUE);
     }
 
+    /// Review note: an EIP-7702 delegated EOA has code but still signs as a plain EOA.
+    function test_delegatedEoaCanStillAuthorize() public {
+        vm.etch(buyer, abi.encodePacked(hex"ef0100", address(0xde1e9a7e)));
+        bytes32 nonce = keccak256("x402-7702");
+        bytes memory sig = _signTransfer(buyer, merchant, nonce);
+        _settle(buyer, merchant, nonce, sig);
+        assertEq(jpyc.balanceOf(merchant), VALUE);
+    }
+
+    function test_receiveAndCancel_acceptSplitSignatures() public {
+        uint256 validAfter = block.timestamp - 60;
+        uint256 validBefore = block.timestamp + 300;
+        bytes32 nonce = keccak256("x402-split-receive");
+        bytes32 structHash = keccak256(
+            abi.encode(
+                jpyc.RECEIVE_WITH_AUTHORIZATION_TYPEHASH(), buyer, merchant, VALUE, validAfter, validBefore, nonce
+            )
+        );
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(BUYER_PK, _digest(structHash));
+        vm.prank(merchant);
+        jpyc.receiveWithAuthorization(buyer, merchant, VALUE, validAfter, validBefore, nonce, v, r, s);
+        assertEq(jpyc.balanceOf(merchant), VALUE);
+
+        bytes32 cancelNonce = keccak256("x402-split-cancel");
+        bytes32 cancelHash = keccak256(abi.encode(jpyc.CANCEL_AUTHORIZATION_TYPEHASH(), buyer, cancelNonce));
+        (v, r, s) = vm.sign(BUYER_PK, _digest(cancelHash));
+        jpyc.cancelAuthorization(buyer, cancelNonce, v, r, s);
+        assertTrue(jpyc.authorizationState(buyer, cancelNonce));
+    }
+
     function test_mint_isCapped() public {
         uint256 limit = jpyc.MINT_LIMIT();
         vm.expectRevert(MockJPYC.MintLimitExceeded.selector);

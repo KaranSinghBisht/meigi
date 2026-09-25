@@ -8,6 +8,8 @@ import {PayeeGuard} from "./PayeeGuard.sol";
 
 /// @title PayRouter
 /// @notice Pay a company by T-number. Any wallet can use it; it holds no funds and no state.
+/// @dev `Paid` reports what the payee actually received (fee-on-transfer safe). Anyone can call this with
+///      any token, so indexers must allowlist the token addresses they count.
 contract PayRouter is PayeeGuard {
     using SafeERC20 for IERC20;
 
@@ -30,7 +32,8 @@ contract PayRouter is PayeeGuard {
     {
         if (amount == 0) revert ZeroAmount();
         payout = _checkedPayout(tNumber, expectedPayout);
+        uint256 before = token.balanceOf(payout);
         token.safeTransferFrom(msg.sender, payout, amount);
-        emit Paid(tNumber, msg.sender, payout, address(token), amount, ref);
+        emit Paid(tNumber, msg.sender, payout, address(token), token.balanceOf(payout) - before, ref);
     }
 }
