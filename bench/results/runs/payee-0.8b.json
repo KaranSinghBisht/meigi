@@ -1,0 +1,48 @@
+{
+  "run": "payee-0.8b",
+  "init_from": "jaredpalmer/kev-0.8b",
+  "base": "Qwen/Qwen3.5-0.8B-Base",
+  "base_revision": "dc7cdfe2ee4154fa7e30f5b51ca41bfa40174e68",
+  "recipe": {
+    "epochs": 2,
+    "lr": 2e-05,
+    "batch": 1,
+    "accum": 8,
+    "max_state": 512,
+    "shared_prefix": 1,
+    "weights_dtype": "fp32",
+    "seed": 0,
+    "p_none": 0.1,
+    "p_distract": 0.15
+  },
+  "device": "mps",
+  "wall_seconds": 2331.7,
+  "optimizer_steps": 150,
+  "records_seen": 1200,
+  "forward_tokens": 592812,
+  "median_step_seconds": 15.045,
+  "peak_device_bytes": 3890599424,
+  "peak_rss_bytes": 7044644864,
+  "calibration_on_val": {
+    "temperature": 1.2311444133449163,
+    "replaced": 1.0,
+    "raw": {
+      "acc": 0.9575,
+      "nll": 0.11132100530844567,
+      "ece": 0.01780151047827367,
+      "brier": 0.0635522463347543,
+      "mean_conf": 0.968086898137735,
+      "confident_error_rate": 0.0125,
+      "coverage_at_5pct_error": 1.0
+    },
+    "calibrated": {
+      "acc": 0.9575,
+      "nll": 0.10836026538231001,
+      "ece": 0.01598741011077992,
+      "brier": 0.062346938558400726,
+      "mean_conf": 0.9596164778026315,
+      "confident_error_rate": 0.005,
+      "coverage_at_5pct_error": 1.0
+    }
+  }
+}

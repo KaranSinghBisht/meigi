@@ -1,0 +1,26 @@
+{
+  "run": "kev-0.8b-valT",
+  "copy_of": "jaredpalmer/kev-0.8b",
+  "calibration_on_val": {
+    "temperature": 1.8025009252216602,
+    "replaced": 2.3510958125672174,
+    "raw": {
+      "acc": 0.71,
+      "nll": 0.7677201128438722,
+      "ece": 0.0739345074528206,
+      "brier": 0.3642199433388752,
+      "mean_conf": 0.7813734191797427,
+      "confident_error_rate": 0.025,
+      "coverage_at_5pct_error": 0.0
+    },
+    "calibrated": {
+      "acc": 0.71,
+      "nll": 0.6892352077290828,
+      "ece": 0.11960410196881052,
+      "brier": 0.36742931868380624,
+      "mean_conf": 0.6870225819714563,
+      "confident_error_rate": 0.0125,
+      "coverage_at_5pct_error": 0.0625
+    }
+  }
+}

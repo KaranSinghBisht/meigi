@@ -1,7 +1,7 @@
 """Contenders: anything that answers the System-1 question set for a state.
 
-SystemOne       any TypeSafe /v1/systemone-compatible endpoint: local kev.serve, TypeSafe's API, OpenRouter's
-                /api/v1/systemone (Jev), a deployed Kev
+SystemOne       any TypeSafe /v1/systemone-compatible endpoint (local kev.serve, TypeSafe's API, a deployed Kev), and
+                OpenRouter's Decisions endpoint (/api/alpha/decisions: same body plus `model`, same answers)
 CloudflareJev   Jev through the Cloudflare REST API (`typesafe/jev`)
 ClaudeLLM       an LLM with structured output (Claude Haiku), asked for a probability per option
 
@@ -87,13 +87,13 @@ class SystemOne:
     """POST <base_url>/v1/systemone. `energy_watts` prices a local server by electricity (see costs.py);
     `usd_per_m_input` prices a hosted one by input tokens (Jev's list price)."""
 
-    def __init__(self, name, base_url, api_key=None, model="kev-latest", usd_per_m_input=None, energy=None):
+    def __init__(self, name, base_url, api_key=None, model="kev-latest", usd_per_m_input=None, energy=None, path="/v1/systemone"):
         self.name, self.base_url, self.api_key, self.model = name, base_url.rstrip("/"), api_key, model
-        self.usd_per_m_input, self.energy = usd_per_m_input, energy
+        self.usd_per_m_input, self.energy, self.path = usd_per_m_input, energy, path
 
     def __call__(self, state):
         headers = {"authorization": f"Bearer {self.api_key}"} if self.api_key else {}
-        body, wall = post_json(f"{self.base_url}/v1/systemone", {**request_body(state), "model": self.model}, headers)
+        body, wall = post_json(f"{self.base_url}{self.path}", {**request_body(state), "model": self.model}, headers)
         usage = body.get("usage") or {}
         pred = Prediction(parse_answers(body["answers"]), wall, body.get("latency_ms"), usage.get("input_tokens"), usage.get("output_tokens"))
         if usage.get("cost") is not None:
@@ -125,9 +125,11 @@ class CloudflareJev:
 
 
 def openrouter_jev(name="jev (openrouter)"):
-    """Jev through OpenRouter's TypeSafe-compatible /api/v1/systemone (billed at Jev's list price, usage.cost)."""
+    """Jev through OpenRouter's Decisions endpoint, POST /api/alpha/decisions {model, state, questions}; the response
+    carries TypeSafe-shaped answers and usage.cost in USD (prepaid credit required)."""
     key = secret("OPENROUTER_API_KEY")
-    return _keyed(SystemOne(name, "https://openrouter.ai/api", key, "~typesafe/jev-latest", JEV_USD_PER_M_INPUT), key, "OPENROUTER_API_KEY")
+    jev = SystemOne(name, "https://openrouter.ai/api", key, "~typesafe/jev-latest", JEV_USD_PER_M_INPUT, path="/alpha/decisions")
+    return _keyed(jev, key, "OPENROUTER_API_KEY")
 
 
 def typesafe_jev(name="jev (typesafe)"):

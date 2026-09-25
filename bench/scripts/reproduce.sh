@@ -21,6 +21,10 @@ for port in 8101 8102 8103; do
   until curl -sf "localhost:$port/v1/models" > /dev/null; do sleep 2; done
 done
 
+# optional, ~65 min and ~26 GB: the 4B fine-tune that fits a 48 GB Mac (README, "The fine-tune, on this MacBook")
+#   PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.7 PYTORCH_MPS_LOW_WATERMARK_RATIO=0.6 KEV_SIZE=4b \
+#     scripts/train_kev.sh payee-4b --shared_prefix 1 --weights_dtype bf16 --checkpointing 1 --epochs 1
+
 uv run python -m payeebench.evaluate \
   --kev "kev-0.8b (base)=http://127.0.0.1:8101" \
   --kev "kev-0.8b (base, val-fitted T)=http://127.0.0.1:8103" \

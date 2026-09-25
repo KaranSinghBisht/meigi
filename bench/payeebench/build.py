@@ -16,7 +16,7 @@ from pathlib import Path
 
 from . import families, leakage
 from .entities import EntityFactory
-from .schema import QUESTION_IDS, is_safe, labelled_questions
+from .schema import QUESTION_IDS, QUESTIONS, SAFE_TYPES, MAX_SAFE_SUSPICION, is_safe, labelled_questions
 from .tnumber import is_valid_t_number
 
 log = logging.getLogger("payeebench.build")
@@ -107,6 +107,9 @@ def main():
     report = leakage.report(splits, logs)
     report["checks"] = checks
     (out / "leakage.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    questions = {"questions": QUESTIONS, "safe_to_autoclear": {"types": list(SAFE_TYPES), "max_suspicion": MAX_SAFE_SUSPICION,
+                 "p_safe": "P(type in types) * P(new_destination = false) * P(suspicion <= max_suspicion)"}}
+    (out / "questions.json").write_text(json.dumps(questions, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     (out / "stats.json").write_text(json.dumps({s: stats(r) for s, r in splits.items()}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     log.info("wrote %s", ", ".join(f"{s}={len(r)}" for s, r in splits.items()))
 

@@ -1,0 +1,56 @@
+{
+  "run": "payee-4b",
+  "init_from": "jaredpalmer/kev-4b",
+  "base": "Qwen/Qwen3.5-4B-Base",
+  "base_revision": "1001bb4d826a52d1f399e183466143f4da7b741b",
+  "recipe": {
+    "epochs": 1,
+    "lr": 2e-05,
+    "batch": 1,
+    "accum": 8,
+    "max_state": 512,
+    "shared_prefix": 1,
+    "weights_dtype": "bf16",
+    "checkpointing": 1,
+    "seed": 0
+  },
+  "env": {
+    "PYTORCH_MPS_HIGH_WATERMARK_RATIO": "0.7",
+    "PYTORCH_MPS_LOW_WATERMARK_RATIO": "0.6"
+  },
+  "device": "mps",
+  "wall_seconds": 3730.5,
+  "optimizer_steps": 75,
+  "records_seen": 600,
+  "forward_tokens": 296535,
+  "median_step_seconds": 49.984,
+  "peak_device_bytes": 9192477184,
+  "peak_rss_bytes": 13706788864,
+  "calibration_on_val": {
+    "temperature": 1.109569472067845,
+    "replaced": 1.0,
+    "raw": {
+      "acc": 0.97,
+      "nll": 0.10416073269576798,
+      "ece": 0.015359590682317507,
+      "brier": 0.053450949751229035,
+      "mean_conf": 0.9674922315540662,
+      "confident_error_rate": 0.01,
+      "coverage_at_5pct_error": 1.0
+    },
+    "calibrated": {
+      "acc": 0.97,
+      "nll": 0.10340121357941807,
+      "ece": 0.013569687249235844,
+      "brier": 0.053737876863688055,
+      "mean_conf": 0.9628503223249677,
+      "confident_error_rate": 0.0075,
+      "coverage_at_5pct_error": 1.0
+    }
+  },
+  "earlier_attempts": [
+    "fp32 backbone, 2 epochs: swapped heavily on 48 GB, no step 10 after 12 min, stopped",
+    "bf16 backbone, 2 epochs, no memory cap: 39 s/step at first, process footprint grew to 45 GB and swapped (70 s/step), stopped at step 30",
+    "bf16 backbone, MPS cap 0.45 (16.9 GB): out of memory on the first step"
+  ]
+}

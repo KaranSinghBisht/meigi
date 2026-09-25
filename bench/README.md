@@ -21,11 +21,15 @@ paired statistics and a per-family breakdown: [`results/RESULTS.md`](results/RES
 | Kev-0.8B, released + temperature fitted on our validation split | 0.807 | 0.867 | 0.920 | 0.400 | 0.748 | 0.102 | 0% (0) | 38 ms | $0.00015 |
 | Kev-4B, released | 0.880 | 0.920 | 0.960 | 0.413 | 0.793 | 0.115 | 16% (0) | 171 ms | $0.00061 |
 | **payee-0.8b (ours)** | **0.947** | **0.967** | **0.973** | **0.793** | **0.920** | **0.025** | **43% (1)** | 39 ms | $0.00015 |
+| payee-4b (ours, 1 epoch) | 0.953 | 0.987 | 1.000 | 0.813 | 0.938 | 0.019 | 73% (3) | 160 ms | $0.00058 |
 | Jev | not run: no credit (see below) | | | | | | | | est. $0.021 at list price |
 
 - **Fine-tuned 0.8B vs released 0.8B:** +17.2 points mean accuracy (95% CI +14.2 to +20.2, item-clustered bootstrap;
   110 answers newly right, 7 newly wrong; McNemar p = 6e-25). Against the released **4B**, five times larger and four
   times slower: +12.7 points (CI +9.5 to +16.0).
+- **Fine-tuned 4B vs fine-tuned 0.8B:** +1.8 points (CI -0.5 to +4.0, p = 0.14): not a significant gain for four
+  times the latency, so the 0.8B is the System-1 we ship. The 4B was trained for one epoch with a bf16 backbone to fit
+  in memory (see the training section).
 - **Suspicion** is where zero-shot Kev fails (0.40 accuracy, mean error 1.1 levels on a 0-3 scale) and where the fine-tune
   gains most (0.79, 0.49 levels). The three other questions were already 0.8-0.96 zero-shot.
 - **Calibration:** ECE 0.025 against 0.10-0.14 for the released models. Refitting the released model's temperature on
@@ -35,14 +39,19 @@ paired statistics and a per-family breakdown: [`results/RESULTS.md`](results/RES
   moved to another bank under the same account name (`test/0069`). That is the literal-comparison case System-1 is
   weakest at, and the one the kernel's exact registry match exists for. The oracle threshold (chosen on test itself)
   clears the same 43% with none unsafe. The released 0.8B clears nothing at this budget; the released 4B clears 16%.
+  The fine-tuned 4B clears 73% but lets three unsafe items through at its validation threshold: two invoices with a
+  hidden "skip the review" instruction and one x402 request at 500 times the usual price. None of the three redirects
+  money (all pay the registered payee; the price is for the kernel's amount check). Its oracle threshold clears 59% with
+  none unsafe. Validation shares templates with training, so both fine-tunes rank it more cleanly than the new test
+  phrasings; a deployment should set the threshold with a margin and keep the kernel as the backstop.
 - **Speed and cost:** fine-tuning adds nothing at inference: 39 ms p50 (37 ms model time) for all four answers, the same
   as the released 0.8B. At an assumed 60 W that is $0.00015 of electricity per 1,000 items; Jev at its list price would be
   about $0.021 per 1,000 (estimated from Kev's token counts, about 491 per item), and Kev-0.8B on a rented L4 about $0.0035.
 - **Forgetting:** on Kev's own out-of-domain development suite (`transfer-v4`, 656 answers, same served path) accuracy
-  moved from 0.651 to 0.637, inside Kev's ~2-point tolerance, but calibration there broke: ECE 0.049 to 0.225, and wrong
-  answers given with at least 0.9 confidence from 0.2% to 12.8% (`results/runs/forgetting-transfer-v4.json`). The
-  temperature we fitted is for payee questions only. Serve the fine-tune for this question set and the released
-  checkpoint for anything else.
+  held (0.8B: 0.651 to 0.637, inside Kev's ~2-point tolerance; 4B: 0.817 to 0.817), but calibration there broke: ECE
+  0.049 to 0.225 for the 0.8B (0.033 to 0.131 for the 4B), and wrong answers given with at least 0.9 confidence rose
+  from 0.2% to 12.8% (0.9% to 9.8% for the 4B; `results/runs/forgetting-transfer-v4.json`). The temperature we fitted is for payee questions
+  only. Serve the fine-tune for this question set and the released checkpoint for anything else.
 - **Where it still misses** (per family, `results/RESULTS.md`): silently swapped invoices (0.68; 4 of 7 new-destination
   misses), the 0/1 suspicion boundary for reminders written in test-only phrasings, and level 2 vs 3 on polite scams.
 
@@ -210,6 +219,14 @@ Serving then uses that temperature by default.
 | peak memory | 3.9 GB allocated on the GPU, 7.0 GB process RSS |
 | temperature | 1.23, fitted on 400 validation answers (validation ECE 0.018 raw, 0.016 calibrated; validation accuracy 0.958, on train templates) |
 
+**Kev-4B** (`KEV_SIZE=4b scripts/train_kev.sh payee-4b --shared_prefix 1 --weights_dtype bf16 --checkpointing 1 --epochs 1`
+with `PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.7 PYTORCH_MPS_LOW_WATERMARK_RATIO=0.6`): **62 minutes** for one epoch (75
+steps, median 50 s), temperature 1.11 (validation accuracy 0.970). The released recipe does not fit a 48 GB Mac: with an
+fp32 backbone the machine swapped and made no progress in 12 minutes; with a bf16 backbone and no cap the process grew to
+a 45 GB footprint and slowed to 70 s a step; with the MPS allocator capped at 17 GB the first step ran out of memory.
+Gradient checkpointing plus a 26 GB cap trained steadily. So the 4B differs from the 0.8B in three ways (bf16 frozen
+backbone, checkpointing, one epoch instead of two); `results/runs/payee-4b.json` records all of it.
+
 No test item was used for training, calibration, threshold selection or any decision about the recipe; the test split was
 scored once per model.
 
@@ -238,7 +255,7 @@ recorded in `results/contenders.json` otherwise. Keys are never printed or writt
 | contender | needs | endpoint |
 |---|---|---|
 | Jev via Cloudflare | `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` and AI Gateway credit (today: HTTP 402) | `POST https://api.cloudflare.com/client/v4/accounts/$ID/ai/run` with `{"model": "typesafe/jev", "input": {state, questions}}` |
-| Jev via OpenRouter | `OPENROUTER_API_KEY` with prepaid credit | TypeSafe-compatible `POST https://openrouter.ai/api/v1/systemone`, model `~typesafe/jev-latest` |
+| Jev via OpenRouter | `OPENROUTER_API_KEY` with prepaid credit | Decisions endpoint `POST https://openrouter.ai/api/alpha/decisions`, model `~typesafe/jev-latest` (cost read from `usage.cost`) |
 | Jev direct | `TYPESAFE_API_KEY` | `POST https://api.typesafe.ai/v1/systemone`, model `jev-latest` |
 | Claude Haiku 4.5 | `ANTHROPIC_API_KEY` | Messages API with a JSON-schema output (a probability per option) |
 
@@ -262,6 +279,9 @@ Jev on 250 items (validation + test) is about 130k input tokens, well under one 
 - **The rules are ours.** Part of the gain is the model learning our labelling conventions (an executive expediting a
   known invoice counts as pressure; an overdue notice is suspicion level 1). A zero-shot model can disagree with those
   conventions and still be reasonable. For a product that is the point of fine-tuning, but it is not general skill.
+- **Thresholds move out of distribution.** Both fine-tunes separate safe from unsafe more cleanly on validation (train
+  templates) than on test (new templates), so a threshold chosen on validation is optimistic: the 4B's let three unsafe
+  items through at a 1% budget. Choose the production threshold on real, held-out mail and leave a margin.
 - **Small test set.** 150 items (600 answers). Accuracy intervals are a few points wide (see the paired CIs in
   `results/RESULTS.md`), and at a 1% budget the auto-clear threshold tolerates zero unsafe items, so one borderline
   item moves it.

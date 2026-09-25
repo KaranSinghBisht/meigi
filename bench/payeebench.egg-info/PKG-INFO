@@ -1,8 +1,0 @@
-Metadata-Version: 2.4
-Name: payeebench
-Version: 0.1.0
-Summary: PayeeBench-JA: a Japanese-first payee-verification benchmark for System-1 decision models (Jev, Kev, LLMs)
-Requires-Python: <3.14,>=3.12
-Requires-Dist: numpy>=2.0
-Requires-Dist: matplotlib>=3.9
-Requires-Dist: anthropic>=1.8.0

@@ -1,0 +1,41 @@
+{
+  "questions": {
+    "request_type": {
+      "type": "choice",
+      "instructions": "What kind of payment request is this?",
+      "criteria": {
+        "routine_invoice": "A normal invoice, bill, payment reminder or x402 payment-required response for goods or services",
+        "payee_change": "A message that announces or asks for a change of bank account, wallet address or payee",
+        "urgent_exec_request": "An executive, manager or other authority figure asks for a special, urgent or confidential payment",
+        "credit_note": "A credit note, refund, return or discount that reduces the amount owed",
+        "other": "Anything else, such as notices, receipts, newsletters or meeting requests"
+      }
+    },
+    "new_destination": {
+      "type": "noul",
+      "instructions": "Does it ask to pay a bank account or wallet address that is new or different from the one on file or used before?"
+    },
+    "pressure": {
+      "type": "noul",
+      "instructions": "Does it use urgency, secrecy or authority to push for a fast payment or to skip the usual checks?"
+    },
+    "suspicion": {
+      "type": "score",
+      "instructions": "How likely is this to be a payment-redirection scam?",
+      "criteria": [
+        "Clearly benign: routine business, nothing unusual",
+        "Some unusual elements, but probably legitimate",
+        "Suspicious: red flags that need verification before paying",
+        "Very likely a payment-redirection scam"
+      ]
+    }
+  },
+  "safe_to_autoclear": {
+    "types": [
+      "routine_invoice",
+      "credit_note"
+    ],
+    "max_suspicion": 1,
+    "p_safe": "P(type in types) * P(new_destination = false) * P(suspicion <= max_suspicion)"
+  }
+}

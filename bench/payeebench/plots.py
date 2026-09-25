@@ -11,7 +11,7 @@ from .schema import QUESTION_IDS  # noqa: E402
 
 SURFACE, INK, INK2, MUTED, GRID, AXIS = "#fcfcfb", "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7"
 SLOTS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"]   # validated order
-FIXED = [("(ours)", 0), ("kev-0.8b (base)", 1), ("val-fitted", 2), ("4b", 3), ("jev", 6), ("claude", 4)]
+FIXED = [("payee-0.8b", 0), ("kev-0.8b (base)", 1), ("val-fitted", 2), ("kev-4b", 3), ("payee-4b", 6), ("jev", 7), ("claude", 4)]
 REFERENCE = "#b9b8b1"      # estimates that are not measured contenders
 MIN_BIN = 10               # reliability bins with fewer answers are noise, not signal
 QUESTION_LABELS = {"request_type": "Request type", "new_destination": "New destination", "pressure": "Pressure", "suspicion": "Suspicion"}
@@ -19,6 +19,12 @@ QUESTION_LABELS = {"request_type": "Request type", "new_destination": "New desti
 plt.rcParams.update({"font.family": ["Helvetica Neue", "Arial", "DejaVu Sans"], "font.size": 13, "axes.edgecolor": AXIS,
                      "axes.labelcolor": INK2, "xtick.color": INK2, "ytick.color": INK2, "axes.facecolor": SURFACE,
                      "figure.facecolor": SURFACE, "savefig.facecolor": SURFACE, "axes.spines.top": False, "axes.spines.right": False})
+
+
+def ink_on(fill):
+    """Text colour that clears contrast on a fill: surface on dark fills, ink on light ones."""
+    r, g, b = (int(fill[i:i + 2], 16) / 255 for i in (1, 3, 5))
+    return SURFACE if 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.5 else INK
 
 
 def colors_for(names):
@@ -71,7 +77,7 @@ def _legend(ax, names, colors, loc="lower right", extra=None, anchor=None, ncol=
 
 
 def accuracy_chart(result, colors, path):
-    names = list(result["contenders"])
+    names = [n for n in result["contenders"] if "val-fitted" not in n]   # a temperature refit never changes accuracy
     groups = list(QUESTION_IDS) + ["mean"]
     fig, ax = plt.subplots(figsize=(12, 6.2))
     width, bars = min(0.8 / len(names), 0.26), []
@@ -82,13 +88,13 @@ def accuracy_chart(result, colors, path):
             x = g + (i - (len(names) - 1) / 2) * (width + 0.02)
             bars.append((x, width, v, colors[name]))
             if g == len(groups) - 1 or "(ours)" in name:
-                ax.text(x, v + 0.015, f"{v:.0%}", ha="center", va="bottom", fontsize=11, color=INK)
+                ax.text(x, v + 0.015, f"{v:.0%}", ha="center", va="bottom", fontsize=10, color=INK)
     ax.set_xticks(range(len(groups)), [QUESTION_LABELS.get(g, "Mean of 4") for g in groups])
     ax.set_ylim(0, 1.08); ax.set_yticks([0, 0.25, 0.5, 0.75, 1.0], ["0%", "25%", "50%", "75%", "100%"])
     ax.set_xlim(-0.6, len(groups) - 0.4)
     _frame(ax)
-    _legend(ax, names, colors, loc="lower left", anchor=(0, 1.0), ncol=len(names))
-    ax.set_title(f"PayeeBench-JA test accuracy ({result['n_items']} unseen items, new templates)", loc="left", color=INK, fontsize=15, pad=44)
+    _legend(ax, names, colors, loc="lower left", anchor=(0, 1.0), ncol=min(len(names), 3))
+    ax.set_title(f"PayeeBench-JA test accuracy ({result['n_items']} unseen items, new templates)", loc="left", color=INK, fontsize=15, pad=44 if len(names) <= 3 else 70)
     fig.tight_layout()
     _draw_bars(ax, bars)
     fig.savefig(path, dpi=200); plt.close(fig)
@@ -125,8 +131,10 @@ def autoclear_chart(result, colors, path):
         pick = ac.get("deployed", ac["oracle"])
         y = len(names) - 1 - i
         bars.append((y, 0.5, pick["legit_cleared"], colors[name]))
-        ax.text(pick["legit_cleared"] + 0.01, y, f"{pick['legit_cleared']:.0%} of legit items, {pick['false_clears']} unsafe let through",
-                va="center", fontsize=12, color=INK)
+        text = f"{pick['legit_cleared']:.0%} of legit items, {pick['false_clears']} unsafe let through"
+        inside = pick["legit_cleared"] > 0.55
+        ax.text(pick["legit_cleared"] + (-0.015 if inside else 0.01), y, text, va="center", ha="right" if inside else "left",
+                fontsize=12, color=ink_on(colors[name]) if inside else INK, zorder=5)
     ax.set_yticks(range(len(names)), list(reversed(names)))
     ax.set_xlim(0, 1); ax.set_xticks([0, 0.25, 0.5, 0.75, 1.0], ["0%", "25%", "50%", "75%", "100%"])
     ax.set_ylim(-0.6, len(names) - 0.4)

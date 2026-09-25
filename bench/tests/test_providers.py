@@ -25,6 +25,20 @@ def test_systemone_prices_hosted_calls_by_input_tokens(monkeypatch):
     assert pred.cost_usd == pytest.approx(0.042 / 1000) and pred.latency_ms == 12.0
 
 
+def test_openrouter_uses_decisions_endpoint_and_reported_cost(monkeypatch):
+    seen = {}
+
+    def fake_post(url, body, headers):
+        seen.update(url=url, model=body["model"], auth=headers.get("authorization", ""))
+        return {"answers": ANSWERS, "usage": {"input_tokens": 476, "output_tokens": 70, "cost": 0.000019992}}, 80.0
+
+    monkeypatch.setattr(providers, "secret", lambda name: "or-key")
+    monkeypatch.setattr(providers, "post_json", fake_post)
+    pred = providers.openrouter_jev()({"body": "x"})
+    assert seen["url"] == "https://openrouter.ai/api/alpha/decisions" and seen["model"] == "~typesafe/jev-latest"
+    assert seen["auth"] == "Bearer or-key" and pred.cost_usd == 0.000019992
+
+
 def test_cloudflare_unwraps_result_and_skips_without_credentials(monkeypatch):
     monkeypatch.setattr(providers, "secret", lambda name: None)
     with pytest.raises(ProviderUnavailable):
