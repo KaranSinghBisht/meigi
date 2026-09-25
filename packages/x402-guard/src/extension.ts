@@ -1,5 +1,12 @@
 import type { BeforePaymentCreationHook, ClientExtension } from "@x402/core/client";
-import { checkPayee, MEIGI_PAYEE_KEY, type GuardDeps, type GuardVerdict } from "./check.js";
+import {
+  checkPayee,
+  checkUndeclared,
+  MEIGI_PAYEE_KEY,
+  type GuardDeps,
+  type GuardVerdict,
+  type UnverifiedPolicy,
+} from "./check.js";
 
 export interface GuardOptions {
   /** Called with every verdict, e.g. to show it in an agent console. */
@@ -40,6 +47,21 @@ export function requireMeigiPayee(options: GuardOptions = {}): BeforePaymentCrea
     };
     options.onVerdict?.(verdict);
     return { abort: true, reason: verdict.reason };
+  };
+}
+
+/**
+ * Tiered policy for agents: merchants that declare a Meigi payee are left to `meigiPayeeExtension` (registry
+ * check); merchants that don't may only be paid up to `policy.maxAmount`, after screening clears `payTo`.
+ *
+ *   client.onBeforePaymentCreation(screenUndeclaredPayee({ screen, maxAmount }));
+ */
+export function screenUndeclaredPayee(policy: UnverifiedPolicy, options: GuardOptions = {}): BeforePaymentCreationHook {
+  return async (context) => {
+    if (context.paymentRequired.extensions?.[MEIGI_PAYEE_KEY] !== undefined) return undefined;
+    const verdict = await checkUndeclared(policy, context.selectedRequirements);
+    options.onVerdict?.(verdict);
+    return verdict.ok ? undefined : { abort: true, reason: verdict.reason };
   };
 }
 

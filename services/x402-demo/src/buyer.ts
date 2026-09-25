@@ -2,7 +2,7 @@ import {
   interceptaScreen,
   meigiPayeeExtension,
   registryReader,
-  requireMeigiPayee,
+  screenUndeclaredPayee,
   type GuardVerdict,
 } from "@meigi/x402-guard";
 import { x402Client } from "@x402/core/client";
@@ -12,7 +12,7 @@ import { decodePaymentResponseHeader, wrapFetchWithPayment } from "@x402/fetch";
 import { createPublicClient, http, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
-import { NETWORK, PRICE_ATOMIC, type Config } from "./config.js";
+import { NETWORK, PRICE_ATOMIC, UNVERIFIED_MAX_ATOMIC, type Config } from "./config.js";
 
 export interface PurchaseResult {
   verdict: GuardVerdict | null;
@@ -23,8 +23,9 @@ export interface PurchaseResult {
 }
 
 /**
- * A buyer agent with the Meigi guard installed: it refuses to sign unless `payTo` is the declaring company's
- * registered payout, and refuses merchants that declare nothing.
+ * A buyer agent with the Meigi guard installed. A merchant that declares a T-number is paid only at that
+ * company's registered payout. A merchant that declares nothing is paid only small amounts, and only after
+ * Intercepta screening clears its `payTo`; without an Intercepta key it is refused.
  */
 export function guardedBuyer(config: Config) {
   const account = privateKeyToAccount(config.DEMO_BUYER_PRIVATE_KEY as Hex);
@@ -45,7 +46,7 @@ export function guardedBuyer(config: Config) {
       .register(NETWORK, new ExactEvmScheme(signer))
       .setSpendControls({ allowedAssets: [{ network: NETWORK, asset: config.TOKEN_ADDRESS, maxAmountPerPayment: PRICE_ATOMIC }] })
       .registerExtension(meigiPayeeExtension(guardDeps, { onVerdict: record }))
-      .onBeforePaymentCreation(requireMeigiPayee({ onVerdict: record }));
+      .onBeforePaymentCreation(screenUndeclaredPayee({ screen: guardDeps.screen, maxAmount: UNVERIFIED_MAX_ATOMIC }, { onVerdict: record }));
     try {
       const response = await wrapFetchWithPayment(fetch, client)(url);
       const header = response.headers.get("PAYMENT-RESPONSE");

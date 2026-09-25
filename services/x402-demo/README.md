@@ -7,8 +7,16 @@ One process, three roles, built on the official x402 v2 packages (`@x402/hono`, 
   hacked server that swapped `payTo`. An attacker can edit a web server, not the company's registry entry.
 - **Facilitator**: self-hosted and in-process. It verifies EIP-3009 authorizations and settles them with its
   own key. The public x402.org facilitator only serves Base Sepolia.
-- **Buyer agent**: `@x402/fetch` with `@meigi/x402-guard` registered. The guard refuses to sign unless
-  `payTo` is the declared company's registered payout, and optionally screens it with Intercepta.
+- **Buyer agent**: `@x402/fetch` with `@meigi/x402-guard` registered, with a tiered policy:
+  - **A merchant that declares a T-number** is paid only at that company's registered payout, and Intercepta
+    screens that payout too.
+  - **A merchant that declares nothing**, like most of the web today, is paid at most 50 mJPYC, and only after a
+    live Intercepta screen of `payTo` comes back clean. Without an Intercepta key, or when screening fails,
+    it is refused.
+- **Unverified merchants:**
+  - `/merchant/unverified/fx` asks to be paid at a clean address (default: the demo merchant's own payout).
+  - `/merchant/unverified-flagged/fx` asks to be paid at the OFAC-listed Ronin bridge exploiter address
+    (`DEMO_FLAGGED_PAYTO` overrides it). Intercepta's risk data is mainnet, so this is a real mainnet address.
 
 ## Run
 
@@ -16,11 +24,17 @@ One process, three roles, built on the official x402 v2 packages (`@x402/hono`, 
 pnpm --filter @meigi/x402-demo start          # reads ../../.env, listens on :8790
 curl localhost:8790/demo/honest               # guard ok → signed → settled on Sepolia
 curl localhost:8790/demo/compromised          # guard aborts before signing: payTo isn't the registered payout
+curl localhost:8790/demo/unverified            # no declaration: Intercepta screens payTo → clean → small payment settles
+curl localhost:8790/demo/unverified-flagged    # no declaration: Intercepta flags payTo → aborted before signing
 ```
+
+Where Intercepta is called: `packages/x402-guard/src/intercepta.ts` (the quick-scan request). The decisions are
+in `packages/x402-guard/src/check.ts`: `checkPayee` for declared merchants and `checkUndeclared` for undeclared
+ones. Both run in x402's `onBeforePaymentCreation` hook, before anything is signed.
 
 Env: `SEPOLIA_RPC_URL`, `REGISTRY_ADDRESS`, `TOKEN_ADDRESS`, `DEMO_MERCHANT_T_NUMBER`, `DEMO_MERCHANT_PAYOUT`,
 `DEMO_SCAMMER`, `DEMO_BUYER_PRIVATE_KEY` (holds mJPYC), `FACILITATOR_PRIVATE_KEY` (holds Sepolia ETH), and
-optionally `INTERCEPTA_API_KEY`.
+optionally `INTERCEPTA_API_KEY`, `DEMO_UNVERIFIED_PAYTO` and `DEMO_FLAGGED_PAYTO`.
 
 Verified live (2026-09-26): an honest purchase settled in
 `0xf3c298960b9abac5466f4aa6e59f9a9ba4b73de703df3468d72f18049077b0df`. The compromised purchase was refused

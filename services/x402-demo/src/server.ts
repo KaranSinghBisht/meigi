@@ -20,6 +20,10 @@ app.get("/demo/honest", async (c) => c.json(await buy(`${self}/merchant/honest/f
 /** The same merchant with a swapped payTo: the guard refuses before anything is signed. */
 app.get("/demo/compromised", async (c) => c.json(await buy(`${self}/merchant/compromised/fx`)));
 
+/** A merchant with no Meigi declaration: Intercepta screening of payTo alone decides (small amounts only). */
+app.get("/demo/unverified", async (c) => c.json(await buy(`${self}/merchant/unverified/fx`)));
+app.get("/demo/unverified-flagged", async (c) => c.json(await buy(`${self}/merchant/unverified-flagged/fx`)));
+
 serve({ fetch: app.fetch, port: config.X402_DEMO_PORT }, (info) => {
   process.stdout.write(`meigi x402 demo listening on http://localhost:${info.port}\n`);
 });

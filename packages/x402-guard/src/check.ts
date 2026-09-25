@@ -35,11 +35,23 @@ export type GuardCode =
   | "network_mismatch"
   | "payee_not_active"
   | "payto_mismatch"
-  | "screened";
+  | "screened"
+  | "screening_unavailable"
+  | "unverified_over_limit";
 
 export type GuardVerdict =
   | { ok: true; tNumber: string; legalName: string; payTo: Address; screening?: ScreenResult }
+  /** A merchant with no Meigi declaration, paid a small amount because screening cleared its payTo. */
+  | { ok: true; unverified: true; payTo: Address; screening: ScreenResult }
   | { ok: false; code: GuardCode; reason: string; screening?: ScreenResult };
+
+/** How an agent treats merchants that declare no Meigi payee. */
+export interface UnverifiedPolicy {
+  /** Screens the address such a merchant asks to be paid at, e.g. with Intercepta. */
+  screen?: (address: Address) => Promise<ScreenResult>;
+  /** Largest payment to such a merchant, in the asset's atomic units. */
+  maxAmount: bigint;
+}
 
 const T_NUMBER = /^T?(\d{13})$/u;
 
@@ -85,4 +97,41 @@ export async function checkPayee(
     return { ok: false, code: "screened", reason: `screening flagged ${short(payTo)}: ${screening.summary}`, screening };
   }
   return { ok: true, tNumber, legalName: payee.legalName, payTo, screening };
+}
+
+function atomic(amount: string): bigint | null {
+  return /^\d{1,78}$/u.test(amount) ? BigInt(amount) : null;
+}
+
+/**
+ * Decides whether a buyer may pay a merchant that declared no Meigi payee: only up to `maxAmount`, and only
+ * once screening has cleared `payTo`. No screener, a failed screening call or a flagged address refuses.
+ */
+export async function checkUndeclared(
+  policy: UnverifiedPolicy,
+  requirements: { payTo: string; amount: string },
+): Promise<GuardVerdict> {
+  if (!isAddress(requirements.payTo, { strict: false })) {
+    return { ok: false, code: "payto_mismatch", reason: "payTo is not an address" };
+  }
+  const payTo = getAddress(requirements.payTo);
+  const amount = atomic(requirements.amount);
+  if (amount === null || amount > policy.maxAmount) {
+    const reason = `merchant declares no Meigi payee; ${requirements.amount} is above the ${policy.maxAmount} allowed unverified`;
+    return { ok: false, code: "unverified_over_limit", reason };
+  }
+  if (!policy.screen) {
+    return { ok: false, code: "no_declaration", reason: "merchant declares no Meigi payee and no screening is configured" };
+  }
+  let screening: ScreenResult;
+  try {
+    screening = await policy.screen(payTo);
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : "unknown error";
+    return { ok: false, code: "screening_unavailable", reason: `merchant declares no Meigi payee and screening failed (${detail})` };
+  }
+  if (screening.flagged) {
+    return { ok: false, code: "screened", reason: `screening flagged ${short(payTo)}: ${screening.summary}`, screening };
+  }
+  return { ok: true, unverified: true, payTo, screening };
 }
