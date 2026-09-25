@@ -1,5 +1,4 @@
 import { zeroAddress, type Address, type Hex } from "viem";
-import { APPROVABLE } from "../approval/holds.js";
 import { describeRevert, type DecodedRevert } from "../chain/describe.js";
 import { registeredName } from "../chain/format.js";
 import type { PayCall, PaymentReceipt, RawRevert } from "../chain/types.js";
@@ -7,6 +6,7 @@ import type { AppDeps } from "../deps.js";
 import type { PaymentIntent } from "../kernel/intent.js";
 import type { Reason } from "../kernel/reasons.js";
 import { explainOutcome, type Explanation } from "./explain.js";
+import { approvedRefusal, forceRefusal, forceSendRefusal } from "./override.js";
 import type { StoredAnalysis } from "./store.js";
 
 export type PayResult =
@@ -19,39 +19,12 @@ export type PayResult =
 export type PayMode = "auto" | "force" | "approved";
 
 /**
- * The only holds `force` may override. Triage, pressure and injection holds are judgements about intent, and
- * every payee/vendor reason is re-checked by the vault itself (its revert is the demo). Everything else (a credit
- * note, hidden content, ambiguous totals, a missing invoice number, several addresses, a screening hit...) is
- * about the document's integrity or the payee's safety, and is never overridden. An allow-list, so new
- * reason codes are refused until someone decides otherwise.
- */
-const FORCE_OVERRIDABLE = new Set([
-  "triage_hold",
-  "triage_unavailable",
-  "pressure_hold",
-  "above_auto_clear_budget",
-  "urgent_language",
-  "prompt_injection_suspected",
-  "payout_mismatch",
-  "payee_not_registered",
-  "payee_disputed",
-  "vendor_not_approved",
-  "vendor_not_yet_active",
-  "vendor_payout_changed",
-  "over_payment_cap",
-  "over_period_cap",
-  "invoice_already_paid",
-  "insufficient_balance",
-  "vault_paused",
-  "not_agent",
-]);
-
-/**
  * Pays an analysed invoice from the agent key. In "auto" mode only a "pay" verdict is sent. "force" attempts a
- * held payment to show the chain's answer: always simulated first, and a simulated revert is decoded and
- * returned without broadcasting. "approved" (the caller has spent a verified human's approval) releases holds
- * in APPROVABLE only. Either way the payment is simulated first and pays the printed amount to the registered
- * payee of the printed T-number. `record` sees a sent transaction before its receipt.
+ * held payment to show the chain's answer: only when the vault enforces one of the holds, always simulated
+ * first, and a simulated revert is decoded and returned without broadcasting; it never releases a hold only a
+ * person may (override.ts). "approved" (the caller has spent a verified human's approval) releases the approvable
+ * holds only. Every payment is simulated first and pays the printed amount to the registered payee of the printed
+ * T-number. `record` sees a sent transaction before its receipt.
  */
 export async function payAnalysis(deps: AppDeps, stored: StoredAnalysis, mode: PayMode, record: (r: PayResult) => void): Promise<PayResult> {
   const previous = stored.payment;
@@ -60,14 +33,16 @@ export async function payAnalysis(deps: AppDeps, stored: StoredAnalysis, mode: P
   const { intent, verdict } = stored;
   const isHeld = verdict.decision !== "pay";
   if (isHeld && mode === "auto") return held(stored, verdict.reasons);
-  const refused = isHeld && mode !== "auto" ? overrideRefusal(stored, mode) : null;
-  if (refused) return held(stored, [refused]);
   const forced = isHeld && mode === "force";
+  const refused = !isHeld ? null : forced ? forceRefusal(stored) : approvedRefusal(stored);
+  if (refused) return held(stored, [refused]);
   if (!intent) return held(stored, verdict.reasons);
   if (intent.amount <= 0n) return held(stored, notPayable(stored, intent));
   const call = callOf(intent);
   const simulated = await deps.payer.simulate(call);
   if (!simulated.ok) return reverted(deps, stored, simulated.revert, forced);
+  const unsent = forced ? forceSendRefusal(stored) : null;
+  if (unsent) return held(stored, [unsent]);
   const pending = (txHash: Hex): PayResult => ({ status: "pending", txHash, forced, message: "Sent; waiting for the block. Pay again to check." });
   const sent = await deps.payer.send(call, (txHash) => record(pending(txHash)));
   if (sent.ok === "pending") return pending(sent.txHash);
@@ -121,23 +96,6 @@ async function reverted(deps: AppDeps, stored: StoredAnalysis, raw: RawRevert, f
 
 function held(stored: StoredAnalysis, reasons: Reason[]): PayResult {
   return { status: "held", reasons, explanation: stored.view.explanation };
-}
-
-/** A held payment goes ahead only if every hold is one this mode may override: an allow-list per mode. */
-function overrideRefusal(stored: StoredAnalysis, mode: "force" | "approved"): Reason | null {
-  const allowed = mode === "force" ? FORCE_OVERRIDABLE : APPROVABLE;
-  const doubtful = stored.verdict.reasons.filter((r) => r.severity === "block" && !allowed.has(r.code)).map((r) => r.code);
-  if (doubtful.length === 0) return null;
-  const payee = stored.view.kernel.payee;
-  const who = mode === "force" ? "Force can't override" : "A person's approval can't release";
-  return {
-    code: mode === "force" ? "force_refused" : "approval_refused",
-    severity: "block",
-    layer: "kernel",
-    tNumber: payee?.tNumber ?? stored.view.extracted.tNumber,
-    legalName: payee?.legalName ?? null,
-    message: `${who} these holds: ${[...new Set(doubtful)].join(", ")}.`,
-  };
 }
 
 function notPayable(stored: StoredAnalysis, intent: PaymentIntent): Reason[] {

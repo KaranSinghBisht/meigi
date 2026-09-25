@@ -58,7 +58,7 @@
     {
       "file": "07-urgent-invoice.ja.txt",
       "title": "Genuine but urgent invoice (至急)",
-      "expect": { "verdict": "hold", "humanApprovable": true, "note": "Meigi Shoji's real payout and a consistent bill, but it pushes for speed (pressure_hold). A verified human approves it with World ID, then the agent pays; deny it or let it expire and nothing is paid." }
+      "expect": { "verdict": "hold", "humanApprovable": true, "note": "Meigi Shoji's real payout and a consistent bill, but it pushes for speed (pressure_hold). A verified human approves it with World ID, then the agent pays; deny it or let it expire and nothing is paid. Force is refused (force_needs_human)." }
     }
   ]
 }

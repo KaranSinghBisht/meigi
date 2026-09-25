@@ -129,7 +129,7 @@ describe.skipIf(!hasFoundry())("agent against the real contracts on anvil", () =
     expect(forced.error.sentence).toMatch(/^T3999905000001 = 合同会社ベイサイド・アドバイザリー is not on this vault's approved vendor list/u);
   });
 
-  it("pays an urgent invoice only after a verified human approves it; a denial pays nothing", async () => {
+  it("pays an urgent invoice only after a verified human approves it; force or a denial pays nothing", async () => {
     const ask = async (id: string) => {
       const res = await app.request(`/invoices/${id}/approval`, { method: "POST", body: "{}", headers: { "content-type": "application/json" } });
       expect(res.status).toBe(202);
@@ -139,9 +139,11 @@ describe.skipIf(!hasFoundry())("agent against the real contracts on anvil", () =
     };
     const denial = await analyze("07-urgent-invoice.ja.txt");
     expect(denial.verdict.reasons.map((r: { code: string }) => r.code)).toEqual(["pressure_hold"]);
+    const nonce = await agentNonce();
+    const forced = await post(`/invoices/${denial.id}/pay`, { force: true }); // force never stands in for the human
+    expect(forced).toMatchObject({ status: "held", reasons: [expect.objectContaining({ code: "force_needs_human" })] });
     human.idp.token = [denied];
     const deniedId = await ask(denial.id);
-    const nonce = await agentNonce();
     const refused = await app.request(`/invoices/${denial.id}/pay`, {
       method: "POST",
       body: JSON.stringify({ approvalId: deniedId }),

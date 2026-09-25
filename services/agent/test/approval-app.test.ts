@@ -215,13 +215,32 @@ describe("judgement holds", () => {
     const under = await analyzeWith({ ...fakeDeps(), holds: { maxPressure: 0.5, autoClearMaxYen: 200_000 } }, "01-routine-invoice.ja.txt");
     expect(under.verdict.decision).toBe("pay");
   });
+});
 
-  it("still lets the force demo through a pressure hold, so the chain answers", async () => {
-    const deps = fakeDeps();
-    const app = createApp(deps);
-    const analysis = (await (await app.request("/invoices/analyze", post({ text: demo("07-urgent-invoice.ja.txt") }))).json()) as { id: string };
-    const forced = (await (await app.request(`/invoices/${analysis.id}/pay`, post({ force: true }))).json()) as Record<string, unknown>;
-    expect(forced).toMatchObject({ status: "paid", forced: true });
+describe("approval in the analysis response, decided by the server", () => {
+  it("reports { enabled, approvable } on analyze and GET, live", async () => {
+    const s = await setup();
+    const cases: [string, boolean][] = [
+      ["07-urgent-invoice.ja.txt", true], // held for pressure only
+      ["01-routine-invoice.ja.txt", false], // pays: nothing to approve
+      ["02-bank-change-bec.ja.txt", false], // payout_mismatch: the chain would refuse it
+      ["05-credit-note.ja.txt", false], // document integrity
+    ];
+    for (const [file, approvable] of cases) {
+      const analysis = await s.analyze(file);
+      expect(analysis.approval, file).toEqual({ enabled: true, approvable });
+      expect((await s.call("GET", `/invoices/${analysis.id}`)).body.approval, file).toEqual({ enabled: true, approvable });
+    }
+    const urgent = await s.analyze("07-urgent-invoice.ja.txt");
+    s.h.idp.token = [approvedWith(await s.h.idp.sign())];
+    const { attemptId } = await ask(s, urgent.id);
+    await s.call("POST", `/invoices/${urgent.id}/pay`, { approvalId: attemptId });
+    expect((await s.call("GET", `/invoices/${urgent.id}`)).body.approval).toEqual({ enabled: true, approvable: false }); // paid
+  });
+
+  it("still says approvable when World ID isn't configured, so the console can say why", async () => {
+    const res = await createApp(fakeDeps()).request("/invoices/analyze", post({ text: demo("07-urgent-invoice.ja.txt") }));
+    expect(((await res.json()) as { approval: unknown }).approval).toEqual({ enabled: false, approvable: true });
   });
 });
 

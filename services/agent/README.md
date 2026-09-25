@@ -53,8 +53,13 @@ upper-cased.
 - **Judgement holds:** System-1 pressure above `TRIAGE_MAX_PRESSURE` (0.5) or urgency wording in the document
   (`pressure_hold`), and amounts above `AUTO_CLEAR_MAX_YEN` when it is set (`above_auto_clear_budget`), hold a
   payment that would otherwise clear. A verified human may release these (below).
-- **What force may override:** triage holds, pressure, the auto-clear budget, prompt injection, and the payee/vendor
-  reasons the vault enforces itself.
+- **Force only asks the chain.** It is allowed only when at least one hold is one the vault enforces itself (payout
+  mismatch, unregistered or disputed payee, vendor not approved or not yet active, payout changed, caps, already
+  paid, balance, paused, not the agent). Judgement holds (triage, pressure, the auto-clear budget, injection wording)
+  may ride along, but force never releases them. When every hold is one a verified human could approve, force
+  answers `force_needs_human` ("Only a verified human can release this hold; forcing can't"), whether or not World ID
+  is configured. A clean forced simulation is sent only when the chain enforced every hold; otherwise nothing is
+  sent (`force_needs_human` or `force_refused`).
 - **What force never overrides** (`force_refused`): credit notes, hidden content, markup, bidirectional controls,
   ambiguous or conflicting totals, missing invoice numbers or T-numbers, several addresses, and screening hits.
 - **Where values come from:** the T-number and amount always come from the document. Only the destination may come
