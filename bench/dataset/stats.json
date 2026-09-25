@@ -1,0 +1,182 @@
+{
+  "train": {
+    "n": 600,
+    "families": {
+      "invoice_routine": 77,
+      "notice": 71,
+      "bec_polite": 47,
+      "change_legit": 47,
+      "invoice_swap": 29,
+      "fake_exec": 47,
+      "credit_note": 47,
+      "exec_legit": 29,
+      "x402_overcharge": 12,
+      "injection_redirect": 24,
+      "reminder_gentle": 24,
+      "x402_swap": 29,
+      "reminder_overdue": 29,
+      "x402_ok": 29,
+      "bec_urgent": 35,
+      "refund_scam": 12,
+      "injection_bypass": 12
+    },
+    "languages": {
+      "ja": 433,
+      "en": 167
+    },
+    "channels": {
+      "invoice_pdf": 142,
+      "email": 360,
+      "x402": 70,
+      "chat": 28
+    },
+    "safe_to_autoclear": 206,
+    "labels": {
+      "request_type": {
+        "routine_invoice": 238,
+        "other": 71,
+        "payee_change": 156,
+        "urgent_exec_request": 76,
+        "credit_note": 59
+      },
+      "new_destination": {
+        "False": 330,
+        "True": 270
+      },
+      "pressure": {
+        "False": 426,
+        "True": 174
+      },
+      "suspicion": {
+        "0": 248,
+        "3": 177,
+        "1": 105,
+        "2": 70
+      }
+    },
+    "chars": {
+      "mean": 462,
+      "max": 1002
+    }
+  },
+  "val": {
+    "n": 100,
+    "families": {
+      "bec_urgent": 6,
+      "x402_ok": 5,
+      "credit_note": 8,
+      "x402_swap": 5,
+      "invoice_routine": 12,
+      "exec_legit": 5,
+      "reminder_gentle": 4,
+      "injection_redirect": 4,
+      "notice": 11,
+      "bec_polite": 8,
+      "change_legit": 8,
+      "invoice_swap": 5,
+      "x402_overcharge": 2,
+      "reminder_overdue": 5,
+      "injection_bypass": 2,
+      "fake_exec": 8,
+      "refund_scam": 2
+    },
+    "languages": {
+      "en": 38,
+      "ja": 62
+    },
+    "channels": {
+      "email": 60,
+      "x402": 12,
+      "invoice_pdf": 23,
+      "chat": 5
+    },
+    "safe_to_autoclear": 34,
+    "labels": {
+      "request_type": {
+        "payee_change": 26,
+        "routine_invoice": 40,
+        "credit_note": 10,
+        "urgent_exec_request": 13,
+        "other": 11
+      },
+      "new_destination": {
+        "True": 46,
+        "False": 54
+      },
+      "pressure": {
+        "True": 29,
+        "False": 71
+      },
+      "suspicion": {
+        "3": 29,
+        "0": 40,
+        "1": 18,
+        "2": 13
+      }
+    },
+    "chars": {
+      "mean": 469,
+      "max": 902
+    }
+  },
+  "test": {
+    "n": 150,
+    "families": {
+      "reminder_overdue": 7,
+      "injection_redirect": 6,
+      "notice": 18,
+      "invoice_swap": 7,
+      "reminder_gentle": 6,
+      "injection_bypass": 3,
+      "fake_exec": 12,
+      "bec_urgent": 9,
+      "x402_ok": 7,
+      "bec_polite": 12,
+      "change_legit": 12,
+      "credit_note": 12,
+      "x402_overcharge": 3,
+      "invoice_routine": 19,
+      "x402_swap": 7,
+      "refund_scam": 3,
+      "exec_legit": 7
+    },
+    "languages": {
+      "en": 41,
+      "ja": 109
+    },
+    "channels": {
+      "email": 91,
+      "invoice_pdf": 35,
+      "chat": 7,
+      "x402": 17
+    },
+    "safe_to_autoclear": 51,
+    "labels": {
+      "request_type": {
+        "routine_invoice": 58,
+        "payee_change": 40,
+        "other": 18,
+        "urgent_exec_request": 19,
+        "credit_note": 15
+      },
+      "new_destination": {
+        "False": 82,
+        "True": 68
+      },
+      "pressure": {
+        "True": 46,
+        "False": 104
+      },
+      "suspicion": {
+        "1": 26,
+        "3": 48,
+        "0": 62,
+        "2": 14
+      }
+    },
+    "chars": {
+      "mean": 466,
+      "max": 1009
+    }
+  }
+}

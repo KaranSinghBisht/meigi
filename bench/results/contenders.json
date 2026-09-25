@@ -1,0 +1,50 @@
+{
+  "kev-0.8b (base)": {
+    "slug": "kev-0-8b-base",
+    "ran": true,
+    "skipped_because": null,
+    "at": "2026-09-25T19:17:24+00:00"
+  },
+  "kev-0.8b (base, val-fitted T)": {
+    "slug": "kev-0-8b-base-val-fitted-t",
+    "ran": true,
+    "skipped_because": null,
+    "at": "2026-09-25T19:17:36+00:00"
+  },
+  "kev-4b (base)": {
+    "slug": "kev-4b-base",
+    "ran": true,
+    "skipped_because": null,
+    "at": "2026-09-25T19:18:34+00:00"
+  },
+  "payee-0.8b (ours)": {
+    "slug": "payee-0-8b-ours",
+    "ran": true,
+    "skipped_because": null,
+    "at": "2026-09-25T19:18:46+00:00"
+  },
+  "jev (cloudflare)": {
+    "slug": "jev-cloudflare",
+    "ran": false,
+    "skipped_because": "CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN not set",
+    "at": "2026-09-25T19:18:46+00:00"
+  },
+  "jev (openrouter)": {
+    "slug": "jev-openrouter",
+    "ran": false,
+    "skipped_because": "OPENROUTER_API_KEY not set",
+    "at": "2026-09-25T19:18:46+00:00"
+  },
+  "jev (typesafe)": {
+    "slug": "jev-typesafe",
+    "ran": false,
+    "skipped_because": "TYPESAFE_API_KEY not set",
+    "at": "2026-09-25T19:18:46+00:00"
+  },
+  "claude-haiku-4.5": {
+    "slug": "claude-haiku-4-5",
+    "ran": false,
+    "skipped_because": "ANTHROPIC_API_KEY not set",
+    "at": "2026-09-25T19:18:46+00:00"
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "entities_shared_with_train": {
+    "val": {
+      "account": 0,
+      "bank": 0,
+      "company": 0,
+      "person": 0,
+      "t_number": 0,
+      "wallet": 0
+    },
+    "test": {
+      "account": 0,
+      "bank": 0,
+      "company": 0,
+      "person": 0,
+      "t_number": 0,
+      "wallet": 0
+    }
+  },
+  "templates_shared_with_train": {
+    "val": {
+      "picks": 89,
+      "shared": 89
+    },
+    "test": {
+      "picks": 90,
+      "shared": 0
+    }
+  },
+  "sentences_shared_with_train": {
+    "val": {
+      "sentences": 983,
+      "shared": 524
+    },
+    "test": {
+      "sentences": 1387,
+      "shared": 19
+    }
+  },
+  "nearest_train_5gram_jaccard": {
+    "val": {
+      "mean": 0.475,
+      "p95": 0.684,
+      "max": 0.73
+    },
+    "test": {
+      "mean": 0.16,
+      "p95": 0.551,
+      "max": 0.58
+    }
+  },
+  "exact_duplicate_states": {
+    "val": 0,
+    "test": 0
+  },
+  "checks": {
+    "t_numbers_valid": true,
+    "company_names": 1616,
+    "nta_names_checked": 1159785
+  }
+}
