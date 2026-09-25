@@ -1,6 +1,7 @@
 import type { Analysis, PayMode } from '../../lib/api/agentTypes'
 import { Button } from '../../ui/components/Button'
 import type { Approval } from './approval/useApproval'
+import { attackDemoFits } from './holds'
 import type { PayState } from './useAgentConsole'
 import './agent.css'
 
@@ -8,25 +9,6 @@ interface PayControls {
   readonly pay: PayState
   readonly approval: Approval
   readonly onPay: (mode: PayMode) => void
-}
-
-/**
- * Judgement holds (the agent's own, and what a person may approve). Forcing past only these would skip the
- * human, so the attack demo is offered only when some hold is enforced by the vault (it reverts) or is one the
- * agent never overrides (it refuses): both show a refusal, never a payment.
- */
-const JUDGEMENT = new Set([
-  'triage_hold',
-  'triage_unavailable',
-  'pressure_hold',
-  'above_auto_clear_budget',
-  'urgent_language',
-  'prompt_injection_suspected',
-])
-
-function attackDemoFits(analysis: Analysis): boolean {
-  if (analysis.verdict.decision !== 'hold') return false
-  return analysis.verdict.reasons.some((reason) => reason.severity === 'block' && !JUDGEMENT.has(reason.code))
 }
 
 interface AttackDemoProps {
@@ -40,8 +22,8 @@ function AttackDemo({ busy, disabled, onForce }: AttackDemoProps) {
   return (
     <div className="decision__attack">
       <p className="decision__attack-note" id="attack-demo-note">
-        <span className="decision__attack-tag">Attack demo</span> Overrides the hold, as a talked-into agent would. The
-        vault still pays only the registered company.
+        <span className="decision__attack-tag">Attack demo</span> Pushes past the hold, as a talked-into agent would,
+        and asks the vault directly. Forcing only simulates; it never sends.
       </p>
       <Button variant="ghost" busy={busy} disabled={disabled} aria-describedby="attack-demo-note" onClick={onForce}>
         Let the agent pay anyway

@@ -3,6 +3,7 @@ import { shortAddress } from '../../lib/chain/format'
 import { TxLink } from '../../ui/components/Address'
 import { Button } from '../../ui/components/Button'
 import { Notice } from '../../ui/components/Notice'
+import { attackDemoFits } from './holds'
 import { Refusal } from './Refusal'
 import './agent.css'
 
@@ -43,10 +44,21 @@ function PaidView({ outcome, analysis, approved }: PaidViewProps) {
   )
 }
 
-/** `shown` is the explanation already on screen in the decision bar; it isn't repeated. */
-function HeldView({ outcome, shown }: { readonly outcome: Held; readonly shown: string }) {
+/** Force never pays: a hold only a verified human may release is answered calmly, not as an attack. */
+function NeedsHuman({ analysis }: { readonly analysis: Analysis }) {
+  const { enabled, approvable } = analysis.approval
+  return (
+    <Notice tone="info" title="Only a verified human can release this hold; forcing can't.">
+      <p>Nothing was paid.{enabled && approvable ? ' Use “Ask a verified human to approve” instead.' : ''}</p>
+    </Notice>
+  )
+}
+
+/** The explanation already on screen in the decision bar isn't repeated. */
+function HeldView({ outcome, analysis }: { readonly outcome: Held; readonly analysis: Analysis }) {
+  if (outcome.reasons.some((reason) => reason.code === 'force_needs_human')) return <NeedsHuman analysis={analysis} />
   const refused = outcome.reasons.some((reason) => reason.code === 'force_refused')
-  const explanation = outcome.explanation.text !== shown ? outcome.explanation.text : null
+  const explanation = outcome.explanation.text !== analysis.explanation.text ? outcome.explanation.text : null
   return (
     <Notice tone="warn" title={refused ? 'Held, and forcing it is refused.' : 'Held. The kernel sent nothing.'}>
       {explanation ? <p>{explanation}</p> : null}
@@ -57,9 +69,9 @@ function HeldView({ outcome, shown }: { readonly outcome: Held; readonly shown: 
           ))}
         </ul>
       ) : null}
-      {refused ? null : (
+      {!refused && attackDemoFits(analysis) ? (
         <p>The attack demo, “Let the agent pay anyway”, skips the kernel and asks the chain directly.</p>
-      )}
+      ) : null}
     </Notice>
   )
 }
@@ -75,7 +87,7 @@ interface PayOutcomeViewProps {
 
 export function PayOutcomeView({ outcome, analysis, approved = false, onCheckAgain }: PayOutcomeViewProps) {
   if (outcome.status === 'reverted') return <Refusal outcome={outcome} analysis={analysis} />
-  if (outcome.status === 'held') return <HeldView outcome={outcome} shown={analysis.explanation.text} />
+  if (outcome.status === 'held') return <HeldView outcome={outcome} analysis={analysis} />
   if (outcome.status === 'paid') return <PaidView outcome={outcome} analysis={analysis} approved={approved} />
   return (
     <Notice
