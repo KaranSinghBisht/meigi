@@ -13,8 +13,9 @@ ETHGlobal asks teams to disclose how AI was used. We used it heavily and deliber
 - Research: event rules, sponsor docs (ENS v2, World ID 4.0, Intercepta, JPYC), NTA data formats.
 - Code: Solidity contracts and tests, the verifier and agent services, scripts, the landing page.
 - AI security review in three rounds, each by a separate read-only agent with proof-of-concept exploits.
-  All 16 findings are fixed; see the two `fix(contracts): address … review findings` commits. Round 3
-  verified the fixes with mutation testing.
+  Of 16 findings, 14 are fixed. Two are accepted by design and documented: the fixed 30-day cap window, and
+  trusting the attester to verify World ID off-chain. See the two `fix(contracts): address … review findings`
+  commits. Round 3 verified the fixes with mutation testing.
 - Benchmark data generation (PayeeBench-JA) and the fine-tuning pipeline.
 
 ## What we decided
