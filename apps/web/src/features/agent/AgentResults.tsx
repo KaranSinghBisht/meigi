@@ -3,8 +3,7 @@ import { prefersReducedMotion } from '../../lib/hooks/motion'
 import { ErrorNotice } from '../../ui/components/Notice'
 import { Spinner } from '../../ui/components/Spinner'
 import { AnalysisColumns } from './AnalysisColumns'
-import { DecisionBar } from './DecisionBar'
-import { PayOutcomeView } from './PayOutcomeView'
+import { LiveDecision } from './LiveDecision'
 import { TokenForm } from './TokenForm'
 import type { AgentConsole } from './useAgentConsole'
 import './agent.css'
@@ -19,7 +18,7 @@ function useRevealOnReady(ready: boolean) {
 }
 
 export function Results({ agent }: { readonly agent: AgentConsole }) {
-  const { analysis, pay } = agent
+  const { analysis } = agent
   const ref = useRevealOnReady(analysis.kind === 'ready')
   if (analysis.kind === 'idle') return null
   if (analysis.kind === 'analyzing') {
@@ -41,18 +40,7 @@ export function Results({ agent }: { readonly agent: AgentConsole }) {
     <div ref={ref} className="agent__results">
       <h2 className="sr-only">What each stage found</h2>
       <AnalysisColumns analysis={analysis.analysis} />
-      <DecisionBar analysis={analysis.analysis} controls={{ pay, onPay: (force) => void agent.submitPayment(force) }} />
-      {pay.kind === 'done' ? (
-        <PayOutcomeView
-          outcome={pay.outcome}
-          analysis={analysis.analysis}
-          onCheckAgain={() => void agent.submitPayment(pay.force)}
-        />
-      ) : null}
-      {pay.kind === 'failed' ? <ErrorNotice error={pay.error} /> : null}
-      {pay.kind === 'failed' && pay.error.code === 'unauthorized' ? (
-        <TokenForm onSaved={() => void agent.submitPayment(pay.force)} />
-      ) : null}
+      <LiveDecision key={analysis.analysis.id} agent={agent} analysis={analysis.analysis} />
     </div>
   )
 }

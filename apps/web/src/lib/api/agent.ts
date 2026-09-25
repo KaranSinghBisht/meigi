@@ -1,10 +1,10 @@
 // Client for the AP agent (services/agent): analyse a document, pay it (or force it, to show the chain's
-// answer), the demo documents, and the vault's state.
+// answer, or with a verified human's approval), the demo documents, and the vault's state.
 
 import { env } from '../env/env'
 import { authHeaders } from './agentAuth'
 import { parseAnalysis, parsePayOutcome } from './agentParse'
-import type { Analysis, DemoInvoice, PayOutcome } from './agentTypes'
+import type { Analysis, DemoInvoice, PayMode, PayOutcome } from './agentTypes'
 import { joinUrl, requestJson } from './http'
 import { isRecord, record } from './parse'
 
@@ -21,10 +21,10 @@ export async function analyzeInvoice(text: string, signal?: AbortSignal): Promis
   return parseAnalysis(record(body, 'analysis'))
 }
 
-export async function payInvoice(id: string, force: boolean): Promise<PayOutcome> {
+export async function payInvoice(id: string, mode: PayMode): Promise<PayOutcome> {
   const body = await requestJson(url(`/invoices/${encodeURIComponent(id)}/pay`), {
     method: 'POST',
-    body: { force },
+    body: mode.kind === 'approved' ? { approvalId: mode.approvalId } : { force: mode.kind === 'force' },
     headers: authHeaders(),
     timeoutMs: 180_000,
   })

@@ -172,6 +172,8 @@ export function parseAnalysis(body: Json): Analysis {
     },
     explanation: explanation(body.explanation),
     totalMs: typeof obj(body.timings).totalMs === 'number' ? num(obj(body.timings).totalMs) : null,
+    // An agent without the feature sends nothing here: no button, and nothing to explain.
+    approval: { enabled: obj(body.approval).enabled === true, approvable: obj(body.approval).approvable === true },
   }
   return redactAnalysis(analysis)
 }

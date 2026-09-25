@@ -1,6 +1,7 @@
 import { DemoMachine } from '../../ui/demo/DemoMachine'
 import { RecordedRun } from '../../ui/demo/RecordedRun'
 import { AnalysisColumns } from './AnalysisColumns'
+import { ApprovalExplainer } from './approval/ApprovalExplainer'
 import { DecisionBar } from './DecisionBar'
 import { RECORDED_BEC } from './recorded'
 import { Refusal } from './Refusal'
@@ -28,6 +29,7 @@ export function AgentHosted() {
         <p className="recorded__step">Then “Let the agent pay anyway”:</p>
         <Refusal outcome={run.outcome} analysis={run.analysis} live={false} />
       </RecordedRun>
+      <ApprovalExplainer />
     </div>
   )
 }

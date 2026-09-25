@@ -71,6 +71,35 @@ const CODES: Record<string, Omit<Explained, 'tone'> & { tone?: Tone }> = {
   payment_in_progress: { title: 'This invoice is already being paid.' },
   internal_error: { title: 'The service hit an internal error.', detail: 'Its log has the details. Try again.' },
   analysis_not_found: { title: 'The agent no longer has this analysis.', detail: 'Analyze the document again.' },
+  not_approvable: {
+    title: "A person can't release these holds.",
+    detail:
+      'Only a hold for urgency, pressure or triage can be approved; a problem with the document itself never can.',
+  },
+  approval_not_configured: {
+    title: "Human approval isn't set up on this agent.",
+    detail: 'It needs a World ID for Agents client (`WORLD_AGENTS_CLIENT_ID` and its secret).',
+  },
+  approval_unavailable: {
+    title: "World ID can't be reached right now.",
+    detail: 'Nothing was paid. Try again shortly.',
+  },
+  approval_not_found: { title: 'The agent has no approval request for this invoice.', detail: 'Ask again.' },
+  approval_not_approved: {
+    tone: 'denied',
+    title: 'Not approved: nothing was paid.',
+    detail: 'The approval is no longer valid; it must be used within 10 minutes. Ask again.',
+  },
+  approval_used: {
+    tone: 'denied',
+    title: 'This approval was already used: it pays once.',
+    detail: 'Nothing more was paid.',
+  },
+  approval_void: {
+    tone: 'denied',
+    title: 'The invoice changed after it was approved, so the approval no longer counts.',
+    detail: 'Nothing was paid. Ask again.',
+  },
 }
 
 /** Browsers report "not running" and "CORS refused this origin" the same way, so the hint covers both. */

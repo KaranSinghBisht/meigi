@@ -9,13 +9,22 @@ import './agent.css'
 type Paid = Extract<PayOutcome, { status: 'paid' }>
 type Held = Extract<PayOutcome, { status: 'held' }>
 
-function PaidView({ outcome, analysis }: { readonly outcome: Paid; readonly analysis: Analysis }) {
+interface PaidViewProps {
+  readonly outcome: Paid
+  readonly analysis: Analysis
+  readonly approved: boolean
+}
+
+function kicker(outcome: Paid, approved: boolean): string {
+  if (approved) return 'Approved by a verified human, then paid'
+  return outcome.forced ? 'Forced, and the chain still only paid the registered company' : 'Paid'
+}
+
+function PaidView({ outcome, analysis, approved }: PaidViewProps) {
   const payee = analysis.kernel.payee
   return (
     <section className="paid" role="status">
-      <p className="paid__kicker">
-        {outcome.forced ? 'Forced, and the chain still only paid the registered company' : 'Paid'}
-      </p>
+      <p className="paid__kicker">{kicker(outcome, approved)}</p>
       <p className="paid__title">
         {outcome.amount} to{' '}
         {payee?.legalName ? (
@@ -48,7 +57,9 @@ function HeldView({ outcome, shown }: { readonly outcome: Held; readonly shown: 
           ))}
         </ul>
       ) : null}
-      {refused ? null : <p>Press “Let the agent pay anyway” to skip the kernel and ask the chain directly.</p>}
+      {refused ? null : (
+        <p>The attack demo, “Let the agent pay anyway”, skips the kernel and asks the chain directly.</p>
+      )}
     </Notice>
   )
 }
@@ -56,14 +67,16 @@ function HeldView({ outcome, shown }: { readonly outcome: Held; readonly shown: 
 interface PayOutcomeViewProps {
   readonly outcome: PayOutcome
   readonly analysis: Analysis
+  /** Paid with a verified human's approval (World ID for Agents). */
+  readonly approved?: boolean
   /** Asks the agent again; for a sent payment that had no receipt yet, this settles it without resending. */
   readonly onCheckAgain: () => void
 }
 
-export function PayOutcomeView({ outcome, analysis, onCheckAgain }: PayOutcomeViewProps) {
+export function PayOutcomeView({ outcome, analysis, approved = false, onCheckAgain }: PayOutcomeViewProps) {
   if (outcome.status === 'reverted') return <Refusal outcome={outcome} analysis={analysis} />
   if (outcome.status === 'held') return <HeldView outcome={outcome} shown={analysis.explanation.text} />
-  if (outcome.status === 'paid') return <PaidView outcome={outcome} analysis={analysis} />
+  if (outcome.status === 'paid') return <PaidView outcome={outcome} analysis={analysis} approved={approved} />
   return (
     <Notice
       tone="info"

@@ -123,6 +123,8 @@ export interface Analysis {
   }
   readonly explanation: Explanation
   readonly totalMs: number | null
+  /** Whether a verified human may approve this hold (World ID for Agents), and whether this agent can ask one. */
+  readonly approval: { readonly enabled: boolean; readonly approvable: boolean }
 }
 
 export interface DecodedRevert {
@@ -156,6 +158,12 @@ export type PayOutcome =
       readonly explanation: Explanation
     }
   | { readonly status: 'held'; readonly reasons: readonly Reason[]; readonly explanation: Explanation }
+
+/** How the console asks to pay: normally, forced (the attack demo), or with a verified human's approval. */
+export type PayMode =
+  | { readonly kind: 'pay' }
+  | { readonly kind: 'force' }
+  | { readonly kind: 'approved'; readonly approvalId: string }
 
 export interface DemoInvoice {
   readonly id: string

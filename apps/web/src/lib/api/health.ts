@@ -5,7 +5,8 @@ import { SERVICES, type Service } from './services'
 
 const LOOPBACK = /^(localhost|127(\.\d+){3}|\[::1\])$/
 
-function loopback(url: string): boolean {
+/** True for this machine's own addresses (localhost, 127.x.x.x, [::1]); false for anything unparseable. */
+export function isLoopbackUrl(url: string): boolean {
   try {
     return LOOPBACK.test(new URL(url).hostname)
   } catch {
@@ -26,7 +27,7 @@ async function probe(url: string): Promise<boolean> {
 
 export function isReachable(service: Service): Promise<boolean> {
   const url = SERVICES[service].url
-  if (loopback(url) && !loopback(window.location.origin)) return Promise.resolve(false)
+  if (isLoopbackUrl(url) && !isLoopbackUrl(window.location.origin)) return Promise.resolve(false)
   let pending = probes.get(service)
   if (!pending) {
     pending = probe(url)

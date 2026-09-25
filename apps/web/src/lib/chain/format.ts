@@ -45,6 +45,18 @@ export function formatJst(date: Date): string {
   return `${JST.format(date)} JST`
 }
 
+const JST_TIME = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Asia/Tokyo',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+})
+
+/** e.g. "05:42 JST", for something that just happened. */
+export function formatJstTime(date: Date): string {
+  return `${JST_TIME.format(date)} JST`
+}
+
 const RELATIVE = new Intl.RelativeTimeFormat('en', { numeric: 'auto' })
 
 export function formatRelative(date: Date, now: number = Date.now()): string {

@@ -10,7 +10,7 @@ import { describeWidgetError } from '../../lib/world/rpContext'
 import { Button } from '../components/Button'
 import { CopyButton } from '../components/CopyButton'
 import { Spinner } from '../components/Spinner'
-import { qrDataUrl } from './qr'
+import { useQr } from './useQr'
 import './world.css'
 
 const APPS = {
@@ -46,22 +46,6 @@ function useHandoff(flow: UseIDKitSessionHookResult, props: WorldIdSessionProps)
     if (flow.isError && flow.errorCode) onFinish(describeWidgetError(flow.errorCode))
   }, [flow.isError, flow.errorCode, onFinish])
   return verifying
-}
-
-function useQr(uri: string | null) {
-  const [qr, setQr] = useState<{ src: string | null; failed: boolean }>({ src: null, failed: false })
-  useEffect(() => {
-    if (!uri) return
-    let live = true
-    qrDataUrl(uri).then(
-      (src) => live && setQr({ src, failed: false }),
-      () => live && setQr({ src: null, failed: true }),
-    )
-    return () => {
-      live = false
-    }
-  }, [uri])
-  return qr
 }
 
 function statusText(flow: UseIDKitSessionHookResult, verifying: boolean, sameHuman: boolean): string {

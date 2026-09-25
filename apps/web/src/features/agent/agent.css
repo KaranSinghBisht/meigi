@@ -194,6 +194,7 @@
 .decision__text {
   font-size: 18px;
   line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 
 .decision__source {
@@ -202,10 +203,48 @@
   font-size: 13.5px;
 }
 
+/* A fixed width (not a percentage), so the grid sizes this column to it rather than to the note's full line. */
 .decision__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  display: grid;
+  justify-items: stretch;
+  gap: 12px;
+  width: 300px;
+  max-width: 100%;
+}
+
+.decision__note {
+  color: var(--ink-soft);
+  font-size: 13.5px;
+}
+
+.decision__attack {
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--line-strong);
+}
+
+.decision__attack-note {
+  color: var(--ink-muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+/* Solid rather than frosted: the decision bar is already opaque, and an outline keeps it readable when disabled. */
+.decision__attack .btn--ghost {
+  border-color: var(--line-strong);
+  background: #fff;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.decision__attack-tag {
+  margin-right: 4px;
+  color: var(--seal-deep);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .held__reasons {

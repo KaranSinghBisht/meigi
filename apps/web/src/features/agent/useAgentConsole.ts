@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 import { analyzeInvoice, fetchDemoInvoices, payInvoice } from '../../lib/api/agent'
-import type { Analysis, DemoInvoice, PayOutcome } from '../../lib/api/agentTypes'
+import type { Analysis, DemoInvoice, PayMode, PayOutcome } from '../../lib/api/agentTypes'
 import { ApiError } from '../../lib/api/http'
 import { explainError, type Explained } from '../../lib/api/messages'
 import { BUILT_IN_EXAMPLES } from './examples'
@@ -13,9 +13,9 @@ export type AnalysisState =
 
 export type PayState =
   | { readonly kind: 'idle' }
-  | { readonly kind: 'paying'; readonly force: boolean }
-  | { readonly kind: 'done'; readonly outcome: PayOutcome; readonly force: boolean }
-  | { readonly kind: 'failed'; readonly error: Explained; readonly force: boolean }
+  | { readonly kind: 'paying'; readonly mode: PayMode }
+  | { readonly kind: 'done'; readonly outcome: PayOutcome; readonly mode: PayMode }
+  | { readonly kind: 'failed'; readonly error: Explained; readonly mode: PayMode }
 
 export interface Examples {
   readonly list: readonly DemoInvoice[]
@@ -59,17 +59,17 @@ function usePayment(analysis: AnalysisState, generation: RefObject<number>) {
   const [payments, setPayments] = useState(0)
 
   const submitPayment = useCallback(
-    async (force: boolean) => {
+    async (mode: PayMode) => {
       if (analysis.kind !== 'ready') return
       const { id } = analysis.analysis
       const current = generation.current
-      setPay({ kind: 'paying', force })
+      setPay({ kind: 'paying', mode })
       try {
-        const outcome = await payInvoice(id, force)
+        const outcome = await payInvoice(id, mode)
         setPayments((count) => count + 1)
-        if (generation.current === current) setPay({ kind: 'done', outcome, force })
+        if (generation.current === current) setPay({ kind: 'done', outcome, mode })
       } catch (error) {
-        if (generation.current === current) setPay({ kind: 'failed', error: explainError(error, 'agent'), force })
+        if (generation.current === current) setPay({ kind: 'failed', error: explainError(error, 'agent'), mode })
       }
     },
     [analysis, generation],

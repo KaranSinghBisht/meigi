@@ -6,7 +6,7 @@ agent console and the x402 guard demo. Vite + React 19 + TypeScript, viem on Sep
 | Route | What | Talks to |
 |---|---|---|
 | `/` | Home: live fixture payee and the four flows | Sepolia |
-| `/agent` | AP console: analyse an invoice, pay or force-pay, see the chain refuse | agent, Sepolia |
+| `/agent` | AP console: analyse an invoice, pay, have a verified human approve a held one (World ID for Agents), or force-pay to see the chain refuse | agent, Sepolia |
 | `/registry/:tNumber?` | Payee card, pending-change countdowns, ENS check, live event feed | Sepolia |
 | `/register` | NTA match → domain proof (personal_sign) → World ID officers → submit | verifier, wallet |
 | `/change/:tNumber?` | Approval request → officers prove their World ID session → controller queues it | verifier, wallet |
