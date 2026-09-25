@@ -4,7 +4,7 @@ packages:
   - "services/*"
   - "workers/*"
 allowBuilds:
-  esbuild: set this to true or false
+  esbuild: true
 minimumReleaseAgeExclude:
   - '@vitest/mocker@5.0.2'
   - '@vitest/spy@5.0.2'
