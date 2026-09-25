@@ -28,7 +28,10 @@ export function interceptaScreen(options: InterceptaOptions): (address: Address)
     if (!response.ok) throw new Error(`intercepta quick-scan failed with HTTP ${response.status}`);
     const body = (await response.json()) as { toxicScore?: unknown; traits?: unknown };
     const score = typeof body.toxicScore === "number" ? body.toxicScore : 0;
-    const traits = Array.isArray(body.traits) ? body.traits.map((t) => (typeof t === "string" ? t : JSON.stringify(t))) : [];
+    // Traits are { name, risk, txsCount, description } objects, e.g. known_scammer or fake_phishing_transfer.
+    const traits = Array.isArray(body.traits)
+      ? body.traits.map((t) => (typeof (t as { name?: unknown })?.name === "string" ? (t as { name: string }).name : "unknown"))
+      : [];
     return { flagged: score >= threshold, summary: `toxicScore ${score}${traits.length ? `: ${traits.join(", ")}` : ""}` };
   }
 
