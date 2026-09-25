@@ -17,6 +17,14 @@ export function distinctShort(a: string, b: string): [string, string] {
   return x.toLowerCase() === y.toLowerCase() ? [a, b] : [x, y];
 }
 
+/**
+ * The registered legal name, only for an active payee. A disputed payee is shown as its T-number and "disputed",
+ * never a claimant's name (the ENS resolver and the web app follow the same rule).
+ */
+export function registeredName(payee: { status: string; legalName: string }): string | null {
+  return payee.status === "active" && payee.legalName ? payee.legalName : null;
+}
+
 /** "T2011001234567 = 株式会社メイギ商事", or just the T-number when the registry has no name for it. */
 export function payeeLabel(tNumber: bigint | string, legalName: string | null): string {
   const t = `T${tNumber.toString().replace(/^T/u, "")}`;

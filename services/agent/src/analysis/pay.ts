@@ -1,5 +1,6 @@
 import { zeroAddress, type Address, type Hex } from "viem";
 import { describeRevert, type DecodedRevert } from "../chain/describe.js";
+import { registeredName } from "../chain/format.js";
 import type { PayCall, PaymentReceipt, RawRevert } from "../chain/types.js";
 import type { AppDeps } from "../deps.js";
 import type { PaymentIntent } from "../kernel/intent.js";
@@ -104,7 +105,7 @@ async function reverted(deps: AppDeps, stored: StoredAnalysis, raw: RawRevert, f
   const { decimals } = await deps.chain.token();
   const error = await describeRevert(raw, {
     decimals,
-    nameOf: async (tNumber) => (await deps.chain.payee(tNumber)).legalName || null,
+    nameOf: async (tNumber) => registeredName(await deps.chain.payee(tNumber)),
   });
   const explanation = await explainOutcome(deps.llm, stored.view.kernel, stored.verdict, error);
   return { status: "reverted", broadcast: txHash !== undefined, ...(txHash ? { txHash } : {}), forced, error, explanation };

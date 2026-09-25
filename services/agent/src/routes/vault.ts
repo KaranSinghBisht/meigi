@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { formatTokenYen } from "../chain/format.js";
+import { formatTokenYen, registeredName } from "../chain/format.js";
 import type { ChainPort } from "../chain/types.js";
 import type { AppDeps } from "../deps.js";
 
@@ -34,10 +34,10 @@ export function vaultRoutes(deps: AppDeps) {
 async function vendorEntry(chain: ChainPort, digits: string, decimals: number) {
   const { payee, vendor, timestamp } = await chain.vendor(BigInt(digits));
   const yen = (units: bigint) => formatTokenYen(units, decimals);
-  const registered = payee.status !== "none";
+  const registered = payee.status === "active"; // a disputed payee shows no claimant name and no frozen payout
   return {
     tNumber: `T${digits}`,
-    legalName: payee.legalName || null,
+    legalName: registeredName(payee),
     status: payee.status,
     registeredPayout: registered ? payee.payout : null,
     changePending: payee.pending !== null, // the queued address is never shown before it lands

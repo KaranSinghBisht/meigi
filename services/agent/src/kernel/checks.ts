@@ -1,5 +1,5 @@
 import type { Address } from "viem";
-import { distinctShort, formatTokenYen, isoTime, payeeLabel, shortAddress } from "../chain/format.js";
+import { distinctShort, formatTokenYen, isoTime, payeeLabel, registeredName, shortAddress } from "../chain/format.js";
 import type { Snapshot } from "../chain/types.js";
 import type { X402Details } from "../extract/types.js";
 import { documentChecks } from "./document-checks.js";
@@ -50,7 +50,7 @@ const CHECKS: Check[] = [
 ];
 
 export function runChecks(input: KernelInput): CheckResult[] {
-  const label = payeeLabel(input.intent.tNumber, input.snapshot.payee.legalName || null);
+  const label = payeeLabel(input.intent.tNumber, registeredName(input.snapshot.payee));
   return CHECKS.flatMap((check) => check(input, label) ?? []);
 }
 

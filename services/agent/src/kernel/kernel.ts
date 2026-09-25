@@ -1,5 +1,5 @@
 import type { Address } from "viem";
-import { formatTokenYen } from "../chain/format.js";
+import { formatTokenYen, registeredName } from "../chain/format.js";
 import type { ChainPort, Snapshot } from "../chain/types.js";
 import type { Extracted } from "../extract/types.js";
 import type { Proposal } from "../llm/types.js";
@@ -85,7 +85,7 @@ export type EvaluationContext = Omit<KernelInput, "intent" | "snapshot">;
 export function evaluate(intent: PaymentIntent, intentReasons: Reason[], snapshot: Snapshot, context: EvaluationContext): KernelResult {
   const { decimals } = context;
   const checks = runChecks({ intent, snapshot, ...context });
-  const legalName = snapshot.payee.legalName || null;
+  const legalName = registeredName(snapshot.payee);
   const tNumber = `T${intent.tNumber}`;
   const failed: Reason[] = checks
     .filter((check) => !check.ok)
@@ -115,13 +115,14 @@ function intentView(intent: PaymentIntent): IntentView {
   };
 }
 
+/** A payee that isn't active shows only its T-number and status: no claimant name, no frozen payout. */
 function payeeView(tNumber: string, s: Snapshot): PayeeView {
-  const registered = s.payee.status !== "none";
+  const active = s.payee.status === "active";
   return {
     tNumber,
     status: s.payee.status,
-    legalName: s.payee.legalName || null,
-    registeredPayout: registered ? s.payee.payout : null,
+    legalName: registeredName(s.payee),
+    registeredPayout: active ? s.payee.payout : null,
     changePending: s.payee.pending !== null,
     pendingEffectiveAt: s.payee.effectiveAt,
   };
