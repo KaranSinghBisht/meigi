@@ -797,5 +797,4 @@ export const agentVaultAbi = [
     "name": "ZeroAmount",
     "inputs": []
   }
-]
- as const;
+] as const;

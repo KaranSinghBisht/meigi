@@ -117,5 +117,4 @@ export const payeeResolverAbi = [
       }
     ]
   }
-]
- as const;
+] as const;

@@ -159,5 +159,4 @@ export const payRouterAbi = [
     "name": "ZeroAmount",
     "inputs": []
   }
-]
- as const;
+] as const;

@@ -1420,5 +1420,4 @@ export const payeeRegistryAbi = [
     "name": "ZeroAddress",
     "inputs": []
   }
-]
- as const;
+] as const;

@@ -957,5 +957,4 @@ export const mockJPYCAbi = [
       }
     ]
   }
-]
- as const;
+] as const;
