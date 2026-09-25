@@ -78,7 +78,7 @@ export function fakeDeps(chain: FakeChain, clock: { now: number }): AppDeps {
     store: openStore(":memory:"),
     chain,
     world: {
-      rpContext: () => ({ sig: "0xsig", nonce: "0x01", created_at: clock.now, expires_at: clock.now + 300 }),
+      rpContext: () => ({ rp_id: "rp_test", nonce: "0x01", created_at: clock.now, expires_at: clock.now + 300, signature: "0xsig" }),
       async verify(result, signal) {
         const r = result as { session_id: string; signal: string; responses: { session_nullifier: string[] }[] };
         if (signal && r.signal !== signal) throw new WorldVerificationError("signal_mismatch", "wrong signal");

@@ -5,7 +5,7 @@ import { verifyDomainProof } from "./domain/proof.js";
 import { openCorporationIndex } from "./nta/corporations.js";
 import { createChainPort } from "./registry/chain.js";
 import { openStore } from "./store/db.js";
-import { createRpContext, requireSignal, verifySessionProof } from "./world/session.js";
+import { createRpContext, requireSignal, toIdkitRpContext, verifySessionProof } from "./world/session.js";
 
 const config = loadConfig();
 
@@ -14,7 +14,7 @@ const app = createApp({
   store: openStore(config.VERIFIER_DB_PATH),
   chain: createChainPort(config),
   world: {
-    rpContext: () => createRpContext(config.WORLD_RP_SIGNING_KEY),
+    rpContext: () => toIdkitRpContext(config.WORLD_RP_ID, createRpContext(config.WORLD_RP_SIGNING_KEY)),
     async verify(result, signal) {
       if (signal) requireSignal(result, signal);
       return verifySessionProof(config.WORLD_RP_ID, result, config.WORLD_ENVIRONMENT);

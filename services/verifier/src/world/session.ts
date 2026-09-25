@@ -21,6 +21,19 @@ export interface RpContext {
   expires_at: number;
 }
 
+/** The exact `rp_context` object IDKit takes. */
+export interface IdkitRpContext {
+  rp_id: string;
+  nonce: string;
+  created_at: number;
+  expires_at: number;
+  signature: string;
+}
+
+export function toIdkitRpContext(rpId: string, rp: RpContext): IdkitRpContext {
+  return { rp_id: rpId, nonce: rp.nonce, created_at: rp.created_at, expires_at: rp.expires_at, signature: rp.sig };
+}
+
 export interface VerifiedSession {
   sessionId: string;
   officerId: Hex; // what the registry stores: keccak256(session_id)
