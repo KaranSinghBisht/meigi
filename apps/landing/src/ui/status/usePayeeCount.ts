@@ -5,8 +5,9 @@ import { env } from '../../lib/env/env'
 const REFRESH_MS = 60_000
 
 /**
- * Live count of registered payees, or null whenever it cannot be read.
- * Null means "hide the figure": the page never shows an invented number.
+ * Live count of verified payees (registered and currently Active; a disputed
+ * payee is frozen and drops out), or null whenever it cannot be read. Null
+ * means "hide the figure": the page never shows an invented number.
  * Refreshes scan only new blocks and pause while the tab is hidden.
  */
 export function usePayeeCount(): number | null {

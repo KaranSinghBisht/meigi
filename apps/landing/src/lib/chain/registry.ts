@@ -134,12 +134,31 @@ async function collect(client: RegistryClient, config: RegistryConfig, from: big
   }
 }
 
+/**
+ * How many of `tNumbers` are Active right now. A dispute freezes a payee, so
+ * it no longer counts as verified. One Multicall3 round trip; any failed call
+ * throws rather than under-counting.
+ */
+async function countActive(client: RegistryClient, config: RegistryConfig, tNumbers: readonly bigint[]): Promise<number> {
+  if (tNumbers.length === 0) return 0
+  const active = await client.multicall({
+    contracts: tNumbers.map(
+      (tNumber) => ({ address: config.address, abi: payeeRegistryAbi, functionName: 'isActive', args: [tNumber] }) as const,
+    ),
+    allowFailure: false,
+  })
+  return active.filter(Boolean).length
+}
+
 export interface PayeeCounter {
-  /** Distinct T-numbers that emitted PayeeRegistered. Throws instead of guessing. */
+  /** Registered payees whose status is Active right now. Throws instead of guessing. */
   refresh: () => Promise<number>
 }
 
-/** Scans from the configured start block once, then only blocks added since the last refresh. */
+/**
+ * Finds registered T-numbers from PayeeRegistered logs (the full range once,
+ * then only new blocks) and re-checks every one's status on each refresh.
+ */
 export function createPayeeCounter(config: RegistryConfig): PayeeCounter {
   const client = clientFor(config)
   const seen = new Set<bigint>()
@@ -153,7 +172,7 @@ export function createPayeeCounter(config: RegistryConfig): PayeeCounter {
         await collect(client, config, next, latest, seen)
         next = latest + 1n
       }
-      return seen.size
+      return countActive(client, config, [...seen])
     },
   }
 }
