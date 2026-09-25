@@ -7,12 +7,14 @@ Everything runs from the repo root, with secrets in a git-ignored `.env` (never 
 | Contract | Address |
 |---|---|
 | PayeeRegistry | `0x205c977cF1f4Ed42e51a48759550eF40160A6396` (from block 11781105) |
-| PayeeResolver (parent `payee.eth`) | `0xe3Fa4DC8C2920CC0a682781d8a51E4bbCaF025dA` |
+| PayeeResolver (parent `payee.eth`) | `0x096ebC07eE87fbb19FF920a5c81b2Ad5c9104A1e` |
 | PayRouter | `0xbA95BA5D4a2244cce46a76920f411B225116850C` |
 | MockJPYC (`mJPYC`) | `0xEcA2B093682a46B14b143474d188A120bA2d0EC2` |
 | AgentVault | `0x87A798CD92dE1340B1b761dd45196AC82bEF793B` |
 
 This is deployment v2, after two security-review rounds. v1 (`deployments/11155111-v1.json`) is retired.
+The resolver was redeployed on 2026-09-26 so that disputed payees publish only their status, not a claimant's
+name. `payee.eth` points at it on both ENSv2 deployments; the previous resolver `0xe3Fa…25dA` is unused.
 All are verified on Sourcify. Timelocks: 72h for payout changes, rotations and dispute resolutions; 1h for new vendors.
 
 Demo fixtures, fictional companies marked as such in their on-chain evidence:

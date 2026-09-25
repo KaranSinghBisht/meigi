@@ -68,6 +68,19 @@ contract PayeeResolverTest is MeigiFixture {
         assertEq(_text(LABEL, "meigi.status"), "disputed");
     }
 
+    /// A disputed number has competing claimants, so no claimant's name or schedule is published.
+    function test_text_disputedPayeePublishesOnlyItsStatus() public {
+        _queueChange(VENDOR, newPayout);
+        vm.prank(attester);
+        registry.fileDispute(VENDOR, address(1), bytes32(0));
+        assertEq(_text(LABEL, "meigi.status"), "disputed");
+        assertEq(_text(LABEL, "meigi.tNumber"), "T2011001234567");
+        assertEq(_text(LABEL, "meigi.registry"), vm.toString(address(registry)));
+        assertEq(_text(LABEL, "name"), "", "no claimant's name");
+        assertEq(_text(LABEL, "meigi.changePending"), "");
+        assertEq(_text(LABEL, "meigi.effectiveAt"), "");
+    }
+
     /// Review finding 7: only names exactly one label below the configured parent resolve.
     function test_addr_onlyAnswersForItsParent() public view {
         bytes memory otherParent = abi.encodePacked(uint8(14), LABEL, hex"086d656967692d6a700365746800"); // meigi-jp.eth

@@ -12,7 +12,9 @@ import {TNumber} from "../registry/TNumber.sol";
 ///      below that parent, so pointing another name at it resolves to nothing. Only an active payee resolves
 ///      to an address; disputed or unknown T-numbers resolve to zero, so ENS-aware wallets fail closed.
 ///      Text records: `name` (NTA-registered name), `meigi.tNumber`, `meigi.status`, `meigi.changePending`,
-///      `meigi.effectiveAt`, `meigi.registry`. A queued (unconfirmed) payout address is never published.
+///      `meigi.effectiveAt`, `meigi.registry`. A queued (unconfirmed) payout address is never published, and a
+///      disputed payee publishes only `meigi.tNumber`, `meigi.status` and `meigi.registry`: with competing
+///      claimants, neither one's name or schedule is presented as the company's.
 contract PayeeResolver is IERC165 {
     bytes4 private constant EXTENDED_RESOLVER = 0x9061b923; // resolve(bytes,bytes)
     bytes4 private constant ADDR = 0x3b3b57de; // addr(bytes32)
@@ -93,12 +95,14 @@ contract PayeeResolver is IERC165 {
         IPayeeRegistry.PayeeView memory v = registry.payeeOf(tNumber);
         if (v.status == IPayeeRegistry.Status.None) return "";
         bytes32 k = keccak256(bytes(key));
-        if (k == keccak256("name")) return v.legalName;
+        bool active = v.status == IPayeeRegistry.Status.Active;
         if (k == keccak256("meigi.tNumber")) return TNumber.toString(tNumber);
-        if (k == keccak256("meigi.status")) return v.status == IPayeeRegistry.Status.Active ? "active" : "disputed";
+        if (k == keccak256("meigi.status")) return active ? "active" : "disputed";
+        if (k == keccak256("meigi.registry")) return Strings.toChecksumHexString(address(registry));
+        if (!active) return "";
+        if (k == keccak256("name")) return v.legalName;
         if (k == keccak256("meigi.changePending")) return v.pending == address(0) ? "" : "true";
         if (k == keccak256("meigi.effectiveAt")) return v.effectiveAt == 0 ? "" : Strings.toString(v.effectiveAt);
-        if (k == keccak256("meigi.registry")) return Strings.toChecksumHexString(address(registry));
         return "";
     }
 }
