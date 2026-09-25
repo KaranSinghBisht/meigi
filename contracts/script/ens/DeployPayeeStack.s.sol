@@ -22,10 +22,15 @@ contract DeployPayeeStack is Script {
         address attester = vm.envOr("ATTESTER_ADDRESS", address(0));
         uint64 delay = SafeCast.toUint64(vm.envOr("CHANGE_DELAY", uint256(72 hours)));
 
+        if (registry == address(0)) {
+            // Fresh registries are for fork tests only (ens.sh refuses this on a real RPC); keep roles separate anyway.
+            require(attester != address(0) && attester != vm.addr(pk), "ATTESTER_ADDRESS must be set and differ from the deployer");
+        }
+
         vm.startBroadcast(pk);
         if (registry == address(0)) {
             PayeeRegistry fresh = new PayeeRegistry(vm.addr(pk), delay);
-            if (attester != address(0)) fresh.setAttester(attester, true);
+            fresh.setAttester(attester, true);
             registry = address(fresh);
         }
         resolver = address(new PayeeResolver(IPayeeRegistry(registry), parent));

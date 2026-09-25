@@ -72,7 +72,7 @@ setup() {
   # Never load the real keys against a local RPC: a fork keeps chain id 11155111, so whatever is signed
   # there is also a valid Sepolia transaction.
   if [[ ${SKIP_DOTENV:-0} != 1 && -f $dotenv ]] && ! is_local "${RPC_URL:-}"; then load_dotenv "$dotenv"; fi
-  ENS_DEPLOYMENT="${ENS_DEPLOYMENT:-hackathon}"
+  ENS_DEPLOYMENT="${ENS_DEPLOYMENT:-beta}" # the official Beta: what default ENS clients resolve
   [[ $ENS_DEPLOYMENT =~ ^[a-z0-9_-]+$ && -f $HERE/deployments/$ENS_DEPLOYMENT.env ]] ||
     die "unknown ENS_DEPLOYMENT '$ENS_DEPLOYMENT' (see $HERE/deployments)"
   set -a
@@ -174,7 +174,11 @@ main() {
   scope_keys "$cmd"
   echo "ENS deployment: $ENS_DEPLOYMENT, $([[ $LOCAL_RPC == 1 ]] && echo "local fork" || echo "remote RPC") of chain $SEPOLIA"
   case "$cmd" in
-    deploy) forge_script script/ens/DeployPayeeStack.s.sol ;;
+    deploy)
+      # One registry backs everything: on a real chain, only a resolver for the existing registry may be deployed.
+      if [[ $LOCAL_RPC != 1 && -z ${PAYEE_REGISTRY:-} ]]; then die "set PAYEE_REGISTRY: never deploy a second registry on Sepolia"; fi
+      forge_script script/ens/DeployPayeeStack.s.sol
+      ;;
     seed) forge_script script/ens/SeedDemoPayee.s.sol ;;
     register) cmd_register ;;
     set-resolver) forge_script script/ens/RegisterName.s.sol --sig "setResolver()" ;;

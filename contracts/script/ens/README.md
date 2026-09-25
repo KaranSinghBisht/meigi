@@ -14,15 +14,15 @@ DNS-encoded name (ENSIP-10), and the resolver answers from `PayeeRegistry`.
 | `DeployPayeeStack.s.sol` | Registry and resolver for fork runs, or only a resolver when `PAYEE_REGISTRY` is set (resolver redeploys) |
 | `SeedDemoPayee.s.sol` | Attester registers the demo payee `T2011001234567` (test-fixture data) |
 | `EnsV2.sol` | ENSv2 interfaces (from the verified source), DNS encoding, and deployment wiring checks |
-| `deployments/*.env` | ENSv2 address tables: `hackathon` (default) and `beta` |
+| `deployments/*.env` | ENSv2 address tables: `beta` (default) and `hackathon` |
 | `check-viem.mjs` | viem `getEnsAddress` / `getEnsText`, called the way a wallet calls them |
 
 ## Which ENSv2 deployment
 
 | `ENS_DEPLOYMENT` | What | Resolves in default clients? |
 |---|---|---|
-| `hackathon` (default) | The isolated hackathon testnet deployed 2026-09-03: root `0xe7f0…`, UR proxy `0xd26f…` | No. Clients must pass `universalResolverAddress: 0xd26f2040d083af1cd2962ba303f4bea0c4faf142` |
-| `beta` | The official "Sepolia ENSv2 Beta" redeployed 2026-09-15: root `0x9703…` | Yes. The canonical Sepolia UR `0xeeee…eeee` is viem's default |
+| `hackathon` | The isolated hackathon testnet deployed 2026-09-03: root `0xe7f0…`, UR proxy `0xd26f…` | No. Clients must pass `universalResolverAddress: 0xd26f2040d083af1cd2962ba303f4bea0c4faf142` |
+| `beta` (default) | The official "Sepolia ENSv2 Beta" redeployed 2026-09-15: root `0x9703…` | Yes. The canonical Sepolia UR `0xeeee…eeee` is viem's default |
 
 The registrar ABI, commit window, minimum duration and fee are identical on both. One `PayeeResolver` can serve
 `payee.eth` on both deployments at the same time.
