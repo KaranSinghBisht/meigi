@@ -19,6 +19,16 @@ Demo fixtures, fictional companies marked as such in their on-chain evidence:
 - `T2011001234567` 株式会社メイギ商事: the AP-agent vendor. The vault approves it with caps of ¥500k per invoice and ¥1M per 30 days.
 - `T2010401000001` 株式会社フジデータ: the x402 data merchant.
 
+## ENS
+
+`payee.eth` is registered on both Sepolia ENSv2 deployments, and both point at the v2 PayeeResolver:
+- **ENSv2 Beta** (the official deployment; viem's default Sepolia Universal Resolver `0xeEeE…EeEe`). Any ENS
+  client resolves `t2011001234567.payee.eth` with no configuration.
+- **Hackathon deployment** (Universal Resolver proxy `0xd26f2040D083Af1cD2962ba303F4BEa0c4faf142`).
+
+Check: `EXPECT_ADDR=0x9B4fc8994FcF2d5FE08a82A9454B61AA14D647e4 contracts/script/ens/ens.sh check`
+(set `ENS_DEPLOYMENT=beta` for the Beta). Scripts and details: `contracts/script/ens/README.md`.
+
 ## Services
 
 | Port | Service | Start |
