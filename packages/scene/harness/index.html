@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@meigi/scene harness</title>
+    <style>
+      html, body { margin: 0; height: 100%; overflow: hidden; background: #ffe3c8; font: 13px/1.2 system-ui, sans-serif; }
+      #root, .layer { position: fixed; inset: 0; }
+      .panel { position: fixed; left: 12px; bottom: 12px; display: flex; flex-wrap: wrap; gap: 6px; max-width: 640px; }
+      .panel button { padding: 6px 10px; border: 1px solid #fff; border-radius: 999px; background: rgba(255,255,255,.6); cursor: pointer; }
+      .panel button[aria-pressed='true'] { background: #2a2730; color: #fff; }
+      .panel.hidden { display: none; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>

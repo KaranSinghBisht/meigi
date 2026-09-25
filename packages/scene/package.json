@@ -1,0 +1,46 @@
+{
+  "name": "@meigi/scene",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The Sakasa Fuji WebGL world shared by the landing and the app: camera stations, moods, fallback.",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./lite": "./src/lite.ts",
+    "./stage": "./src/stage.ts"
+  },
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "harness": "vite --config harness/vite.config.ts",
+    "harness:build": "vite build --config harness/vite.config.ts",
+    "harness:preview": "vite preview --config harness/vite.config.ts"
+  },
+  "peerDependencies": {
+    "@react-three/drei": "~10.7.8",
+    "@react-three/fiber": "~9.8.0",
+    "@react-three/postprocessing": "^3.1.2",
+    "postprocessing": "^6.39.5",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "three": "~0.186.1"
+  },
+  "devDependencies": {
+    "@react-three/drei": "~10.7.8",
+    "@react-three/fiber": "~9.8.0",
+    "@react-three/postprocessing": "^3.1.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/three": "~0.186.0",
+    "postprocessing": "^6.39.5",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "three": "~0.186.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.1"
+  }
+}

@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { seededRandom } from '../../scene/shared/noise'
+import { seededRandom } from '@meigi/scene/lite'
 
 interface Blossom {
   readonly x: number
