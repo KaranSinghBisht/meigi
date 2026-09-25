@@ -40,6 +40,7 @@ contract PayeeRegistry is IPayeeRegistry, OfficerQuorum {
         string legalName;
     }
 
+    uint64 public constant MIN_CHANGE_DELAY = 1 hours;
     uint64 public immutable changeDelay;
 
     mapping(uint64 => Payee) private _payees;
@@ -60,8 +61,10 @@ contract PayeeRegistry is IPayeeRegistry, OfficerQuorum {
     error InvalidPayout(address payout);
     error InvalidController(address controller);
     error EmptyName();
+    error DelayTooShort(uint64 given, uint64 minimum);
 
     constructor(address owner_, uint64 changeDelay_) EIP712("MeigiPayeeRegistry", "1") Ownable(owner_) {
+        if (changeDelay_ < MIN_CHANGE_DELAY) revert DelayTooShort(changeDelay_, MIN_CHANGE_DELAY);
         changeDelay = changeDelay_;
     }
 
@@ -109,6 +112,16 @@ contract PayeeRegistry is IPayeeRegistry, OfficerQuorum {
         emit DisputeResolved(tNumber, winner.controller, winner.payout);
     }
 
+    /// @notice Clears a dispute by restoring the untouched incumbent at once. Nothing moves anywhere new, so no delay.
+    function dismissDispute(uint64 tNumber) external onlyOwner {
+        Payee storage p = _payees[tNumber];
+        if (p.status != Status.Disputed) revert NotDisputed(tNumber);
+        _dropResolution(tNumber);
+        p.status = Status.Active;
+        _bumpNonce(tNumber);
+        emit DisputeDismissed(tNumber);
+    }
+
     // --------------------------------------------------------- payout changes
 
     /// @notice Queues a new payout address: business key + officer quorum, then `changeDelay` in public.
@@ -130,7 +143,7 @@ contract PayeeRegistry is IPayeeRegistry, OfficerQuorum {
     function cancelPayoutChange(uint64 tNumber) external {
         _settle(tNumber);
         Payee storage p = _payees[tNumber];
-        if (!_payoutPending(p)) revert NoPendingChange(tNumber);
+        if (p.pending == address(0)) revert NoPendingChange(tNumber); // includes voided entries
         _requireCanceller(p);
         _dropPayoutChange(tNumber);
         _bumpNonce(tNumber);
@@ -164,14 +177,14 @@ contract PayeeRegistry is IPayeeRegistry, OfficerQuorum {
     function cancelControllerRotation(uint64 tNumber) external {
         _settle(tNumber);
         Payee storage p = _payees[tNumber];
-        if (!_rotationPending(p)) revert NoPendingRotation(tNumber);
+        if (p.nextController == address(0)) revert NoPendingRotation(tNumber); // includes voided entries
         _requireCanceller(p);
         _dropRotation(tNumber);
         _bumpNonce(tNumber);
     }
 
-    /// @notice Replaces the officer set (N-of-M). Needs the business key and the current quorum, and is
-    ///         blocked while a controller rotation is pending.
+    /// @notice Replaces the officer set (N-of-M). Needs the business key and the current quorum: strictly more
+    ///         than a rotation needs, so it also drops any queued rotation (a rogue officer can't block eviction).
     function updateOfficers(
         uint64 tNumber,
         bytes32[] calldata officers,
@@ -180,8 +193,8 @@ contract PayeeRegistry is IPayeeRegistry, OfficerQuorum {
     ) external {
         Payee storage p = _activePayee(tNumber);
         if (msg.sender != p.controller) revert NotController(msg.sender);
-        if (_rotationPending(p)) revert RotationPending(tNumber);
         _consumeApproval(tNumber, Action.OfficerUpdate, officerUpdateTarget(officers, threshold), approval);
+        _dropRotation(tNumber);
         _setOfficers(tNumber, officers, threshold);
     }
 
@@ -286,9 +299,10 @@ contract PayeeRegistry is IPayeeRegistry, OfficerQuorum {
         resolvesAt[tNumber] = 0;
     }
 
-    /// @dev A queued change only counts while the attester that approved it is still trusted.
+    /// @dev A queued change counts while its attester is trusted, or if it took effect before that attester was
+    ///      revoked. Revocation is permanent, so a voided change can never come back.
     function _payoutPending(Payee storage p) private view returns (bool) {
-        return p.pending != address(0) && isAttester[p.pendingBy];
+        return p.pending != address(0) && _approvedBy(p.pendingBy, p.effectiveAt);
     }
 
     function _payoutMatured(Payee storage p) private view returns (bool) {
@@ -296,7 +310,7 @@ contract PayeeRegistry is IPayeeRegistry, OfficerQuorum {
     }
 
     function _rotationPending(Payee storage p) private view returns (bool) {
-        return p.nextController != address(0) && isAttester[p.nextControllerBy];
+        return p.nextController != address(0) && _approvedBy(p.nextControllerBy, p.controllerAt);
     }
 
     function _rotationMatured(Payee storage p) private view returns (bool) {

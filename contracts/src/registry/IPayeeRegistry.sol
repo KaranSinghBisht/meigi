@@ -42,6 +42,7 @@ interface IPayeeRegistry {
         uint64 indexed tNumber, address indexed controller, address payout, uint64 resolvesAt
     );
     event DisputeResolved(uint64 indexed tNumber, address indexed controller, address payout);
+    event DisputeDismissed(uint64 indexed tNumber);
 
     /// @return Where payments for `tNumber` go right now, or zero unless the payee is active (fails closed).
     function payoutOf(uint64 tNumber) external view returns (address);

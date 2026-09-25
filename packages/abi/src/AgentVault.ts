@@ -74,6 +74,11 @@ export const agentVaultAbi = [
         "internalType": "uint64"
       },
       {
+        "name": "expectedPayout",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
         "name": "capPerPayment",
         "type": "uint128",
         "internalType": "uint128"
@@ -107,30 +112,6 @@ export const agentVaultAbi = [
         "name": "",
         "type": "uint256",
         "internalType": "uint256"
-      }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "isInvoicePaid",
-    "inputs": [
-      {
-        "name": "tNumber",
-        "type": "uint64",
-        "internalType": "uint64"
-      },
-      {
-        "name": "invoiceRef",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "bool",
-        "internalType": "bool"
       }
     ],
     "stateMutability": "view"

@@ -33,6 +33,8 @@ abstract contract OfficerQuorum is EIP712, Ownable2Step {
     uint256 public constant MAX_OFFICERS = 8;
 
     mapping(address => bool) public isAttester;
+    /// @notice When an attester was revoked (0 = never). Revocation is permanent: a new key means a new address.
+    mapping(address => uint64) public revokedAt;
     mapping(uint64 => bytes32[]) private _officers;
     mapping(uint64 => uint8) private _thresholds;
     mapping(uint64 => uint64) private _nonces;
@@ -41,6 +43,7 @@ abstract contract OfficerQuorum is EIP712, Ownable2Step {
     event OfficersUpdated(uint64 indexed tNumber, uint256 count, uint8 threshold);
 
     error NotAttester(address account);
+    error AttesterRevoked(address account);
     error ZeroAddress();
     error InvalidOfficers();
     error ApprovalExpired(uint256 deadline);
@@ -53,10 +56,19 @@ abstract contract OfficerQuorum is EIP712, Ownable2Step {
         _;
     }
 
-    /// @notice Revoking an attester also voids every change it approved that has not taken effect yet.
+    /// @notice Adds an attester, or revokes one for good. Revoking voids every change it approved that had not
+    ///         taken effect at that moment; changes that already took effect stay. A revoked address can never be
+    ///         re-enabled, so voided changes can't come back.
     function setAttester(address attester, bool allowed) external onlyOwner {
         if (attester == address(0)) revert ZeroAddress();
-        isAttester[attester] = allowed;
+        if (allowed) {
+            if (revokedAt[attester] != 0) revert AttesterRevoked(attester);
+            isAttester[attester] = true;
+        } else {
+            if (!isAttester[attester]) revert NotAttester(attester);
+            isAttester[attester] = false;
+            revokedAt[attester] = uint64(block.timestamp);
+        }
         emit AttesterSet(attester, allowed);
     }
 
@@ -121,6 +133,14 @@ abstract contract OfficerQuorum is EIP712, Ownable2Step {
     /// @dev Invalidates every outstanding approval for the payee.
     function _bumpNonce(uint64 tNumber) internal {
         _nonces[tNumber]++;
+    }
+
+    /// @dev Whether a change queued by `attester` counts: while the attester is trusted, or if the change took
+    ///      effect before the attester was revoked.
+    function _approvedBy(address attester, uint64 effectiveAt) internal view returns (bool) {
+        if (isAttester[attester]) return true;
+        uint64 revoked = revokedAt[attester];
+        return revoked != 0 && effectiveAt <= revoked;
     }
 
     function _setOfficers(uint64 tNumber, bytes32[] memory officers, uint8 threshold) internal {

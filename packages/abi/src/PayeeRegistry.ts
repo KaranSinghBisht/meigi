@@ -44,6 +44,19 @@ export const payeeRegistryAbi = [
   },
   {
     "type": "function",
+    "name": "MIN_CHANGE_DELAY",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "acceptOwnership",
     "inputs": [],
     "outputs": [],
@@ -145,6 +158,19 @@ export const payeeRegistryAbi = [
       }
     ],
     "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "dismissDispute",
+    "inputs": [
+      {
+        "name": "tNumber",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -654,6 +680,25 @@ export const payeeRegistryAbi = [
   },
   {
     "type": "function",
+    "name": "revokedAt",
+    "inputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint64",
+        "internalType": "uint64"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "setAttester",
     "inputs": [
       {
@@ -880,6 +925,19 @@ export const payeeRegistryAbi = [
         "name": "effectiveAt",
         "type": "uint64",
         "indexed": false,
+        "internalType": "uint64"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DisputeDismissed",
+    "inputs": [
+      {
+        "name": "tNumber",
+        "type": "uint64",
+        "indexed": true,
         "internalType": "uint64"
       }
     ],
@@ -1147,6 +1205,33 @@ export const payeeRegistryAbi = [
         "name": "deadline",
         "type": "uint256",
         "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "AttesterRevoked",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "DelayTooShort",
+    "inputs": [
+      {
+        "name": "given",
+        "type": "uint64",
+        "internalType": "uint64"
+      },
+      {
+        "name": "minimum",
+        "type": "uint64",
+        "internalType": "uint64"
       }
     ]
   },

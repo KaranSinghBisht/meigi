@@ -102,12 +102,17 @@ contract AgentVault is PayeeGuard, Ownable2Step, Pausable, ReentrancyGuard {
 
     // ------------------------------------------------------------ owner path
 
-    /// @notice Approves or updates a vendor and pins its current registry payout. New vendors, a new payout
-    ///         and raised caps only apply after `vendorDelay`; lowered caps apply at once.
-    function approveVendor(uint64 tNumber, uint128 capPerPayment, uint128 capPerPeriod) external onlyOwner {
+    /// @notice Approves or updates a vendor and pins `expectedPayout`, the address the owner reviewed, which must
+    ///         be the registry's current payout. New vendors, a new payout and raised caps only apply after
+    ///         `vendorDelay`; lowered caps apply at once.
+    function approveVendor(uint64 tNumber, address expectedPayout, uint128 capPerPayment, uint128 capPerPeriod)
+        external
+        onlyOwner
+    {
         if (!TNumber.isValid(tNumber)) revert TNumber.InvalidTNumber();
+        if (expectedPayout == address(0)) revert ZeroAddress();
         if (capPerPayment == 0 || capPerPayment > capPerPeriod) revert InvalidCaps();
-        address current = _checkedPayout(tNumber, address(0));
+        address current = _checkedPayout(tNumber, expectedPayout);
         Vendor storage v = vendors[tNumber];
         bool raises = v.payout != current || capPerPayment > v.capPerPayment || capPerPeriod > v.capPerPeriod;
         if (raises) v.activeAt = uint64(block.timestamp) + vendorDelay;
@@ -149,19 +154,17 @@ contract AgentVault is PayeeGuard, Ownable2Step, Pausable, ReentrancyGuard {
 
     // ------------------------------------------------------------------ views
 
-    /// @return The total already paid against this invoice reference (0 if never paid).
-    function invoicePaidAmount(uint64 tNumber, bytes32 invoiceRef) public view returns (uint256) {
+    /// @return The total already paid against this invoice reference. Compare it with the invoice total; a
+    ///         non-zero amount alone doesn't mean the invoice is settled.
+    function invoicePaidAmount(uint64 tNumber, bytes32 invoiceRef) external view returns (uint256) {
         return _invoicePaid[_invoiceKey(tNumber, invoiceRef)];
     }
 
-    function isInvoicePaid(uint64 tNumber, bytes32 invoiceRef) external view returns (bool) {
-        return invoicePaidAmount(tNumber, invoiceRef) > 0;
-    }
-
-    /// @return What the vendor can still receive in the current period (0 if not active).
+    /// @return What the vendor can still receive right now (0 if not payable: not active, frozen, or redirected).
     function remainingInPeriod(uint64 tNumber) external view returns (uint256) {
         Vendor storage v = vendors[tNumber];
         if (v.payout == address(0) || block.timestamp < v.activeAt) return 0;
+        if (!registry.isActive(tNumber) || registry.payoutOf(tNumber) != v.payout) return 0;
         if (block.timestamp >= uint256(v.periodStart) + PERIOD) return v.capPerPeriod;
         return _remaining(v);
     }

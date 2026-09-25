@@ -33,7 +33,7 @@ echo "mint 5,000,000 mJPYC to the vault:"
 send "$TOKEN" "mint(address,uint256)" "$VAULT" 5000000000000000000000000 --private-key "$DEPLOYER_PRIVATE_KEY"
 
 echo "vault owner approves the vendor (cap ¥500,000 per invoice, ¥1,000,000 per 30 days):"
-send "$VAULT" "approveVendor(uint64,uint128,uint128)" "$T_NUMBER" 500000000000000000000000 1000000000000000000000000 \
+send "$VAULT" "approveVendor(uint64,address,uint128,uint128)" "$T_NUMBER" "$DEMO_VENDOR_PAYOUT" 500000000000000000000000 1000000000000000000000000 \
   --private-key "$VAULT_OWNER_PRIVATE_KEY"
 
 echo "payoutOf(T$T_NUMBER) = $(cast call "$REGISTRY" "payoutOf(uint64)(address)" "$T_NUMBER" --rpc-url "$RPC")"

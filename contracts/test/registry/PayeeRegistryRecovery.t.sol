@@ -47,21 +47,28 @@ contract PayeeRegistryRecoveryTest is MeigiFixture {
         assertEq(registry.payoutOf(VENDOR), payout);
     }
 
-    function test_rotation_blocksPayoutChangesAndOfficerUpdates() public {
+    function test_rotation_blocksPayoutChanges() public {
         _queueRotation(VENDOR, freshKey, OFFICER_B);
-
         OfficerQuorum.OfficerApproval memory a = _payoutApproval(VENDOR, newPayout, _one(OFFICER_A));
         vm.prank(controller);
         vm.expectRevert(abi.encodeWithSelector(PayeeRegistry.RotationPending.selector, VENDOR));
         registry.requestPayoutChange(VENDOR, newPayout, a);
+    }
 
+    /// Review NEW-2: a rogue officer's queued rotation can't block its own eviction.
+    function test_updateOfficers_evictsARogueOfficerAndDropsItsRotation() public {
+        _queueRotation(VENDOR, rogue, OFFICER_B); // OFFICER_B goes rogue; threshold is 1-of-2
         bytes32[] memory next = _one(OFFICER_A);
         bytes32 target = registry.officerUpdateTarget(next, 1);
         OfficerQuorum.OfficerApproval memory u =
             _approval(VENDOR, OfficerQuorum.Action.OfficerUpdate, target, _one(OFFICER_A), ATTESTER_PK);
         vm.prank(controller);
-        vm.expectRevert(abi.encodeWithSelector(PayeeRegistry.RotationPending.selector, VENDOR));
         registry.updateOfficers(VENDOR, next, 1, u);
+
+        assertEq(registry.payeeOf(VENDOR).nextController, address(0));
+        assertEq(registry.officersOf(VENDOR).length, 1);
+        vm.warp(block.timestamp + CHANGE_DELAY);
+        assertEq(registry.controllerOf(VENDOR), controller);
     }
 
     function test_rotation_cancelRules() public {
@@ -98,6 +105,36 @@ contract PayeeRegistryRecoveryTest is MeigiFixture {
         IPayeeRegistry.PayeeView memory v = registry.payeeOf(VENDOR);
         assertEq(v.pending, address(0));
         assertEq(v.nextController, address(0));
+    }
+
+    /// Review NEW-1: revocation never reaches back to changes that already took effect.
+    function test_revocation_keepsChangesThatAlreadyTookEffect() public {
+        _queueChange(VENDOR, newPayout);
+        vm.warp(block.timestamp + CHANGE_DELAY); // matured, never settled
+        vm.prank(governance);
+        registry.setAttester(attester, false);
+        assertEq(registry.payoutOf(VENDOR), newPayout);
+        registry.settle(VENDOR);
+        assertEq(registry.payoutOf(VENDOR), newPayout);
+    }
+
+    /// Review NEW-1: a revoked attester can't be re-enabled, so voided changes never come back; the business can
+    /// still clear the inert entry.
+    function test_revocation_isPermanent() public {
+        _queueChange(VENDOR, newPayout);
+        vm.startPrank(governance);
+        registry.setAttester(attester, false);
+        vm.expectRevert(abi.encodeWithSelector(OfficerQuorum.AttesterRevoked.selector, attester));
+        registry.setAttester(attester, true);
+        vm.expectRevert(abi.encodeWithSelector(OfficerQuorum.NotAttester.selector, attester));
+        registry.setAttester(attester, false);
+        vm.stopPrank();
+
+        vm.warp(block.timestamp + CHANGE_DELAY);
+        assertEq(registry.payoutOf(VENDOR), payout);
+        vm.prank(controller);
+        registry.cancelPayoutChange(VENDOR);
+        assertEq(registry.payeeOf(VENDOR).pending, address(0));
     }
 
     // -------------------------------------------------------------- disputes
@@ -146,6 +183,22 @@ contract PayeeRegistryRecoveryTest is MeigiFixture {
         registry.finalizeDispute(VENDOR);
         assertTrue(registry.isActive(VENDOR));
         assertEq(registry.payoutOf(VENDOR), newPayout);
+    }
+
+    /// Review NEW-4: governance restores the untouched incumbent at once; nothing moves anywhere new.
+    function test_dismissDispute_restoresTheIncumbentAtOnce() public {
+        uint64 nonceBefore = registry.nonceOf(VENDOR);
+        vm.prank(attester);
+        registry.fileDispute(VENDOR, rogue, bytes32(0));
+        vm.prank(governance);
+        registry.dismissDispute(VENDOR);
+        assertTrue(registry.isActive(VENDOR));
+        assertEq(registry.payoutOf(VENDOR), payout);
+        assertEq(registry.nonceOf(VENDOR), nonceBefore + 2, "dispute and dismissal both burn approvals");
+
+        vm.prank(governance);
+        vm.expectRevert(abi.encodeWithSelector(PayeeRegistry.NotDisputed.selector, VENDOR));
+        registry.dismissDispute(VENDOR);
     }
 
     function test_resolveDispute_onlyGovernanceAndOnlyWhenDisputed() public {
@@ -228,6 +281,11 @@ contract PayeeRegistryRecoveryTest is MeigiFixture {
         vm.prank(controller);
         vm.expectRevert(abi.encodeWithSelector(OfficerQuorum.NotAnOfficer.selector, VENDOR, OFFICER_A));
         registry.requestPayoutChange(VENDOR, newPayout, stale);
+    }
+
+    function test_constructor_requiresAMinimumDelay() public {
+        vm.expectRevert(abi.encodeWithSelector(PayeeRegistry.DelayTooShort.selector, uint64(0), uint64(1 hours)));
+        new PayeeRegistry(governance, 0);
     }
 
     function test_owner_cannotRenounce() public {

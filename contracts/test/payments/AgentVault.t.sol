@@ -29,7 +29,7 @@ contract AgentVaultTest is MeigiFixture {
         vault = new AgentVault(human, aiAgent, jpyc, registry, VENDOR_DELAY);
         jpyc.mint(address(vault), 5_000_000 ether);
         vm.prank(human);
-        vault.approveVendor(VENDOR, CAP, MONTHLY);
+        vault.approveVendor(VENDOR, payout, CAP, MONTHLY);
         vm.warp(block.timestamp + VENDOR_DELAY);
     }
 
@@ -101,7 +101,7 @@ contract AgentVaultTest is MeigiFixture {
         vm.expectRevert(notOwner);
         vault.withdraw(aiAgent, 1 ether);
         vm.expectRevert(notOwner);
-        vault.approveVendor(OTHER_VENDOR, CAP, MONTHLY);
+        vault.approveVendor(OTHER_VENDOR, scammer, CAP, MONTHLY);
         vm.expectRevert(notOwner);
         vault.setAgent(scammer);
         vm.expectRevert(notOwner);
@@ -132,7 +132,7 @@ contract AgentVaultTest is MeigiFixture {
     function test_vendor_approvalNeedsAnActivePayee() public {
         vm.prank(human);
         vm.expectRevert(abi.encodeWithSelector(PayeeGuard.PayeeNotActive.selector, OTHER_VENDOR));
-        vault.approveVendor(OTHER_VENDOR, CAP, MONTHLY);
+        vault.approveVendor(OTHER_VENDOR, payout, CAP, MONTHLY);
     }
 
     function test_vendor_newVendorWaitsOutTheDelay() public {
@@ -141,7 +141,7 @@ contract AgentVaultTest is MeigiFixture {
         vm.prank(attester);
         registry.register(r);
         vm.prank(human);
-        vault.approveVendor(OTHER_VENDOR, CAP, MONTHLY);
+        vault.approveVendor(OTHER_VENDOR, supplier, CAP, MONTHLY);
 
         uint64 activeAt = uint64(block.timestamp) + VENDOR_DELAY;
         vm.prank(aiAgent);
@@ -156,7 +156,7 @@ contract AgentVaultTest is MeigiFixture {
 
     function test_vendor_raisingCapsRestartsTheDelay() public {
         vm.prank(human);
-        vault.approveVendor(VENDOR, CAP * 2, MONTHLY * 2);
+        vault.approveVendor(VENDOR, payout, CAP * 2, MONTHLY * 2);
         vm.prank(aiAgent);
         vm.expectPartialRevert(AgentVault.VendorNotYetActive.selector);
         vault.payInvoice(VENDOR, payout, 1 ether, INVOICE);
@@ -164,7 +164,7 @@ contract AgentVaultTest is MeigiFixture {
 
     function test_vendor_loweringCapsAppliesAtOnce() public {
         vm.prank(human);
-        vault.approveVendor(VENDOR, 1 ether, 2 ether);
+        vault.approveVendor(VENDOR, payout, 1 ether, 2 ether);
         _pay(payout, 1 ether, INVOICE);
         vm.prank(aiAgent);
         vm.expectRevert(abi.encodeWithSelector(AgentVault.OverPaymentCap.selector, VENDOR, 2 ether, 1 ether));
@@ -176,11 +176,37 @@ contract AgentVaultTest is MeigiFixture {
     function test_vendor_capBelowSpendSaturates() public {
         _pay(payout, 3 ether, INVOICE);
         vm.prank(human);
-        vault.approveVendor(VENDOR, 1 ether, 1 ether);
+        vault.approveVendor(VENDOR, payout, 1 ether, 1 ether);
         assertEq(vault.remainingInPeriod(VENDOR), 0);
         vm.prank(aiAgent);
         vm.expectRevert(abi.encodeWithSelector(AgentVault.OverPeriodCap.selector, VENDOR, 1 ether, 0));
         vault.payInvoice(VENDOR, payout, 1 ether, keccak256("next"));
+    }
+
+    /// Review NEW-5: the owner approves the address they reviewed; a silent re-pin is impossible.
+    function test_vendor_approvalPinsOnlyTheReviewedPayout() public {
+        vm.startPrank(human);
+        vm.expectRevert(abi.encodeWithSelector(PayeeGuard.PayeeMismatch.selector, VENDOR, scammer, payout));
+        vault.approveVendor(VENDOR, scammer, CAP, MONTHLY);
+        vm.expectRevert(PayeeGuard.ZeroAddress.selector);
+        vault.approveVendor(VENDOR, address(0), CAP, MONTHLY);
+        vm.stopPrank();
+    }
+
+    /// Review NEW-5: after a registry change, editing caps with the previously reviewed address fails loudly.
+    function test_vendor_capEditAfterARedirectNeedsTheNewAddressExplicitly() public {
+        _queueChange(VENDOR, newPayout);
+        vm.warp(block.timestamp + CHANGE_DELAY);
+        vm.prank(human);
+        vm.expectRevert(abi.encodeWithSelector(PayeeGuard.PayeeMismatch.selector, VENDOR, payout, newPayout));
+        vault.approveVendor(VENDOR, payout, CAP / 2, MONTHLY);
+    }
+
+    function test_vendor_remainingIsZeroOnceTheRegistryMoved() public {
+        assertEq(vault.remainingInPeriod(VENDOR), MONTHLY);
+        _queueChange(VENDOR, newPayout);
+        vm.warp(block.timestamp + CHANGE_DELAY);
+        assertEq(vault.remainingInPeriod(VENDOR), 0, "the agent must not see room it can't use");
     }
 
     // -------------------------------------------------------- registry changes
@@ -198,7 +224,7 @@ contract AgentVaultTest is MeigiFixture {
         vault.payInvoice(VENDOR, newPayout, 1 ether, INVOICE);
 
         vm.prank(human);
-        vault.approveVendor(VENDOR, CAP, MONTHLY);
+        vault.approveVendor(VENDOR, newPayout, CAP, MONTHLY);
         vm.prank(aiAgent);
         vm.expectPartialRevert(AgentVault.VendorNotYetActive.selector);
         vault.payInvoice(VENDOR, newPayout, 1 ether, INVOICE);
