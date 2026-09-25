@@ -5,6 +5,8 @@ import { defineConfig } from 'vite'
 // idkit-core loads its WASM with `new URL(..., import.meta.url)`; pre-bundling would break that path in dev.
 export default defineConfig({
   plugins: [react()],
+  // One React and one three/R3F instance, even if a workspace package ever resolves its own copy.
+  resolve: { dedupe: ['react', 'react-dom', 'three', '@react-three/fiber'] },
   server: { port: 5173 },
   preview: { port: 4173 },
   optimizeDeps: { exclude: ['@worldcoin/idkit-core'] },
