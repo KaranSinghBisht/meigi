@@ -19,6 +19,7 @@ from .schema import QUESTION_IDS, QUESTIONS, option_keys, request_body
 
 log = logging.getLogger("payeebench.providers")
 JEV_USD_PER_M_INPUT = 0.042          # TypeSafe list price; output tokens are free
+USER_AGENT = "payeebench/0.1"        # Cloudflare refuses urllib's default agent (error 1010)
 RETRYABLE = {408, 409, 429, 500, 502, 503, 504, 529}
 
 
@@ -34,6 +35,7 @@ class Prediction:
     input_tokens: int | None = None
     output_tokens: int | None = None
     cost_usd: float | None = None
+    parse_error: bool = False        # an LLM reply with no usable JSON (scored as a uniform distribution)
 
 
 def normalise(raw, keys):
@@ -64,7 +66,8 @@ def post_json(url, body, headers, timeout=60, attempts=4):
     """-> (parsed JSON, wall ms). 401/402/403/404 raise ProviderUnavailable; 429/5xx retry with backoff."""
     data = json.dumps(body, ensure_ascii=False).encode()
     for attempt in range(attempts):
-        req = urllib.request.Request(url, data=data, method="POST", headers={"content-type": "application/json", **headers})
+        req = urllib.request.Request(url, data=data, method="POST",
+                                     headers={"content-type": "application/json", "user-agent": USER_AGENT, **headers})
         started = time.perf_counter()
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:
@@ -93,7 +96,8 @@ class SystemOne:
 
     def __call__(self, state):
         headers = {"authorization": f"Bearer {self.api_key}"} if self.api_key else {}
-        body, wall = post_json(f"{self.base_url}{self.path}", {**request_body(state), "model": self.model}, headers)
+        payload = request_body(state) if self.model is None else {**request_body(state), "model": self.model}
+        body, wall = post_json(f"{self.base_url}{self.path}", payload, headers)
         usage = body.get("usage") or {}
         pred = Prediction(parse_answers(body["answers"]), wall, body.get("latency_ms"), usage.get("input_tokens"), usage.get("output_tokens"))
         if usage.get("cost") is not None:

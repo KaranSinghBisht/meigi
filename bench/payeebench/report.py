@@ -43,6 +43,7 @@ def summarize(test, preds, val_preds, val, budget):
             "autoclear": metrics.autoclear(metrics.safe_scores(test, preds), val_scores, budget),
             "latency_ms": metrics.latency(preds), "usd_per_1k": metrics.usd_per_1k(preds),
             "input_tokens_per_item": float(np.mean(tokens)) if tokens else None,
+            "parse_errors": sum(bool(p.get("parse_error")) for p in preds.values()),
             "by_family": breakdown(test, ok, "family"), "by_language": breakdown(test, ok, "lang"), "_ok": ok}
 
 
@@ -101,7 +102,8 @@ def build(splits, status, budget, out_dir):
             skipped[name] = st.get("skipped_because") or "no complete test predictions"
             continue
         summaries[name] = summarize(splits["test"], test, val if val and len(val) == len(splits["val"]) else None, splits["val"], budget)
-    tokens = [s["input_tokens_per_item"] for s in summaries.values() if s["input_tokens_per_item"]]
+    # Jev bills the same System-1 request Kev receives, so estimate its price from those token counts, not an LLM prompt's
+    tokens = [s["input_tokens_per_item"] for n, s in summaries.items() if s["input_tokens_per_item"] and status[n].get("kind", "systemone") == "systemone"]
     result = {"generated": datetime.now(timezone.utc).isoformat(timespec="seconds"), "n_items": len(splits["test"]), "budget": budget,
               "comparisons": comparisons(summaries, len(splits["test"])), "skipped": skipped,
               "jev_list_price_per_1k": 1000 * float(np.mean(tokens)) * JEV_USD_PER_M_INPUT / 1e6 if tokens else None,

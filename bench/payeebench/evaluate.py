@@ -18,10 +18,13 @@ from . import report
 from .costs import Energy
 from .llm import ClaudeLLM
 from .providers import CloudflareJev, ProviderUnavailable, SystemOne, openrouter_jev, typesafe_jev
+from .worker import WorkerJev, WorkerLlama
 
 log = logging.getLogger("payeebench.evaluate")
 BENCH = Path(__file__).resolve().parents[1]
-REMOTE = {"jev-cloudflare": CloudflareJev, "jev-openrouter": openrouter_jev, "jev-typesafe": typesafe_jev, "claude-haiku": ClaudeLLM}
+REMOTE = {"jev-worker": WorkerJev, "jev-openrouter": openrouter_jev, "jev-typesafe": typesafe_jev, "jev-cloudflare": CloudflareJev,
+          "claude-haiku": ClaudeLLM, "llama-worker": WorkerLlama}
+DEFAULT_REMOTE = "jev-worker,jev-openrouter,claude-haiku"     # each is skipped, with the reason, when it cannot run
 
 
 def slug(name):
@@ -70,16 +73,17 @@ def run_split(provider, records, path, fresh):
 
 
 def run_contender(provider, splits, warmup, fresh):
-    """-> None when it ran, else the reason it was skipped."""
+    """-> None when it ran, else the reason it was skipped. A contender may limit itself to some splits (`splits`)."""
     first = splits["val"][0]["state"]
     try:
-        for _ in range(max(1, warmup)):
+        for _ in range(max(1, getattr(provider, "warmup", warmup))):
             provider(first)                  # probe + warm-up (load, compile, open connections); not scored
-    except ProviderUnavailable as e:
+    except (ProviderUnavailable, RuntimeError) as e:
         log.warning("skipping %s: %s", provider.name, e)
         return str(e)
     for split, records in splits.items():
-        run_split(provider, records, BENCH / "results" / "predictions" / f"{slug(provider.name)}-{split}.jsonl", fresh)
+        if split in getattr(provider, "splits", splits):
+            run_split(provider, records, BENCH / "results" / "predictions" / f"{slug(provider.name)}-{split}.jsonl", fresh)
     return None
 
 
@@ -87,7 +91,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--kev", action="append", default=[], help="NAME=URL of a local kev.serve (priced by electricity)")
     ap.add_argument("--endpoint", action="append", default=[], help="NAME=URL of any other /v1/systemone endpoint")
-    ap.add_argument("--remote", default=",".join(REMOTE), help=f"comma list from {sorted(REMOTE)} (skipped when no key/credit)")
+    ap.add_argument("--remote", default=DEFAULT_REMOTE, help=f"comma list from {sorted(REMOTE)} (skipped when no key/credit)")
     ap.add_argument("--budget", type=float, default=0.01, help="error budget for auto-clear (share of cleared items that are unsafe)")
     ap.add_argument("--watts", type=float, default=Energy().watts, help="assumed package power of this Mac while serving")
     ap.add_argument("--warmup", type=int, default=3)
@@ -101,7 +105,7 @@ def main():
     if not a.report_only:
         for provider in contenders(a):
             reason = run_contender(provider, splits, a.warmup, a.fresh)
-            status[provider.name] = {"slug": slug(provider.name), "ran": reason is None, "skipped_because": reason,
+            status[provider.name] = {"slug": slug(provider.name), "kind": getattr(provider, "kind", "systemone"), "ran": reason is None, "skipped_because": reason,
                                      "at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
         status_path.parent.mkdir(parents=True, exist_ok=True)
         status_path.write_text(json.dumps(status, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")

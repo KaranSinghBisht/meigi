@@ -1,12 +1,11 @@
 """Build PayeeBench-JA: train / val / test JSONL in Kev's labelled-request format, plus stats.json and leakage.json.
 
-    uv run python -m payeebench.build --out dataset [--nta ../data/nta/raw]
+    uv run python -m payeebench.build --out dataset     # uses meigi/data/nta when present (registry.py)
 
 Records: {"state": {...}, "questions": {qid: {type, instructions, criteria, label}}, "_meta": {id, split, family, ...}}.
 Kev's trainer reads `state` + `questions` (labels included) and keeps `_meta`; the eval harness strips both labels and
 metadata before anything is sent to a model (schema.request_body)."""
 import argparse
-import csv
 import json
 import logging
 import random
@@ -14,33 +13,20 @@ import re
 from collections import Counter
 from pathlib import Path
 
-from . import families, leakage
+from . import families, leakage, registry
 from .entities import EntityFactory
 from .schema import QUESTION_IDS, QUESTIONS, SAFE_TYPES, MAX_SAFE_SUSPICION, is_safe, labelled_questions
-from .tnumber import is_valid_t_number
+from .tnumber import is_unassignable, is_valid_t_number
 
 log = logging.getLogger("payeebench.build")
 SIZES = {"train": 600, "val": 100, "test": 150}
 T_NUMBER = re.compile(r"(?<![0-9A-Za-z])T\d{13}(?!\d)")
+NTA = Path(__file__).resolve().parents[2] / "data" / "nta"
 
 
-def load_registry(nta_dir):
-    """Real corporate numbers and names from the NTA Tokyo bulk files, to keep fictional ones from colliding."""
-    numbers, names = set(), set()
-    if not nta_dir or not Path(nta_dir).is_dir():
-        return numbers, names
-    for path in sorted(Path(nta_dir).glob("*.csv")):
-        with path.open(encoding="utf-8", newline="") as f:
-            for row in csv.reader(f):
-                if len(row) > 6:
-                    numbers.add(row[1]); names.add(row[6])
-    log.info("NTA registry: %d numbers, %d names", len(numbers), len(names))
-    return numbers, names
-
-
-def build_split(split, n, seed, used, avoid_numbers, avoid_names=frozenset()):
+def build_split(split, n, seed, used, avoid_numbers, avoid_names=frozenset(), registered=None):
     rng = random.Random(f"{seed}:{split}")
-    fac = EntityFactory(split, rng, used, avoid_numbers, avoid_names)
+    fac = EntityFactory(split, rng, used, avoid_numbers, avoid_names, registered)
     plan = [fam for fam, k in families.allocate(n).items() for _ in range(k)]
     rng.shuffle(plan)
     records, seen = [], set()
@@ -55,6 +41,7 @@ def build_split(split, n, seed, used, avoid_numbers, avoid_names=frozenset()):
             raise RuntimeError(f"could not draw a distinct {family} item")
         meta = {"id": f"payeebench/{split}/{len(records):04d}", "split": split, **it["meta"], "safe": is_safe(it["labels"])}
         records.append({"state": it["state"], "questions": labelled_questions(it["labels"]), "_meta": meta})
+    fac.log["renamed"] = set(fac.renamed.values())
     return records, fac.log
 
 
@@ -68,19 +55,25 @@ def stats(records):
                       "max": max(len(leakage.flat_text(r["state"])) for r in records)}}
 
 
-def check(splits, logs, registry_names):
-    """Hard guarantees: every T-number in every text passes the check digit, and no fictional company name is a
-    registered Tokyo corporation (when the NTA file is available)."""
+def check(splits, logs, nationwide):
+    """Hard guarantees: every T-number passes the check digit and sits in the never-issued 9999 office range, and (with
+    the nationwide index) no T-number and no company name in the output belongs to a registered corporation."""
+    numbers = set()
     for records in splits.values():
         for r in records:
             for t in T_NUMBER.findall(leakage.flat_text(r["state"])):
-                if not is_valid_t_number(t):
-                    raise AssertionError(f"{r['_meta']['id']}: invalid T-number {t}")
+                if not (is_valid_t_number(t) and is_unassignable(t)):
+                    raise AssertionError(f"{r['_meta']['id']}: T-number {t} is invalid or outside the 9999 range")
+                numbers.add(t[1:])
     names = set().union(*(lg["company"] for lg in logs.values()))
-    collisions = sorted(names & registry_names)
-    if collisions:
-        raise AssertionError(f"fictional company names collide with the NTA registry: {collisions[:5]}")
-    return {"t_numbers_valid": True, "company_names": len(names), "nta_names_checked": len(registry_names)}
+    out = {"t_numbers": len(numbers), "t_numbers_valid_and_unassignable": True, "company_names": len(names),
+           "renamed_from_registry": sorted(set().union(*(lg["renamed"] for lg in logs.values())))}
+    if nationwide is None:
+        return {**out, "nta_nationwide_checked": False}
+    bad_numbers, bad_names = nationwide.registered_numbers(numbers), nationwide.registered_names(names)
+    if bad_numbers or bad_names:
+        raise AssertionError(f"registered corporations in the output: numbers {bad_numbers[:3]}, names {bad_names[:3]}")
+    return {**out, "nta_nationwide_checked": True, "nta_corporations": nationwide.size, "registered_matches": 0}
 
 
 def write_jsonl(path, records):
@@ -93,14 +86,17 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--out", default="dataset")
     ap.add_argument("--seed", type=int, default=2026)
-    ap.add_argument("--nta", default="", help="directory with NTA 法人番号 CSVs (optional collision check)")
+    ap.add_argument("--nta", default=str(NTA / "raw"), help="NTA Tokyo bulk CSVs the split is drawn against (registry.py)")
+    ap.add_argument("--registry", default=str(NTA / "corporations.sqlite"), help="nationwide NTA index for renames and checks")
     a = ap.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(message)s")
-    numbers, names = load_registry(a.nta)
+    numbers, names = registry.tokyo_sets(a.nta)
+    nationwide = registry.nationwide(a.registry)
+    registered = nationwide.has_name if nationwide else None
     used, splits, logs = set(), {}, {}
     for split, n in SIZES.items():
-        splits[split], logs[split] = build_split(split, n, a.seed, used, frozenset(numbers), frozenset(names))
-    checks = check(splits, logs, names)
+        splits[split], logs[split] = build_split(split, n, a.seed, used, frozenset(numbers), frozenset(names), registered)
+    checks = check(splits, logs, nationwide)
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
     for split, records in splits.items():
         write_jsonl(out / f"{split}.jsonl", records)

@@ -11,7 +11,7 @@ from .schema import QUESTION_IDS  # noqa: E402
 
 SURFACE, INK, INK2, MUTED, GRID, AXIS = "#fcfcfb", "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7"
 SLOTS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"]   # validated order
-FIXED = [("payee-0.8b", 0), ("kev-0.8b (base)", 1), ("val-fitted", 2), ("kev-4b", 3), ("payee-4b", 6), ("jev", 7), ("claude", 4)]
+FIXED = [("payee-0.8b", 0), ("kev-0.8b (base)", 1), ("val-fitted", 2), ("kev-4b", 3), ("payee-4b", 6), ("jev", 7), ("claude", 4), ("llama", 5)]
 REFERENCE = "#b9b8b1"      # estimates that are not measured contenders
 MIN_BIN = 10               # reliability bins with fewer answers are noise, not signal
 QUESTION_LABELS = {"request_type": "Request type", "new_destination": "New destination", "pressure": "Pressure", "suspicion": "Suspicion"}
@@ -164,7 +164,7 @@ def speed_cost_chart(result, colors, path):
         _frame(ax, "x")
         ax.set_title(title, loc="left", color=INK, fontsize=14, pad=12)
     a1.set_xlim(0, max(lat.values()) * 1.35)
-    fig.text(0.01, 0.01, "Local Kev: measured on an M5 Max; cost = electricity at an assumed 60 W and ¥31/kWh. Grey bars are estimates, not measurements.",
+    fig.text(0.01, 0.01, "Local Kev: measured on an M5 Max, cost = electricity at an assumed 60 W and ¥31/kWh. LLM: list price of the measured tokens. Grey bars are estimates.",
              color=MUTED, fontsize=10)
     a2.set_xscale("log"); a2.set_xlim(min(cost.values()) / 3, max(cost.values()) * 30)
     fig.tight_layout(rect=(0, 0.04, 1, 1)); fig.savefig(path, dpi=200); plt.close(fig)

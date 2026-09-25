@@ -25,6 +25,32 @@ COMPANY_STEMS = {
              ("常盤台", "トキワダイ", "tokiwadai"), ("菫", "スミレ", "sumire"), ("羅針", "ラシン", "rashin")],
 }
 
+# Reserved stems, never drawn: they replace a drawn stem when the drawn name turns out to be a registered corporation
+# anywhere in Japan (entities.EntityFactory._unregistered). Disjoint from the stems above and across splits.
+RESERVED_STEMS = {
+    "train": [("玉響", "タマユラ", "tamayura"), ("霧乃辺", "キリノベ", "kirinobe"), ("朱鷺見", "トキミ", "tokimi"),
+              ("凪波", "ナギナミ", "naginami"), ("雲珠", "ウズ", "uzu"), ("蛍火", "ホタルビ", "hotarubi"),
+              ("虹ヶ淵", "ニジガフチ", "nijigafuchi"), ("夕星", "ユウヅツ", "yuzutsu"), ("鳴神", "ナルカミ", "narukami"),
+              ("遠雷", "エンライ", "enrai"), ("水無月", "ミナヅキ", "minazuki"), ("花筏", "ハナイカダ", "hanaikada"),
+              ("白南風", "シラハエ", "shirahae"), ("東風谷", "コチヤ", "kochiya"), ("緑雨", "リョクウ", "ryokuu"),
+              ("望月野", "モチヅキノ", "mochizukino"), ("落葉松", "カラマツ", "karamatsu"), ("小夜風", "サヨカゼ", "sayokaze"),
+              ("雲雀野", "ヒバリノ", "hibarino"), ("鈴蘭台", "スズランダイ", "suzurandai"), ("雲丸", "クモマル", "kumomaru"),
+              ("桃園", "モモゾノ", "momozono")],
+    "val": [("深雪", "ミユキ", "miyuki"), ("初霜", "ハツシモ", "hatsushimo"), ("野分", "ノワキ", "nowaki"),
+            ("春雷", "シュンライ", "shunrai"), ("若潮", "ワカシオ", "wakashio"), ("朝霞", "アサガスミ", "asagasumi"),
+            ("雲海", "ウンカイ", "unkai"), ("立待", "タチマチ", "tachimachi"), ("湯煙", "ユケムリ", "yukemuri"),
+            ("鈴鹿野", "スズカノ", "suzukano"), ("麦秋", "バクシュウ", "bakushu"), ("風花", "カザハナ", "kazahana"),
+            ("霜月", "シモツキ", "shimotsuki"), ("蕗野", "フキノ", "fukino"), ("初凪", "ハツナギ", "hatsunagi"),
+            ("浜茄子", "ハマナス", "hamanasu"), ("山背", "ヤマセ", "yamase"), ("雨雲", "アマグモ", "amagumo"),
+            ("桃花", "モモハナ", "momohana")],
+    "test": [("綿津見", "ワタツミ", "watatsumi"), ("雪洞", "ボンボリ", "bonbori"), ("陽炎", "カゲロウ", "kagerou"),
+             ("八雲野", "ヤクモノ", "yakumono"), ("流星", "リュウセイ", "ryusei"), ("天泣", "テンキュウ", "tenkyu"),
+             ("白夜", "ビャクヤ", "byakuya"), ("瑠璃", "ルリ", "ruri"), ("螢雪", "ケイセツ", "keisetsu"),
+             ("暮色", "ボショク", "boshoku"), ("蜃気楼", "シンキロウ", "shinkirou"), ("宵待", "ヨイマチ", "yoimachi"),
+             ("雨上", "アメアガリ", "ameagari"), ("虹霓", "コウゲイ", "kougei"), ("海霧", "ウミギリ", "umigiri"),
+             ("浜木綿", "ハマユウ", "hamayu"), ("風丸", "カザマル", "kazamaru"), ("木蓮", "モクレン", "mokuren")],
+}
+
 # (suffix, katakana reading, romaji, English), shared: company names are unique as wholes because stems are split
 INDUSTRIES = [("精機", "セイキ", "seiki", "Precision"), ("商事", "ショウジ", "shoji", "Trading"),
               ("ロジスティクス", "ロジスティクス", "logistics", "Logistics"), ("設計", "セッケイ", "sekkei", "Design"),

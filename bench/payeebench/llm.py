@@ -58,6 +58,8 @@ def to_probs(data):
 
 
 class ClaudeLLM:
+    kind = "llm"
+
     def __init__(self, name="claude-haiku-4.5", model=HAIKU):
         self.name, self.model, self.client = name, model, None
 

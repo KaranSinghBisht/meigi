@@ -3,54 +3,63 @@
     "slug": "kev-0-8b-base",
     "ran": true,
     "skipped_because": null,
-    "at": "2026-09-25T19:17:24+00:00"
+    "at": "2026-09-25T21:28:30+00:00",
+    "kind": "systemone"
   },
   "kev-0.8b (base, val-fitted T)": {
     "slug": "kev-0-8b-base-val-fitted-t",
     "ran": true,
     "skipped_because": null,
-    "at": "2026-09-25T19:17:36+00:00"
+    "at": "2026-09-25T21:28:41+00:00",
+    "kind": "systemone"
   },
   "kev-4b (base)": {
     "slug": "kev-4b-base",
     "ran": true,
     "skipped_because": null,
-    "at": "2026-09-25T19:18:34+00:00"
+    "at": "2026-09-25T21:29:26+00:00",
+    "kind": "systemone"
   },
   "payee-0.8b (ours)": {
     "slug": "payee-0-8b-ours",
     "ran": true,
     "skipped_because": null,
-    "at": "2026-09-25T19:18:46+00:00"
-  },
-  "jev (cloudflare)": {
-    "slug": "jev-cloudflare",
-    "ran": false,
-    "skipped_because": "CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN not set",
-    "at": "2026-09-25T19:18:46+00:00"
-  },
-  "jev (openrouter)": {
-    "slug": "jev-openrouter",
-    "ran": false,
-    "skipped_because": "OPENROUTER_API_KEY not set",
-    "at": "2026-09-25T19:18:46+00:00"
-  },
-  "jev (typesafe)": {
-    "slug": "jev-typesafe",
-    "ran": false,
-    "skipped_because": "TYPESAFE_API_KEY not set",
-    "at": "2026-09-25T19:18:46+00:00"
-  },
-  "claude-haiku-4.5": {
-    "slug": "claude-haiku-4-5",
-    "ran": false,
-    "skipped_because": "ANTHROPIC_API_KEY not set",
-    "at": "2026-09-25T19:18:46+00:00"
+    "at": "2026-09-25T21:29:37+00:00",
+    "kind": "systemone"
   },
   "payee-4b (ours, 1 epoch)": {
     "slug": "payee-4b-ours-1-epoch",
     "ran": true,
     "skipped_because": null,
-    "at": "2026-09-25T21:09:35+00:00"
+    "at": "2026-09-25T21:30:22+00:00",
+    "kind": "systemone"
+  },
+  "jev (worker)": {
+    "slug": "jev-worker",
+    "ran": false,
+    "skipped_because": "Worker returned 402 insufficient_credits: top up Cloudflare AI Gateway credit, then run `uv run python -m payeebench.evaluate --remote jev-worker`",
+    "at": "2026-09-25T21:30:23+00:00",
+    "kind": "systemone"
+  },
+  "jev (openrouter)": {
+    "slug": "jev-openrouter",
+    "ran": false,
+    "skipped_because": "OPENROUTER_API_KEY not set",
+    "at": "2026-09-25T21:30:23+00:00",
+    "kind": "systemone"
+  },
+  "claude-haiku-4.5": {
+    "slug": "claude-haiku-4-5",
+    "ran": false,
+    "skipped_because": "ANTHROPIC_API_KEY not set",
+    "at": "2026-09-25T21:30:23+00:00",
+    "kind": "llm"
+  },
+  "llama-3.3-70b (worker)": {
+    "slug": "llama-3-3-70b-worker",
+    "ran": true,
+    "skipped_because": null,
+    "at": "2026-09-25T21:36:44+00:00",
+    "kind": "llm"
   }
 }

@@ -7,7 +7,7 @@ KEV_DIR="${KEV_DIR:-$BENCH/../../kev}"
 cd "$BENCH"
 mkdir -p runs/logs
 
-uv run python -m payeebench.build --out dataset --nta ../data/nta/raw          # NTA check is skipped if the folder is absent
+uv run python -m payeebench.build --out dataset      # NTA checks run when meigi/data/nta exists
 scripts/train_kev.sh payee-0.8b --shared_prefix 1 2>&1 | tee runs/logs/payee-0.8b.log
 # the released model with a temperature refitted on our validation split (a fair "calibrated zero-shot" arm)
 (cd "$KEV_DIR" && uv run python "$BENCH/scripts/calibrate_kev.py" --copy_from jaredpalmer/kev-0.8b \

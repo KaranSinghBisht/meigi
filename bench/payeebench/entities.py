@@ -17,6 +17,23 @@ def zengin(kana):
     return kana.translate(SMALL_KANA)
 
 
+def unassigned_phone(area, exchange, line):
+    """A fixed-line number whose local exchange starts with 0, which Japan's numbering plan never assigns (0 is the
+    trunk prefix), with the usual 10 digits: 03-0xxx-xxxx, 045-0xx-xxxx."""
+    local = f"0{exchange % 1000:03d}" if len(area) == 1 else f"0{exchange % 100:02d}"
+    return f"0{area}-{local}-{line}"
+
+
+def _name(core, form, position):
+    return f"{form}{core}" if position == "prefix" else f"{core}{form}"
+
+
+def _imo(romaji_name):
+    """Which of i, m, o a domain name contains: lookalike_domain builds one variant per letter present, so a replacement
+    stem must keep this pattern for the rest of the random stream to stay put."""
+    return tuple(c in romaji_name for c in "imo")
+
+
 @dataclass(frozen=True)
 class Company:
     name: str
@@ -86,8 +103,12 @@ class EntityFactory:
     """Samples entities for one split; company names, T-numbers, accounts and wallets are unique across the whole
     build because the factories of all splits share `used`."""
 
-    def __init__(self, split, rng: random.Random, used: set, avoid_numbers=frozenset(), avoid_names=frozenset()):
+    def __init__(self, split, rng: random.Random, used: set, avoid_numbers=frozenset(), avoid_names=frozenset(), registered=None):
+        """avoid_names: names that are redrawn (the Tokyo registry the published split was drawn against).
+        registered: name -> bool for the nationwide registry; a drawn name it knows is swapped for a reserved stem."""
         self.split, self.rng, self.used, self.avoid, self.avoid_names = split, rng, used, avoid_numbers, avoid_names
+        self.registered = registered
+        self.renamed = {}             # drawn name -> the reserved-stem name that replaced it
         self.log = defaultdict(set)   # every entity this split used, for the leakage report
 
     def _unique(self, make):
@@ -99,25 +120,42 @@ class EntityFactory:
         raise RuntimeError("entity pool exhausted")
 
     def company(self):
-        """A company name never used before in this build and not a registered corporation in `avoid_names`."""
+        """A company name never used before in this build and not a registered corporation (see _unregistered)."""
         for _ in range(1000):
             stem, industry = self.rng.choice(pools.COMPANY_STEMS[self.split]), self.rng.choice(pools.INDUSTRIES)
             form, position, abbr, en_form = self.rng.choices(LEGAL_FORMS, weights=[5, 3, 1, 1])[0]
-            core = stem[0] + industry[0]
-            name = f"{form}{core}" if position == "prefix" else f"{core}{form}"
+            name = _name(stem[0] + industry[0], form, position)
             if name not in self.used and name not in self.avoid_names:
                 break
         else:
             raise RuntimeError("company name pool exhausted")
+        self.used.add(name)        # the drawn name too: later draws must be redrawn exactly as when it was kept
+        stem, name = self._unregistered(stem, industry, form, position, name)
         self.used.add(name)
         reading = zengin(stem[1] + industry[1])
         holder = f"{abbr}{reading}" if position == "prefix" else f"{reading}{abbr}"
         en = f"{stem[2].capitalize()} {industry[3]} {en_form}"
-        tel = f"0{self.rng.choice(['3', '6', '45', '52', '92'])}-{self.rng.randrange(1000, 9999)}-{self.rng.randrange(1000, 9999)}"
+        area = self.rng.choice(['3', '6', '45', '52', '92'])
+        exchange, line = self.rng.randrange(1000, 9999), self.rng.randrange(1000, 9999)
+        tel = unassigned_phone(area, exchange, line)
         address = f"{self.rng.choice(pools.WARDS[self.split])}{self.rng.randint(1, 5)}-{self.rng.randint(1, 30)}-{self.rng.randint(1, 20)}"
         t_number = self._unique(lambda: random_t_number(self.rng, self.avoid))
         self.log["company"].add(name); self.log["t_number"].add(t_number)
         return Company(name, holder, en, f"{stem[2]}-{industry[2]}.example", t_number, address, tel)
+
+    def _unregistered(self, stem, industry, form, position, name):
+        """(stem, name), with a drawn name that is registered anywhere in Japan replaced by the first reserved stem of
+        this split that gives an unused, unregistered name. Spends no random draw, and keeps the domain's i/m/o pattern
+        (_imo), so no other item of the split changes."""
+        if self.registered is None or not self.registered(name):
+            return stem, name
+        keep = _imo(f"{stem[2]}-{industry[2]}")
+        for alt in pools.RESERVED_STEMS[self.split]:
+            candidate = _name(alt[0] + industry[0], form, position)
+            if _imo(f"{alt[2]}-{industry[2]}") == keep and candidate not in self.used and not self.registered(candidate):
+                self.renamed[name] = candidate
+                return alt, candidate
+        raise RuntimeError(f"no reserved stem can replace {name}")
 
     def person(self):
         sur, given = self.rng.choice(pools.SURNAMES[self.split]), self.rng.choice(pools.GIVEN_NAMES[self.split])
