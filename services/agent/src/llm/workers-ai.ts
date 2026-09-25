@@ -77,7 +77,7 @@ interface WorkersAiReply {
 }
 
 /** The outermost `{...}` in a text reply, parsed; null when there is none. */
-function jsonObjectIn(text: string): unknown {
+export function jsonObjectIn(text: string): unknown {
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
   if (start === -1 || end <= start) return null;

@@ -6,8 +6,12 @@ const address = z.string().regex(/^0x[0-9a-fA-F]{40}$/u, "must be an address");
 const optional = <T extends z.ZodType>(schema: T) => z.preprocess((v) => (v === "" ? undefined : v), schema.optional());
 const flag = z.enum(["true", "false", "1", "0"]).transform((v) => v === "true" || v === "1");
 const probability = z.coerce.number().min(0).max(1);
-/** A local mock IdP (scripts/mock-world-idp.ts) may be plain http; anything else must be https. */
-const LOOPBACK = /^http:\/\/(127\.0\.0\.1|localhost|\[::1\])(:\d+)?\/?$/u;
+/** https, or plain http on this machine only (a local model, a mock IdP). */
+const secureOrLoopback = (url: string) => {
+  if (!URL.canParse(url)) return false;
+  const { protocol, hostname } = new URL(url);
+  return protocol === "https:" || (protocol === "http:" && ["127.0.0.1", "localhost", "[::1]"].includes(hostname));
+};
 
 const schema = z
   .object({
@@ -35,7 +39,15 @@ const schema = z
     AI_PROXY_URL: optional(z.url()),
     AI_PROXY_TOKEN: optional(z.string()),
     // System-2 LLM
-    LLM_PROVIDER: z.enum(["proxy", "anthropic", "workers-ai", "none"]).default("proxy"),
+    LLM_PROVIDER: z.enum(["local", "proxy", "anthropic", "workers-ai", "none"]).default("local"),
+    // local: an OpenAI-compatible server on this machine (Ollama); no key
+    LOCAL_LLM_URL: z
+      .url()
+      .refine(secureOrLoopback, "must be https, or http on loopback")
+      .default("http://127.0.0.1:11434/v1")
+      .transform((v) => v.replace(/\/+$/u, "")),
+    LOCAL_LLM_MODEL: z.string().min(1).default("llama3.1:8b"),
+    LOCAL_LLM_TIMEOUT_MS: z.coerce.number().int().positive().default(60_000),
     ANTHROPIC_API_KEY: optional(z.string()),
     ANTHROPIC_MODEL: z.string().default("claude-haiku-4-5"),
     WORKERS_AI_MODEL: z.string().default("@cf/meta/llama-3.3-70b-instruct-fp8-fast"),
@@ -52,7 +64,7 @@ const schema = z
     // World ID for Agents (RFC 8628 device grant): off unless both client values are set
     WORLD_AGENTS_ISSUER: z
       .url()
-      .refine((v) => v.startsWith("https://") || LOOPBACK.test(v), "must be https (http only for a local mock IdP)")
+      .refine(secureOrLoopback, "must be https (http only on loopback, for a local mock IdP)")
       .default("https://sandbox.auth.world.org")
       .transform((v) => v.replace(/\/+$/u, "")),
     WORLD_AGENTS_CLIENT_ID: optional(z.string().min(1)),

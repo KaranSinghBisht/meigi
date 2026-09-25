@@ -22,7 +22,7 @@ export interface ExplanationFacts {
 }
 
 export interface LlmPort {
-  provider: "anthropic" | "workers-ai" | "proxy";
+  provider: "anthropic" | "workers-ai" | "proxy" | "local";
   model: string;
   propose(document: string): Promise<Proposal>;
   explain(facts: ExplanationFacts): Promise<string>;

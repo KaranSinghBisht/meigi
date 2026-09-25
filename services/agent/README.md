@@ -191,11 +191,26 @@ and token match the configuration, that the key is the vault's agent, and that i
 | Area | Default |
 |---|---|
 | Triage | `TRIAGE_BACKENDS=systemone,proxy`, `SYSTEMONE_URL=http://127.0.0.1:8102/v1/systemone`, `TRIAGE_MIN_P_SAFE=0.9`, `TRIAGE_REQUIRED=true` |
-| LLM | `LLM_PROVIDER=proxy` (Llama 3.3 via `AI_PROXY_URL/v1/chat` with `AI_PROXY_TOKEN`), or `anthropic` (`ANTHROPIC_API_KEY`, `claude-haiku-4-5`), `workers-ai` or `none` |
+| LLM | `LLM_PROVIDER=local` (the default for demos: a model on this machine behind an OpenAI-compatible API, `LOCAL_LLM_URL=http://127.0.0.1:11434/v1`, `LOCAL_LLM_MODEL=llama3.1:8b`, `LOCAL_LLM_TIMEOUT_MS=60000`), `proxy` (Llama 3.3 via `AI_PROXY_URL/v1/chat` with `AI_PROXY_TOKEN`), `anthropic` (`ANTHROPIC_API_KEY`, `claude-haiku-4-5`), `workers-ai` or `none` |
 | Screening | `INTERCEPTA_API_KEY` (optional), `INTERCEPTA_CACHE_PATH=../../data/agent/intercepta-cache.json`, `INTERCEPTA_MAX_CALLS=900`, `INTERCEPTA_TOXIC_THRESHOLD=50` |
 | Judgement holds | `TRIAGE_MAX_PRESSURE=0.5`, `AUTO_CLEAR_MAX_YEN` (unset: no budget hold) |
 | Human approval | `WORLD_AGENTS_CLIENT_ID` and `WORLD_AGENTS_CLIENT_SECRET` (both or neither), `WORLD_AGENTS_ISSUER=https://sandbox.auth.world.org`, `WORLD_AGENTS_AUTH_METHOD=client_secret_basic` (or `client_secret_post`), `WORLD_AGENTS_APPROVERS`, `WORLD_AGENTS_ENROLL` (off), `WORLD_AGENTS_APPROVERS_PATH=../../data/agent/approvers.json`, `WORLD_AGENTS_TRACE` (off) |
 | Server | `AGENT_PORT=8788`, `AGENT_HOST=127.0.0.1`, `APP_ORIGINS=http://localhost:5173,http://localhost:4173`, `VENDOR_T_NUMBERS=2011001234567` |
+
+### Local LLM (the default for demos)
+
+The gullible proposal and the hold explanation run on a local model by default, because Workers AI's free daily
+quota runs out. Install [Ollama](https://ollama.com), then run `ollama pull llama3.1:8b`; Ollama serves an
+OpenAI-compatible API at `http://127.0.0.1:11434/v1`.
+
+- The agent posts to `${LOCAL_LLM_URL}/chat/completions`, asking for `response_format: { type: "json_object" }` for
+  the proposal. A reply with a JSON object inside prose is accepted too.
+- No key is needed. `LOCAL_LLM_URL` must be https, or http on loopback only.
+- Thinking is switched off (`reasoning_effort: "none"`). A thinking model such as `gemma4:e4b` otherwise spends
+  the whole token budget reasoning and returns empty content. Ollama ignores the setting for other models.
+- The first call loads the model into memory and is slower. `LOCAL_LLM_TIMEOUT_MS` (60 s) bounds every call.
+- If the server isn't running, the proposal shows as unavailable and the explanation falls back to a template.
+  Nothing else changes, because the model never decides a payment.
 
 ### Triage backend
 

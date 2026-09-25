@@ -12,6 +12,7 @@ import type { Config } from "./config.js";
 import type { AppDeps } from "./deps.js";
 import { parseTNumber } from "./extract/tnumber.js";
 import { createAnthropicLlm } from "./llm/anthropic.js";
+import { createLocalLlm } from "./llm/local.js";
 import type { LlmPort } from "./llm/types.js";
 import { createWorkersAiLlm } from "./llm/workers-ai.js";
 import { createScanCache } from "./screening/cache.js";
@@ -103,6 +104,9 @@ function createTriageBackends(config: Config): TriageBackend[] {
 }
 
 function createLlm(config: Config): LlmPort | null {
+  if (config.LLM_PROVIDER === "local") {
+    return createLocalLlm({ url: config.LOCAL_LLM_URL, model: config.LOCAL_LLM_MODEL, timeoutMs: config.LOCAL_LLM_TIMEOUT_MS });
+  }
   if (config.LLM_PROVIDER === "anthropic") {
     return createAnthropicLlm({ apiKey: config.ANTHROPIC_API_KEY!, model: config.ANTHROPIC_MODEL });
   }
