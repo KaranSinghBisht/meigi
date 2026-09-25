@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { zeroAddress, type Address, type Hex } from "viem";
 import { AnalysisStore } from "../src/analysis/store.js";
+import { DEFAULT_HOLD_POLICY } from "../src/analysis/verdict.js";
 import type { ChainPort, PayCall, PayerPort, PayeeState, RawRevert, SendOutcome, Snapshot, VendorState } from "../src/chain/types.js";
 import type { AppDeps } from "../src/deps.js";
 import { LlmError, type ExplanationFacts, type LlmPort, type Proposal } from "../src/llm/types.js";
@@ -210,8 +211,10 @@ export function fakeDeps(parts: Partial<Fakes> = {}, llm: LlmPort | null = null)
     vendorTNumbers: ["2011001234567", "3999905000001"],
     origins: ["http://localhost:5173"],
     triageRequired: true,
+    holds: DEFAULT_HOLD_POLICY,
+    approvals: null,
     apiToken: null,
     demoDir: DEMO_DIR,
-    info: { chainId: 31337, vault: VAULT, agent: AGENT, triage: ["fake"], triageRequired: true, llm: llm ? "fake" : "none", screening: false },
+    info: { chainId: 31337, vault: VAULT, agent: AGENT, triage: ["fake"], triageRequired: true, llm: llm ? "fake" : "none", screening: false, humanApproval: false },
   };
 }

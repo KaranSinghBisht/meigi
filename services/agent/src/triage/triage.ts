@@ -6,8 +6,8 @@ import type { TriageState } from "./state.js";
 /**
  * Routing rule, identical to PayeeBench's: p_safe = P(type ∈ {routine_invoice, credit_note}) × P(no new
  * destination) × P(suspicion ≤ 1). Auto-clear only when p_safe reaches the threshold (calibrated on the
- * validation split at a 1% error budget). Pressure is reported but never blocks alone: a genuine overdue
- * reminder is urgent, and the kernel still checks the payee.
+ * validation split at a 1% error budget). Pressure is not part of p_safe (a genuine overdue reminder is urgent);
+ * the verdict holds high pressure for a person instead (TRIAGE_MAX_PRESSURE), and the kernel still checks the payee.
  */
 export const DEFAULT_MIN_P_SAFE = 0.9;
 

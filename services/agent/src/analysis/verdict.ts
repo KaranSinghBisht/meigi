@@ -10,12 +10,21 @@ export interface Verdict {
   warnings: Reason[];
 }
 
+/** Judgement holds: a verified human may release them (World ID for Agents), unlike integrity or chain holds. */
+export interface HoldPolicy {
+  maxPressure: number; // System-1 pressure above this holds
+  autoClearMaxYen: number | null; // amounts above this never auto-clear
+}
+
+export const DEFAULT_HOLD_POLICY: HoldPolicy = { maxPressure: 0.5, autoClearMaxYen: null };
+
 export interface VerdictInput {
   extracted: Extracted;
   kernel: KernelResult;
   triage: TriageResult;
   screening: Screening;
   triageRequired: boolean;
+  holds: HoldPolicy;
 }
 
 /**
@@ -30,6 +39,7 @@ export function decide(input: VerdictInput): Verdict {
     ...input.extracted.flags.map((flag) => tag({ ...flag, layer: "extraction" })),
     ...input.kernel.reasons,
     ...triageReasons(input.triage, input.triageRequired).map(tag),
+    ...judgementHolds(input).map(tag),
     ...screeningReasons(input.screening).map(tag),
   ];
   const reasons = all.filter((r) => r.severity === "block");
@@ -67,6 +77,28 @@ function triageReasons(triage: TriageResult, required: boolean): Untagged[] {
       message: `System-1 triage (${triage.model ?? triage.backend}) holds it: ${triage.holdReasons.join("; ")}.`,
     },
   ];
+}
+
+/**
+ * Pressure (System-1's, or an urgency phrase in the document) and amounts above the auto-clear budget hold a
+ * payment that would otherwise clear. Neither says the payee is wrong, so a verified human may approve them.
+ */
+function judgementHolds({ extracted, kernel, triage, holds }: VerdictInput): Untagged[] {
+  const out: Untagged[] = [];
+  const pressure = triage.status === "ok" && triage.pressure > holds.maxPressure ? triage.pressure : null;
+  const urgent = extracted.flags.some((flag) => flag.code === "urgent_language");
+  if (pressure !== null || urgent) {
+    const why = pressure !== null ? `System-1 pressure ${Math.round(pressure * 100)}%` : "urgent wording";
+    const message = `This request pushes for a fast payment (${why}), so a person must approve it.`;
+    out.push({ code: "pressure_hold", severity: "block", layer: "triage", message });
+  }
+  const intent = kernel.intent;
+  if (holds.autoClearMaxYen !== null && intent && Number(intent.amount.value) > holds.autoClearMaxYen) {
+    const budget = `¥${holds.autoClearMaxYen.toLocaleString("en-US")}`;
+    const message = `${intent.amount.display} is above the auto-clear budget of ${budget}, so a person must approve it.`;
+    out.push({ code: "above_auto_clear_budget", severity: "block", layer: "kernel", message });
+  }
+  return out;
 }
 
 function screeningReasons(screening: Screening): Untagged[] {

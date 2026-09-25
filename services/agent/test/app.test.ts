@@ -202,7 +202,7 @@ describe("GET endpoints", () => {
   it("GET /health and GET /demo/invoices", async () => {
     expect((await call("GET", "/health")).body).toMatchObject({ ok: true, chainId: 31337, llm: "none" });
     const { body } = await call("GET", "/demo/invoices");
-    expect(body.invoices).toHaveLength(6);
+    expect(body.invoices).toHaveLength(7);
     expect(body.invoices[0]).toMatchObject({ file: "01-routine-invoice.ja.txt", text: expect.stringContaining("T2011001234567") });
   });
 });

@@ -147,6 +147,9 @@ importers:
       hono:
         specifier: ^4.13.9
         version: 4.13.9
+      jose:
+        specifier: ^6.2.12
+        version: 6.2.12
       viem:
         specifier: ~2.56.8
         version: 2.56.8(typescript@7.0.2)(zod@4.6.5)
@@ -1063,6 +1066,9 @@ packages:
 
   jose@5.10.0:
     resolution: {integrity: sha512-s+3Al/p9g32Iq+oqXxkW//7jk2Vig6FF1CFqzVXoTUXt2qz89YWbL+OwS17NFYEvxC35n0FKeGO2LGYSxeM2Gg==}
+
+  jose@6.2.12:
+    resolution: {integrity: sha512-9NiFmJEex0sy2Dk58j2UGBSHgUs2ypF9eZSu4L6vjOX3Dp96Sw1F3uL+H+D1sx02jZZdzUT0HgvCy59CuvXcWw==}
 
   json-schema-to-ts@3.1.1:
     resolution: {integrity: sha512-+DWg8jCJG2TEnpy7kOm/7/AxaYoaRbjVB4LFZLySZlWn8exGs3A4OLJR966cVvU26N7X9TWxl+Jsw7dzAqKT6g==}
@@ -2227,6 +2233,8 @@ snapshots:
       - '@types/react'
 
   jose@5.10.0: {}
+
+  jose@6.2.12: {}
 
   json-schema-to-ts@3.1.1:
     dependencies:

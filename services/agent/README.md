@@ -13,6 +13,7 @@ Every document goes through these layers. Only the kernel, and then the vault it
 | Agent proposal (System 2) | A deliberately gullible LLM proposes a payment. It is shown in the console and never executed as-is. | `src/llm/` |
 | Kernel | Re-checks everything `payInvoice` checks against one chain snapshot. Every reason names the registered company. | `src/kernel/` |
 | Screening | Intercepta (Web3 Antivirus) quick-scan of the addresses involved. | `src/screening/` |
+| Human approval | A hold that is a judgement call (pressure, System-1's hold, the auto-clear budget) can be released by a verified human who proves with World App, freshly, for this one payment (World ID for Agents). | `src/approval/` |
 | Payment | Always simulates first; a simulated revert is decoded into a sentence and never broadcast. | `src/chain/payer.ts`, `src/analysis/pay.ts` |
 
 ## Endpoints
@@ -24,15 +25,18 @@ if `AGENT_API_TOKEN` is set.
 |---|---|---|
 | POST | `/invoices/analyze` `{ text }` (≤ 60,000 chars) | `{ id, createdAt, extracted, triage, proposal, kernel, screening, verdict, explanation, timings }`. The analysis is kept in memory by `id`. |
 | GET | `/invoices/:id` | The stored analysis |
-| POST | `/invoices/:id/pay` `{ force?: boolean }` | See the payment results below |
+| POST | `/invoices/:id/pay` `{ force?: boolean }` or `{ approvalId }` | See the payment results below |
+| POST | `/invoices/:id/approval` `{}` | `202 { attemptId, userCode, verificationUriComplete, expiresAt, interval }`: see [Human approval](#human-approval-world-id-for-agents) |
+| GET | `/invoices/:id/approval` | `{ attemptId, status, expiresAt, used, approvedAt?, approver?, reason? }` |
 | GET | `/vault` | `{ agent, vaultAgent, agentAuthorized, vault, registry, owner, token, balance, paused, vendorDelaySeconds, vendors[] }` |
 | GET | `/demo/invoices` | The documents in `scripts/demo-invoices/` with the manifest |
-| GET | `/health` | `{ ok, chainId, vault, agent, triage, llm, screening }` |
+| GET | `/health` | `{ ok, chainId, vault, agent, triage, triageRequired, llm, screening, humanApproval }` |
 
 A payment returns one of:
 
 - `{ status: "paid", txHash, blockNumber, payTo, amount, invoiceRef, forced }`
-- `{ status: "pending", txHash }`: sent, receipt not seen yet. POST again to settle it; it is never resent.
+- `{ status: "pending", txHash }`: sent, receipt not seen yet. POST `{}` again to settle it; it is never resent (an
+  approval pays once, so don't send the `approvalId` again).
 - `{ status: "reverted", broadcast, txHash?, error: { name, args, sentence }, explanation }`
 - `{ status: "held", reasons, explanation }`
 
@@ -46,14 +50,62 @@ upper-cased.
 - **Force** (`{ force: true }`) attempts a held payment to show the chain's answer. It is simulated first; a revert
   is decoded (e.g. *"T2011001234567 = 株式会社メイギ商事 pays 0x9B4f…47e4; this invoice asked for 0xdCa5…6d5b."*)
   and nothing is sent.
-- **What force may override:** triage holds, pressure, prompt injection, and the payee/vendor reasons the vault
-  enforces itself.
+- **Judgement holds:** System-1 pressure above `TRIAGE_MAX_PRESSURE` (0.5) or urgency wording in the document
+  (`pressure_hold`), and amounts above `AUTO_CLEAR_MAX_YEN` when it is set (`above_auto_clear_budget`), hold a
+  payment that would otherwise clear. A verified human may release these (below).
+- **What force may override:** triage holds, pressure, the auto-clear budget, prompt injection, and the payee/vendor
+  reasons the vault enforces itself.
 - **What force never overrides** (`force_refused`): credit notes, hidden content, markup, bidirectional controls,
   ambiguous or conflicting totals, missing invoice numbers or T-numbers, several addresses, and screening hits.
 - **Where values come from:** the T-number and amount always come from the document. Only the destination may come
   from the agent's proposal, and the vault rejects any address that isn't the registered one.
 - **Explanations:** the explaining LLM sees kernel facts only, never document text. Document quotes travel in
   `evidence` for the console.
+
+## Human approval (World ID for Agents)
+
+A held payment whose holds are all judgement calls can be released by a verified human, freshly, for that one
+payment. It uses the World ID for Agents OIDC provider (`https://sandbox.auth.world.org`) with the RFC 8628 device
+grant: the agent is the device, and the human approves in World App. It is off unless `WORLD_AGENTS_CLIENT_ID` and
+`WORLD_AGENTS_CLIENT_SECRET` are both set; then every approval route answers `503 approval_not_configured`.
+
+- **Approvable holds:** `triage_hold`, `triage_unavailable`, `pressure_hold` and `above_auto_clear_budget`. Anything
+  else on the invoice (a credit note, hidden content, markup, ambiguous totals, a missing number, several addresses, a
+  screening hit, or a payee/vendor/cap reason the chain would refuse) makes `POST …/approval` answer
+  `409 not_approvable`, and so does an invoice that isn't held or is already paid.
+- **Flow:**
+  1. `POST /invoices/:id/approval {}` answers `202 { attemptId, userCode, verificationUriComplete, expiresAt,
+     interval }`. Show `verificationUriComplete` as a QR code, with the user code and a countdown to `expiresAt`.
+     While an attempt is pending, POST again returns the same attempt. The device code never leaves the server.
+  2. The agent polls the IdP's token endpoint in the background. It honours `interval`, adds 5 s per `slow_down`,
+     backs off on 5xx or network errors (three in a row stop it as `unavailable`), and stops at `expires_in`
+     (20 minutes at most).
+  3. Poll `GET /invoices/:id/approval` (every 2 to 3 s is fine; it only reads memory). It returns
+     `{ attemptId, status, expiresAt, used, approvedAt?, approver?, reason? }`.
+  4. When `status` is `approved`, `POST /invoices/:id/pay { approvalId: attemptId }` within 10 minutes. It runs the
+     normal pay path: simulation first, and the vault re-checks vendor, caps and payee.
+- **Statuses:**
+  - `pending`: waiting for the human.
+  - `approved`: `approvedAt` is the proof's `auth_time`. `approver` is `enrolled` (the first approver, now on file)
+    or `matched`.
+  - `denied`: declined in World App, or the ID token was invalid (`reason` says which).
+  - `expired`: nobody approved in time, or an approval went unused for 10 minutes.
+  - `unavailable`: the IdP couldn't be reached. This is never an approval.
+  - `wrong_human`: someone other than the approver on file proved.
+- **The ID token must have:** RS256 via the IdP's JWKS; the exact `iss`; `aud` equal to the client id and nothing
+  else; an unexpired `exp`; `acr = https://world.org/oidc/acr/orb-v3`; and `auth_time` no earlier than the attempt's
+  start − 30 s and no later than now + 30 s. The approver is the pairwise `sub`.
+- **Approvers:** `WORLD_AGENTS_APPROVERS` lists the allowed `sub` values. When it is empty, the first approved proof
+  enrolls its `sub` in `WORLD_AGENTS_APPROVERS_PATH` (`data/agent/approvers.json`, git-ignored, mode 600), and
+  anyone else is `wrong_human`. That is trust on first use, so set the list for anything beyond the demo.
+- **Binding and single use:** an attempt is bound, server-side, to the invoice id, T-number, payout, amount, invoice
+  reference and hold reasons it was started for. The device grant can't carry a nonce or binding message.
+- **Pay errors, where nothing is paid:**
+  - `404 approval_not_found`: no such attempt for this invoice.
+  - `409 approval_not_approved`: the attempt is pending, denied, expired, unavailable or wrong_human.
+  - `409 approval_used`: an approval pays at most once, even when the chain refused it.
+  - `409 approval_void`: the analysis changed after approval.
+  - `400`: `force` and `approvalId` were sent together.
 
 ## Run it
 
@@ -95,6 +147,8 @@ and token match the configuration, that the key is the vault's agent, and that i
 | Triage | `TRIAGE_BACKENDS=systemone,proxy`, `SYSTEMONE_URL=http://127.0.0.1:8102/v1/systemone`, `TRIAGE_MIN_P_SAFE=0.9`, `TRIAGE_REQUIRED=true` |
 | LLM | `LLM_PROVIDER=proxy` (Llama 3.3 via `AI_PROXY_URL/v1/chat` with `AI_PROXY_TOKEN`), or `anthropic` (`ANTHROPIC_API_KEY`, `claude-haiku-4-5`), `workers-ai` or `none` |
 | Screening | `INTERCEPTA_API_KEY` (optional), `INTERCEPTA_CACHE_PATH=../../data/agent/intercepta-cache.json`, `INTERCEPTA_MAX_CALLS=900`, `INTERCEPTA_TOXIC_THRESHOLD=50` |
+| Judgement holds | `TRIAGE_MAX_PRESSURE=0.5`, `AUTO_CLEAR_MAX_YEN` (unset: no budget hold) |
+| Human approval | `WORLD_AGENTS_CLIENT_ID` and `WORLD_AGENTS_CLIENT_SECRET` (both or neither), `WORLD_AGENTS_ISSUER=https://sandbox.auth.world.org`, `WORLD_AGENTS_AUTH_METHOD=client_secret_basic` (or `client_secret_post`), `WORLD_AGENTS_APPROVERS`, `WORLD_AGENTS_APPROVERS_PATH=../../data/agent/approvers.json` |
 | Server | `AGENT_PORT=8788`, `AGENT_HOST=127.0.0.1`, `APP_ORIGINS=http://localhost:5173,http://localhost:4173`, `VENDOR_T_NUMBERS=2011001234567` |
 
 ### Triage backend
@@ -131,7 +185,7 @@ budget are 0.880 (deployed) and 0.903 (oracle). A System-1 `credit_note` answer 
 
 ## Demo documents
 
-`scripts/demo-invoices/` holds six documents. `vendors.json` lists the fictional vendors and the expected outcomes.
+`scripts/demo-invoices/` holds seven documents. `vendors.json` lists the fictional vendors and the expected outcomes.
 
 | File | Expected |
 |---|---|
@@ -141,6 +195,7 @@ budget are 0.880 (deployed) and 0.903 (oracle). A System-1 `credit_note` answer 
 | `04-prompt-injection.ja.txt` | Holds as tampering (hidden address); force refused |
 | `05-credit-note.ja.txt` | Holds; never paid |
 | `06-x402-swapped-payto.json` | Holds; force reverts `PayeeMismatch` on Sepolia |
+| `07-urgent-invoice.ja.txt` | Genuine but urgent (至急): holds for `pressure_hold`. A verified human approves it, then it pays; a denial or expiry pays nothing. `pnpm demo --force` never forces it. |
 
 Every T-number has a valid 法人番号 check digit and is absent from the nationwide NTA index (5,787,472 corporations).
 Bayside's number, T3999905000001, uses registry office 9999, which doesn't exist.

@@ -1,6 +1,9 @@
 import { fileURLToPath } from "node:url";
 import type { Address, Hex } from "viem";
 import { AnalysisStore } from "./analysis/store.js";
+import { createApprovals, type ApprovalService } from "./approval/approvals.js";
+import { createApproverRegistry } from "./approval/approvers.js";
+import { createIdp } from "./approval/idp.js";
 import { createClients } from "./chain/clients.js";
 import { createPayer } from "./chain/payer.js";
 import { createChainReader } from "./chain/reader.js";
@@ -37,6 +40,7 @@ export function buildDeps(config: Config) {
     maxCalls: config.INTERCEPTA_MAX_CALLS,
     toxicThreshold: config.INTERCEPTA_TOXIC_THRESHOLD,
   });
+  const approvals = createApprovalService(config);
   const deps: AppDeps = {
     chain,
     payer: createPayer({ publicClient, walletClient, vault }),
@@ -47,6 +51,8 @@ export function buildDeps(config: Config) {
     vendorTNumbers: parseVendorList(config.VENDOR_T_NUMBERS),
     origins: config.APP_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean),
     triageRequired: config.TRIAGE_REQUIRED,
+    holds: { maxPressure: config.TRIAGE_MAX_PRESSURE, autoClearMaxYen: config.AUTO_CLEAR_MAX_YEN ?? null },
+    approvals,
     apiToken: config.AGENT_API_TOKEN ?? null,
     demoDir: DEMO_DIR,
     info: {
@@ -57,9 +63,20 @@ export function buildDeps(config: Config) {
       triageRequired: config.TRIAGE_REQUIRED,
       llm: llm ? `${llm.provider}:${llm.model}` : "none",
       screening: screening.enabled,
+      humanApproval: approvals !== null,
     },
   };
   return { deps, init: chain.init };
+}
+
+/** World ID for Agents: a verified human may release a held payment. Off unless both client values are set. */
+function createApprovalService(config: Config): ApprovalService | null {
+  const clientId = config.WORLD_AGENTS_CLIENT_ID;
+  const clientSecret = config.WORLD_AGENTS_CLIENT_SECRET;
+  if (!clientId || !clientSecret) return null;
+  const idp = createIdp({ issuer: config.WORLD_AGENTS_ISSUER, clientId, clientSecret, authMethod: config.WORLD_AGENTS_AUTH_METHOD });
+  const allowed = config.WORLD_AGENTS_APPROVERS.split(",").map((sub) => sub.trim()).filter(Boolean);
+  return createApprovals({ idp, approvers: createApproverRegistry({ allowed, path: config.WORLD_AGENTS_APPROVERS_PATH }) });
 }
 
 function createTriageBackends(config: Config): TriageBackend[] {

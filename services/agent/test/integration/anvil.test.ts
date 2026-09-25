@@ -12,6 +12,7 @@ import { loadConfig } from "../../src/config.js";
 import { invoiceRefOf } from "../../src/kernel/intent.js";
 import { buildDeps } from "../../src/wiring.js";
 import { demo, FakeTriage, MEIGI_PAYOUT, routineTriage, SCAMMER, yen } from "../fakes.js";
+import { approvalHarness, approvedWith, denied, type Harness } from "../mock-idp.js";
 
 /**
  * The whole path on real contracts: forge deploys Deploy.s.sol to a fresh anvil, the attester registers the
@@ -24,6 +25,7 @@ describe.skipIf(!hasFoundry())("agent against the real contracts on anvil", () =
   let app: ReturnType<typeof createApp>;
   let reader: PublicClient;
   let cacheDir: string;
+  let human: Harness; // World ID for Agents, against a mock IdP
 
   beforeAll(async () => {
     stack = await startLocalStack({ port: Number(process.env.ANVIL_PORT ?? 8547) });
@@ -37,7 +39,8 @@ describe.skipIf(!hasFoundry())("agent against the real contracts on anvil", () =
     });
     const { deps, init } = buildDeps(config);
     await init();
-    app = createApp({ ...deps, triage: new FakeTriage(routineTriage()) });
+    human = await approvalHarness();
+    app = createApp({ ...deps, triage: new FakeTriage(routineTriage()), approvals: human.approvals });
     reader = createPublicClient({ chain: foundry, transport: http(stack.anvil.url) }) as PublicClient;
   });
 
@@ -126,17 +129,48 @@ describe.skipIf(!hasFoundry())("agent against the real contracts on anvil", () =
     expect(forced.error.sentence).toMatch(/^T3999905000001 = 合同会社ベイサイド・アドバイザリー is not on this vault's approved vendor list/u);
   });
 
+  it("pays an urgent invoice only after a verified human approves it; a denial pays nothing", async () => {
+    const ask = async (id: string) => {
+      const res = await app.request(`/invoices/${id}/approval`, { method: "POST", body: "{}", headers: { "content-type": "application/json" } });
+      expect(res.status).toBe(202);
+      const { attemptId } = (await res.json()) as { attemptId: string };
+      await human.approvals.settled(attemptId);
+      return attemptId;
+    };
+    const denial = await analyze("07-urgent-invoice.ja.txt");
+    expect(denial.verdict.reasons.map((r: { code: string }) => r.code)).toEqual(["pressure_hold"]);
+    human.idp.token = [denied];
+    const deniedId = await ask(denial.id);
+    const nonce = await agentNonce();
+    const refused = await app.request(`/invoices/${denial.id}/pay`, {
+      method: "POST",
+      body: JSON.stringify({ approvalId: deniedId }),
+      headers: { "content-type": "application/json" },
+    });
+    expect(refused.status).toBe(409);
+    expect(await agentNonce()).toBe(nonce);
+
+    const approval = await analyze("07-urgent-invoice.ja.txt");
+    human.idp.token = [approvedWith(await human.idp.sign())];
+    const approvalId = await ask(approval.id);
+    const paid = await post(`/invoices/${approval.id}/pay`, { approvalId });
+    expect(paid).toMatchObject({ status: "paid", forced: false, payTo: MEIGI_PAYOUT, amount: "¥55,000" });
+    const receipt = await reader.getTransactionReceipt({ hash: paid.txHash as Hex });
+    const [event] = parseEventLogs({ abi: agentVaultAbi, eventName: "InvoicePaid", logs: receipt.logs });
+    expect(event?.args).toMatchObject({ payout: MEIGI_PAYOUT, amount: yen(55_000), invoiceRef: invoiceRefOf("2011001234567", "MS-2026-0926") });
+  });
+
   it("GET /vault reads the live vault", async () => {
     const res = await app.request("/vault");
     const vault = (await res.json()) as Record<string, any>;
-    expect(vault).toMatchObject({ agentAuthorized: true, paused: false, balance: { display: "¥4,868,000" }, token: { symbol: "mJPYC" } });
+    expect(vault).toMatchObject({ agentAuthorized: true, paused: false, balance: { display: "¥4,813,000" }, token: { symbol: "mJPYC" } });
     expect(vault.vendors[0]).toMatchObject({
       tNumber: "T2011001234567",
       approved: true,
       active: true,
       payoutChanged: false,
-      spentInPeriod: "¥132,000",
-      remainingInPeriod: "¥868,000",
+      spentInPeriod: "¥187,000",
+      remainingInPeriod: "¥813,000",
     });
     expect(vault.vendors[1]).toMatchObject({ tNumber: "T3999905000001", status: "active", approved: false });
   });

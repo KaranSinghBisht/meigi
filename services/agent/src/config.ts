@@ -44,10 +44,24 @@ const schema = z
     INTERCEPTA_CACHE_PATH: z.string().default("../../data/agent/intercepta-cache.json"),
     INTERCEPTA_MAX_CALLS: z.coerce.number().int().nonnegative().default(900),
     INTERCEPTA_TOXIC_THRESHOLD: z.coerce.number().min(0).max(100).default(50),
+    // Holds only a verified human may release (with World ID for Agents, below)
+    TRIAGE_MAX_PRESSURE: probability.default(0.5), // System-1 pressure above this holds the payment
+    AUTO_CLEAR_MAX_YEN: optional(z.coerce.number().int().positive()), // amounts above this never auto-clear
+    // World ID for Agents (RFC 8628 device grant): off unless both client values are set
+    WORLD_AGENTS_ISSUER: z
+      .url()
+      .refine((v) => v.startsWith("https://"), "must be https")
+      .default("https://sandbox.auth.world.org")
+      .transform((v) => v.replace(/\/+$/u, "")),
+    WORLD_AGENTS_CLIENT_ID: optional(z.string().min(1)),
+    WORLD_AGENTS_CLIENT_SECRET: optional(z.string().min(1)),
+    WORLD_AGENTS_AUTH_METHOD: z.enum(["client_secret_basic", "client_secret_post"]).default("client_secret_basic"),
+    WORLD_AGENTS_APPROVERS: z.string().default(""), // pairwise subs; empty: the first approver enrolls
+    WORLD_AGENTS_APPROVERS_PATH: z.string().default("../../data/agent/approvers.json"),
   })
   .superRefine((env, ctx) => {
-    const require = (key: string, when: boolean) => {
-      if (when) ctx.addIssue({ code: "custom", path: [key], message: "required by the selected provider" });
+    const require = (key: string, when: boolean, message = "required by the selected provider") => {
+      if (when) ctx.addIssue({ code: "custom", path: [key], message });
     };
     require("ANTHROPIC_API_KEY", env.LLM_PROVIDER === "anthropic" && !env.ANTHROPIC_API_KEY);
     require("AI_PROXY_URL", env.LLM_PROVIDER === "proxy" && !env.AI_PROXY_URL);
@@ -55,6 +69,9 @@ const schema = z
     const workers = env.LLM_PROVIDER === "workers-ai";
     require("CLOUDFLARE_ACCOUNT_ID", workers && !env.WORKERS_AI_URL && !env.CLOUDFLARE_ACCOUNT_ID);
     require("CLOUDFLARE_API_TOKEN", workers && !env.WORKERS_AI_TOKEN && !env.CLOUDFLARE_API_TOKEN);
+    const together = "set both World ID client values, or neither";
+    require("WORLD_AGENTS_CLIENT_SECRET", Boolean(env.WORLD_AGENTS_CLIENT_ID) && !env.WORLD_AGENTS_CLIENT_SECRET, together);
+    require("WORLD_AGENTS_CLIENT_ID", Boolean(env.WORLD_AGENTS_CLIENT_SECRET) && !env.WORLD_AGENTS_CLIENT_ID, together);
     for (const backend of env.TRIAGE_BACKENDS.split(",").map((b) => b.trim()).filter(Boolean)) {
       if (!["systemone", "proxy", "cloudflare"].includes(backend)) {
         ctx.addIssue({ code: "custom", path: ["TRIAGE_BACKENDS"], message: "use systemone, proxy and/or cloudflare" });

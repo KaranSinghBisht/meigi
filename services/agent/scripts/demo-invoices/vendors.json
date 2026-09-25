@@ -54,6 +54,11 @@
       "file": "06-x402-swapped-payto.json",
       "title": "x402 402-response with a swapped payTo",
       "expect": { "verdict": "hold", "forcedRevert": "PayeeMismatch", "note": "A compromised API server asks agents to pay 0xdCa5…. The asset is Sepolia's MockJPYC; on another chain the asset and network checks hold it and force is refused." }
+    },
+    {
+      "file": "07-urgent-invoice.ja.txt",
+      "title": "Genuine but urgent invoice (至急)",
+      "expect": { "verdict": "hold", "humanApprovable": true, "note": "Meigi Shoji's real payout and a consistent bill, but it pushes for speed (pressure_hold). A verified human approves it with World ID, then the agent pays; deny it or let it expire and nothing is paid." }
     }
   ]
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { zeroAddress } from "viem";
-import { decide } from "../src/analysis/verdict.js";
+import { decide, DEFAULT_HOLD_POLICY } from "../src/analysis/verdict.js";
 import type { Snapshot } from "../src/chain/types.js";
 import { extractInvoice } from "../src/extract/extract.js";
 import { buildIntent, invoiceRefOf } from "../src/kernel/intent.js";
@@ -171,7 +171,7 @@ describe("the gullible agent's proposal", () => {
 describe("verdict", () => {
   const clean: Screening = { status: "ok", results: [], errors: [], callsUsed: 1, callBudget: 900 };
   const verdictFor = (text: string, extra: Partial<Parameters<typeof decide>[0]> = {}) =>
-    decide({ extracted: extractInvoice(text), kernel: kernelFor(text), triage: routineTriage(), screening: clean, triageRequired: true, ...extra });
+    decide({ extracted: extractInvoice(text), kernel: kernelFor(text), triage: routineTriage(), screening: clean, triageRequired: true, holds: DEFAULT_HOLD_POLICY, ...extra });
 
   it("pays only when every layer agrees", () => {
     expect(verdictFor(routine).decision).toBe("pay");

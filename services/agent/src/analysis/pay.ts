@@ -1,4 +1,5 @@
 import { zeroAddress, type Address, type Hex } from "viem";
+import { APPROVABLE } from "../approval/holds.js";
 import { describeRevert, type DecodedRevert } from "../chain/describe.js";
 import { registeredName } from "../chain/format.js";
 import type { PayCall, PaymentReceipt, RawRevert } from "../chain/types.js";
@@ -14,6 +15,9 @@ export type PayResult =
   | { status: "reverted"; broadcast: boolean; txHash?: Hex; forced: boolean; error: DecodedRevert; explanation: Explanation }
   | { status: "held"; reasons: Reason[]; explanation: Explanation };
 
+/** "auto" sends only a "pay" verdict; "force" attempts a held one (the attack demo); "approved" is a verified human's release. */
+export type PayMode = "auto" | "force" | "approved";
+
 /**
  * The only holds `force` may override. Triage, pressure and injection holds are judgements about intent, and
  * every payee/vendor reason is re-checked by the vault itself (its revert is the demo). Everything else (a credit
@@ -24,6 +28,8 @@ export type PayResult =
 const FORCE_OVERRIDABLE = new Set([
   "triage_hold",
   "triage_unavailable",
+  "pressure_hold",
+  "above_auto_clear_budget",
   "urgent_language",
   "prompt_injection_suspected",
   "payout_mismatch",
@@ -41,20 +47,22 @@ const FORCE_OVERRIDABLE = new Set([
 ]);
 
 /**
- * Pays an analysed invoice from the agent key. Without `force` only a "pay" verdict is sent. With `force`, a
- * held payment is attempted to show the chain's answer: always simulated first, and a simulated revert is
- * decoded and returned without broadcasting. A forced payment the chain accepts is sent; it pays the printed
- * amount to the registered payee of the printed T-number. `record` sees a sent transaction before its receipt.
+ * Pays an analysed invoice from the agent key. In "auto" mode only a "pay" verdict is sent. "force" attempts a
+ * held payment to show the chain's answer: always simulated first, and a simulated revert is decoded and
+ * returned without broadcasting. "approved" (the caller has spent a verified human's approval) releases holds
+ * in APPROVABLE only. Either way the payment is simulated first and pays the printed amount to the registered
+ * payee of the printed T-number. `record` sees a sent transaction before its receipt.
  */
-export async function payAnalysis(deps: AppDeps, stored: StoredAnalysis, force: boolean, record: (r: PayResult) => void): Promise<PayResult> {
+export async function payAnalysis(deps: AppDeps, stored: StoredAnalysis, mode: PayMode, record: (r: PayResult) => void): Promise<PayResult> {
   const previous = stored.payment;
   if (previous?.status === "paid") return previous;
   if (previous?.status === "pending") return settlePending(deps, stored, previous);
   const { intent, verdict } = stored;
-  const forced = force && verdict.decision !== "pay";
-  if (!force && verdict.decision !== "pay") return held(stored, verdict.reasons);
-  const refused = forced ? forceRefusal(stored) : null;
+  const isHeld = verdict.decision !== "pay";
+  if (isHeld && mode === "auto") return held(stored, verdict.reasons);
+  const refused = isHeld && mode !== "auto" ? overrideRefusal(stored, mode) : null;
   if (refused) return held(stored, [refused]);
+  const forced = isHeld && mode === "force";
   if (!intent) return held(stored, verdict.reasons);
   if (intent.amount <= 0n) return held(stored, notPayable(stored, intent));
   const call = callOf(intent);
@@ -115,17 +123,20 @@ function held(stored: StoredAnalysis, reasons: Reason[]): PayResult {
   return { status: "held", reasons, explanation: stored.view.explanation };
 }
 
-function forceRefusal(stored: StoredAnalysis): Reason | null {
-  const doubtful = stored.verdict.reasons.filter((r) => r.severity === "block" && !FORCE_OVERRIDABLE.has(r.code)).map((r) => r.code);
+/** A held payment goes ahead only if every hold is one this mode may override: an allow-list per mode. */
+function overrideRefusal(stored: StoredAnalysis, mode: "force" | "approved"): Reason | null {
+  const allowed = mode === "force" ? FORCE_OVERRIDABLE : APPROVABLE;
+  const doubtful = stored.verdict.reasons.filter((r) => r.severity === "block" && !allowed.has(r.code)).map((r) => r.code);
   if (doubtful.length === 0) return null;
   const payee = stored.view.kernel.payee;
+  const who = mode === "force" ? "Force can't override" : "A person's approval can't release";
   return {
-    code: "force_refused",
+    code: mode === "force" ? "force_refused" : "approval_refused",
     severity: "block",
     layer: "kernel",
     tNumber: payee?.tNumber ?? stored.view.extracted.tNumber,
     legalName: payee?.legalName ?? null,
-    message: `Force can't override these holds: ${[...new Set(doubtful)].join(", ")}.`,
+    message: `${who} these holds: ${[...new Set(doubtful)].join(", ")}.`,
   };
 }
 

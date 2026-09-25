@@ -63,7 +63,7 @@ export async function analyzeDocument(deps: AppDeps, text: string): Promise<Stor
   const agentProposal = proposal.status === "ok" ? proposalOf(proposal) : null;
   const kernel = await clock.async("kernelMs", () => runKernel(deps.chain, extracted, agentProposal));
   const screening = await screenIntent(deps.screening, screened, kernel.intent, extracted.addresses);
-  const verdict = decide({ extracted, kernel: kernel.result, triage, screening, triageRequired: deps.triageRequired });
+  const verdict = decide({ extracted, kernel: kernel.result, triage, screening, triageRequired: deps.triageRequired, holds: deps.holds });
   const explanation = await clock.async("explanationMs", () => explainOutcome(deps.llm, kernel.result, verdict));
   const view: AnalysisView = {
     id: randomUUID(),
