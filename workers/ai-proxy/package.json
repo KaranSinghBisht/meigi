@@ -1,0 +1,11 @@
+{
+  "name": "@meigi/ai-proxy",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Authenticated Cloudflare Worker proxy for Jev (System-1) and Workers AI chat models.",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  }
+}
