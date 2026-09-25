@@ -2,8 +2,10 @@
 
 **Confirmation of Payee for stablecoins and AI agents. Pay companies, not addresses.**
 
-- **Live:** [meigi.karanbishttt.workers.dev](https://meigi.karanbishttt.workers.dev). Resolve a T-number from
-  the chain in your browser.
+- **Live:** [meigi.karanbishttt.workers.dev](https://meigi.karanbishttt.workers.dev) is the landing page, and
+  [meigi-app.karanbishttt.workers.dev](https://meigi-app.karanbishttt.workers.dev) is the app. The registry
+  explorer, ENS check and event feed read Sepolia live. Steps that need our services show recorded real
+  runs.
 - **Team:** Karan Singh Bisht & Adithya Prasanna Suriya Prakash.
 - **Event:** ETHGlobal Tokyo 2026, From Scratch track.
 
@@ -43,6 +45,8 @@ the vault reverts `PayeeMismatch` and names the real company.
 
 - **The landing page** reads the registry live: https://meigi.karanbishttt.workers.dev → "Resolve a T-number" →
   `T2011001234567`.
+- **The registry explorer** shows the live payee, its ENS name and the event feed:
+  https://meigi-app.karanbishttt.workers.dev/registry/T2011001234567.
 - **ENS, from any client.** `t2011001234567.payee.eth` resolves on Sepolia with stock viem and no
   configuration:
   ```sh
