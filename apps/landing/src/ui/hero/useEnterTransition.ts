@@ -43,9 +43,16 @@ export function useEnterTransition({ appUrl, stillOnly, overlay, whiteout }: Ent
       if (!isPlainClick(event)) return
       event.preventDefault()
       if (timeline.current) return
-      const go = () => window.location.assign(appUrl)
+      let leaving = false
+      const go = () => {
+        if (leaving) return
+        leaving = true
+        window.location.assign(appUrl)
+      }
       const tl = gsap.timeline({ onComplete: go })
       timeline.current = tl
+      // gsap ticks on requestAnimationFrame, which stops in a hidden tab: leave on a timer as well.
+      window.setTimeout(go, ((stillOnly ? 0.35 : GLIDE_SECONDS) + 0.8) * 1000)
       if (stillOnly) {
         tl.to(whiteout.current, { opacity: 1, duration: 0.35, ease: 'power1.out' })
         return
