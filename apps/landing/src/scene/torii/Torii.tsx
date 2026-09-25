@@ -78,13 +78,6 @@ export function Torii() {
     [geometry, material],
   )
 
-  const { x, z, rotY } = toriiPlacement(size.width / Math.max(size.height, 1))
-  return (
-    <mesh
-      geometry={geometry}
-      material={material}
-      position={[x, 0, z]}
-      rotation={[0, rotY, 0]}
-    />
-  )
+  const { x, z, rotY, scale } = toriiPlacement(size.width / Math.max(size.height, 1))
+  return <mesh geometry={geometry} material={material} position={[x, 0, z]} rotation={[0, rotY, 0]} scale={scale} />
 }

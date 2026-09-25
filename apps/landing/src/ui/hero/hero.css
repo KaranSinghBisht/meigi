@@ -43,6 +43,10 @@
   text-shadow: 0 1px 12px rgba(255, 244, 240, 0.7);
 }
 
+.hero__name {
+  white-space: nowrap;
+}
+
 .hero__wordmark {
   margin: 0;
   padding-right: 0.05em;
@@ -149,12 +153,17 @@
     bottom: auto;
   }
 
+  /* Below the reflection, but always ending above the two-row dock. */
   .hero__bottom {
-    top: calc(var(--horizon) + 17vh);
+    top: min(calc(var(--horizon) + 17vh), calc(100% - var(--gutter) - 212px));
   }
 
+  /* Symmetric inset keeps the centred byline clear of the vertical label;
+     on very narrow phones the names wrap at the separator, never mid-name. */
   .hero__byline {
-    line-height: 1.45;
+    max-width: calc(100vw - 2 * var(--gutter) - 112px);
+    font-size: 11px;
+    line-height: 1.5;
   }
 
   .hero__byline > span {
@@ -190,6 +199,12 @@
   }
 }
 
+@media (max-width: 359px) {
+  .vlabel__line {
+    display: none;
+  }
+}
+
 @media (max-width: 640px) {
   .branch {
     width: 58vw;
@@ -198,6 +213,17 @@
 
   .vlabel__line {
     letter-spacing: 0.3em;
+  }
+}
+
+/* Short phones (iPhone SE class): lift the text clear of Fuji's summit. */
+@media (max-aspect-ratio: 4/5) and (max-height: 700px) {
+  .hero__top {
+    top: 9vh;
+  }
+
+  .branch {
+    width: 42vw;
   }
 }
 

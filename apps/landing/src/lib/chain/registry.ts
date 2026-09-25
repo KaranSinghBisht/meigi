@@ -1,24 +1,26 @@
 // Live reads against the Meigi PayeeRegistry on Sepolia. This module pulls in
 // viem, so UI code loads it with a dynamic import.
 
+import { payeeRegistryAbi } from '@meigi/abi'
 import { BaseError, HttpRequestError, TimeoutError, createPublicClient, getAbiItem, http } from 'viem'
 import { sepolia } from 'viem/chains'
 import type { HexAddress, RegistryConfig } from '../env/env'
-import { PAYEE_STATUS, registryAbi } from './registryAbi'
 
-export interface PendingRedirect {
-  readonly address: HexAddress
-  readonly effectiveAt: Date
-}
+/** IPayeeRegistry.Status */
+const STATUS = { none: 0, active: 1, disputed: 2 } as const
 
+/**
+ * What the resolver may show. Only an active payee exposes its name and
+ * payout; a queued payout change surfaces as a date, never as an address.
+ */
 export type PayeeLookup =
   | {
-      readonly kind: 'registered'
+      readonly kind: 'active'
       readonly legalName: string
       readonly payout: HexAddress
-      readonly status: 'active' | 'disputed'
-      readonly pending: PendingRedirect | null
+      readonly changePendingUntil: Date | null
     }
+  | { readonly kind: 'disputed'; readonly changePendingUntil: Date | null }
   | { readonly kind: 'not-registered' }
 
 /** Network trouble, or a registry that answered wrongly (wrong chain, address or ABI). */
@@ -28,7 +30,7 @@ const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 const LOG_CHUNK = 10_000n
 const MAX_LOG_CHUNKS = 60n
 
-const payeeRegistered = getAbiItem({ abi: registryAbi, name: 'PayeeRegistered' })
+const payeeRegistered = getAbiItem({ abi: payeeRegistryAbi, name: 'PayeeRegistered' })
 
 class RegistryMismatchError extends Error {
   override name = 'RegistryMismatchError'
@@ -79,28 +81,24 @@ export function classifyChainError(error: unknown): ChainFailure {
   return 'network'
 }
 
+function pendingUntil(pending: HexAddress, effectiveAt: bigint): Date | null {
+  if (pending === ZERO_ADDRESS || effectiveAt === 0n) return null
+  return new Date(Number(effectiveAt) * 1000)
+}
+
 export async function lookupPayee(config: RegistryConfig, tNumber: bigint): Promise<PayeeLookup> {
   const client = clientFor(config)
   await verifyRegistry(client, config)
   const payee = await client.readContract({
     address: config.address,
-    abi: registryAbi,
+    abi: payeeRegistryAbi,
     functionName: 'payeeOf',
     args: [tNumber],
   })
-  const known = payee.status === PAYEE_STATUS.active || payee.status === PAYEE_STATUS.disputed
-  if (!known || payee.payout === ZERO_ADDRESS) return { kind: 'not-registered' }
-
-  const hasPending = payee.pending !== ZERO_ADDRESS && payee.effectiveAt > 0n
-  return {
-    kind: 'registered',
-    legalName: payee.legalName,
-    payout: payee.payout,
-    status: payee.status === PAYEE_STATUS.disputed ? 'disputed' : 'active',
-    pending: hasPending
-      ? { address: payee.pending, effectiveAt: new Date(Number(payee.effectiveAt) * 1000) }
-      : null,
-  }
+  const changePendingUntil = pendingUntil(payee.pending, payee.effectiveAt)
+  if (payee.status === STATUS.disputed) return { kind: 'disputed', changePendingUntil }
+  if (payee.status !== STATUS.active || payee.payout === ZERO_ADDRESS) return { kind: 'not-registered' }
+  return { kind: 'active', legalName: payee.legalName, payout: payee.payout, changePendingUntil }
 }
 
 async function logsInRange(client: RegistryClient, config: RegistryConfig, from: bigint, to: bigint) {
@@ -130,8 +128,8 @@ async function collect(client: RegistryClient, config: RegistryConfig, from: big
     for (const log of logs) seen.add(log.args.tNumber)
   } catch (error) {
     // Public RPCs often cap eth_getLogs ranges: retry in chunks when the range
-    // is bounded by a known deploy block, otherwise surface the failure.
-    if (config.deployBlock === null) throw error
+    // starts at a known block, otherwise surface the failure.
+    if (config.fromBlock === null) throw error
     await collectInChunks(client, config, from, to, seen)
   }
 }
@@ -141,16 +139,16 @@ export interface PayeeCounter {
   refresh: () => Promise<number>
 }
 
-/** Scans from the deploy block once, then only the blocks added since the last refresh. */
+/** Scans from the configured start block once, then only blocks added since the last refresh. */
 export function createPayeeCounter(config: RegistryConfig): PayeeCounter {
   const client = clientFor(config)
   const seen = new Set<bigint>()
-  let next = config.deployBlock ?? 0n
+  let next = config.fromBlock ?? 0n
   return {
     refresh: async () => {
       await verifyRegistry(client, config)
       const latest = await client.getBlockNumber()
-      if (next > latest + 1n) throw new RegistryMismatchError('Deploy block is ahead of the chain head')
+      if (next > latest + 1n) throw new RegistryMismatchError('Start block is ahead of the chain head')
       if (next <= latest) {
         await collect(client, config, next, latest, seen)
         next = latest + 1n

@@ -4,10 +4,10 @@ import { WORLD, type ToriiPlacement } from '../shared/world'
 // The enter glide: low over the water, straight through the torii, then a
 // gentle rise and turn towards the mountain.
 
-/** A point `ahead` units in front of the gate (negative = beyond it). */
+/** A point `ahead` units in front of the gate (negative = beyond it), height scaled with the gate. */
 function gatePoint(torii: ToriiPlacement, ahead: number, height: number): Vector3 {
   const facing = new Vector3(Math.sin(torii.rotY), 0, Math.cos(torii.rotY))
-  return new Vector3(torii.x, height, torii.z).addScaledVector(facing, ahead)
+  return new Vector3(torii.x, height * torii.scale, torii.z).addScaledVector(facing, ahead)
 }
 
 export function createGlidePath(start: Vector3, torii: ToriiPlacement): CatmullRomCurve3 {

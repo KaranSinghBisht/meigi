@@ -142,15 +142,6 @@
   background: var(--vermilion);
 }
 
-.resolve__frozen {
-  margin-top: 8px !important;
-  padding: 8px 10px;
-  border-radius: 10px;
-  background: rgba(224, 69, 43, 0.1);
-  color: #8f2f1f;
-  font-size: 13px;
-}
-
 .resolve__caption {
   margin-top: 10px !important;
   color: var(--ink-soft);
@@ -183,20 +174,10 @@
   text-transform: uppercase;
 }
 
-.resolve__badge--disputed {
-  background: rgba(224, 69, 43, 0.14);
-  color: #b23a26;
-}
-
 .resolve__meta {
   margin-top: 4px !important;
   color: var(--ink-soft);
   font-size: 13px;
-}
-
-.resolve__pending code {
-  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-  font-size: 12.5px;
 }
 
 .resolve__pending {

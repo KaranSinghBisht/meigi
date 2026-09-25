@@ -1,6 +1,6 @@
-import type { RegisteredPayee, ResolveFailure, ResolveState } from './useResolver'
+import type { ActivePayee, ResolveFailure, ResolveState } from './useResolver'
 
-const unlockFormat = new Intl.DateTimeFormat('en-GB', {
+const dateFormat = new Intl.DateTimeFormat('en-GB', {
   day: 'numeric',
   month: 'short',
   hour: '2-digit',
@@ -13,39 +13,43 @@ const FAILURE_TEXT: Record<ResolveFailure, string> = {
   load: "Couldn't load the resolver. Refresh the page and try again.",
 }
 
-function PendingRedirect({ payee }: { readonly payee: RegisteredPayee }) {
-  if (!payee.pending) return null
-  const { address, effectiveAt } = payee.pending
-  const locked = effectiveAt.getTime() > Date.now()
-  return (
-    <p className="resolve__pending">
-      Redirect to <code>{address}</code>{' '}
-      {locked ? `is timelocked until ${unlockFormat.format(effectiveAt)}.` : 'may have taken effect. Resolve again.'}
-    </p>
-  )
+/** A queued payout change is announced by date only; its address is never shown. */
+function PendingChange({ until }: { readonly until: Date | null }) {
+  if (!until) return null
+  return <p className="resolve__pending">Payout change pending until {dateFormat.format(until)}.</p>
 }
 
-function Found({ state }: { readonly state: Extract<ResolveState, { status: 'found' }> }) {
-  const { payee, target } = state
-  const disputed = payee.status === 'disputed'
+function Active({ payee, ens }: { readonly payee: ActivePayee; readonly ens: string }) {
   return (
     <div className="resolve__card">
       <p className="resolve__name">
-        <span className={disputed ? 'resolve__mark resolve__mark--warn' : 'resolve__mark'} aria-hidden="true">
-          {disputed ? '!' : '✓'}
+        <span className="resolve__mark" aria-hidden="true">
+          ✓
         </span>
         <span>{payee.legalName}</span>
-        <span className={`resolve__badge resolve__badge--${payee.status}`}>{payee.status}</span>
+        <span className="resolve__badge">active</span>
       </p>
-      {disputed && (
-        <p className="resolve__frozen">Payouts are frozen while another verified claimant disputes this number.</p>
-      )}
-      <p className="resolve__caption">{disputed ? 'Last registered payout (frozen)' : 'Pays to'}</p>
+      <p className="resolve__caption">Pays to</p>
       <p className="resolve__address">
         <code>{payee.payout}</code>
       </p>
-      <p className="resolve__meta">{target.ens}</p>
-      <PendingRedirect payee={payee} />
+      <p className="resolve__meta">{ens}</p>
+      <PendingChange until={payee.changePendingUntil} />
+    </div>
+  )
+}
+
+function Disputed({ ens, until }: { readonly ens: string; readonly until: Date | null }) {
+  return (
+    <div className="resolve__card">
+      <p className="resolve__name">
+        <span className="resolve__mark resolve__mark--warn" aria-hidden="true">
+          !
+        </span>
+        <span>Disputed: payments frozen</span>
+      </p>
+      <p className="resolve__meta">{ens}</p>
+      <PendingChange until={until} />
     </div>
   )
 }
@@ -76,8 +80,10 @@ export function ResolveResult({ state, errorId }: ResolveResultProps) {
       )
     case 'loading':
       return <p className="resolve__note">Resolving {state.target.ens}…</p>
-    case 'found':
-      return <Found state={state} />
+    case 'active':
+      return <Active payee={state.payee} ens={state.target.ens} />
+    case 'disputed':
+      return <Disputed ens={state.target.ens} until={state.changePendingUntil} />
     case 'missing':
       return (
         <p className="resolve__note resolve__note--missing">

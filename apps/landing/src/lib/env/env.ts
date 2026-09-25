@@ -6,7 +6,8 @@ export type HexAddress = `0x${string}`
 export interface RegistryConfig {
   readonly rpcUrl: string
   readonly address: HexAddress
-  readonly deployBlock: bigint | null
+  /** First block to scan for PayeeRegistered logs (the deployment block). */
+  readonly fromBlock: bigint | null
 }
 
 export interface LandingEnv {
@@ -44,11 +45,11 @@ function readRegistry(raw: ImportMetaEnv): RegistryConfig | null {
   const rpcUrl = clean(raw.VITE_RPC_URL)
   const address = clean(raw.VITE_REGISTRY_ADDRESS)
   if (!isHttpUrl(rpcUrl) || !ADDRESS_RE.test(address)) return null
-  const block = clean(raw.VITE_REGISTRY_DEPLOY_BLOCK)
+  const block = clean(raw.VITE_REGISTRY_FROM_BLOCK)
   return {
     rpcUrl,
     address: address as HexAddress,
-    deployBlock: BLOCK_RE.test(block) ? BigInt(block) : null,
+    fromBlock: BLOCK_RE.test(block) ? BigInt(block) : null,
   }
 }
 

@@ -8,19 +8,6 @@ export const WORLD = {
   cameraFar: 4200,
 } as const
 
-export interface ToriiPlacement {
-  readonly x: number
-  readonly z: number
-  /** Yaw that turns the gate to face the viewer */
-  readonly rotY: number
-}
-
-/** Mid-left of the frame; nearer the centre on portrait screens so it isn't cropped. */
-export function toriiPlacement(aspect: number): ToriiPlacement {
-  if (aspect < 0.8) return { x: -9.2, z: -46, rotY: 0.2 }
-  return { x: -15.5, z: -54, rotY: 0.26 }
-}
-
 export interface Framing {
   /** Vertical field of view in degrees */
   readonly fov: number
@@ -49,4 +36,28 @@ export function framingFor(aspect: number): Framing {
   const ndcY = 1 - 2 * horizon
   const pitch = Math.atan(-ndcY * Math.tan(fov / 2))
   return { fov: fov / DEG, pitch, horizon }
+}
+
+export interface ToriiPlacement {
+  readonly x: number
+  readonly z: number
+  /** Yaw that turns the gate to face the viewer */
+  readonly rotY: number
+  readonly scale: number
+}
+
+const TORII_DEPTH = 54
+/** Screen position of the gate's centre in NDC: about 14% in from the left. */
+const TORII_NDC_X = -0.72
+
+/**
+ * Mid-left of the frame, placed by screen position rather than world x so the
+ * wordmark (whose left edge sits at ≥ 32% of the width) stays clear of it at
+ * every landscape aspect. Portrait keeps it below the wordmark, left of Fuji.
+ */
+export function toriiPlacement(aspect: number): ToriiPlacement {
+  if (aspect < 0.8) return { x: -9.2, z: -46, rotY: 0.2, scale: 1 }
+  const tanHalfH = Math.tan((framingFor(aspect).fov * DEG) / 2) * aspect
+  const x = TORII_DEPTH * tanHalfH * TORII_NDC_X
+  return { x, z: -TORII_DEPTH, rotY: Math.atan2(-x, TORII_DEPTH) * 0.93, scale: 0.85 }
 }

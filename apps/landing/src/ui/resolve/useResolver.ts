@@ -3,7 +3,7 @@ import type { ChainFailure, PayeeLookup } from '../../lib/chain/registry'
 import { parseTNumber, type ParsedTNumber } from '../../lib/chain/tNumber'
 import { env, type RegistryConfig } from '../../lib/env/env'
 
-export type RegisteredPayee = Extract<PayeeLookup, { kind: 'registered' }>
+export type ActivePayee = Extract<PayeeLookup, { kind: 'active' }>
 
 /** Why a lookup failed: the chain module didn't load, or the chain read failed. */
 export type ResolveFailure = ChainFailure | 'load'
@@ -13,7 +13,8 @@ export type ResolveState =
   | { readonly status: 'invalid' }
   | { readonly status: 'undeployed'; readonly target: ParsedTNumber }
   | { readonly status: 'loading'; readonly target: ParsedTNumber }
-  | { readonly status: 'found'; readonly target: ParsedTNumber; readonly payee: RegisteredPayee }
+  | { readonly status: 'active'; readonly target: ParsedTNumber; readonly payee: ActivePayee }
+  | { readonly status: 'disputed'; readonly target: ParsedTNumber; readonly changePendingUntil: Date | null }
   | { readonly status: 'missing'; readonly target: ParsedTNumber }
   | { readonly status: 'error'; readonly target: ParsedTNumber; readonly reason: ResolveFailure }
 
@@ -27,7 +28,11 @@ async function lookup(registry: RegistryConfig, target: ParsedTNumber): Promise<
   }
   try {
     const result = await chain.lookupPayee(registry, target.value)
-    return result.kind === 'registered' ? { status: 'found', target, payee: result } : { status: 'missing', target }
+    if (result.kind === 'active') return { status: 'active', target, payee: result }
+    if (result.kind === 'disputed') {
+      return { status: 'disputed', target, changePendingUntil: result.changePendingUntil }
+    }
+    return { status: 'missing', target }
   } catch (error) {
     reportError(error)
     return { status: 'error', target, reason: chain.classifyChainError(error) }

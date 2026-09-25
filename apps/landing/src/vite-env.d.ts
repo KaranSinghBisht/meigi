@@ -6,7 +6,7 @@ interface ImportMetaEnv {
   readonly VITE_DOCS_URL?: string
   readonly VITE_RPC_URL?: string
   readonly VITE_REGISTRY_ADDRESS?: string
-  readonly VITE_REGISTRY_DEPLOY_BLOCK?: string
+  readonly VITE_REGISTRY_FROM_BLOCK?: string
 }
 
 interface ImportMeta {

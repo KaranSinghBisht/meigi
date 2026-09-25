@@ -17,7 +17,10 @@ export function Hero({ appUrl, onEnter, onStamp }: HeroProps) {
     <main className="hero">
       <div className="hero__top">
         <p className="hero__byline">
-          <span>Karan Singh Bisht · Adithya Prasanna Suriya Prakash</span>
+          <span className="hero__names">
+            <span className="hero__name">Karan Singh Bisht</span> ·{' '}
+            <span className="hero__name">Adithya Prasanna Suriya Prakash</span>
+          </span>
           <span className="hero__event">
             <span className="hero__dash"> — </span>ETHGlobal Tokyo 2026
           </span>
