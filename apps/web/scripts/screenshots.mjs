@@ -157,12 +157,19 @@ async function buyUnverified(page) {
   await buyFlagged(page)
 }
 
+/**
+ * Harmless, and not ours: R3F's store builds a THREE.Clock (deprecated since three r183) on every Canvas mount, and
+ * SwiftShader reports its own GPU stalls. Everything else a page logs is still reported.
+ */
+const KNOWN_NOISE = /THREE\.Clock: This module has been deprecated|GL Driver Message/
+
 async function run(browser, shot) {
   const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 1 })
   const page = await context.newPage()
   const problems = []
   page.on('console', (msg) => {
-    if (msg.type() === 'error' || msg.type() === 'warning') problems.push(`${msg.type()}: ${msg.text()}`)
+    if (msg.type() !== 'error' && msg.type() !== 'warning') return
+    if (!KNOWN_NOISE.test(msg.text())) problems.push(`${msg.type()}: ${msg.text()}`)
   })
   page.on('pageerror', (error) => problems.push(`pageerror: ${error.message}`))
   if (shot.setup) await shot.setup(page)
