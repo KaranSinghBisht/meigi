@@ -84,5 +84,12 @@ a trusted single-user machine; the ENS scripts and forge scripts read keys from 
    - The prompt-injection invoice can't be forced at all (tampering). Use the bank-change email or the x402
      response for the on-chain moment.
 5. The registry explorer shows `t2011001234567.payee.eth` → `0x9B4f…47e4`.
-6. Don't press Pay on the routine invoice before the demo: it auto-clears and pays for real, which uses up its
+6. **World ID for Agents.** The Sepolia agent's approver was enrolled on 2026-09-26, in Karan's Brave browser, in
+   the sandbox: the first approval ran with `WORLD_AGENTS_ENROLL=1` and is written to the git-ignored
+   `data/agent/approvers.json`. Approve in that same browser and the agent reports `matched`.
+   - To show the other paths: "Deny sign-in" pays nothing. A different browser profile is a different human
+     (`wrong_human`).
+   - Use a fresh invoice number each time. A paid number holds as already paid, and that hold isn't
+     approvable.
+7. Don't press Pay on the routine invoice before the demo: it auto-clears and pays for real, which uses up its
    invoice number.
