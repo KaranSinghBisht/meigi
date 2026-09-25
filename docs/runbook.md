@@ -1,6 +1,7 @@
 # Runbook
 
-Everything runs from the repo root, with secrets in a git-ignored `.env` (never commit it).
+Everything runs from the repo root, with secrets in a git-ignored `.env` (never commit it). The services bind
+127.0.0.1 by default (`VERIFIER_HOST`, `AGENT_HOST`, `X402_DEMO_HOST`), so the venue network can't reach them.
 
 ## Live deployment (Sepolia)
 
@@ -42,7 +43,7 @@ Check: `EXPECT_ADDR=0x9B4fc8994FcF2d5FE08a82A9454B61AA14D647e4 contracts/script/
 | 8787 | verifier (attester) | `pnpm --filter @meigi/verifier start` |
 | 8788 | AP agent | `pnpm --filter @meigi/agent start` |
 | 8790 | x402 demo (merchant + facilitator + guarded buyer) | `pnpm --filter @meigi/x402-demo start` |
-| 8009 | Kev System-1 model (local) | see `bench/README.md` |
+| 8102 | System-1 triage: our fine-tuned payee-0.8b (`kev.serve`) | see `bench/README.md` |
 | 5173 | web app | `pnpm --filter @meigi/web dev` |
 | — | landing | `pnpm dev:landing` |
 
@@ -72,7 +73,16 @@ a trusted single-user machine; the ENS scripts and forge scripts read keys from 
 ## Demo checks (five minutes before judging)
 
 1. `curl localhost:8787/payees/T2011001234567`: the fixture vendor is active.
-2. `curl localhost:8790/demo/compromised`: refused before signing (`payto_mismatch`).
-3. In the AP console, paste the bank-change invoice. The agent proposes paying; "pay anyway" reverts with
-   `PayeeMismatch` and names 株式会社メイギ商事.
-4. The registry explorer shows `t2011001234567.payee.eth` → `0x9B4f…47e4`.
+2. `curl localhost:8788/health`: `triage` lists `systemone` (Kev on :8102). `screening` is true once
+   `INTERCEPTA_API_KEY` is set.
+3. `curl localhost:8790/demo/compromised`: refused before signing (`payto_mismatch`). With an Intercepta key,
+   `/demo/unverified-flagged` is refused as `screened`.
+4. In the AP console, load the bank-change email:
+   - The agent's LLM proposes paying `0xdCa5…6d5b`, and the kernel holds.
+   - "Let the agent pay anyway" reverts `PayeeMismatch` in simulation, names 株式会社メイギ商事, and broadcasts
+     nothing.
+   - The prompt-injection invoice can't be forced at all (tampering). Use the bank-change email or the x402
+     response for the on-chain moment.
+5. The registry explorer shows `t2011001234567.payee.eth` → `0x9B4f…47e4`.
+6. Don't press Pay on the routine invoice before the demo: it auto-clears and pays for real, which uses up its
+   invoice number.
