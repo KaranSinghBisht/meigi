@@ -1,0 +1,14 @@
+{
+  "name": "meigi",
+  "private": true,
+  "description": "Payee verification for stablecoin and x402 payments. Pay companies, not addresses.",
+  "packageManager": "pnpm@11.11.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test:contracts": "cd contracts && forge test",
+    "dev:landing": "pnpm --filter @meigi/landing dev",
+    "build:landing": "pnpm --filter @meigi/landing build"
+  }
+}

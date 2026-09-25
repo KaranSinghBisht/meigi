@@ -1,0 +1,32 @@
+# dependencies & builds
+node_modules/
+dist/
+.next/
+.turbo/
+.vercel/
+.wrangler/
+*.tsbuildinfo
+
+# secrets (commit only .env.example files)
+.env
+.env.*
+!.env.example
+
+# foundry
+contracts/out/
+contracts/cache/
+contracts/broadcast/**/31337/
+
+# python / model training
+__pycache__/
+.venv/
+*.pyc
+bench/runs/
+*.safetensors
+*.gguf
+
+# tooling state & OS noise
+.omc/
+**/.omc/
+.DS_Store
+*.log
