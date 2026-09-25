@@ -18,6 +18,8 @@ const schema = z.object({
   FACILITATOR_PRIVATE_KEY: privateKey,
   INTERCEPTA_API_KEY: z.string().min(8).optional(),
   X402_DEMO_PORT: z.coerce.number().int().positive().default(8790),
+  // The demo spends testnet gas on every honest purchase, so it only listens locally unless told otherwise.
+  X402_DEMO_HOST: z.string().default("127.0.0.1"),
   APP_ORIGINS: z.string().default("http://localhost:5173,http://localhost:4173"),
 });
 

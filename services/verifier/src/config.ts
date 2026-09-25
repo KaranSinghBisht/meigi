@@ -15,6 +15,8 @@ const schema = z.object({
   NTA_DB_PATH: z.string().default("../../data/nta/corporations.sqlite"),
   VERIFIER_DB_PATH: z.string().default("../../data/verifier.sqlite"),
   VERIFIER_PORT: z.coerce.number().int().positive().default(8787),
+  // The verifier holds the attester key, so it only listens locally unless told otherwise.
+  VERIFIER_HOST: z.string().default("127.0.0.1"),
   APP_ORIGINS: z.string().default("http://localhost:5173,http://localhost:4173"),
 });
 

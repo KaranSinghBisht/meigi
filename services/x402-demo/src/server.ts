@@ -24,6 +24,6 @@ app.get("/demo/compromised", async (c) => c.json(await buy(`${self}/merchant/com
 app.get("/demo/unverified", async (c) => c.json(await buy(`${self}/merchant/unverified/fx`)));
 app.get("/demo/unverified-flagged", async (c) => c.json(await buy(`${self}/merchant/unverified-flagged/fx`)));
 
-serve({ fetch: app.fetch, port: config.X402_DEMO_PORT }, (info) => {
+serve({ fetch: app.fetch, port: config.X402_DEMO_PORT, hostname: config.X402_DEMO_HOST }, (info) => {
   process.stdout.write(`meigi x402 demo listening on http://localhost:${info.port}\n`);
 });

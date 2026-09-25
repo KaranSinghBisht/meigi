@@ -24,6 +24,6 @@ const app = createApp({
   origins: config.APP_ORIGINS.split(",").map((origin) => origin.trim()),
 });
 
-serve({ fetch: app.fetch, port: config.VERIFIER_PORT }, (info) => {
+serve({ fetch: app.fetch, port: config.VERIFIER_PORT, hostname: config.VERIFIER_HOST }, (info) => {
   process.stdout.write(`meigi verifier listening on http://localhost:${info.port}\n`);
 });
