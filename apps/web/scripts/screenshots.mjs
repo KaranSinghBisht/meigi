@@ -180,8 +180,7 @@ const HOSTED_SHOTS = [
 ]
 
 function selectShots() {
-  if (hosted) return HOSTED_SHOTS
-  const allowed = SHOTS.filter((shot) => !shot.optIn || process.env[shot.optIn] === '1')
+  const allowed = hosted ? HOSTED_SHOTS : SHOTS.filter((shot) => !shot.optIn || process.env[shot.optIn] === '1')
   const only = process.env.SHOTS_ONLY?.split(',')
   return only ? allowed.filter((shot) => only.includes(shot.name)) : allowed
 }

@@ -70,8 +70,8 @@ function ChangeHosted() {
       why="it checks each officer's World ID session and signs the approval as the attester"
     >
       <p>
-        The registry side is live on the left: a queued change would show its countdown there, and its new address stays
-        hidden until it lands.
+        The registry side is live on the left: a queued change would show its countdown there, and its new address isn't
+        shown until it lands.
       </p>
     </DemoMachine>
   )

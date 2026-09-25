@@ -16,7 +16,9 @@ export function redactText(text: string): string {
 /** A notice about the queued change itself: any address in it would be the queued one. */
 export function redactPendingNotice(code: string, message: string): string {
   const text = redactText(message)
-  return code === 'payout_change_pending' ? text.replace(ANY_ADDRESS, 'a queued address (hidden until it lands)') : text
+  return code === 'payout_change_pending'
+    ? text.replace(ANY_ADDRESS, 'a queued address (not shown until it lands)')
+    : text
 }
 
 function messages<T extends Pick<Reason, 'message'>>(list: readonly T[]): T[] {

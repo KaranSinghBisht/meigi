@@ -138,6 +138,10 @@
   line-height: 1.15;
 }
 
+.payee__name--withheld {
+  color: var(--ink-soft);
+}
+
 .payee__sub {
   margin-top: -8px;
   color: var(--ink-muted);

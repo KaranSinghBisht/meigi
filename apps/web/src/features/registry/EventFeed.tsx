@@ -43,7 +43,7 @@ function detail(event: FeedEvent): ReactNode {
     case 'PayoutChangeRequested':
     case 'ControllerRotationRequested':
     case 'DisputeResolutionQueued':
-      return event.landsAt ? `lands ${formatJst(event.landsAt)}; new address hidden until then` : null
+      return event.landsAt ? `lands ${formatJst(event.landsAt)}; the new address isn't shown until then` : null
     case 'PayoutChangeCancelled':
     case 'ControllerRotationCancelled':
       return event.by ? (

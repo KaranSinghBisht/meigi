@@ -29,6 +29,37 @@ function nameProvenance(evidence: string): string {
     : 'Registered name, an exact match of the NTA record'
 }
 
+/** A disputed payee's name is withheld (readPayee never returns it), as the ENS resolver withholds it. */
+function Name({ payee }: { readonly payee: PayeeSnapshot }) {
+  if (payee.status === 'disputed') {
+    return (
+      <>
+        <h2 id="payee-name" className="payee__name payee__name--withheld">
+          Name withheld while disputed
+        </h2>
+        <p className="payee__sub">
+          Like ENS, Meigi shows only the status of a disputed T-number, never a claimant's name.
+        </p>
+      </>
+    )
+  }
+  if (!payee.legalName) {
+    return (
+      <h2 id="payee-name" className="payee__name">
+        Not registered
+      </h2>
+    )
+  }
+  return (
+    <>
+      <h2 id="payee-name" className="payee__name jp" lang="ja">
+        {payee.legalName}
+      </h2>
+      <p className="payee__sub">{nameProvenance(payee.evidence)}</p>
+    </>
+  )
+}
+
 type NoteTone = 'ok' | 'muted' | 'bad'
 
 /** ENS must agree with the registry: the active payout, or nothing at all for a frozen or unknown payee. */
@@ -141,10 +172,7 @@ export function PayeeCard({ payee, onElapsed, showChangeLink = true }: PayeeCard
         </div>
         <Badge tone={badge.tone}>{badge.label}</Badge>
       </header>
-      <h2 id="payee-name" className="payee__name jp" lang="ja">
-        {payee.legalName || 'Not registered'}
-      </h2>
-      {payee.legalName ? <p className="payee__sub">{nameProvenance(payee.evidence)}</p> : null}
+      <Name payee={payee} />
       {payee.status === 'unregistered' ? <Unregistered payee={payee} /> : null}
       {payee.status !== 'unregistered' ? (
         <>

@@ -17,7 +17,8 @@ const FIXTURE = parseTNumber(FIXTURE_T_NUMBER)
 export function VaultStrip({ version }: { readonly version: number }) {
   const [load, setLoad] = useState<Load>({ kind: 'loading' })
   const { state: payee } = usePayee(FIXTURE_T_NUMBER)
-  const vendorName = payee.status === 'ready' ? payee.payee.legalName : null
+  // Empty unless the vendor is active: a disputed payee's name is withheld, so the T-number is shown instead.
+  const vendorName = payee.status === 'ready' ? payee.payee.legalName || null : null
   useEffect(() => {
     if (!FIXTURE) return
     let live = true

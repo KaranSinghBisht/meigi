@@ -7,7 +7,7 @@ export type PendingKind = 'payout' | 'rotation' | 'dispute'
 const COPY: Record<PendingKind, { title: string; body: string }> = {
   payout: {
     title: 'Payout change pending',
-    body: 'The new address stays hidden until it lands, so nobody pays it early. Until then the controller, an attester or governance can cancel it.',
+    body: 'Meigi shows the new address only once it lands, so nobody pays it early. The request itself is public, and until then the controller, an attester or governance can cancel it.',
   },
   rotation: {
     title: 'Controller rotation pending',

@@ -1,5 +1,6 @@
 // Live reads of the PayeeRegistry. A queued payout (or controller) is reported only as "pending until",
-// never as an address: until it lands, nobody should pay it, so the UI never gets to see it.
+// never as an address: until it lands, nobody should pay it, so the UI never gets to see it. A disputed payee's
+// name is withheld the same way, as the ENS resolver does: only its status is public, never a claimant's name.
 
 import { payeeRegistryAbi } from '@meigi/abi'
 import type { Hex } from 'viem'
@@ -12,6 +13,7 @@ export type PayeeStatus = 'unregistered' | 'active' | 'disputed'
 export interface PayeeSnapshot {
   readonly tNumber: ParsedTNumber
   readonly status: PayeeStatus
+  /** The registered name; empty unless active (a disputed payee's name is withheld). */
   readonly legalName: string
   readonly controller: HexAddress | null
   /** The payout the registry pays today; null unless active (disputed payees are frozen). */
@@ -49,7 +51,7 @@ export async function readPayee(tNumber: ParsedTNumber): Promise<PayeeSnapshot> 
   return {
     tNumber,
     status,
-    legalName: view.legalName,
+    legalName: status === 'active' ? view.legalName : '',
     controller: view.controller === ZERO ? null : view.controller,
     payout: status === 'active' && view.payout !== ZERO ? view.payout : null,
     payoutChangeLandsAt: view.pending === ZERO ? null : toDate(view.effectiveAt),

@@ -108,6 +108,7 @@ function kernel(v: unknown): Kernel {
   const k = obj(v)
   const intent = isRecord(k.intent) ? k.intent : null
   const payee = isRecord(k.payee) ? k.payee : null
+  const payeeStatus = payee ? (text(payee.status) ?? 'none') : 'none'
   return {
     status: text(k.status) ?? 'unknown',
     ok: k.ok === true,
@@ -120,8 +121,9 @@ function kernel(v: unknown): Kernel {
     },
     payee: payee && {
       tNumber: text(payee.tNumber) ?? '',
-      status: text(payee.status) ?? 'none',
-      legalName: text(payee.legalName),
+      status: payeeStatus,
+      // Like the registry reads: a disputed payee's name is never shown, only its status.
+      legalName: payeeStatus === 'active' ? text(payee.legalName) : null,
       registeredPayout: text(payee.registeredPayout),
       changePending: payee.changePending === true,
       pendingEffectiveAt: typeof payee.pendingEffectiveAt === 'number' ? payee.pendingEffectiveAt : null,

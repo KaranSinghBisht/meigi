@@ -32,7 +32,7 @@ function Registered({ kernel }: { readonly kernel: Kernel }) {
         <span className="col__pending">
           A payout change is queued
           {payee.pendingEffectiveAt ? ` until ${formatJst(new Date(payee.pendingEffectiveAt * 1000))}` : ''}; its
-          address stays hidden until it lands.
+          address isn't shown until it lands.
         </span>
       ) : null}
     </p>

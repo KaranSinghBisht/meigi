@@ -57,7 +57,7 @@ pnpm --filter @meigi/web build && pnpm --filter @meigi/web shots   # docs/web/*.
 ```
 
 `registry-pending.png` rewrites `payeeOf` answers in flight (the live chain has no queued change) to show the
-countdown banner and that the queued address stays hidden. The agent, change-approvals and x402 shots need their
+countdown banner and that the queued address isn't shown. The agent, change-approvals and x402 shots need their
 services running. `SHOTS_HOSTED=1 SHOTS_PORT=4180` captures a hosted build as `hosted-*.png`.
 `x402-unverified.png` buys from the flagged merchant, which is refused before signing. `SHOTS_HONEST=1` adds the
 honest and the clean unverified purchases, which settle real Sepolia payments (the unverified one once Intercepta is
