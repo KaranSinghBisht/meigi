@@ -1,0 +1,155 @@
+:root {
+  --ink: #2a2730;
+  --ink-soft: rgba(42, 39, 48, 0.74);
+  --ink-faint: rgba(42, 39, 48, 0.5);
+  --vermilion: #e0452b;
+  --seal: #c8372d;
+  --glass: rgba(255, 255, 255, 0.56);
+  --glass-hover: rgba(255, 255, 255, 0.86);
+  --glass-edge: rgba(255, 255, 255, 0.72);
+  --shadow-soft: 0 10px 30px -16px rgba(42, 39, 48, 0.45);
+  --sky-top: #b9b4e6;
+  --sky-mid: #f2c4d3;
+  --sky-low: #ffe3c8;
+  --lake: #cbc1e2;
+  /* Mirrors horizonFor() in scene/shared/world.ts */
+  --horizon: 60%;
+  --font-latin: 'Inter Tight', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'Hiragino Sans', 'Noto Sans JP',
+    'Yu Gothic', sans-serif;
+  --font-jp: 'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
+  --gutter: clamp(16px, 2.2vw, 30px);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  color-scheme: light;
+}
+
+@media (max-aspect-ratio: 5/4) {
+  :root {
+    --horizon: 57%;
+  }
+}
+
+@media (max-aspect-ratio: 4/5) {
+  :root {
+    --horizon: 53%;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body {
+  background: linear-gradient(
+    to bottom,
+    var(--sky-top) 0%,
+    var(--sky-mid) 36%,
+    var(--sky-low) var(--horizon),
+    var(--lake) 100%
+  );
+  color: var(--ink);
+  font-family: var(--font-latin);
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+#root {
+  position: fixed;
+  inset: 0;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--vermilion);
+  outline-offset: 3px;
+}
+
+.page {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.stage {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 1.4s var(--ease-out);
+  /* One-finger drags ripple the water; pinch-zoom stays available. */
+  touch-action: pinch-zoom;
+}
+
+.stage.is-ready {
+  opacity: 1;
+}
+
+.whiteout {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: #fffaf7;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.noscript {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  font-size: 24px;
+}
+
+/* Very short viewports (landscape phones, heavy zoom) scroll instead of clipping. */
+@media (max-height: 520px) {
+  html,
+  body {
+    overflow-y: auto;
+  }
+
+  #root {
+    position: relative;
+    height: 100%;
+    min-height: 560px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage {
+    transition-duration: 0.01s;
+  }
+}

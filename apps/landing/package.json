@@ -1,0 +1,34 @@
+{
+  "name": "@meigi/landing",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Sakasa Fuji landing page for Meigi. Pay companies, not addresses.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json",
+    "shots": "node scripts/screenshots.mjs"
+  },
+  "dependencies": {
+    "@react-three/drei": "~10.7.8",
+    "@react-three/fiber": "~9.8.0",
+    "@react-three/postprocessing": "^3.1.2",
+    "gsap": "^3.15.0",
+    "postprocessing": "^6.39.5",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "three": "~0.186.1",
+    "viem": "~2.56.8"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/three": "~0.186.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "playwright": "^1.63.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.1"
+  }
+}

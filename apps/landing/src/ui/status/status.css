@@ -1,0 +1,51 @@
+.pill--status {
+  margin: 0;
+  cursor: default;
+  font-variant-numeric: tabular-nums;
+}
+
+.pill--status:hover {
+  background: var(--glass);
+}
+
+.status__dot {
+  position: relative;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #3f9d78;
+  box-shadow: 0 0 0 3px rgba(63, 157, 120, 0.18);
+}
+
+.status__dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: #3f9d78;
+  animation: status-pulse 2.4s var(--ease-out) infinite;
+}
+
+.status-slot {
+  display: block;
+  width: 1px;
+  height: 1px;
+}
+
+@keyframes status-pulse {
+  0% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status__dot::after {
+    animation: none;
+    opacity: 0;
+  }
+}

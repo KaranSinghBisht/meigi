@@ -1,0 +1,140 @@
+/* Only when nobody asked for a high-visibility system cursor. */
+@media (forced-colors: none) and (prefers-contrast: no-preference) {
+  html.has-hanko,
+  html.has-hanko * {
+    cursor: none !important;
+  }
+
+  html.has-hanko input {
+    cursor: text !important;
+  }
+}
+
+@media (forced-colors: active), (prefers-contrast: more) {
+  .hanko {
+    display: none;
+  }
+}
+
+.hanko {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 60;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s var(--ease-out);
+}
+
+.hanko.is-visible {
+  opacity: 1;
+}
+
+.hanko__track,
+.hanko__dot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  will-change: transform;
+}
+
+.hanko__dot {
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  border-radius: 50%;
+  background: var(--vermilion);
+}
+
+.hanko__ring {
+  position: absolute;
+  top: -12px;
+  left: -12px;
+  width: 24px;
+  height: 24px;
+  border: 1.5px solid var(--vermilion);
+  border-radius: 50%;
+  background: rgba(224, 69, 43, 0);
+  transition:
+    transform 0.35s var(--ease-out),
+    background-color 0.35s var(--ease-out),
+    border-color 0.35s var(--ease-out);
+}
+
+.hanko.is-hot .hanko__ring {
+  background: rgba(224, 69, 43, 0.2);
+  transform: scale(1.45);
+}
+
+.hanko.is-pressed .hanko__ring {
+  background: rgba(224, 69, 43, 0.34);
+  transform: scale(0.82);
+}
+
+.seals {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+}
+
+.seals__defs {
+  position: absolute;
+}
+
+.seal {
+  position: fixed;
+  width: 84px;
+  height: 84px;
+  color: var(--seal);
+  opacity: 0;
+  transform: translate(-50%, -50%) rotate(var(--seal-angle));
+  animation: seal-press 1.6s var(--ease-out) forwards;
+}
+
+.seal__glyph {
+  fill: #fff6f0;
+  font-family: var(--font-jp);
+  font-size: 42px;
+  font-weight: 600;
+}
+
+@keyframes seal-press {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--seal-angle)) scale(1.22);
+  }
+  9% {
+    opacity: 0.94;
+    transform: translate(-50%, -50%) rotate(var(--seal-angle)) scale(1);
+  }
+  30% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--seal-angle)) scale(1);
+  }
+}
+
+@keyframes seal-fade {
+  0%,
+  30% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seal {
+    animation-name: seal-fade;
+  }
+
+  .hanko__ring {
+    transition: none;
+  }
+}

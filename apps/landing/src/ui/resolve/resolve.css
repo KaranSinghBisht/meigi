@@ -1,0 +1,236 @@
+.resolve {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 12px);
+  z-index: 20;
+  width: min(392px, calc(100vw - 2 * var(--gutter)));
+  max-height: calc(100dvh - 2 * var(--gutter) - 60px);
+  overflow: auto;
+  padding: 18px 18px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.7);
+  -webkit-backdrop-filter: blur(22px) saturate(1.4);
+  backdrop-filter: blur(22px) saturate(1.4);
+  box-shadow: 0 28px 70px -28px rgba(42, 39, 48, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  transform-origin: 100% 100%;
+  animation: resolve-in 0.26s var(--ease-out);
+}
+
+.resolve__form {
+  display: grid;
+  gap: 8px;
+}
+
+.resolve__label {
+  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.resolve__row {
+  display: flex;
+  gap: 8px;
+}
+
+.resolve__input {
+  flex: 1;
+  min-width: 0;
+  height: 42px;
+  padding: 0 14px;
+  border: 1px solid rgba(42, 39, 48, 0.14);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.resolve__input::placeholder {
+  color: rgba(42, 39, 48, 0.36);
+}
+
+.resolve__input:focus-visible {
+  outline: 2px solid rgba(42, 39, 48, 0.55);
+  outline-offset: 1px;
+}
+
+.resolve__input[aria-invalid='true'] {
+  border-color: var(--vermilion);
+}
+
+.resolve__go {
+  height: 42px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s var(--ease-out);
+}
+
+.resolve__go:hover {
+  background: #45404d;
+}
+
+.resolve__hint {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+
+.resolve__result {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(42, 39, 48, 0.1);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+/* Collapsed but still rendered, so the live region announces its first result. */
+.resolve__result:empty {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.resolve__note {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.resolve__note--error {
+  color: #b23a26;
+}
+
+.resolve__note--missing strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.resolve__card p {
+  margin: 0;
+}
+
+.resolve__name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.resolve__mark {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #3f9d78;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.resolve__mark--warn {
+  background: var(--vermilion);
+}
+
+.resolve__frozen {
+  margin-top: 8px !important;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(224, 69, 43, 0.1);
+  color: #8f2f1f;
+  font-size: 13px;
+}
+
+.resolve__caption {
+  margin-top: 10px !important;
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.resolve__address code {
+  display: block;
+  margin-top: 3px;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 12.5px;
+  letter-spacing: -0.01em;
+  word-break: break-all;
+  user-select: all;
+  -webkit-user-select: all;
+}
+
+.resolve__badge {
+  margin-left: auto;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(63, 157, 120, 0.14);
+  color: #2d7659;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.resolve__badge--disputed {
+  background: rgba(224, 69, 43, 0.14);
+  color: #b23a26;
+}
+
+.resolve__meta {
+  margin-top: 4px !important;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.resolve__pending code {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 12.5px;
+}
+
+.resolve__pending {
+  margin-top: 8px !important;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(224, 69, 43, 0.08);
+  color: #8f2f1f;
+  font-size: 13px;
+}
+
+@keyframes resolve-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .resolve {
+    position: fixed;
+    right: var(--gutter);
+    bottom: 128px;
+    left: var(--gutter);
+    width: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .resolve {
+    animation: none;
+  }
+}
