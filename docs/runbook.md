@@ -49,6 +49,9 @@ The AI proxy (Workers AI chat + Jev) is deployed at `https://meigi-ai-proxy.kara
 bash contracts/script/seed-demo.sh        # fixture vendor, vault funding, vendor approval (idempotent registration)
 ```
 
+`seed-demo.sh` passes testnet keys to `cast` on the command line, where local `ps` can see them. Run it only on
+a trusted single-user machine; the ENS scripts and forge scripts read keys from the environment instead.
+
 ## Demo checks (five minutes before judging)
 
 1. `curl localhost:8787/payees/T2011001234567`: the fixture vendor is active.
