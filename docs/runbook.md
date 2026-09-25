@@ -44,6 +44,7 @@ Check: `EXPECT_ADDR=0x9B4fc8994FcF2d5FE08a82A9454B61AA14D647e4 contracts/script/
 | 8788 | AP agent | `pnpm --filter @meigi/agent start` |
 | 8790 | x402 demo (merchant + facilitator + guarded buyer) | `pnpm --filter @meigi/x402-demo start` |
 | 8102 | System-1 triage: our fine-tuned payee-0.8b (`kev.serve`) | see `bench/README.md` |
+| 11434 | Agent LLM: Ollama with `gemma4:e4b` (`LLM_PROVIDER=local`) | `ollama serve` (the model is pulled once with `ollama pull gemma4:e4b`) |
 | 5173 | web app | `pnpm --filter @meigi/web dev` |
 | — | landing | `pnpm dev:landing` |
 
