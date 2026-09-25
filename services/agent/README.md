@@ -119,6 +119,26 @@ grant: the agent is the device, and the human approves in World App. It is off u
      `WORLD_AGENTS_APPROVERS` is set.
 - **Binding and single use:** an attempt is bound, server-side, to the invoice id, T-number, payout, amount, invoice
   reference and hold reasons it was started for. The device grant can't carry a nonce or binding message.
+- **Rehearsed against the real sandbox (2026-09-26, anvil):** the dev agent used the real client
+  (`client_secret_basic`), with `WORLD_AGENTS_ENROLL=1` and `WORLD_AGENTS_TRACE=1` for that run only and a separate
+  approver file under the git-ignored `data/agent/`.
+  - **Device authorization:** the user code has 11 characters (`ABCDE-FGHJK`), `verification_uri_complete` is
+    `https://sandbox.auth.world.org/authorize?transaction_id=…`, `expires_in` is 1200 and `interval` is 5. The
+    sandbox proves with a fake identity in the browser ("Authenticate with World ID", then "Approve sign-in" or "Deny
+    sign-in"), so no phone is needed. The page may first show an older pending transaction from the same browser, so
+    match the user code on screen.
+  - **ID token:** RS256 with a `kid`; `iss` is the issuer; `aud` is the client id (a string); `acr` is
+    `https://world.org/oidc/acr/orb-v3`; `amr` is `["pop"]`; `sub` is 52 characters in the base64url alphabet;
+    `exp − iat` is 300 s. The claims are `acr amr aud auth_time exp iat iss jti sub`, with no `nonce`. `auth_time`
+    came 42 s after the attempt started. It passed validation unchanged.
+  - **Approve run:** status `approved` (approver `enrolled`), then `pay { approvalId }` paid ¥55,000 to Meigi Shoji's
+    registered payout on anvil. A second pay with the same approval got `409 approval_used`.
+  - **Deny run:** "Deny sign-in" made the token endpoint answer `access_denied`, and no ID token was issued. The
+    status read `denied` ("the person declined in World App"), pay got `409 approval_not_approved`, and the agent's
+    nonce didn't move.
+- **Rehearsing against a new IdP:** `WORLD_AGENTS_TRACE=1` writes one stderr line per ID token: its algorithm,
+  whether `iss` and `aud` match, `acr`, `amr`, the `sub`'s length and alphabet, `auth_time` relative to the attempt,
+  the lifetime and the claim names. It never writes the `sub` or the token. Leave it off otherwise.
 - **Local rehearsal without World App:** `pnpm --filter @meigi/agent mock:idp` runs a mock IdP on
   `http://127.0.0.1:8791`. Its `verificationUriComplete` page has Approve, Approve as someone else (`wrong_human`),
   Deny and Expire buttons. Start an agent with `WORLD_AGENTS_ISSUER=http://127.0.0.1:8791`,
@@ -174,7 +194,7 @@ and token match the configuration, that the key is the vault's agent, and that i
 | LLM | `LLM_PROVIDER=proxy` (Llama 3.3 via `AI_PROXY_URL/v1/chat` with `AI_PROXY_TOKEN`), or `anthropic` (`ANTHROPIC_API_KEY`, `claude-haiku-4-5`), `workers-ai` or `none` |
 | Screening | `INTERCEPTA_API_KEY` (optional), `INTERCEPTA_CACHE_PATH=../../data/agent/intercepta-cache.json`, `INTERCEPTA_MAX_CALLS=900`, `INTERCEPTA_TOXIC_THRESHOLD=50` |
 | Judgement holds | `TRIAGE_MAX_PRESSURE=0.5`, `AUTO_CLEAR_MAX_YEN` (unset: no budget hold) |
-| Human approval | `WORLD_AGENTS_CLIENT_ID` and `WORLD_AGENTS_CLIENT_SECRET` (both or neither), `WORLD_AGENTS_ISSUER=https://sandbox.auth.world.org`, `WORLD_AGENTS_AUTH_METHOD=client_secret_basic` (or `client_secret_post`), `WORLD_AGENTS_APPROVERS`, `WORLD_AGENTS_ENROLL` (off), `WORLD_AGENTS_APPROVERS_PATH=../../data/agent/approvers.json` |
+| Human approval | `WORLD_AGENTS_CLIENT_ID` and `WORLD_AGENTS_CLIENT_SECRET` (both or neither), `WORLD_AGENTS_ISSUER=https://sandbox.auth.world.org`, `WORLD_AGENTS_AUTH_METHOD=client_secret_basic` (or `client_secret_post`), `WORLD_AGENTS_APPROVERS`, `WORLD_AGENTS_ENROLL` (off), `WORLD_AGENTS_APPROVERS_PATH=../../data/agent/approvers.json`, `WORLD_AGENTS_TRACE` (off) |
 | Server | `AGENT_PORT=8788`, `AGENT_HOST=127.0.0.1`, `APP_ORIGINS=http://localhost:5173,http://localhost:4173`, `VENDOR_T_NUMBERS=2011001234567` |
 
 ### Triage backend

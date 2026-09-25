@@ -1,5 +1,5 @@
 import { base64url, createLocalJWKSet, exportJWK, exportSPKI, generateKeyPair, SignJWT } from "jose";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { analyzeDocument } from "../src/analysis/analyze.js";
 import { createApp } from "../src/app.js";
 import { createApprovals } from "../src/approval/approvals.js";
@@ -7,6 +7,7 @@ import { createApproverRegistry } from "../src/approval/approvers.js";
 import { pollOnce } from "../src/approval/device.js";
 import { createIdp, IdpUnavailable } from "../src/approval/idp.js";
 import { ORB_ACR, TokenRejected, validateIdToken } from "../src/approval/token.js";
+import { traceIdToken } from "../src/approval/trace.js";
 import { demo, fakeDeps } from "./fakes.js";
 import { approvalHarness, approvedWith, CLIENT_ID, denied, ISSUER, mockIdp } from "./mock-idp.js";
 
@@ -235,5 +236,26 @@ describe("pollers are bounded (LOW)", () => {
     await Promise.all([approvals.settled(second.attemptId), approvals.settled(third.attemptId)]);
     await new Promise((resolve) => setTimeout(resolve, 10));
     expect(idp.requests.filter((r) => r.url.endsWith("/api/v1/token"))).toHaveLength(2); // a never polled again
+  });
+});
+
+describe("token trace for rehearsals (WORLD_AGENTS_TRACE)", () => {
+  it("logs the claims' shape and never the sub or the token", async () => {
+    const k = await keyCtx();
+    const sub = "0x2ae86d6d747702b3b2c81811cd2b39875e8fa6b780ee4a207bdc203a7860b535";
+    const token = await new SignJWT({ ...claims, sub, amr: ["pop"], iat: NOW, exp: NOW + 300 }).setProtectedHeader({ alg: "RS256", kid: "k1" }).sign(k.privateKey);
+    const write = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    try {
+      traceIdToken(token, { issuer: ISSUER, clientId: CLIENT_ID, startedAt: NOW - 10 });
+      const line = String(write.mock.calls[0]?.[0]);
+      expect(line).toContain(`acr ${ORB_ACR}`);
+      expect(line).toContain('amr ["pop"]');
+      expect(line).toContain("sub 66 chars, 0x + hex");
+      expect(line).toContain("auth_time attempt start +10 s; lifetime 300 s");
+      expect(line).not.toContain(sub.slice(2, 12));
+      expect(line).not.toContain(token.slice(0, 20));
+    } finally {
+      write.mockRestore();
+    }
   });
 });

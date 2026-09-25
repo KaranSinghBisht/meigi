@@ -6,6 +6,7 @@ import { startDevice } from "./device.js";
 import { approvalRefusal, bindingOf } from "./holds.js";
 import { IdpUnavailable, type Idp } from "./idp.js";
 import { abandon, pollUntilDone, type Attempt, type PollContext } from "./poller.js";
+import { traceIdToken } from "./trace.js";
 
 export type ApprovalStatus = "pending" | "approved" | "denied" | "expired" | "unavailable" | "wrong_human";
 
@@ -48,6 +49,7 @@ export interface ApprovalOptions {
   now?: () => number; // unix seconds
   wait?: (ms: number) => Promise<void>;
   limits?: { maxAttempts?: number; maxLive?: number };
+  trace?: boolean; // WORLD_AGENTS_TRACE
 }
 
 /** Attempts kept in memory; the oldest is dropped (and its poller stopped) beyond this. */
@@ -62,6 +64,8 @@ export function createApprovals(opts: ApprovalOptions): ApprovalService {
     now: opts.now ?? (() => Math.floor(Date.now() / 1000)),
     wait: opts.wait ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms).unref())),
   };
+  const { issuer, clientId } = opts.idp;
+  if (opts.trace) ctx.trace = (idToken, startedAt) => traceIdToken(idToken, { issuer, clientId, startedAt });
   return new Approvals(ctx, { maxAttempts: opts.limits?.maxAttempts ?? MAX_ATTEMPTS, maxLive: opts.limits?.maxLive ?? MAX_LIVE_POLLERS });
 }
 

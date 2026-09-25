@@ -34,6 +34,7 @@ export interface PollContext {
   approvers: ApproverRegistry;
   now: () => number;
   wait: (ms: number) => Promise<void>;
+  trace?: (idToken: string, startedAt: number) => void; // WORLD_AGENTS_TRACE: the token's shape, never its values
 }
 
 /**
@@ -82,6 +83,7 @@ async function approve(ctx: PollContext, attempt: Attempt, idToken: string): Pro
   try {
     const { idp } = ctx;
     const now = ctx.now();
+    ctx.trace?.(idToken, attempt.startedAt);
     const context = { keys: await idp.keys(), issuer: idp.issuer, clientId: idp.clientId, startedAt: attempt.startedAt, now };
     const { sub, authTime } = await validateIdToken(idToken, context);
     const check = ctx.approvers.check(sub);

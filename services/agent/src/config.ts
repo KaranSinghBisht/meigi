@@ -61,6 +61,7 @@ const schema = z
     WORLD_AGENTS_APPROVERS: z.string().default(""), // pairwise subs, matched exactly
     WORLD_AGENTS_ENROLL: flag.default(false), // on: the first approved proof enrolls (while nobody is enrolled)
     WORLD_AGENTS_APPROVERS_PATH: z.string().default("../../data/agent/approvers.json"), // relative to services/agent
+    WORLD_AGENTS_TRACE: flag.default(false), // rehearsals: log each ID token's claim shape (never the sub) to stderr
   })
   .superRefine((env, ctx) => {
     const require = (key: string, when: boolean, message = "required by the selected provider") => {

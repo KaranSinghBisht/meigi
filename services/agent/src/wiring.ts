@@ -80,7 +80,8 @@ function createApprovalService(config: Config): ApprovalService | null {
   const idp = createIdp({ issuer: config.WORLD_AGENTS_ISSUER, clientId, clientSecret, authMethod: config.WORLD_AGENTS_AUTH_METHOD });
   const allowed = config.WORLD_AGENTS_APPROVERS.split(",").map((sub) => sub.trim()).filter(Boolean);
   const path = packagePath(config.WORLD_AGENTS_APPROVERS_PATH);
-  return createApprovals({ idp, approvers: createApproverRegistry({ allowed, path, enroll: config.WORLD_AGENTS_ENROLL }) });
+  const approvers = createApproverRegistry({ allowed, path, enroll: config.WORLD_AGENTS_ENROLL });
+  return createApprovals({ idp, approvers, trace: config.WORLD_AGENTS_TRACE });
 }
 
 function createTriageBackends(config: Config): TriageBackend[] {
