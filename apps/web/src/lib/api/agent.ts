@@ -21,14 +21,14 @@ export async function analyzeInvoice(text: string, signal?: AbortSignal): Promis
   return parseAnalysis(record(body, 'analysis'))
 }
 
-export async function payInvoice(id: string, force: boolean, pendingPayout: string | null): Promise<PayOutcome> {
+export async function payInvoice(id: string, force: boolean): Promise<PayOutcome> {
   const body = await requestJson(url(`/invoices/${encodeURIComponent(id)}/pay`), {
     method: 'POST',
     body: { force },
     headers: authHeaders(),
     timeoutMs: 180_000,
   })
-  return parsePayOutcome(record(body, 'payment result'), pendingPayout)
+  return parsePayOutcome(record(body, 'payment result'))
 }
 
 export async function fetchDemoInvoices(): Promise<DemoInvoice[]> {

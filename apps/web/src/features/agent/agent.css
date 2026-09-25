@@ -270,3 +270,26 @@
   flex: 1;
   min-width: 260px;
 }
+
+.agent__hosted {
+  display: grid;
+  gap: 18px;
+}
+
+.recorded__doc summary {
+  width: fit-content;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.recorded__doc pre {
+  max-height: 360px;
+  margin-top: 10px;
+  overflow: auto;
+}
+
+.recorded__step {
+  color: var(--ink-soft);
+  font-size: 16px;
+  font-weight: 600;
+}

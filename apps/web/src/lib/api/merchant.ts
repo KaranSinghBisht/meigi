@@ -5,10 +5,16 @@ import { env } from '../env/env'
 import { joinUrl, requestJson } from './http'
 import { isRecord, optStr, record, type Json } from './parse'
 
-export type MerchantKind = 'honest' | 'compromised'
+/** Merchants that declare a Meigi payee (their T-number) … */
+export type DeclaredKind = 'honest' | 'compromised'
+/** … and merchants with no Meigi record, where Intercepta screening of payTo alone decides. */
+export type UndeclaredKind = 'unverified' | 'unverified-flagged'
+export type MerchantKind = DeclaredKind | UndeclaredKind
 
 export interface GuardVerdictView {
   readonly ok: boolean
+  /** Paid without a Meigi record: a small amount, after screening cleared payTo. */
+  readonly unverified: boolean
   readonly code: string | null
   readonly reason: string | null
   readonly tNumber: string | null
@@ -31,6 +37,7 @@ function parseVerdict(value: unknown): GuardVerdictView | null {
     : null
   return {
     ok: value.ok === true,
+    unverified: value.unverified === true,
     code: optStr(value, 'code'),
     reason: optStr(value, 'reason'),
     tNumber: optStr(value, 'tNumber'),

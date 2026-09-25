@@ -17,7 +17,7 @@ import type {
   Triage,
 } from './agentTypes'
 import { bad, isRecord, str, type Json } from './parse'
-import { queuedRedactor, redactAnalysis, redactOutcome, redactPendingNotice } from './redact'
+import { redactAnalysis, redactOutcome, redactPendingNotice } from './redact'
 
 const text = (v: unknown): string | null => (typeof v === 'string' ? v : null)
 const num = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) ? v : 0)
@@ -34,7 +34,8 @@ function money(v: unknown): Money | null {
 
 function flag(v: Json): Flag {
   const code = text(v.code) ?? 'unknown'
-  return { code, severity: severity(v.severity), message: redactPendingNotice(code, text(v.message) ?? '') }
+  const message = redactPendingNotice(code, text(v.message) ?? '')
+  return { code, severity: severity(v.severity), message, evidence: text(v.evidence) }
 }
 
 export function reason(v: Json): Reason {
@@ -79,6 +80,8 @@ function triage(v: unknown): Triage {
     newDestination: num(t.newDestination),
     pressure: num(t.pressure),
     suspicion: { score: num(suspicion.score), level: text(suspicion.level) ?? '' },
+    pSafe: typeof t.pSafe === 'number' ? t.pSafe : null,
+    minPSafe: typeof t.minPSafe === 'number' ? t.minPSafe : null,
     route: t.route === 'auto_clear' ? 'auto_clear' : 'hold',
     holdReasons: strings(t.holdReasons),
   }
@@ -120,6 +123,8 @@ function kernel(v: unknown): Kernel {
       status: text(payee.status) ?? 'none',
       legalName: text(payee.legalName),
       registeredPayout: text(payee.registeredPayout),
+      changePending: payee.changePending === true,
+      pendingEffectiveAt: typeof payee.pendingEffectiveAt === 'number' ? payee.pendingEffectiveAt : null,
     },
     checks: records(k.checks).map(check),
     reasons: records(k.reasons).map(reason),
@@ -151,7 +156,6 @@ export function explanation(v: unknown): Explanation {
 export function parseAnalysis(body: Json): Analysis {
   const verdict = obj(body.verdict)
   if (verdict.decision !== 'pay' && verdict.decision !== 'hold') throw bad('analysis')
-  const pendingPayout = text(obj(obj(body.kernel).payee).pendingPayout)
   const analysis: Analysis = {
     id: str(body, 'id', 'analysis'),
     extracted: extraction(body.extracted),
@@ -166,14 +170,12 @@ export function parseAnalysis(body: Json): Analysis {
     },
     explanation: explanation(body.explanation),
     totalMs: typeof obj(body.timings).totalMs === 'number' ? num(obj(body.timings).totalMs) : null,
-    pendingPayout,
   }
-  return redactAnalysis(analysis, queuedRedactor(pendingPayout))
+  return redactAnalysis(analysis)
 }
 
-/** `pendingPayout` comes from the analysis the payment belongs to, so the outcome is redacted the same way. */
-export function parsePayOutcome(body: Json, pendingPayout: string | null): PayOutcome {
-  return redactOutcome(readPayOutcome(body), queuedRedactor(pendingPayout))
+export function parsePayOutcome(body: Json): PayOutcome {
+  return redactOutcome(readPayOutcome(body))
 }
 
 function readPayOutcome(body: Json): PayOutcome {
@@ -186,6 +188,10 @@ function readPayOutcome(body: Json): PayOutcome {
       amount: text(body.amount) ?? '',
     }
   }
+  if (body.status === 'pending') {
+    const message = text(body.message) ?? 'Sent; waiting for the receipt.'
+    return { status: 'pending', txHash: str(body, 'txHash', 'payment'), forced: body.forced === true, message }
+  }
   if (body.status === 'reverted') {
     const error = obj(body.error)
     const args: Record<string, string> = {}
@@ -193,6 +199,7 @@ function readPayOutcome(body: Json): PayOutcome {
     return {
       status: 'reverted',
       broadcast: body.broadcast === true,
+      txHash: text(body.txHash),
       forced: body.forced === true,
       error: { name: text(error.name) ?? 'Reverted', args, sentence: text(error.sentence) ?? '' },
       explanation: explanation(body.explanation),

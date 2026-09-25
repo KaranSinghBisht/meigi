@@ -1,3 +1,7 @@
+import { Link } from 'react-router'
+import { FIXTURE_T_NUMBER } from '../../lib/chain/tNumber'
+import { DemoMachine } from '../../ui/demo/DemoMachine'
+import { ServiceGate } from '../../ui/demo/ServiceGate'
 import { useEffect, useRef } from 'react'
 import { prefersReducedMotion } from '../../lib/hooks/motion'
 import { Button } from '../../ui/components/Button'
@@ -83,7 +87,7 @@ function Confirmed({ flow }: { readonly flow: RegistrationFlow }) {
   )
 }
 
-export default function RegisterPage() {
+function RegisterWizard() {
   const wizard = useRegistrationFlow()
   const { flow } = wizard
   const step = flow.registration ? flow.step : 0
@@ -93,17 +97,8 @@ export default function RegisterPage() {
       Start over
     </Button>
   ) : null
-
   return (
-    <div className="register">
-      <header className="page-head">
-        <p className="eyebrow">Register a business</p>
-        <h1 className="page-head__title">Bind your T-number to one payout address.</h1>
-        <p className="page-head__lede">
-          Four checks, then the Meigi attester writes it on-chain: the exact NTA-registered name, a domain proof signed
-          by your business key, and a World ID for every officer who will approve changes.
-        </p>
-      </header>
+    <>
       <Steps steps={STEPS} current={step} label="Registration progress" />
       <div ref={layout} className="register__layout">
         <Panel
@@ -117,6 +112,43 @@ export default function RegisterPage() {
         </Panel>
         <Checklist current={step} />
       </div>
+    </>
+  )
+}
+
+/** The public site: registration needs the verifier, which signs as the attester on the demo machine. */
+function RegisterHosted() {
+  return (
+    <div className="register__layout">
+      <DemoMachine
+        service="verifier"
+        what="Registering a business"
+        why="it checks the NTA data, the DNS proof and each officer's World ID, then writes the payee as the attester"
+      >
+        <p>
+          The result is public:{' '}
+          <Link to={`/registry/${FIXTURE_T_NUMBER}`}>see a registered payee live in the registry →</Link>
+        </p>
+      </DemoMachine>
+      <Checklist current={-1} />
+    </div>
+  )
+}
+
+export default function RegisterPage() {
+  return (
+    <div className="register">
+      <header className="page-head">
+        <p className="eyebrow">Register a business</p>
+        <h1 className="page-head__title">Bind your T-number to one payout address.</h1>
+        <p className="page-head__lede">
+          Four checks, then the Meigi attester writes it on-chain: the exact NTA-registered name, a domain proof signed
+          by your business key, and a World ID for every officer who will approve changes.
+        </p>
+      </header>
+      <ServiceGate service="verifier" fallback={<RegisterHosted />}>
+        <RegisterWizard />
+      </ServiceGate>
     </div>
   )
 }

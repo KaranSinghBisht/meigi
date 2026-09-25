@@ -1,5 +1,5 @@
 import type { Kernel } from '../../../lib/api/agentTypes'
-import { shortAddress } from '../../../lib/chain/format'
+import { formatJst, shortAddress } from '../../../lib/chain/format'
 import { Badge } from '../../../ui/components/Badge'
 import { Column } from './Column'
 import { FlagList } from './FlagList'
@@ -28,6 +28,13 @@ function Registered({ kernel }: { readonly kernel: Kernel }) {
       ) : (
         <span> is not an active payee</span>
       )}
+      {payee.changePending ? (
+        <span className="col__pending">
+          A payout change is queued
+          {payee.pendingEffectiveAt ? ` until ${formatJst(new Date(payee.pendingEffectiveAt * 1000))}` : ''}; its
+          address stays hidden until it lands.
+        </span>
+      ) : null}
     </p>
   )
 }
@@ -60,6 +67,7 @@ export function KernelColumn({ kernel }: { readonly kernel: Kernel }) {
                 {!check.ok && check.revert ? (
                   <span className="checks__revert"> chain reverts {check.revert}</span>
                 ) : null}
+                {!check.ok && check.evidence ? <q className="flags__evidence">{check.evidence}</q> : null}
               </span>
             </li>
           ))}

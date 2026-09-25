@@ -21,6 +21,9 @@ export interface AppEnv {
   readonly worldEnvironment: WorldEnvironment
   readonly worldRpId: string | null
   readonly landingUrl: string | null
+  /** The public site: the verifier, agent and x402 demo only run on the demo machine. */
+  readonly hosted: boolean
+  readonly demoVideoUrl: string | null
 }
 
 const ADDRESS_RE = /^0x[0-9a-fA-F]{40}$/
@@ -82,6 +85,9 @@ const block = (value: string) => (BLOCK_RE.test(value) ? BigInt(value) : null)
 const appId = (value: string) => (value.startsWith('app_') ? (value as `app_${string}`) : null)
 const worldEnv = (value: string) => WORLD_ENVIRONMENTS.find((item) => item === value) ?? null
 const rpId = (value: string) => (value.startsWith('rp_') ? value : null)
+/** An absolute http(s) URL or a same-origin path such as "/" (never protocol-relative "//host"). */
+const link = (value: string) => (value.startsWith('/') && !value.startsWith('//') ? value : url(value))
+const flag = (value: string) => (['1', 'true'].includes(value) ? true : ['0', 'false'].includes(value) ? false : null)
 
 function readEnv(raw: ImportMetaEnv): AppEnv {
   return {
@@ -101,7 +107,9 @@ function readEnv(raw: ImportMetaEnv): AppEnv {
     worldAppId: pick('VITE_WORLD_APP_ID', raw.VITE_WORLD_APP_ID, DEFAULTS.worldAppId, appId),
     worldEnvironment: pick('VITE_WORLD_ENVIRONMENT', raw.VITE_WORLD_ENVIRONMENT, DEFAULTS.worldEnvironment, worldEnv),
     worldRpId: pick<string | null>('VITE_WORLD_RP_ID', raw.VITE_WORLD_RP_ID, null, rpId),
-    landingUrl: pick<string | null>('VITE_LANDING_URL', raw.VITE_LANDING_URL, null, url),
+    landingUrl: pick<string | null>('VITE_LANDING_URL', raw.VITE_LANDING_URL, null, link),
+    hosted: pick('VITE_HOSTED', raw.VITE_HOSTED, false, flag),
+    demoVideoUrl: pick<string | null>('VITE_DEMO_VIDEO_URL', raw.VITE_DEMO_VIDEO_URL, null, url),
   }
 }
 

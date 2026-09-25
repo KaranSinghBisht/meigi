@@ -2,8 +2,10 @@
 // we don't know, and only because the services promise those messages are safe to display.
 
 import { describeChainError } from '../chain/errors'
-import { env } from '../env/env'
 import { ApiError } from './http'
+import { SERVICES, type Service } from './services'
+
+export type { Service } from './services'
 
 export type Tone = 'denied' | 'offline' | 'error'
 
@@ -13,14 +15,6 @@ export interface Explained {
   readonly detail?: string
   /** The service's error code, for screens that react to a specific one. */
   readonly code?: string
-}
-
-export type Service = 'verifier' | 'agent' | 'merchant'
-
-const SERVICE_NAMES: Record<Service, { name: string; url: string; start: string }> = {
-  verifier: { name: 'verifier', url: env.verifierUrl, start: 'pnpm --filter @meigi/verifier start' },
-  agent: { name: 'AP agent', url: env.agentUrl, start: 'pnpm --filter @meigi/agent start' },
-  merchant: { name: 'x402 demo merchant', url: env.merchantUrl, start: 'pnpm --filter @meigi/x402-demo start' },
 }
 
 const CODES: Record<string, Omit<Explained, 'tone'> & { tone?: Tone }> = {
@@ -81,7 +75,7 @@ const CODES: Record<string, Omit<Explained, 'tone'> & { tone?: Tone }> = {
 
 /** Browsers report "not running" and "CORS refused this origin" the same way, so the hint covers both. */
 export function unavailable(service: Service): Explained {
-  const info = SERVICE_NAMES[service]
+  const info = SERVICES[service]
   return {
     tone: 'offline',
     title: `The ${info.name} isn't reachable at ${info.url}.`,

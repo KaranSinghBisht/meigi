@@ -9,13 +9,16 @@ interface NoticeProps {
   readonly title: ReactNode
   readonly children?: ReactNode
   readonly action?: ReactNode
+  /** Static content (e.g. a recorded run): shown, but not announced as news. */
+  readonly quiet?: boolean
 }
 
 /** Inline status message. Errors and denials are announced (role="alert"), everything else politely. */
-export function Notice({ tone = 'info', title, children, action }: NoticeProps) {
+export function Notice({ tone = 'info', title, children, action, quiet = false }: NoticeProps) {
   const urgent = tone === 'danger' || tone === 'denied'
+  const role = quiet ? undefined : urgent ? 'alert' : 'status'
   return (
-    <div className={`notice notice--${tone}`} role={urgent ? 'alert' : 'status'}>
+    <div className={`notice notice--${tone}`} role={role}>
       <div className="notice__body">
         <p className="notice__title">{title}</p>
         {children ? <div className="notice__detail">{children}</div> : null}

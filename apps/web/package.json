@@ -14,12 +14,14 @@
   "dependencies": {
     "@meigi/abi": "workspace:*",
     "@worldcoin/idkit": "^4.3.0",
+    "qrcode": "^1.5.4",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-router": "^7.18.4",
     "viem": "~2.56.8"
   },
   "devDependencies": {
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",

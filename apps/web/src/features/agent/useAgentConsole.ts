@@ -61,11 +61,11 @@ function usePayment(analysis: AnalysisState, generation: RefObject<number>) {
   const submitPayment = useCallback(
     async (force: boolean) => {
       if (analysis.kind !== 'ready') return
-      const { id, pendingPayout } = analysis.analysis
+      const { id } = analysis.analysis
       const current = generation.current
       setPay({ kind: 'paying', force })
       try {
-        const outcome = await payInvoice(id, force, pendingPayout)
+        const outcome = await payInvoice(id, force)
         setPayments((count) => count + 1)
         if (generation.current === current) setPay({ kind: 'done', outcome, force })
       } catch (error) {

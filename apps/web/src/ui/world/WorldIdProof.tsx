@@ -1,8 +1,8 @@
-import { IDKitSessionWidget, type IDKitResultSession } from '@worldcoin/idkit'
+import type { IDKitResultSession } from '@worldcoin/idkit'
 import type { RpContextWire } from '../../lib/api/verifier'
-import { env } from '../../lib/env/env'
 import { Button, type ButtonSize, type ButtonVariant } from '../components/Button'
 import { useWorldIdFlow } from './useWorldIdFlow'
+import { WorldIdSession } from './WorldIdSession'
 import '../components/field.css'
 import './world.css'
 
@@ -14,7 +14,7 @@ interface WorldIdProofProps {
   readonly sessionId?: string
   /** A signed context the caller already has (e.g. from an intent). Used once while fresh. */
   readonly initialContext?: RpContextWire
-  /** Sends the proof to the verifier. Throw to fail the widget; the caller shows its own message. */
+  /** Sends the proof to the verifier. Throw to report failure; the caller shows its own message. */
   readonly onProof: (result: IDKitResultSession) => Promise<void>
   readonly variant?: ButtonVariant
   readonly size?: ButtonSize
@@ -22,43 +22,37 @@ interface WorldIdProofProps {
 }
 
 /**
- * A button that opens World ID (IDKit session widget) asking for a proof-of-human credential bound to
- * `signal`. Sessions take constraints, not presets: `{ type: 'proof_of_human', signal }` is the session
- * form of `proofOfHuman({ signal })`.
+ * A World ID 4.0 session proof bound to `signal`, shown inline with its QR code and link. Sessions take
+ * constraints, not presets: `{ type: 'proof_of_human', signal }` is the session form of `proofOfHuman`.
  */
 export function WorldIdProof(props: WorldIdProofProps) {
   const { label, signal, sessionId, initialContext, onProof, variant = 'primary', size = 'md', disabled } = props
   const flow = useWorldIdFlow(sessionId, initialContext)
   return (
-    <div className="world-proof">
-      <Button
-        variant={variant}
-        size={size}
-        busy={flow.preparing || flow.open}
-        disabled={disabled}
-        onClick={() => void flow.start()}
-      >
-        {flow.open ? 'Waiting for World ID…' : label}
-      </Button>
+    <div className={flow.context ? 'world-proof is-active' : 'world-proof'}>
+      {flow.context ? (
+        <WorldIdSession
+          context={flow.context}
+          signal={signal}
+          sessionId={flow.existing}
+          onProof={onProof}
+          onFinish={flow.finish}
+        />
+      ) : (
+        <Button
+          variant={variant}
+          size={size}
+          busy={flow.preparing}
+          disabled={disabled}
+          onClick={() => void flow.start()}
+        >
+          {label}
+        </Button>
+      )}
       {flow.problem ? (
         <p className="field__error" role="alert">
           {flow.problem}
         </p>
-      ) : null}
-      {flow.context ? (
-        <IDKitSessionWidget
-          open={flow.open}
-          onOpenChange={flow.onOpenChange}
-          app_id={env.worldAppId}
-          rp_context={flow.context}
-          environment={env.worldEnvironment}
-          constraints={{ type: 'proof_of_human', signal }}
-          existing_session_id={flow.existing}
-          action_description={sessionId ? 'Approve a Meigi change' : 'Enroll as a company officer on Meigi'}
-          handleVerify={onProof}
-          onSuccess={() => undefined}
-          onError={flow.onError}
-        />
       ) : null}
     </div>
   )

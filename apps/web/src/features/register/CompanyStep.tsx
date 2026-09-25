@@ -83,7 +83,7 @@ export function CompanyStep({ form, onFormChange, onCreated }: CompanyStepProps)
       {registered ? (
         <Notice
           tone="info"
-          title="The NTA-registered name is:"
+          title="Did you mean:"
           action={
             <Button size="sm" variant="ghost" onClick={() => applyName(registered)}>
               Use this name

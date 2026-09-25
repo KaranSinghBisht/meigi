@@ -12,6 +12,8 @@ export interface Flag {
   readonly code: string
   readonly severity: Severity
   readonly message: string
+  /** The document (or model) text behind the finding, for the console only. */
+  readonly evidence: string | null
 }
 
 export interface Extraction {
@@ -36,6 +38,9 @@ export type Triage =
       readonly newDestination: number
       readonly pressure: number
       readonly suspicion: { readonly score: number; readonly level: string }
+      /** Probability the document is a safe routine invoice, and the bar it must clear to auto-clear. */
+      readonly pSafe: number | null
+      readonly minPSafe: number | null
       readonly route: 'auto_clear' | 'hold'
       readonly holdReasons: readonly string[]
     }
@@ -54,19 +59,13 @@ export type Proposal =
     }
   | { readonly status: 'unavailable'; readonly provider: string; readonly message: string }
 
-export interface Reason {
-  readonly code: string
-  readonly severity: Severity
+export interface Reason extends Flag {
   readonly layer: string
-  readonly message: string
   readonly revert: string | null
 }
 
-export interface Check {
-  readonly code: string
+export interface Check extends Flag {
   readonly ok: boolean
-  readonly severity: Severity
-  readonly message: string
   readonly revert: string | null
 }
 
@@ -85,6 +84,9 @@ export interface Kernel {
     readonly status: string
     readonly legalName: string | null
     readonly registeredPayout: string | null
+    /** A payout change is queued; its address is never sent, only when it lands. */
+    readonly changePending: boolean
+    readonly pendingEffectiveAt: number | null
   } | null
   readonly checks: readonly Check[]
   readonly reasons: readonly Reason[]
@@ -121,8 +123,6 @@ export interface Analysis {
   }
   readonly explanation: Explanation
   readonly totalMs: number | null
-  /** The payee's queued payout, if any: never displayed, only used to redact it from every message. */
-  readonly pendingPayout: string | null
 }
 
 export interface DecodedRevert {
@@ -140,8 +140,17 @@ export type PayOutcome =
       readonly amount: string
     }
   | {
+      /** Sent without a receipt yet; asking to pay again settles it (the agent never resends). */
+      readonly status: 'pending'
+      readonly txHash: string
+      readonly forced: boolean
+      readonly message: string
+    }
+  | {
       readonly status: 'reverted'
+      /** False for a simulated revert (nothing sent); true with a hash when a sent transaction reverted. */
       readonly broadcast: boolean
+      readonly txHash: string | null
       readonly forced: boolean
       readonly error: DecodedRevert
       readonly explanation: Explanation

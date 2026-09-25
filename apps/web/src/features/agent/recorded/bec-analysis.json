@@ -1,0 +1,179 @@
+{
+  "id": "5c901ca8-2539-4ba1-93b9-79a129cb7cca",
+  "createdAt": "2026-09-25T20:11:43.995Z",
+  "extracted": {
+    "kind": "invoice",
+    "tNumber": "T2011001234567",
+    "claimedName": "株式会社メイギ商事",
+    "address": "0xdCa52b5FA181a3307eCa852935BD40e3E0096d5b",
+    "addresses": [
+      "0xdCa52b5FA181a3307eCa852935BD40e3E0096d5b"
+    ],
+    "amount": {
+      "value": "132000",
+      "display": "¥132,000"
+    },
+    "invoiceNumber": "MS-2026-1003",
+    "dueDate": "2026-10-31",
+    "flags": []
+  },
+  "triage": {
+    "status": "ok",
+    "backend": "systemone",
+    "model": "kev-latest",
+    "latencyMs": 47,
+    "newDestination": 1,
+    "pressure": 0.0266,
+    "pSafe": 0,
+    "minPSafe": 0.9,
+    "route": "hold",
+    "holdReasons": [
+      "p_safe 0.00 is below 0.9",
+      "request type payee_change (routine or credit note: 2%)",
+      "asks to pay a new account or wallet (100%)",
+      "suspicion 2.96 of 3"
+    ],
+    "requestType": {
+      "value": "payee_change",
+      "confidence": 0.9694
+    },
+    "suspicion": {
+      "score": 2.9567,
+      "level": "Very likely a payment-redirection scam"
+    }
+  },
+  "proposal": {
+    "status": "ok",
+    "provider": "proxy",
+    "model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+    "latencyMs": 2079,
+    "tNumber": "T2011001234567",
+    "payTo": "0xdCa52b5FA181a3307eCa852935BD40e3E0096d5b",
+    "amount": "132000",
+    "invoiceNumber": "MS-2026-1003",
+    "wouldPay": true,
+    "reasoning": "The document is a legitimate invoice from a supplier with a clear payment request and updated wallet address."
+  },
+  "kernel": {
+    "status": "checked",
+    "ok": false,
+    "intent": {
+      "source": "llm",
+      "tNumber": "T2011001234567",
+      "payTo": "0xdCa52b5FA181a3307eCa852935BD40e3E0096d5b",
+      "amount": {
+        "value": "132000",
+        "display": "¥132,000",
+        "units": "132000000000000000000000"
+      },
+      "invoiceNumber": "MS-2026-1003"
+    },
+    "payee": {
+      "tNumber": "T2011001234567",
+      "status": "active",
+      "legalName": "株式会社メイギ商事",
+      "registeredPayout": "0x9B4fc8994FcF2d5FE08a82A9454B61AA14D647e4",
+      "changePending": false,
+      "pendingEffectiveAt": null
+    },
+    "checks": [
+      {
+        "code": "vendor_approved",
+        "ok": true,
+        "severity": "block",
+        "message": "T2011001234567 = 株式会社メイギ商事 is an approved vendor of this vault."
+      },
+      {
+        "code": "payee_registered",
+        "ok": true,
+        "severity": "block",
+        "message": "T2011001234567 = 株式会社メイギ商事 is registered and active."
+      },
+      {
+        "code": "payout_mismatch",
+        "ok": false,
+        "severity": "block",
+        "message": "T2011001234567 = 株式会社メイギ商事 pays 0x9B4f…47e4; this invoice asked for 0xdCa5…6d5b.",
+        "revert": "PayeeMismatch"
+      },
+      {
+        "code": "within_payment_cap",
+        "ok": true,
+        "severity": "block",
+        "message": "¥132,000 is within T2011001234567 = 株式会社メイギ商事's ¥500,000 per-payment cap."
+      },
+      {
+        "code": "within_period_cap",
+        "ok": true,
+        "severity": "block",
+        "message": "¥132,000 fits the ¥999,000 T2011001234567 = 株式会社メイギ商事 can still receive this period."
+      },
+      {
+        "code": "not_paid_before",
+        "ok": true,
+        "severity": "block",
+        "message": "This invoice hasn't been paid before."
+      },
+      {
+        "code": "vault_funded",
+        "ok": true,
+        "severity": "block",
+        "message": "The vault holds ¥4,999,000."
+      },
+      {
+        "code": "name_matches",
+        "ok": true,
+        "severity": "warn",
+        "message": "The document is issued in 株式会社メイギ商事's registered name."
+      }
+    ],
+    "reasons": [
+      {
+        "code": "payout_mismatch",
+        "severity": "block",
+        "layer": "kernel",
+        "message": "T2011001234567 = 株式会社メイギ商事 pays 0x9B4f…47e4; this invoice asked for 0xdCa5…6d5b.",
+        "revert": "PayeeMismatch"
+      }
+    ]
+  },
+  "screening": {
+    "status": "unavailable",
+    "message": "screening unavailable",
+    "reason": "no INTERCEPTA_API_KEY is configured"
+  },
+  "verdict": {
+    "decision": "hold",
+    "reasons": [
+      {
+        "code": "payout_mismatch",
+        "severity": "block",
+        "layer": "kernel",
+        "message": "T2011001234567 = 株式会社メイギ商事 pays 0x9B4f…47e4; this invoice asked for 0xdCa5…6d5b.",
+        "revert": "PayeeMismatch"
+      },
+      {
+        "code": "triage_hold",
+        "severity": "block",
+        "layer": "triage",
+        "message": "System-1 triage (kev-latest) holds it: p_safe 0.00 is below 0.9; request type payee_change (routine or credit note: 2%); asks to pay a new account or wallet (100%); suspicion 2.96 of 3."
+      }
+    ],
+    "warnings": [
+      {
+        "code": "screening_unavailable",
+        "severity": "warn",
+        "layer": "screening",
+        "message": "Screening unavailable: no INTERCEPTA_API_KEY is configured."
+      }
+    ]
+  },
+  "explanation": {
+    "source": "llm",
+    "text": "The payment of ¥132,000 to address 0xdCa52b5FA181a3307eCa852935BD40e3E0096d5b has been held. This is because the payout address for 株式会社メイギ商事 (T2011001234567) is registered as 0x9B4fc8994FcF2d5FE08a82A9454B61AA14D647e4, which does not match the address on the invoice. The accounts-payable clerk should confirm the new payment details with 株式会社メイギ商事 using contact details already on file.",
+    "model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+  },
+  "timings": {
+    "totalMs": 8414
+  }
+}

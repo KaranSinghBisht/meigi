@@ -10,6 +10,8 @@ import { PayeeCard } from '../registry/PayeeCard'
 import { StaleNote } from '../registry/StaleNote'
 import { TNumberSearch } from '../registry/TNumberSearch'
 import { usePayee } from '../registry/usePayee'
+import { DemoMachine } from '../../ui/demo/DemoMachine'
+import { ServiceGate } from '../../ui/demo/ServiceGate'
 import { ActionPicker } from './ActionPicker'
 import { Approvals } from './Approvals'
 import { approvedPayout, Finalize } from './Finalize'
@@ -59,6 +61,22 @@ function Flow({ payee, refresh }: { readonly payee: PayeeSnapshot; readonly refr
   )
 }
 
+/** The public site: approvals need the verifier, which checks World ID and signs as the attester. */
+function ChangeHosted() {
+  return (
+    <DemoMachine
+      service="verifier"
+      what="Approving a change"
+      why="it checks each officer's World ID session and signs the approval as the attester"
+    >
+      <p>
+        The registry side is live on the left: a queued change would show its countdown there, and its new address stays
+        hidden until it lands.
+      </p>
+    </DemoMachine>
+  )
+}
+
 function PayeeAndFlow({ tNumber }: { readonly tNumber: string }) {
   const { state, refresh } = usePayee(tNumber)
   if (state.status === 'loading' || state.status === 'idle') {
@@ -76,7 +94,9 @@ function PayeeAndFlow({ tNumber }: { readonly tNumber: string }) {
         <PayeeCard payee={state.payee} onElapsed={refresh} showChangeLink={false} />
       </Panel>
       <Panel title="Request a change" eyebrow="Business key + the same verified humans" className="change__flow">
-        <Flow payee={state.payee} refresh={refresh} />
+        <ServiceGate service="verifier" fallback={<ChangeHosted />}>
+          <Flow payee={state.payee} refresh={refresh} />
+        </ServiceGate>
       </Panel>
     </div>
   )

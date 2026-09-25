@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { env } from '../../lib/env/env'
 import { VerticalLabel } from '../../ui/brand/VerticalLabel'
 import { LinkButton } from '../../ui/components/Button'
 import { FixtureStrip } from './FixtureStrip'
@@ -62,12 +63,13 @@ function DemoCallout() {
           “Please try to rob our AI accountant.”
         </h2>
         <p className="home__feature-body">
-          Paste a fake invoice, a bank-change email or a prompt injection. Watch the agent believe it, and the vault
-          refuse to pay anyone but the registered company.
+          {env.hosted
+            ? 'The agent runs on our demo machine. See a recorded run: it believed a bank-change email, and the vault refused to pay anyone but the registered company.'
+            : 'Paste a fake invoice, a bank-change email or a prompt injection. Watch the agent believe it, and the vault refuse to pay anyone but the registered company.'}
         </p>
       </div>
       <LinkButton to="/agent" variant="accent" size="lg">
-        Open the agent console <span aria-hidden="true">→</span>
+        {env.hosted ? 'See the recorded run' : 'Open the agent console'} <span aria-hidden="true">→</span>
       </LinkButton>
     </section>
   )

@@ -3,6 +3,7 @@ import type { Analysis, PayOutcome } from '../../lib/api/agentTypes'
 import { shortAddress } from '../../lib/chain/format'
 import { prefersReducedMotion } from '../../lib/hooks/motion'
 import { HankoMark } from '../../ui/brand/HankoMark'
+import { TxLink } from '../../ui/components/Address'
 import './refusal.css'
 
 type Reverted = Extract<PayOutcome, { status: 'reverted' }>
@@ -31,16 +32,55 @@ function Mismatch({ outcome, analysis }: { readonly outcome: Reverted; readonly 
   )
 }
 
+/** How the refusal happened (simulated or mined) and, when the LLM worded one, its explanation. */
+function RefusalMeta({ outcome }: { readonly outcome: Reverted }) {
+  const how = outcome.broadcast ? (
+    <>
+      The transaction reverted on Sepolia
+      {outcome.txHash ? (
+        <>
+          {' '}
+          (<TxLink hash={outcome.txHash} />)
+        </>
+      ) : null}
+      .
+    </>
+  ) : (
+    'Simulated against Sepolia first; nothing was broadcast, nothing moved.'
+  )
+  const explanation = outcome.explanation.source === 'llm' ? outcome.explanation.text : ''
+  return (
+    <p className="refusal__meta">
+      {how}
+      {explanation ? ` ${explanation}` : ''}
+    </p>
+  )
+}
+
+interface RefusalProps {
+  readonly outcome: Reverted
+  readonly analysis: Analysis
+  /** Live answers take focus and scroll into view; a recorded run stays where it is. */
+  readonly live?: boolean
+}
+
 /** The big moment: the agent was fooled, the vault was not. */
-export function Refusal({ outcome, analysis }: { readonly outcome: Reverted; readonly analysis: Analysis }) {
+export function Refusal({ outcome, analysis, live = true }: RefusalProps) {
   const ref = useRef<HTMLElement>(null)
   useEffect(() => {
+    if (!live) return
     ref.current?.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'center' })
     ref.current?.focus({ preventScroll: true })
-  }, [])
+  }, [live])
   const mismatch = outcome.error.name === 'PayeeMismatch'
   return (
-    <section ref={ref} className="refusal" role="alert" tabIndex={-1} aria-labelledby="refusal-title">
+    <section
+      ref={ref}
+      className="refusal"
+      role={live ? 'alert' : undefined}
+      tabIndex={-1}
+      aria-labelledby="refusal-title"
+    >
       <div className="refusal__seal" aria-hidden="true">
         <HankoMark size={120} />
       </div>
@@ -56,12 +96,7 @@ export function Refusal({ outcome, analysis }: { readonly outcome: Reverted; rea
         ) : (
           <p className="refusal__line">{outcome.error.sentence}</p>
         )}
-        <p className="refusal__meta">
-          {outcome.broadcast
-            ? 'The transaction reverted on Sepolia.'
-            : 'Simulated against Sepolia first; nothing was broadcast, nothing moved.'}
-          {outcome.explanation.source === 'llm' && outcome.explanation.text ? ` ${outcome.explanation.text}` : ''}
-        </p>
+        <RefusalMeta outcome={outcome} />
       </div>
     </section>
   )

@@ -13,6 +13,8 @@ interface ImportMetaEnv {
   readonly VITE_WORLD_ENVIRONMENT?: string
   readonly VITE_WORLD_RP_ID?: string
   readonly VITE_LANDING_URL?: string
+  readonly VITE_HOSTED?: string
+  readonly VITE_DEMO_VIDEO_URL?: string
 }
 
 interface ImportMeta {

@@ -45,14 +45,102 @@
   gap: 10px;
 }
 
-.purchase__screen {
-  color: var(--ink-soft);
-  font-size: 14px;
+.screen-card {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid rgba(63, 157, 120, 0.35);
+  border-radius: var(--radius-md);
+  background: linear-gradient(110deg, var(--jade-tint), rgba(255, 255, 255, 0.7));
 }
 
-.purchase__screen--flagged {
-  color: var(--seal-deep);
+.screen-card.is-flagged {
+  border-color: rgba(200, 55, 45, 0.45);
+  background: linear-gradient(110deg, rgba(224, 69, 43, 0.14), rgba(255, 255, 255, 0.7));
+}
+
+.screen-card__label {
+  color: var(--ink-soft);
+  font-size: 12px;
   font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.screen-card__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 16px;
+}
+
+.screen-card__score {
+  font-size: 34px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.screen-card__max {
+  color: var(--ink-muted);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.screen-card__verdict {
+  color: var(--jade-deep);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.screen-card.is-flagged .screen-card__score,
+.screen-card.is-flagged .screen-card__verdict {
+  color: var(--seal-deep);
+}
+
+.screen-card__traits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.screen-card__traits li {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(200, 55, 45, 0.12);
+  color: var(--seal-deep);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.screen-card__raw {
+  color: var(--ink-soft);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.x402__row {
+  display: grid;
+  gap: 12px;
+}
+
+.x402__row-head {
+  display: grid;
+  gap: 4px;
+  max-width: 860px;
+}
+
+.x402__row-title {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.x402__row-lede {
+  color: var(--ink-soft);
 }
 
 .x402__code pre {
@@ -63,4 +151,14 @@
   .x402__grid {
     grid-template-columns: 1fr;
   }
+}
+
+.merchant__progress {
+  color: var(--ink-soft);
+  font-size: 15px;
+}
+
+.x402__hosted {
+  display: grid;
+  gap: 18px;
 }

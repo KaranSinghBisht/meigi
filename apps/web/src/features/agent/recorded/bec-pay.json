@@ -1,0 +1,19 @@
+{
+  "status": "reverted",
+  "broadcast": false,
+  "forced": true,
+  "error": {
+    "name": "PayeeMismatch",
+    "args": {
+      "tNumber": "2011001234567",
+      "expected": "0xdCa52b5FA181a3307eCa852935BD40e3E0096d5b",
+      "registered": "0x9B4fc8994FcF2d5FE08a82A9454B61AA14D647e4"
+    },
+    "sentence": "T2011001234567 = 株式会社メイギ商事 pays 0x9B4f…47e4; this invoice asked for 0xdCa5…6d5b."
+  },
+  "explanation": {
+    "source": "llm",
+    "text": "The payment of ¥132,000 to address 0xdCa52b5FA181a3307eCa852935BD40e3E0096d5b was refused on-chain because the registered payout address for 株式会社メイギ商事 (T2011001234567) is 0x9B4fc8994FcF2d5FE08a82A9454B61AA14D647e4, which does not match the requested address. The system also held the payment due to suspicion of a new account or wallet. Next, you should confirm the correct payment details with 株式会社メイギ商事 using their contact information on file.",
+    "model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+  }
+}

@@ -17,9 +17,17 @@ const MAX_SUSPICION = 1
 type TriageOk = Extract<Triage, { status: 'ok' }>
 
 function TriageBars({ triage }: { readonly triage: TriageOk }) {
-  const { requestType, newDestination, pressure, suspicion } = triage
+  const { requestType, newDestination, pressure, suspicion, pSafe, minPSafe } = triage
   return (
     <>
+      {pSafe !== null ? (
+        <Bar
+          label={minPSafe !== null ? `P(safe), needs ${minPSafe.toFixed(2)}` : 'P(safe)'}
+          value={pSafe}
+          display={pSafe.toFixed(2)}
+          danger={minPSafe !== null && pSafe < minPSafe}
+        />
+      ) : null}
       <Bar
         label={REQUEST_TYPES[requestType.value] ?? requestType.value}
         value={requestType.confidence}

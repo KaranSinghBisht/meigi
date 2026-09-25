@@ -3,7 +3,6 @@ import { useState } from 'react'
 import { explainError, type Explained } from '../../lib/api/messages'
 import { enrollOfficer, type Registration } from '../../lib/api/verifier'
 import { shortHash } from '../../lib/chain/format'
-import { env } from '../../lib/env/env'
 import { Button } from '../../ui/components/Button'
 import { ErrorNotice, Notice } from '../../ui/components/Notice'
 import { WorldIdProof } from '../../ui/world/WorldIdProof'
@@ -75,11 +74,6 @@ export function OfficersStep({ registration, officers, onEnrolled, onContinue }:
           Continue
         </Button>
       </div>
-      {env.worldEnvironment === 'staging' ? (
-        <p className="muted step__note">
-          World ID staging: officers can use the World ID Simulator instead of a phone.
-        </p>
-      ) : null}
     </div>
   )
 }
