@@ -3,6 +3,7 @@ import { z } from "zod";
 import { analyzeDocument } from "../analysis/analyze.js";
 import { payAnalysis, type PayMode, type PayResult } from "../analysis/pay.js";
 import type { StoredAnalysis } from "../analysis/store.js";
+import { approvalRefusal } from "../approval/holds.js";
 import type { AppDeps } from "../deps.js";
 import { HttpError, readJson } from "../http.js";
 import { load, service } from "./lookup.js";
@@ -21,10 +22,10 @@ export function invoiceRoutes(deps: AppDeps) {
     const { text } = analyzeBody.parse(await readJson(c));
     const stored = await analyzeDocument(deps, text);
     deps.store.save(stored);
-    return c.json(stored.view);
+    return c.json(present(deps, stored));
   });
 
-  app.get("/:id", (c) => c.json(load(deps, c.req.param("id")).view));
+  app.get("/:id", (c) => c.json(present(deps, load(deps, c.req.param("id")))));
 
   /**
    * Pays an analysed invoice from the agent key. `force` attempts a held one to show the chain's answer;
@@ -51,6 +52,14 @@ export function invoiceRoutes(deps: AppDeps) {
   });
 
   return app;
+}
+
+/**
+ * The stored analysis plus whether a verified human could release its hold. `approvable` is computed even when the
+ * feature is off, and live, because a payment changes it.
+ */
+function present(deps: AppDeps, stored: StoredAnalysis) {
+  return { ...stored.view, approval: { enabled: deps.approvals !== null, approvable: approvalRefusal(stored) === null } };
 }
 
 /** An approval pays once: any second use is a 409 (check a pending payment with a plain POST /pay). */

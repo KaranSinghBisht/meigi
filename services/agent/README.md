@@ -23,10 +23,10 @@ if `AGENT_API_TOKEN` is set.
 
 | Method | Path | Returns |
 |---|---|---|
-| POST | `/invoices/analyze` `{ text }` (≤ 60,000 chars) | `{ id, createdAt, extracted, triage, proposal, kernel, screening, verdict, explanation, timings }`. The analysis is kept in memory by `id`. |
-| GET | `/invoices/:id` | The stored analysis |
+| POST | `/invoices/analyze` `{ text }` (≤ 60,000 chars) | `{ id, createdAt, extracted, triage, proposal, kernel, screening, verdict, explanation, timings, approval }`. The analysis is kept in memory by `id`. `approval` is `{ enabled, approvable }`: whether human approval is configured, and whether a person could release this hold (computed even when it is off). |
+| GET | `/invoices/:id` | The stored analysis, with a live `approval` |
 | POST | `/invoices/:id/pay` `{ force?: boolean }` or `{ approvalId }` | See the payment results below |
-| POST | `/invoices/:id/approval` `{}` | `202 { attemptId, userCode, verificationUriComplete, expiresAt, interval }`: see [Human approval](#human-approval-world-id-for-agents) |
+| POST | `/invoices/:id/approval` `{}` | `202 { attemptId, userCode, verificationUriComplete, expiresAt, interval }` (unix seconds; seconds): see [Human approval](#human-approval-world-id-for-agents) |
 | GET | `/invoices/:id/approval` | `{ attemptId, status, expiresAt, used, approvedAt?, approver?, reason? }` |
 | GET | `/vault` | `{ agent, vaultAgent, agentAuthorized, vault, registry, owner, token, balance, paused, vendorDelaySeconds, vendors[] }` |
 | GET | `/demo/invoices` | The documents in `scripts/demo-invoices/` with the manifest |
@@ -81,7 +81,7 @@ grant: the agent is the device, and the human approves in World App. It is off u
      backs off on 5xx or network errors (three in a row stop it as `unavailable`), and stops at `expires_in`
      (20 minutes at most).
   3. Poll `GET /invoices/:id/approval` (every 2 to 3 s is fine; it only reads memory). It returns
-     `{ attemptId, status, expiresAt, used, approvedAt?, approver?, reason? }`.
+     `{ attemptId, status, expiresAt, used, approvedAt?, approver?, reason? }`. The times are unix seconds.
   4. When `status` is `approved`, `POST /invoices/:id/pay { approvalId: attemptId }` within 10 minutes. It runs the
      normal pay path: simulation first, and the vault re-checks vendor, caps and payee.
 - **Statuses:**
@@ -100,6 +100,12 @@ grant: the agent is the device, and the human approves in World App. It is off u
   anyone else is `wrong_human`. That is trust on first use, so set the list for anything beyond the demo.
 - **Binding and single use:** an attempt is bound, server-side, to the invoice id, T-number, payout, amount, invoice
   reference and hold reasons it was started for. The device grant can't carry a nonce or binding message.
+- **Local rehearsal without World App:** `pnpm --filter @meigi/agent mock:idp` runs a mock IdP on
+  `http://127.0.0.1:8791`. Its `verificationUriComplete` page has Approve, Approve as someone else (`wrong_human`),
+  Deny and Expire buttons. Start an agent with `WORLD_AGENTS_ISSUER=http://127.0.0.1:8791`,
+  `WORLD_AGENTS_CLIENT_ID=mock-client` and `WORLD_AGENTS_CLIENT_SECRET=mock-secret`, preferably on anvil (`dev:local`).
+  The issuer must be https except on loopback. With a mock issuer the agent warns at startup that approvals prove
+  nothing.
 - **Pay errors, where nothing is paid:**
   - `404 approval_not_found`: no such attempt for this invoice.
   - `409 approval_not_approved`: the attempt is pending, denied, expired, unavailable or wrong_human.

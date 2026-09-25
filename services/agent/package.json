@@ -10,6 +10,7 @@
     "local:chain": "tsx scripts/local-chain.ts",
     "dev:local": "tsx watch --env-file=../../.env --env-file=.env.local src/server.ts",
     "demo": "tsx scripts/run-demo.ts",
+    "mock:idp": "tsx scripts/mock-world-idp.ts",
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "typecheck": "tsc --noEmit"

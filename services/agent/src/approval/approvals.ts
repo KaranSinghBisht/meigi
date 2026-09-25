@@ -14,17 +14,17 @@ export interface ApprovalStart {
   attemptId: string;
   userCode: string;
   verificationUriComplete: string;
-  expiresAt: string;
-  interval: number;
+  expiresAt: number; // unix seconds
+  interval: number; // seconds
 }
 
 /** GET /invoices/:id/approval. Never the device code, the ID token or the approver's sub. */
 export interface ApprovalState {
   attemptId: string;
   status: ApprovalStatus;
-  expiresAt: string; // when a pending attempt expires
+  expiresAt: number; // unix seconds: when a pending attempt expires
   used: boolean; // an approval pays at most once
-  approvedAt?: string; // the fresh proof's auth_time
+  approvedAt?: number; // unix seconds: the fresh proof's auth_time
   approver?: "enrolled" | "matched";
   reason?: string; // why it is denied, expired, unavailable or wrong_human
 }
@@ -143,19 +143,17 @@ function startView(attempt: Attempt): ApprovalStart {
     attemptId: attempt.id,
     userCode: attempt.userCode,
     verificationUriComplete: attempt.verificationUriComplete,
-    expiresAt: iso(attempt.expiresAt),
+    expiresAt: attempt.expiresAt,
     interval: attempt.interval,
   };
 }
 
 function stateView(attempt: Attempt, now: number): ApprovalState {
   const status = liveStatus(attempt, now);
-  const out: ApprovalState = { attemptId: attempt.id, status, expiresAt: iso(attempt.expiresAt), used: attempt.consumed };
-  if (attempt.approvedAt !== undefined) out.approvedAt = iso(attempt.approvedAt);
+  const out: ApprovalState = { attemptId: attempt.id, status, expiresAt: attempt.expiresAt, used: attempt.consumed };
+  if (attempt.approvedAt !== undefined) out.approvedAt = attempt.approvedAt;
   if (attempt.approver) out.approver = attempt.approver;
   if (status !== attempt.status) out.reason = attempt.status === "approved" ? "the approval was not used in time" : "nobody approved in time";
   else if (attempt.reason) out.reason = attempt.reason;
   return out;
 }
-
-const iso = (unixSeconds: number) => new Date(unixSeconds * 1000).toISOString();

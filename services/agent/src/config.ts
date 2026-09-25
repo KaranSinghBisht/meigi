@@ -6,6 +6,8 @@ const address = z.string().regex(/^0x[0-9a-fA-F]{40}$/u, "must be an address");
 const optional = <T extends z.ZodType>(schema: T) => z.preprocess((v) => (v === "" ? undefined : v), schema.optional());
 const flag = z.enum(["true", "false", "1", "0"]).transform((v) => v === "true" || v === "1");
 const probability = z.coerce.number().min(0).max(1);
+/** A local mock IdP (scripts/mock-world-idp.ts) may be plain http; anything else must be https. */
+const LOOPBACK = /^http:\/\/(127\.0\.0\.1|localhost|\[::1\])(:\d+)?\/?$/u;
 
 const schema = z
   .object({
@@ -50,7 +52,7 @@ const schema = z
     // World ID for Agents (RFC 8628 device grant): off unless both client values are set
     WORLD_AGENTS_ISSUER: z
       .url()
-      .refine((v) => v.startsWith("https://"), "must be https")
+      .refine((v) => v.startsWith("https://") || LOOPBACK.test(v), "must be https (http only for a local mock IdP)")
       .default("https://sandbox.auth.world.org")
       .transform((v) => v.replace(/\/+$/u, "")),
     WORLD_AGENTS_CLIENT_ID: optional(z.string().min(1)),

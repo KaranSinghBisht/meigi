@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { analyzeDocument } from "../src/analysis/analyze.js";
 import type { StoredAnalysis } from "../src/analysis/store.js";
 import { createApproverRegistry } from "../src/approval/approvers.js";
+import { loadConfig } from "../src/config.js";
 import { HttpError } from "../src/http.js";
 import { demo, fakeDeps } from "./fakes.js";
 import {
@@ -44,7 +45,7 @@ describe("World ID device grant", () => {
       attemptId: expect.stringMatching(/^[0-9a-f-]{36}$/u),
       userCode: USER_CODE,
       verificationUriComplete: `${ISSUER}/device?user_code=${USER_CODE}`,
-      expiresAt: new Date((h.idp.clock.now + 1200) * 1000).toISOString(),
+      expiresAt: h.idp.clock.now + 1200,
       interval: 5,
     });
     expect(JSON.stringify(started)).not.toContain(DEVICE_CODE);
@@ -82,7 +83,7 @@ describe("World ID device grant", () => {
     expect(polls.map((r) => r.form.get("grant_type"))).toEqual(Array(4).fill("urn:ietf:params:oauth:grant-type:device_code"));
     expect(polls[0]?.form.get("device_code")).toBe(DEVICE_CODE);
     expect(state).toMatchObject({ status: "approved", approver: "enrolled", used: false });
-    expect(state.approvedAt).toBe(new Date((1_790_000_000 + 12) * 1000).toISOString());
+    expect(state.approvedAt).toBe(1_790_000_000 + 12);
     expect(JSON.stringify(state)).not.toMatch(/human-1|dc_secret/u);
   });
 
@@ -208,5 +209,35 @@ describe("approvers", () => {
   it("keeps each in-memory registry separate", () => {
     expect(createApproverRegistry({ allowed: [], path: null }).check("a")).toBe("enrolled");
     expect(createApproverRegistry({ allowed: [], path: null }).check("b")).toBe("enrolled");
+  });
+});
+
+describe("World ID configuration", () => {
+  const base = {
+    SEPOLIA_RPC_URL: "http://127.0.0.1:8547",
+    AGENT_PRIVATE_KEY: `0x${"11".repeat(32)}`,
+    REGISTRY_ADDRESS: `0x${"22".repeat(20)}`,
+    VAULT_ADDRESS: `0x${"33".repeat(20)}`,
+    LLM_PROVIDER: "none",
+  };
+
+  it("is off by default and needs both client values together", () => {
+    expect(loadConfig(base)).toMatchObject({ WORLD_AGENTS_ISSUER: ISSUER, WORLD_AGENTS_AUTH_METHOD: "client_secret_basic" });
+    expect(() => loadConfig({ ...base, WORLD_AGENTS_CLIENT_ID: "app_x" })).toThrow("WORLD_AGENTS_CLIENT_SECRET");
+    expect(() => loadConfig({ ...base, WORLD_AGENTS_CLIENT_SECRET: "sk" })).toThrow("WORLD_AGENTS_CLIENT_ID");
+  });
+
+  it("wants an https issuer, except a local mock IdP, and never echoes the secret", () => {
+    expect(() => loadConfig({ ...base, WORLD_AGENTS_ISSUER: "http://auth.example.com" })).toThrow("WORLD_AGENTS_ISSUER");
+    expect(loadConfig({ ...base, WORLD_AGENTS_ISSUER: "http://127.0.0.1:8791/" }).WORLD_AGENTS_ISSUER).toBe("http://127.0.0.1:8791");
+    const error = (() => {
+      try {
+        loadConfig({ ...base, WORLD_AGENTS_CLIENT_SECRET: "sk_do_not_print", WORLD_AGENTS_AUTH_METHOD: "none" });
+      } catch (e) {
+        return e as Error;
+      }
+    })();
+    expect(error?.message).toMatch(/WORLD_AGENTS_AUTH_METHOD/u);
+    expect(error?.message).not.toContain("sk_do_not_print");
   });
 });

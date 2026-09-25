@@ -43,17 +43,19 @@ describe("human approval over HTTP", () => {
     const analysis = await s.analyze("07-urgent-invoice.ja.txt");
     expect(analysis.verdict.decision).toBe("hold");
     expect(analysis.verdict.reasons.map((r: { code: string }) => r.code)).toEqual(["pressure_hold"]);
+    expect(analysis.approval).toEqual({ enabled: true, approvable: true });
     expect((await s.call("POST", `/invoices/${analysis.id}/pay`, {})).body.status).toBe("held");
 
     s.h.idp.token = [pending, approvedWith(await s.h.idp.sign({ auth_time: s.h.idp.clock.now + 7 }))];
     const { attemptId, state } = await ask(s, analysis.id);
-    expect(state).toEqual({ attemptId, status: "approved", expiresAt: expect.any(String), used: false, approvedAt: expect.any(String), approver: "enrolled" });
+    expect(state).toEqual({ attemptId, status: "approved", expiresAt: 1_790_001_200, used: false, approvedAt: 1_790_000_007, approver: "enrolled" });
 
     const paid = await s.call("POST", `/invoices/${analysis.id}/pay`, { approvalId: attemptId });
     expect(paid.body).toMatchObject({ status: "paid", forced: false, amount: "¥55,000" });
     expect(s.deps.payer.sent).toHaveLength(1);
     expect(s.deps.payer.sent[0]).toMatchObject({ tNumber: 2011001234567n, amount: 55_000n * 10n ** 18n });
     expect((await s.call("GET", `/invoices/${analysis.id}/approval`)).body).toMatchObject({ status: "approved", used: true });
+    expect((await s.call("GET", `/invoices/${analysis.id}`)).body.approval).toEqual({ enabled: true, approvable: false });
   });
 
   it.each([
@@ -143,6 +145,7 @@ describe("human approval over HTTP", () => {
   ])("answers 409 for %s: a person can't approve it", async (_label, file, message) => {
     const s = await setup();
     const analysis = await s.analyze(file);
+    expect(analysis.approval).toEqual({ enabled: true, approvable: false });
     const res = await s.call("POST", `/invoices/${analysis.id}/approval`, {});
     expect(res.status).toBe(409);
     expect(res.body.code).toBe("not_approvable");
@@ -177,7 +180,11 @@ describe("human approval over HTTP", () => {
   it("is off (503) without a World ID client, and /health says so", async () => {
     const deps = fakeDeps();
     const app = createApp(deps);
-    const analysis = (await (await app.request("/invoices/analyze", post({ text: demo("07-urgent-invoice.ja.txt") }))).json()) as { id: string };
+    const analysis = (await (await app.request("/invoices/analyze", post({ text: demo("07-urgent-invoice.ja.txt") }))).json()) as {
+      id: string;
+      approval: unknown;
+    };
+    expect(analysis.approval).toEqual({ enabled: false, approvable: true }); // the console says why the button is off
     for (const res of [
       await app.request(`/invoices/${analysis.id}/approval`, post({})),
       await app.request(`/invoices/${analysis.id}/approval`),
