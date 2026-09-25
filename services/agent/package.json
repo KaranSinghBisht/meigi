@@ -1,0 +1,31 @@
+{
+  "name": "@meigi/agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Meigi accounts-payable agent: reads supplier invoices, triages them, and pays approved vendors from an AgentVault. Only the deterministic kernel and the chain can move money.",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file=../../.env src/server.ts",
+    "start": "tsx --env-file=../../.env src/server.ts",
+    "local:chain": "tsx scripts/local-chain.ts",
+    "dev:local": "tsx watch --env-file=../../.env --env-file=.env.local src/server.ts",
+    "demo": "tsx scripts/run-demo.ts",
+    "test": "vitest run",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
+    "@hono/node-server": "^2.1.1",
+    "@meigi/abi": "workspace:*",
+    "hono": "^4.13.9",
+    "viem": "~2.56.8",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.0",
+    "tsx": "^4.21.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.2"
+  }
+}

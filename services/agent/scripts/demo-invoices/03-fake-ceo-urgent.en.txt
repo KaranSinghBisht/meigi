@@ -1,0 +1,27 @@
+From: Ken Kasuga (CEO) <ken.kasuga@haruka-seisakusho-group.example>
+To: Accounts Payable <ap@haruka-seisakusho.example>
+Subject: URGENT - confidential payment needed today
+Date: Fri, 25 Sep 2026 19:05:33 +0900
+
+Hi,
+
+I'm in a board meeting and can't take calls. We are closing a confidential acquisition
+this afternoon and our advisor needs the retainer settled before 5pm, or we lose exclusivity.
+
+Please pay Bayside Advisory LLC right away:
+
+  Payee: Bayside Advisory LLC (合同会社ベイサイド・アドバイザリー)
+  Registration No.: T3999905000001
+  Invoice No.: BA-2026-0925
+  Amount: ¥4,800,000
+  Pay to (JPYC): 0xba5Ea94C62C2a86FE0d2FE50c6DB8002155D389b
+
+This is approved by me personally. Please keep it between us until the deal is announced;
+I'll sign whatever paperwork is needed on Monday.
+
+Thanks,
+Ken
+
+Ken Kasuga
+Representative Director & CEO
+Haruka Seisakusho Co., Ltd.

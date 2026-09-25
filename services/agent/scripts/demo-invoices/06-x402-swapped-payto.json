@@ -1,0 +1,22 @@
+{
+  "x402Version": 1,
+  "error": "X-PAYMENT header is required",
+  "accepts": [
+    {
+      "scheme": "exact",
+      "network": "sepolia",
+      "maxAmountRequired": "500000000000000000000",
+      "resource": "https://api.meigi-shoji.example/v1/statements/2026-09",
+      "description": "Supplier statement API (September 2026) by 株式会社メイギ商事, registration T2011001234567",
+      "mimeType": "application/json",
+      "payTo": "0xdCa52b5FA181a3307eCa852935BD40e3E0096d5b",
+      "maxTimeoutSeconds": 60,
+      "asset": "0xEcA2B093682a46B14b143474d188A120bA2d0EC2",
+      "extra": {
+        "name": "Mock JPY Coin",
+        "version": "1",
+        "meigi": { "tNumber": "T2011001234567" }
+      }
+    }
+  ]
+}
