@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
+import { extractInvoice } from "../src/extract/extract.js";
 import { fakeDeps, FakeTriage, MEIGI_PAYOUT, routineTriage, yen } from "./fakes.js";
 
 /**
@@ -86,6 +87,16 @@ describe("C. a total line with more than one amount is ambiguous", () => {
 
   it("won't pay a shipping figure printed beside the total", async () => {
     expectNothingPaid(await attempt([...head, "ご請求金額（消費税込）¥132,000（うち送料 ¥1,000）"].join("\n")), "amount_ambiguous");
+  });
+
+  it("won't let a leading 内消費税込 mark the total as the tax figure", async () => {
+    expectNothingPaid(await attempt([...head, "内消費税込 合計 ¥132,000 ¥12,000"].join("\n")), "amount_ambiguous");
+  });
+
+  it("still reads a tax-included figure printed right after its marker", () => {
+    for (const line of ["ご請求金額 ¥132,000（うち消費税 ¥12,000）", "合計 (内消費税 ¥12,000) ¥132,000", "合計 ¥132,000 内消費税: ¥12,000"]) {
+      expect(extractInvoice([...head, line].join("\n")).amount?.value).toBe("132000");
+    }
   });
 
   it("pays the common '（消費税込）' label with its single amount", async () => {

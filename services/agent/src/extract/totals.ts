@@ -13,6 +13,8 @@ const TOTAL_STRONG =
 const TOTAL = /(合計|総額|\btotal\b)/iu;
 const SUBTOTAL = /(小計|税抜|本体価格|sub-?total|net\s+amount)/iu;
 const TAX_INCLUDED = /(内消費税|内税|うち消費税|tax\s+included|incl\.?\s+tax)/iu;
+// The marker labels an amount only when it immediately precedes it ("（うち消費税 ¥12,000）", "内消費税: ¥12,000").
+const TAX_INCLUDED_LABEL = /(?:内消費税|内税|うち消費税|tax\s+included|incl\.?\s+tax)\s*[:：]?\s*$/iu;
 const TAX = /(消費税|税額|\btax\b|\bvat\b)/iu;
 // Printed deductions that explain a total below subtotal + tax (an advance, a discount, an offset).
 const ADJUSTMENT = /(前受|充当|値引|割引|相殺|差引(?!ご?請求)|調整|discount|deduct|advance|adjustment|credit\s+applied)/iu;
@@ -91,15 +93,16 @@ function assign(line: string, lineStart: number, amounts: AmountHit[], flags: Fl
 /**
  * The total on a total line: its only amount. The one exception is a tax-included figure printed with it
  * ("¥132,000（うち消費税 ¥12,000）", "合計 (内消費税 ¥12,000) ¥132,000"): with exactly two amounts, exactly one
- * introduced by うち/内消費税, the other is the total. Anything else (a previous balance, a shipping line, a
- * computation) is null: ambiguous, and blocked by the caller.
+ * immediately preceded by a うち/内消費税 marker, the other is the total. A marker anywhere else (e.g. a leading
+ * "内消費税込") labels nothing. Anything else (a previous balance, a shipping line, a computation) is null:
+ * ambiguous, and blocked by the caller.
  */
 export function totalOnLine(line: string, lineStart: number, amounts: AmountHit[]): Money | null {
   if (amounts.length === 1) return money(amounts[0]!.value);
   if (amounts.length !== 2) return null;
   const introducedByTaxIncluded = amounts.map((hit, i) => {
     const from = i === 0 ? 0 : amounts[0]!.index - lineStart + amounts[0]!.raw.length;
-    return TAX_INCLUDED.test(line.slice(Math.max(0, from), hit.index - lineStart));
+    return TAX_INCLUDED_LABEL.test(line.slice(Math.max(0, from), hit.index - lineStart));
   });
   if (introducedByTaxIncluded.filter(Boolean).length !== 1) return null;
   return money(amounts[introducedByTaxIncluded[0] ? 1 : 0]!.value);
