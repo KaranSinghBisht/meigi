@@ -1,3 +1,4 @@
+import { hashSignal } from "@worldcoin/idkit-core/hashing";
 import { signRequest } from "@worldcoin/idkit-core/signing";
 import { keccak256, toBytes, type Hex } from "viem";
 
@@ -73,11 +74,26 @@ export async function verifySessionProof(
   return { sessionId, officerId: officerIdFor(sessionId), sessionNullifier: sessionNullifierOf(result) };
 }
 
+/**
+ * Requires the proof to carry `signal`, so a proof made for one change can't approve another. The signal is
+ * part of the zero-knowledge proof that World verifies; this checks it is the one we asked for.
+ */
+export function requireSignal(result: unknown, signal: string): void {
+  const expected = hashSignal(signal).toLowerCase();
+  const actual = firstResponse(result)?.signal_hash;
+  if (typeof actual !== "string" || actual.toLowerCase() !== expected) {
+    throw new WorldVerificationError("signal_mismatch", "the proof was made for a different request");
+  }
+}
+
+function firstResponse(result: unknown): { session_nullifier?: unknown; signal_hash?: unknown } | undefined {
+  const responses = (result as { responses?: unknown } | null)?.responses;
+  return Array.isArray(responses) ? (responses[0] as { session_nullifier?: unknown }) : undefined;
+}
+
 /** The per-proof nullifier IDKit returns as `responses[].session_nullifier = [nullifier, action]`. */
 function sessionNullifierOf(result: unknown): string {
-  const responses = (result as { responses?: unknown } | null)?.responses;
-  const first = Array.isArray(responses) ? (responses[0] as { session_nullifier?: unknown }) : undefined;
-  const pair = first?.session_nullifier;
+  const pair = firstResponse(result)?.session_nullifier;
   if (!Array.isArray(pair) || typeof pair[0] !== "string") {
     throw new WorldVerificationError("missing_session_nullifier", "the proof carries no session nullifier");
   }
