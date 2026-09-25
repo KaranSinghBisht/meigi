@@ -1,6 +1,6 @@
 """Builds data/nta/corporations.sqlite from the NTA 法人番号 bulk CSVs (Unicode).
 
-Usage: python3 services/verifier/scripts/build_nta_index.py data/nta/raw/*.csv
+Usage: [NTA_DB_OUT=path.sqlite] python3 services/verifier/scripts/build_nta_index.py data/nta/raw/*.csv
 
 Column layout follows the NTA resource definition (リソース定義書): 30 columns per row.
 Only the latest, displayable record for each corporate number is kept.
@@ -8,12 +8,13 @@ Only the latest, displayable record for each corporate number is kept.
 
 import csv
 import logging
+import os
 import sqlite3
 import sys
 import unicodedata
 from pathlib import Path
 
-DB_PATH = Path("data/nta/corporations.sqlite")
+DB_PATH = Path(os.environ.get("NTA_DB_OUT", "data/nta/corporations.sqlite"))
 BATCH = 50_000
 
 # 0-based column indexes in the NTA CSV.

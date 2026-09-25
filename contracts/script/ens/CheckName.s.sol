@@ -16,7 +16,7 @@ interface IPayeeResolverView {
 /// @dev Env: optional ENS_LABEL (payee), T_NUMBER (2011001234567), EXPECT_ADDR (pins the answer, e.g. zero
 ///      once the payee is disputed), PAYEE_RESOLVER / PAYEE_REGISTRY (pin the name's resolver and its
 ///      registry) and UNKNOWN_T_NUMBER (9999999999999; must be unregistered, and on the live Sepolia
-///      registry T2010401000001 is the x402 demo merchant).
+///      registry T8999900000001 is the x402 demo merchant).
 contract CheckName is Script {
     bytes4 private constant ADDR = 0x3b3b57de; // addr(bytes32)
     bytes4 private constant ADDR_COIN = 0xf1cb7e06; // addr(bytes32,uint256)

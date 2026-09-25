@@ -59,7 +59,7 @@ contract PayeeResolverTest is MeigiFixture {
     }
 
     function test_addr_failsClosed() public {
-        assertEq(_addr("t2010401000001"), address(0), "unregistered");
+        assertEq(_addr("t8999900000001"), address(0), "unregistered");
         assertEq(_addr("not-a-t-number"), address(0), "not a T-number");
 
         vm.prank(attester);
@@ -96,7 +96,7 @@ contract PayeeResolverTest is MeigiFixture {
         assertEq(_text(LABEL, "meigi.changePending"), "");
         assertEq(_text(LABEL, "meigi.registry"), vm.toString(address(registry)));
         assertEq(_text(LABEL, "avatar"), "");
-        assertEq(_text("t2010401000001", "name"), "", "unregistered");
+        assertEq(_text("t8999900000001", "name"), "", "unregistered");
     }
 
     function test_multicall_batchesRecordsAndIsolatesFailures() public view {

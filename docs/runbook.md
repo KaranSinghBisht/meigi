@@ -17,7 +17,11 @@ All are verified on Sourcify. Timelocks: 72h for payout changes, rotations and d
 
 Demo fixtures, fictional companies marked as such in their on-chain evidence:
 - `T2011001234567` 株式会社メイギ商事: the AP-agent vendor. The vault approves it with caps of ¥500k per invoice and ¥1M per 30 days.
-- `T2010401000001` 株式会社フジデータ: the x402 data merchant.
+- `T8999900000001` 株式会社フジデータ: the x402 data merchant. Registry office 9999 doesn't exist, so no real
+  company can ever hold this number.
+- `T2010401000001` is **retired**. It was registered in error: the number belongs to a real company
+  (旭紙業株式会社). It is frozen by a dispute, so it pays nothing and resolves to nothing. Never reuse it.
+- Fixture numbers were checked against the nationwide NTA data (5,787,472 corporations): neither fixture exists.
 
 ## ENS
 

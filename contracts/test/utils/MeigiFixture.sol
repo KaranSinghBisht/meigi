@@ -13,7 +13,7 @@ abstract contract MeigiFixture is Test {
 
     // Fictional suppliers. Both numbers carry a valid 法人番号 check digit.
     uint64 internal constant VENDOR = 2011001234567;
-    uint64 internal constant OTHER_VENDOR = 2010401000001;
+    uint64 internal constant OTHER_VENDOR = 8999900000001; // registry office 9999 does not exist
     string internal constant VENDOR_NAME = unicode"株式会社メイギ商事";
 
     // Officer ids: hashes of each officer's World ID session id. Same human => same id.

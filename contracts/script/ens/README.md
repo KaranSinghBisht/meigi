@@ -47,7 +47,7 @@ Run from `contracts/`.
 export PAYEE_REGISTRY=$(jq -r .registry deployments/11155111.json)
 export PAYEE_RESOLVER=$(jq -r .resolver deployments/11155111.json)
 
-# 2. Payees. Already registered on Sepolia: T2011001234567 (demo vendor) and T2010401000001 (x402 merchant).
+# 2. Payees. Already registered on Sepolia: T2011001234567 (demo vendor) and T8999900000001 (x402 merchant).
 #    To seed through this script instead (the attester needs Sepolia ETH):
 # export PAYEE_CONTROLLER=0x… PAYEE_PAYOUT=0x…; BROADCAST=1 script/ens/ens.sh seed
 

@@ -92,9 +92,14 @@ export function useRegistryFeed(): RegistryFeed {
   const times = useBlockTimes(events)
   const directory = useMemo(() => {
     const names = new Map<string, string>()
+    const frozen = new Set<string>()
     for (const event of [...events].reverse()) {
       if (event.name === 'PayeeRegistered' && event.legalName) names.set(event.tNumber, event.legalName)
+      if (event.name === 'ClaimDisputed') frozen.add(event.tNumber)
+      if (event.name === 'DisputeResolved' || event.name === 'DisputeDismissed') frozen.delete(event.tNumber)
     }
+    // Frozen payees aren't offered as examples; searching one still shows its disputed status.
+    for (const tNumber of frozen) names.delete(tNumber)
     return names
   }, [events])
   const status = !loaded ? 'loading' : error && events.length === 0 ? 'error' : 'ready'

@@ -7,7 +7,7 @@ const schema = z.object({
   SEPOLIA_RPC_URL: z.url(),
   REGISTRY_ADDRESS: address,
   TOKEN_ADDRESS: address,
-  DEMO_MERCHANT_T_NUMBER: z.string().regex(/^T?\d{13}$/u).default("T2010401000001"),
+  DEMO_MERCHANT_T_NUMBER: z.string().regex(/^T?\d{13}$/u).default("T8999900000001"),
   DEMO_MERCHANT_PAYOUT: address,
   DEMO_SCAMMER: address,
   DEMO_BUYER_PRIVATE_KEY: privateKey,
