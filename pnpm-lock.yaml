@@ -62,6 +62,28 @@ importers:
 
   packages/abi: {}
 
+  packages/x402-guard:
+    dependencies:
+      '@meigi/abi':
+        specifier: workspace:*
+        version: link:../abi
+      viem:
+        specifier: ~2.56.8
+        version: 2.56.8(typescript@7.0.2)(zod@4.6.5)
+    devDependencies:
+      '@types/node':
+        specifier: ^22.19.0
+        version: 22.20.4
+      '@x402/core':
+        specifier: ^2.27.0
+        version: 2.27.0
+      typescript:
+        specifier: ^7.0.2
+        version: 7.0.2
+      vitest:
+        specifier: ^5.0.2
+        version: 5.0.2(@types/node@22.20.4)(vite@8.3.1(@types/node@22.20.4)(esbuild@0.28.2)(tsx@4.23.15))
+
   services/verifier:
     dependencies:
       '@hono/node-server':
@@ -666,6 +688,9 @@ packages:
     resolution: {integrity: sha512-iO4Kd3QBLzJak3BPz5eIzRjW0kT8Px5c3LbNzvCKMnczLvVSKoWqdvGiJlkK8Dp29KstNI62iv4ak0z8nzui/Q==}
     engines: {node: '>=18'}
 
+  '@x402/core@2.27.0':
+    resolution: {integrity: sha512-UbxCKnoTsg5nQX9fYER3g9tt5l80jHm1IZOmDczQRqE0cwskls5r+VAAj0iUQfHVshnpv0qo/rLFI7UntqL96g==}
+
   abitype@1.2.3:
     resolution: {integrity: sha512-Ofer5QUnuUdTFsBRwARMoWKOH1ND5ehwYhJ3OJ/BQO+StkwQjHw0XyVh4vDttzHB7QOFhPHa/o413PJ82gU/Tg==}
     peerDependencies:
@@ -1190,6 +1215,9 @@ packages:
       utf-8-validate:
         optional: true
 
+  zod@3.25.76:
+    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
+
   zod@4.6.5:
     resolution: {integrity: sha512-v5l/aFXZQeai4awLbOpSoHecE9UiMrnfx75tEXLjNonXVARxQ5mOeipTjROUchszUNCqnE+hqAMujRsRHsut2Q==}
 
@@ -1604,6 +1632,10 @@ snapshots:
     dependencies:
       '@noble/hashes': 1.8.0
       '@noble/secp256k1': 2.3.0
+
+  '@x402/core@2.27.0':
+    dependencies:
+      zod: 3.25.76
 
   abitype@1.2.3(typescript@7.0.2)(zod@4.6.5):
     optionalDependencies:
@@ -2052,6 +2084,8 @@ snapshots:
   why-is-node-running@3.2.2: {}
 
   ws@8.21.0: {}
+
+  zod@3.25.76: {}
 
   zod@4.6.5: {}
 
