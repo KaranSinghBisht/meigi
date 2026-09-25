@@ -67,7 +67,7 @@ the vault reverts `PayeeMismatch` and names the real company.
 | **Verifier** | Exact match against the NTA bulk data after NFKC normalisation. Keybase-style DNS proof. World ID 4.0 officer sessions. Approvals whose World ID signal pins the exact change. | [`services/verifier`](services/verifier) |
 | **AP agent** | Invoice → deterministic extraction → System-1 triage (our fine-tuned model) → deterministic kernel → Intercepta screening → pay or hold. Only the kernel can move money; the LLM only explains. | [`services/agent`](services/agent) |
 | **x402 guard** | Before an agent signs an x402 payment: a declared T-number must match `payTo`. Merchants that declare none get small amounts only, after a clean Intercepta screen. | [`packages/x402-guard`](packages/x402-guard), [`services/x402-demo`](services/x402-demo) |
-| **PayeeBench-JA** | A Japanese-first benchmark for triaging payment redirection. Kev-0.8B, fine-tuned on a MacBook, beats the released Kev-4B: 0.920 vs 0.793 accuracy, ECE 0.025 vs 0.115, at 39 ms. | [`bench`](bench) |
+| **PayeeBench-JA** | A Japanese-first benchmark for triaging payment redirection. Kev-0.8B, fine-tuned on a MacBook, scores 0.918 accuracy. That beats the released Kev-4B (0.795) and Llama 3.3 70B (0.815), with ECE 0.024, at 39 ms. | [`bench`](bench) |
 | **Web app / landing** | Registry explorer with a live event feed, registration, officer approvals, agent console and x402 demo; a three.js "Sakasa Fuji" landing page. | [`apps/web`](apps/web), [`apps/landing`](apps/landing) |
 
 ## Sponsor integrations
