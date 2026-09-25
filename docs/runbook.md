@@ -52,6 +52,17 @@ bash contracts/script/seed-demo.sh        # fixture vendor, vault funding, vendo
 `seed-demo.sh` passes testnet keys to `cast` on the command line, where local `ps` can see them. Run it only on
 a trusted single-user machine; the ENS scripts and forge scripts read keys from the environment instead.
 
+## Governance rules (read before touching the registry as owner)
+
+- **`dismissDispute` is not an undo.** It keeps whatever was live when the dispute was filed, including a
+  redirect that had already landed. Use it only to clear a bogus claim. A dispute about a redirect that
+  already landed needs `resolveDispute` (72h, payee frozen).
+- **Revoking an attester is permanent.** It also voids legitimate changes still inside their 72h window;
+  those businesses must re-request. Register the replacement verifier key (a new address) *before* revoking
+  the only attester. v2 has exactly one: `0x3D5F314C30E77CC6f3677C5409FdC91e83510493`.
+- If the business key is stolen *and* an officer is phished, only an attester or governance can cancel the
+  thief's queued payout change. Watch `PayoutChangeRequested` and `ControllerRotationRequested`.
+
 ## Demo checks (five minutes before judging)
 
 1. `curl localhost:8787/payees/T2011001234567`: the fixture vendor is active.
