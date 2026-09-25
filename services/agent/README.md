@@ -47,21 +47,20 @@ upper-cased.
 
 - **Pay:** only when the verdict is `pay`. That needs every kernel check passing, an unambiguous visible document,
   System-1 auto-clearing it, and no screened address flagged.
-- **Force** (`{ force: true }`) attempts a held payment to show the chain's answer. It is simulated first; a revert
-  is decoded (e.g. *"T2011001234567 = 株式会社メイギ商事 pays 0x9B4f…47e4; this invoice asked for 0xdCa5…6d5b."*)
-  and nothing is sent.
+- **Force** (`{ force: true }`) is simulate-only: it shows the chain's answer to a held payment and never sends a
+  transaction. A revert is decoded (e.g. *"T2011001234567 = 株式会社メイギ商事 pays 0x9B4f…47e4; this invoice asked
+  for 0xdCa5…6d5b."*) and returned as `reverted` with `broadcast: false`.
 - **Judgement holds:** System-1 pressure above `TRIAGE_MAX_PRESSURE` (0.5) or urgency wording in the document
   (`pressure_hold`), and amounts above `AUTO_CLEAR_MAX_YEN` when it is set (`above_auto_clear_budget`), hold a
   payment that would otherwise clear. A verified human may release these (below).
-- **Force only asks the chain.** It is allowed only when at least one hold is one the vault enforces itself (payout
-  mismatch, unregistered or disputed payee, vendor not approved or not yet active, payout changed, caps, already
-  paid, balance, paused, not the agent). Judgement holds (triage, pressure, the auto-clear budget, injection wording)
-  may ride along, but force never releases them. When every hold is one a verified human could approve, force
-  answers `force_needs_human` ("Only a verified human can release this hold; forcing can't"), whether or not World ID
-  is configured. A clean forced simulation is sent only when the chain enforced every hold; otherwise nothing is
-  sent (`force_needs_human` or `force_refused`).
-- **What force never overrides** (`force_refused`): credit notes, hidden content, markup, bidirectional controls,
-  ambiguous or conflicting totals, missing invoice numbers or T-numbers, several addresses, and screening hits.
+- **Force never pays.** When the simulation passes, nothing is sent and the result is `held`:
+  - `force_needs_human` ("Forcing can't pay; only a verified human can release this hold") when a verified human
+    could approve the holds, whether or not World ID is configured;
+  - otherwise `force_refused`.
+  So force can never stand in for the human approval below.
+- **What force doesn't even simulate** (`force_refused`): credit notes, hidden content, markup, bidirectional
+  controls, ambiguous or conflicting totals, missing invoice numbers or T-numbers, several addresses, and screening
+  hits.
 - **Where values come from:** the T-number and amount always come from the document. Only the destination may come
   from the agent's proposal, and the vault rejects any address that isn't the registered one.
 - **Explanations:** the explaining LLM sees kernel facts only, never document text. Document quotes travel in
@@ -81,7 +80,9 @@ grant: the agent is the device, and the human approves in World App. It is off u
 - **Flow:**
   1. `POST /invoices/:id/approval {}` answers `202 { attemptId, userCode, verificationUriComplete, expiresAt,
      interval }`. Show `verificationUriComplete` as a QR code, with the user code and a countdown to `expiresAt`.
-     While an attempt is pending, POST again returns the same attempt. The device code never leaves the server.
+     While an attempt is pending, POST again returns the same attempt. The device code never leaves the server. At
+     most 8 attempts poll at once (`429 approval_busy` beyond that), and an invoice gets at most one new attempt per
+     `interval` (`429 approval_too_soon`).
   2. The agent polls the IdP's token endpoint in the background. It honours `interval`, adds 5 s per `slow_down`,
      backs off on 5xx or network errors (three in a row stop it as `unavailable`), and stops at `expires_in`
      (20 minutes at most).
@@ -91,24 +92,38 @@ grant: the agent is the device, and the human approves in World App. It is off u
      normal pay path: simulation first, and the vault re-checks vendor, caps and payee.
 - **Statuses:**
   - `pending`: waiting for the human.
-  - `approved`: `approvedAt` is the proof's `auth_time`. `approver` is `enrolled` (the first approver, now on file)
-    or `matched`.
+  - `approved`: `approvedAt` is the proof's `auth_time`. `approver` is `enrolled` (just enrolled, during an
+    enrolment run) or `matched`.
   - `denied`: declined in World App, or the ID token was invalid (`reason` says which).
   - `expired`: nobody approved in time, or an approval went unused for 10 minutes.
   - `unavailable`: the IdP couldn't be reached. This is never an approval.
   - `wrong_human`: someone other than the approver on file proved.
 - **The ID token must have:** RS256 via the IdP's JWKS; the exact `iss`; `aud` equal to the client id and nothing
-  else; an unexpired `exp`; `acr = https://world.org/oidc/acr/orb-v3`; and `auth_time` no earlier than the attempt's
-  start − 30 s and no later than now + 30 s. The approver is the pairwise `sub`.
-- **Approvers:** `WORLD_AGENTS_APPROVERS` lists the allowed `sub` values. When it is empty, the first approved proof
-  enrolls its `sub` in `WORLD_AGENTS_APPROVERS_PATH` (`data/agent/approvers.json`, git-ignored, mode 600), and
-  anyone else is `wrong_human`. That is trust on first use, so set the list for anything beyond the demo.
+  else; `exp`, `iat`, `sub` and `auth_time` present; an unexpired `exp`; `acr = https://world.org/oidc/acr/orb-v3`;
+  and `auth_time` no earlier than the attempt's start − 30 s and no later than now + 30 s. The approver is the
+  pairwise `sub`.
+- **Discovery is pinned:** the device, token and key-set endpoints must be on the issuer's own origin, and no IdP
+  request follows a redirect. A key set that can't be fetched or read makes the attempt `unavailable`.
+- **Approvers:** the `sub` values in `WORLD_AGENTS_APPROVERS` (matched exactly), plus the one enrolled in
+  `WORLD_AGENTS_APPROVERS_PATH` (`data/agent/approvers.json`, resolved from `services/agent`, git-ignored, mode 600).
+  Anyone else is `wrong_human`. Nobody is ever enrolled unless `WORLD_AGENTS_ENROLL=1`, so a stranger who scans a
+  projected QR code first can't become the approver.
+- **Enrolment run** (once, in private, before the demo):
+  1. Start the agent with `WORLD_AGENTS_ENROLL=1` and `WORLD_AGENTS_APPROVERS` empty.
+  2. Analyze `07-urgent-invoice.ja.txt`, ask for approval, and approve it in World App with the approver's own
+     World ID. The status says `approver: "enrolled"`, and the `sub` is saved. Don't pay it if you want to keep 07
+     for the demo.
+  3. Restart without `WORLD_AGENTS_ENROLL`. From then on only that person is `matched`. Enrolment also closes after
+     the first enrolment, and an unreadable approver file fails closed.
+  4. To start over, delete the approver file and repeat. `WORLD_AGENTS_ENROLL` is ignored while
+     `WORLD_AGENTS_APPROVERS` is set.
 - **Binding and single use:** an attempt is bound, server-side, to the invoice id, T-number, payout, amount, invoice
   reference and hold reasons it was started for. The device grant can't carry a nonce or binding message.
 - **Local rehearsal without World App:** `pnpm --filter @meigi/agent mock:idp` runs a mock IdP on
   `http://127.0.0.1:8791`. Its `verificationUriComplete` page has Approve, Approve as someone else (`wrong_human`),
   Deny and Expire buttons. Start an agent with `WORLD_AGENTS_ISSUER=http://127.0.0.1:8791`,
-  `WORLD_AGENTS_CLIENT_ID=mock-client` and `WORLD_AGENTS_CLIENT_SECRET=mock-secret`, preferably on anvil (`dev:local`).
+  `WORLD_AGENTS_CLIENT_ID=mock-client`, `WORLD_AGENTS_CLIENT_SECRET=mock-secret` and
+  `WORLD_AGENTS_APPROVERS=mock-human-approver`, preferably on anvil (`dev:local`).
   The issuer must be https except on loopback. With a mock issuer the agent warns at startup that approvals prove
   nothing.
 - **Pay errors, where nothing is paid:**
@@ -132,7 +147,7 @@ For a local chain, use three terminals:
 ```sh
 pnpm --filter @meigi/agent local:chain    # anvil :8547, forge Deploy.s.sol, demo vendors, writes .env.local
 pnpm --filter @meigi/agent dev:local      # .env overlaid with .env.local
-pnpm --filter @meigi/agent demo --force   # analyses (and forces) every demo document; --force belongs on anvil
+pnpm --filter @meigi/agent demo --force   # analyses (and forces) every demo document; force only simulates
 ```
 
 Tests:
@@ -159,7 +174,7 @@ and token match the configuration, that the key is the vault's agent, and that i
 | LLM | `LLM_PROVIDER=proxy` (Llama 3.3 via `AI_PROXY_URL/v1/chat` with `AI_PROXY_TOKEN`), or `anthropic` (`ANTHROPIC_API_KEY`, `claude-haiku-4-5`), `workers-ai` or `none` |
 | Screening | `INTERCEPTA_API_KEY` (optional), `INTERCEPTA_CACHE_PATH=../../data/agent/intercepta-cache.json`, `INTERCEPTA_MAX_CALLS=900`, `INTERCEPTA_TOXIC_THRESHOLD=50` |
 | Judgement holds | `TRIAGE_MAX_PRESSURE=0.5`, `AUTO_CLEAR_MAX_YEN` (unset: no budget hold) |
-| Human approval | `WORLD_AGENTS_CLIENT_ID` and `WORLD_AGENTS_CLIENT_SECRET` (both or neither), `WORLD_AGENTS_ISSUER=https://sandbox.auth.world.org`, `WORLD_AGENTS_AUTH_METHOD=client_secret_basic` (or `client_secret_post`), `WORLD_AGENTS_APPROVERS`, `WORLD_AGENTS_APPROVERS_PATH=../../data/agent/approvers.json` |
+| Human approval | `WORLD_AGENTS_CLIENT_ID` and `WORLD_AGENTS_CLIENT_SECRET` (both or neither), `WORLD_AGENTS_ISSUER=https://sandbox.auth.world.org`, `WORLD_AGENTS_AUTH_METHOD=client_secret_basic` (or `client_secret_post`), `WORLD_AGENTS_APPROVERS`, `WORLD_AGENTS_ENROLL` (off), `WORLD_AGENTS_APPROVERS_PATH=../../data/agent/approvers.json` |
 | Server | `AGENT_PORT=8788`, `AGENT_HOST=127.0.0.1`, `APP_ORIGINS=http://localhost:5173,http://localhost:4173`, `VENDOR_T_NUMBERS=2011001234567` |
 
 ### Triage backend
@@ -201,12 +216,12 @@ budget are 0.880 (deployed) and 0.903 (oracle). A System-1 `credit_note` answer 
 | File | Expected |
 |---|---|
 | `01-routine-invoice.ja.txt` | Pays: registered payout, within caps, adds up |
-| `02-bank-change-bec.ja.txt` | Holds; force reverts `PayeeMismatch` and names 株式会社メイギ商事 |
-| `03-fake-ceo-urgent.en.txt` | Holds; force reverts `VendorNotApproved` |
+| `02-bank-change-bec.ja.txt` | Holds; force shows the `PayeeMismatch` revert and names 株式会社メイギ商事 |
+| `03-fake-ceo-urgent.en.txt` | Holds; force shows the `VendorNotApproved` revert |
 | `04-prompt-injection.ja.txt` | Holds as tampering (hidden address); force refused |
 | `05-credit-note.ja.txt` | Holds; never paid |
-| `06-x402-swapped-payto.json` | Holds; force reverts `PayeeMismatch` on Sepolia |
-| `07-urgent-invoice.ja.txt` | Genuine but urgent (至急): holds for `pressure_hold`. A verified human approves it, then it pays; a denial or expiry pays nothing. `pnpm demo --force` never forces it. |
+| `06-x402-swapped-payto.json` | Holds; force shows the `PayeeMismatch` revert on Sepolia |
+| `07-urgent-invoice.ja.txt` | Genuine but urgent (至急): holds for `pressure_hold`. A verified human approves it, then it pays; a denial or expiry pays nothing, and force answers `force_needs_human`. |
 
 Every T-number has a valid 法人番号 check digit and is absent from the nationwide NTA index (5,787,472 corporations).
 Bayside's number, T3999905000001, uses registry office 9999, which doesn't exist.

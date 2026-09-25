@@ -6,7 +6,7 @@ import type { AppDeps } from "../deps.js";
 import type { PaymentIntent } from "../kernel/intent.js";
 import type { Reason } from "../kernel/reasons.js";
 import { explainOutcome, type Explanation } from "./explain.js";
-import { approvedRefusal, forceRefusal, forceSendRefusal } from "./override.js";
+import { approvedRefusal, forcePassed, forceRefusal } from "./override.js";
 import type { StoredAnalysis } from "./store.js";
 
 export type PayResult =
@@ -15,16 +15,15 @@ export type PayResult =
   | { status: "reverted"; broadcast: boolean; txHash?: Hex; forced: boolean; error: DecodedRevert; explanation: Explanation }
   | { status: "held"; reasons: Reason[]; explanation: Explanation };
 
-/** "auto" sends only a "pay" verdict; "force" attempts a held one (the attack demo); "approved" is a verified human's release. */
+/** "auto" sends only a "pay" verdict; "force" simulates a held one (the attack demo); "approved" is a verified human's release. */
 export type PayMode = "auto" | "force" | "approved";
 
 /**
- * Pays an analysed invoice from the agent key. In "auto" mode only a "pay" verdict is sent. "force" attempts a
- * held payment to show the chain's answer: only when the vault enforces one of the holds, always simulated
- * first, and a simulated revert is decoded and returned without broadcasting; it never releases a hold only a
- * person may (override.ts). "approved" (the caller has spent a verified human's approval) releases the approvable
- * holds only. Every payment is simulated first and pays the printed amount to the registered payee of the printed
- * T-number. `record` sees a sent transaction before its receipt.
+ * Pays an analysed invoice from the agent key. In "auto" mode only a "pay" verdict is sent. "force" is
+ * simulate-only: it shows the chain's decoded refusal of a held payment and never sends anything, so it can never
+ * stand in for a verified human (override.ts). "approved" (the caller has spent a verified human's approval)
+ * releases the approvable holds only. Every payment is simulated first and pays the printed amount to the
+ * registered payee of the printed T-number. `record` sees a sent transaction before its receipt.
  */
 export async function payAnalysis(deps: AppDeps, stored: StoredAnalysis, mode: PayMode, record: (r: PayResult) => void): Promise<PayResult> {
   const previous = stored.payment;
@@ -41,8 +40,7 @@ export async function payAnalysis(deps: AppDeps, stored: StoredAnalysis, mode: P
   const call = callOf(intent);
   const simulated = await deps.payer.simulate(call);
   if (!simulated.ok) return reverted(deps, stored, simulated.revert, forced);
-  const unsent = forced ? forceSendRefusal(stored) : null;
-  if (unsent) return held(stored, [unsent]);
+  if (forced) return held(stored, [forcePassed(stored)]); // force never sends
   const pending = (txHash: Hex): PayResult => ({ status: "pending", txHash, forced, message: "Sent; waiting for the block. Pay again to check." });
   const sent = await deps.payer.send(call, (txHash) => record(pending(txHash)));
   if (sent.ok === "pending") return pending(sent.txHash);

@@ -5,7 +5,7 @@ import type { ApproverRegistry } from "./approvers.js";
 import { startDevice } from "./device.js";
 import { approvalRefusal, bindingOf } from "./holds.js";
 import { IdpUnavailable, type Idp } from "./idp.js";
-import { pollUntilDone, type Attempt, type PollContext } from "./poller.js";
+import { abandon, pollUntilDone, type Attempt, type PollContext } from "./poller.js";
 
 export type ApprovalStatus = "pending" | "approved" | "denied" | "expired" | "unavailable" | "wrong_human";
 
@@ -30,7 +30,10 @@ export interface ApprovalState {
 }
 
 export interface ApprovalService {
-  /** Starts (or, while one is pending for the same snapshot, returns) an attempt; 409 unless approvable. */
+  /**
+   * Starts (or, while one is pending for the same snapshot, returns) an attempt. 409 unless approvable; 429 when
+   * too many attempts are live or this invoice started one less than an interval ago.
+   */
   start(stored: StoredAnalysis): Promise<ApprovalStart>;
   status(invoiceId: string): ApprovalState | null;
   /** Spends an approval on one pay attempt, or throws (404 unknown, 409 not approved / used / void). */
@@ -44,9 +47,13 @@ export interface ApprovalOptions {
   approvers: ApproverRegistry;
   now?: () => number; // unix seconds
   wait?: (ms: number) => Promise<void>;
+  limits?: { maxAttempts?: number; maxLive?: number };
 }
 
+/** Attempts kept in memory; the oldest is dropped (and its poller stopped) beyond this. */
 const MAX_ATTEMPTS = 1_000;
+/** Background pollers running at once; each attempt has one until it stops. */
+const MAX_LIVE_POLLERS = 8;
 
 export function createApprovals(opts: ApprovalOptions): ApprovalService {
   const ctx: PollContext = {
@@ -55,45 +62,80 @@ export function createApprovals(opts: ApprovalOptions): ApprovalService {
     now: opts.now ?? (() => Math.floor(Date.now() / 1000)),
     wait: opts.wait ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms).unref())),
   };
-  const attempts = new Map<string, Attempt>();
-  const latest = new Map<string, string>(); // invoice id → its latest attempt id
-  const starting = new Map<string, Promise<ApprovalStart>>(); // one device request per invoice at a time
-  const current = (invoiceId: string) => attempts.get(latest.get(invoiceId) ?? "");
+  return new Approvals(ctx, { maxAttempts: opts.limits?.maxAttempts ?? MAX_ATTEMPTS, maxLive: opts.limits?.maxLive ?? MAX_LIVE_POLLERS });
+}
 
-  async function open(stored: StoredAnalysis): Promise<ApprovalStart> {
-    const attempt = await openAttempt(ctx, stored);
-    attempts.set(attempt.id, attempt);
-    latest.set(attempt.invoiceId, attempt.id);
-    evictOldest(attempts, latest);
-    return startView(attempt);
+class Approvals implements ApprovalService {
+  private readonly attempts = new Map<string, Attempt>();
+  private readonly latest = new Map<string, string>(); // invoice id → its latest attempt id
+  private readonly starting = new Map<string, Promise<ApprovalStart>>(); // one device request per invoice at a time
+  private live = 0; // running pollers, plus device requests in flight
+
+  constructor(
+    private readonly ctx: PollContext,
+    private readonly limits: { maxAttempts: number; maxLive: number },
+  ) {}
+
+  async start(stored: StoredAnalysis): Promise<ApprovalStart> {
+    const refusal = approvalRefusal(stored);
+    if (refusal) throw new HttpError(409, "not_approvable", refusal);
+    const id = stored.view.id;
+    const last = this.current(id);
+    if (last && liveStatus(last, this.ctx.now()) === "pending" && last.binding === bindingOf(stored)) return startView(last);
+    const inFlight = this.starting.get(id);
+    if (inFlight) return inFlight;
+    this.throttle(last);
+    const opening = this.open(stored).finally(() => this.starting.delete(id));
+    this.starting.set(id, opening);
+    return opening;
   }
 
-  return {
-    async start(stored) {
-      const refusal = approvalRefusal(stored);
-      if (refusal) throw new HttpError(409, "not_approvable", refusal);
-      const id = stored.view.id;
-      const live = current(id);
-      if (live && liveStatus(live, ctx.now()) === "pending" && live.binding === bindingOf(stored)) return startView(live);
-      const inFlight = starting.get(id) ?? open(stored).finally(() => starting.delete(id));
-      starting.set(id, inFlight);
-      return inFlight;
-    },
-    status(invoiceId) {
-      const attempt = current(invoiceId);
-      return attempt ? stateView(attempt, ctx.now()) : null;
-    },
-    consume(stored, attemptId) {
-      const attempt = attempts.get(attemptId);
-      if (!attempt || attempt.invoiceId !== stored.view.id) throw new HttpError(404, "approval_not_found", "no such approval for this invoice");
-      if (attempt.consumed) throw new HttpError(409, "approval_used", "this approval was already used");
-      const status = liveStatus(attempt, ctx.now());
-      if (status !== "approved") throw new HttpError(409, "approval_not_approved", `the approval is ${status}: nothing was paid`);
-      attempt.consumed = true; // single use, whatever happens next
-      if (attempt.binding !== bindingOf(stored)) throw new HttpError(409, "approval_void", "the invoice changed after it was approved: nothing was paid");
-    },
-    settled: async (attemptId) => attempts.get(attemptId)?.done,
-  };
+  status(invoiceId: string): ApprovalState | null {
+    const attempt = this.current(invoiceId);
+    return attempt ? stateView(attempt, this.ctx.now()) : null;
+  }
+
+  consume(stored: StoredAnalysis, attemptId: string): void {
+    const attempt = this.attempts.get(attemptId);
+    if (!attempt || attempt.invoiceId !== stored.view.id) throw new HttpError(404, "approval_not_found", "no such approval for this invoice");
+    if (attempt.consumed) throw new HttpError(409, "approval_used", "this approval was already used");
+    const status = liveStatus(attempt, this.ctx.now());
+    if (status !== "approved") throw new HttpError(409, "approval_not_approved", `the approval is ${status}: nothing was paid`);
+    attempt.consumed = true; // single use, whatever happens next
+    if (attempt.binding !== bindingOf(stored)) throw new HttpError(409, "approval_void", "the invoice changed after it was approved: nothing was paid");
+  }
+
+  async settled(attemptId: string): Promise<void> {
+    await this.attempts.get(attemptId)?.done;
+  }
+
+  private current(invoiceId: string): Attempt | undefined {
+    return this.attempts.get(this.latest.get(invoiceId) ?? "");
+  }
+
+  /** A global cap on live pollers, and one new attempt per invoice per interval. */
+  private throttle(last: Attempt | undefined): void {
+    if (last && this.ctx.now() < last.startedAt + last.interval) {
+      throw new HttpError(429, "approval_too_soon", "an approval for this invoice was just requested; try again in a few seconds");
+    }
+    if (this.live >= this.limits.maxLive) throw new HttpError(429, "approval_busy", "too many approvals are waiting; try again when one finishes");
+  }
+
+  private async open(stored: StoredAnalysis): Promise<ApprovalStart> {
+    this.live += 1;
+    let attempt: Attempt;
+    try {
+      attempt = await openAttempt(this.ctx, stored);
+    } catch (error) {
+      this.live -= 1;
+      throw error;
+    }
+    void attempt.done.finally(() => (this.live -= 1));
+    this.attempts.set(attempt.id, attempt);
+    this.latest.set(attempt.invoiceId, attempt.id);
+    evictOldest(this.attempts, this.latest, this.limits.maxAttempts);
+    return startView(attempt);
+  }
 }
 
 async function openAttempt(ctx: PollContext, stored: StoredAnalysis): Promise<Attempt> {
@@ -124,11 +166,12 @@ async function openAttempt(ctx: PollContext, stored: StoredAnalysis): Promise<At
   return attempt;
 }
 
-function evictOldest(attempts: Map<string, Attempt>, latest: Map<string, string>): void {
-  if (attempts.size <= MAX_ATTEMPTS) return;
+function evictOldest(attempts: Map<string, Attempt>, latest: Map<string, string>, max: number): void {
+  if (attempts.size <= max) return;
   const [oldestId, oldest] = attempts.entries().next().value!;
   attempts.delete(oldestId);
   if (latest.get(oldest.invoiceId) === oldestId) latest.delete(oldest.invoiceId);
+  abandon(oldest); // a pending one's poller stops at its next step
 }
 
 /** A pending attempt past its expiry is expired; an approval unused past its validity is too. */

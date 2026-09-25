@@ -117,7 +117,14 @@ export interface Harness {
 }
 
 /** The approval service over the mock IdP. `wait` advances the mock clock instead of sleeping. */
-export async function approvalHarness(opts: { allowed?: string[]; authMethod?: "client_secret_basic" | "client_secret_post"; hold?: boolean } = {}): Promise<Harness> {
+export interface HarnessOptions {
+  allowed?: string[];
+  enroll?: boolean; // default true: the first approver enrolls, as in the enrolment run
+  authMethod?: "client_secret_basic" | "client_secret_post";
+  hold?: boolean;
+}
+
+export async function approvalHarness(opts: HarnessOptions = {}): Promise<Harness> {
   const idp = await mockIdp();
   const waits: number[] = [];
   const client = createIdp({
@@ -128,7 +135,7 @@ export async function approvalHarness(opts: { allowed?: string[]; authMethod?: "
     fetch: idp.fetch,
     timeoutMs: 1_000,
   });
-  const approvers = createApproverRegistry({ allowed: opts.allowed ?? [], path: null });
+  const approvers = createApproverRegistry({ allowed: opts.allowed ?? [], path: null, enroll: opts.enroll ?? true });
   const wait = async (ms: number) => {
     waits.push(ms);
     if (opts.hold) await new Promise<void>(() => {}); // never polls: the attempt stays pending

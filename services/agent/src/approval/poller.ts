@@ -36,13 +36,18 @@ export interface PollContext {
   wait: (ms: number) => Promise<void>;
 }
 
-/** Polls at `interval` (+5 s per slow_down) until a terminal state, and never past the device code's expiry. */
+/**
+ * Polls at `interval` (+5 s per slow_down) until a terminal state, never past the device code's expiry, and stops
+ * as soon as the attempt is stopped from outside (evicted).
+ */
 export async function pollUntilDone(ctx: PollContext, attempt: Attempt): Promise<void> {
   try {
     while (attempt.status === "pending") {
       await ctx.wait(attempt.interval * 1000);
+      if (attempt.status !== "pending") return;
       if (ctx.now() >= attempt.expiresAt) return finish(attempt, "expired", "nobody approved in time");
-      await apply(ctx, attempt, await pollOnce(ctx.idp, attempt.deviceCode));
+      const result = await pollOnce(ctx.idp, attempt.deviceCode);
+      if (attempt.status === "pending") await apply(ctx, attempt, result);
     }
   } catch (error) {
     process.stderr.write(`[agent] approval poller failed: ${error instanceof Error ? error.name : "error"}\n`);
@@ -81,10 +86,10 @@ async function approve(ctx: PollContext, attempt: Attempt, idToken: string): Pro
     const { sub, authTime } = await validateIdToken(idToken, context);
     const check = ctx.approvers.check(sub);
     if (check === "wrong_human") return finish(attempt, "wrong_human", "a different person proved than the approver on file");
-    finish(attempt, "approved");
     attempt.approvedAt = authTime;
     attempt.validUntil = now + APPROVAL_TTL_SECONDS;
     attempt.approver = check;
+    finish(attempt, "approved");
   } catch (error) {
     if (error instanceof TokenRejected) return finish(attempt, "denied", `invalid token: ${error.message}`);
     if (error instanceof IdpUnavailable) return finish(attempt, "unavailable", error.message);
@@ -92,7 +97,13 @@ async function approve(ctx: PollContext, attempt: Attempt, idToken: string): Pro
   }
 }
 
+/** Stops a pending attempt from outside: its poller exits at its next step. */
+export function abandon(attempt: Attempt): void {
+  finish(attempt, "expired", "the approval request was dropped");
+}
+
 function finish(attempt: Attempt, status: ApprovalStatus, reason?: string): void {
+  if (attempt.status !== "pending") return; // terminal states are final
   attempt.status = status;
   if (reason) attempt.reason = reason;
   attempt.deviceCode = ""; // redeemed or dead: don't keep it

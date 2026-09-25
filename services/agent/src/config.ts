@@ -43,7 +43,7 @@ const schema = z
     WORKERS_AI_TOKEN: optional(z.string()),
     // Intercepta screening
     INTERCEPTA_API_KEY: optional(z.string()),
-    INTERCEPTA_CACHE_PATH: z.string().default("../../data/agent/intercepta-cache.json"),
+    INTERCEPTA_CACHE_PATH: z.string().default("../../data/agent/intercepta-cache.json"), // relative to services/agent
     INTERCEPTA_MAX_CALLS: z.coerce.number().int().nonnegative().default(900),
     INTERCEPTA_TOXIC_THRESHOLD: z.coerce.number().min(0).max(100).default(50),
     // Holds only a verified human may release (with World ID for Agents, below)
@@ -58,8 +58,9 @@ const schema = z
     WORLD_AGENTS_CLIENT_ID: optional(z.string().min(1)),
     WORLD_AGENTS_CLIENT_SECRET: optional(z.string().min(1)),
     WORLD_AGENTS_AUTH_METHOD: z.enum(["client_secret_basic", "client_secret_post"]).default("client_secret_basic"),
-    WORLD_AGENTS_APPROVERS: z.string().default(""), // pairwise subs; empty: the first approver enrolls
-    WORLD_AGENTS_APPROVERS_PATH: z.string().default("../../data/agent/approvers.json"),
+    WORLD_AGENTS_APPROVERS: z.string().default(""), // pairwise subs, matched exactly
+    WORLD_AGENTS_ENROLL: flag.default(false), // on: the first approved proof enrolls (while nobody is enrolled)
+    WORLD_AGENTS_APPROVERS_PATH: z.string().default("../../data/agent/approvers.json"), // relative to services/agent
   })
   .superRefine((env, ctx) => {
     const require = (key: string, when: boolean, message = "required by the selected provider") => {

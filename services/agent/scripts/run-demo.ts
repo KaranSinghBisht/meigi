@@ -3,9 +3,8 @@ import { fileURLToPath } from "node:url";
 
 /**
  * `pnpm demo [--force]`: sends every demo document to a running agent and prints the verdicts. With --force,
- * each held invoice is also forced, to show the chain's decoded answer (simulated first; reverts are never
- * broadcast, but a forced payment the chain accepts is sent). A genuine invoice held for a person (07) is never
- * forced: it waits for a verified human's approval in the console.
+ * each held invoice is also forced, to show the chain's decoded answer. Force only simulates and never sends. A
+ * genuine invoice held for a person (07) isn't forced: it waits for a verified human's approval in the console.
  */
 
 const AGENT_URL = process.env.AGENT_URL ?? "http://localhost:8788";

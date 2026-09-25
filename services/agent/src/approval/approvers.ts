@@ -3,8 +3,11 @@ import { dirname } from "node:path";
 import { z } from "zod";
 
 /**
- * Who may approve: the pairwise World ID subjects in WORLD_AGENTS_APPROVERS, or, when that list is empty, the
- * first human to approve (enrolled and persisted, so a restart keeps them). Anyone else is "wrong_human".
+ * Who may approve: the pairwise World ID subjects in WORLD_AGENTS_APPROVERS, plus the one enrolled in the approver
+ * file. Enrolment happens only while WORLD_AGENTS_ENROLL is on, the allow-list is empty and nobody is enrolled yet
+ * (a private run before the demo, then a restart without it), so whoever scans a projected QR code first can't
+ * become the approver.
+ * Anyone else is "wrong_human".
  */
 
 export type ApproverCheck = "enrolled" | "matched" | "wrong_human";
@@ -15,12 +18,14 @@ export interface ApproverRegistry {
 
 const file = z.object({ version: z.literal(1), subs: z.array(z.string().min(1)) });
 
-/** `path` null keeps the enrolment in memory (tests). */
-export function createApproverRegistry(opts: { allowed: string[]; path: string | null }): ApproverRegistry {
-  if (opts.allowed.length > 0) {
-    const allowed = new Set(opts.allowed);
-    return { check: (sub) => (allowed.has(sub) ? "matched" : "wrong_human") };
-  }
+export interface ApproverOptions {
+  allowed: string[]; // WORLD_AGENTS_APPROVERS, matched exactly
+  path: string | null; // the approver file; null keeps the enrolment in memory (tests)
+  enroll: boolean; // WORLD_AGENTS_ENROLL; ignored when `allowed` pins the approvers
+}
+
+export function createApproverRegistry(opts: ApproverOptions): ApproverRegistry {
+  const allowed = new Set(opts.allowed);
   let memory: string[] = [];
   const store = {
     load: (): string[] | null => (opts.path ? load(opts.path) : memory),
@@ -28,9 +33,11 @@ export function createApproverRegistry(opts: { allowed: string[]; path: string |
   };
   return {
     check(sub) {
+      if (allowed.has(sub)) return "matched";
       const enrolled = store.load();
       if (enrolled === null) return "wrong_human"; // unreadable store: fail closed rather than re-enroll
-      if (enrolled.length > 0) return enrolled.includes(sub) ? "matched" : "wrong_human";
+      if (enrolled.includes(sub)) return "matched";
+      if (!opts.enroll || allowed.size > 0 || enrolled.length > 0) return "wrong_human"; // enrolment off, pinned, or done
       return store.save([sub]) ? "enrolled" : "wrong_human"; // can't persist the enrolment: don't approve
     },
   };

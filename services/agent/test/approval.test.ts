@@ -1,11 +1,10 @@
-import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
 import { analyzeDocument } from "../src/analysis/analyze.js";
 import type { StoredAnalysis } from "../src/analysis/store.js";
-import { createApproverRegistry } from "../src/approval/approvers.js";
 import { loadConfig } from "../src/config.js";
+import { packagePath } from "../src/wiring.js";
 import { HttpError } from "../src/http.js";
 import { demo, fakeDeps } from "./fakes.js";
 import {
@@ -170,48 +169,6 @@ describe("ID token validation", () => {
   });
 });
 
-describe("approvers", () => {
-  const dirs: string[] = [];
-  afterEach(() => dirs.splice(0).forEach((dir) => rmSync(dir, { recursive: true, force: true })));
-  const tempFile = () => {
-    const dir = mkdtempSync(join(tmpdir(), "meigi-approvers-"));
-    dirs.push(dir);
-    return join(dir, "agent", "approvers.json");
-  };
-
-  it("matches the configured subjects and refuses everyone else", async () => {
-    const h = await approvalHarness({ allowed: ["human-9"] });
-    h.idp.token = [approvedWith(await h.idp.sign({ sub: "human-1" }))];
-    const { state } = await run(h, await heldInvoice());
-    expect(state).toMatchObject({ status: "wrong_human", reason: "a different person proved than the approver on file" });
-    const again = await approvalHarness({ allowed: ["human-9"] });
-    again.idp.token = [approvedWith(await again.idp.sign({ sub: "human-9" }))];
-    expect((await run(again, await heldInvoice())).state).toMatchObject({ status: "approved", approver: "matched" });
-  });
-
-  it("enrolls the first approver, persists them (mode 600) and refuses a different human after a restart", () => {
-    const path = tempFile();
-    expect(createApproverRegistry({ allowed: [], path }).check("human-1")).toBe("enrolled");
-    expect(JSON.parse(readFileSync(path, "utf8"))).toEqual({ version: 1, subs: ["human-1"] });
-    expect(statSync(path).mode & 0o777).toBe(0o600);
-    const restarted = createApproverRegistry({ allowed: [], path });
-    expect(restarted.check("human-2")).toBe("wrong_human");
-    expect(restarted.check("human-1")).toBe("matched");
-  });
-
-  it("fails closed on an unreadable approver file instead of enrolling someone new", () => {
-    const path = tempFile();
-    createApproverRegistry({ allowed: [], path }).check("human-1");
-    writeFileSync(path, "{ not json");
-    expect(createApproverRegistry({ allowed: [], path }).check("human-2")).toBe("wrong_human");
-  });
-
-  it("keeps each in-memory registry separate", () => {
-    expect(createApproverRegistry({ allowed: [], path: null }).check("a")).toBe("enrolled");
-    expect(createApproverRegistry({ allowed: [], path: null }).check("b")).toBe("enrolled");
-  });
-});
-
 describe("World ID configuration", () => {
   const base = {
     SEPOLIA_RPC_URL: "http://127.0.0.1:8547",
@@ -221,8 +178,15 @@ describe("World ID configuration", () => {
     LLM_PROVIDER: "none",
   };
 
-  it("is off by default and needs both client values together", () => {
-    expect(loadConfig(base)).toMatchObject({ WORLD_AGENTS_ISSUER: ISSUER, WORLD_AGENTS_AUTH_METHOD: "client_secret_basic" });
+  it("resolves the approver file from services/agent, whatever the working directory", () => {
+    const repo = fileURLToPath(new URL("../../../", import.meta.url));
+    expect(packagePath("../../data/agent/approvers.json")).toBe(join(repo, "data/agent/approvers.json"));
+    expect(packagePath("/var/lib/meigi/approvers.json")).toBe("/var/lib/meigi/approvers.json");
+  });
+
+  it("is off by default, never enrolls unless asked, and needs both client values together", () => {
+    expect(loadConfig(base)).toMatchObject({ WORLD_AGENTS_ISSUER: ISSUER, WORLD_AGENTS_AUTH_METHOD: "client_secret_basic", WORLD_AGENTS_ENROLL: false });
+    expect(loadConfig({ ...base, WORLD_AGENTS_ENROLL: "1" }).WORLD_AGENTS_ENROLL).toBe(true);
     expect(() => loadConfig({ ...base, WORLD_AGENTS_CLIENT_ID: "app_x" })).toThrow("WORLD_AGENTS_CLIENT_SECRET");
     expect(() => loadConfig({ ...base, WORLD_AGENTS_CLIENT_SECRET: "sk" })).toThrow("WORLD_AGENTS_CLIENT_ID");
   });

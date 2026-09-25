@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Address, Hex } from "viem";
 import { AnalysisStore } from "./analysis/store.js";
@@ -19,6 +20,8 @@ import { cloudflareJevBackend, systemOneBackend, type TriageBackend } from "./tr
 import { createTriage } from "./triage/triage.js";
 
 const DEMO_DIR = fileURLToPath(new URL("../scripts/demo-invoices/", import.meta.url));
+/** services/agent: relative data paths resolve here, whatever the working directory. */
+const PACKAGE_DIR = fileURLToPath(new URL("..", import.meta.url));
 
 /** Builds every dependency from validated configuration. */
 export function buildDeps(config: Config) {
@@ -36,7 +39,7 @@ export function buildDeps(config: Config) {
   const llm = createLlm(config);
   const screening = createIntercepta({
     apiKey: config.INTERCEPTA_API_KEY,
-    cache: createScanCache(config.INTERCEPTA_CACHE_PATH),
+    cache: createScanCache(packagePath(config.INTERCEPTA_CACHE_PATH)),
     maxCalls: config.INTERCEPTA_MAX_CALLS,
     toxicThreshold: config.INTERCEPTA_TOXIC_THRESHOLD,
   });
@@ -76,7 +79,8 @@ function createApprovalService(config: Config): ApprovalService | null {
   if (!clientId || !clientSecret) return null;
   const idp = createIdp({ issuer: config.WORLD_AGENTS_ISSUER, clientId, clientSecret, authMethod: config.WORLD_AGENTS_AUTH_METHOD });
   const allowed = config.WORLD_AGENTS_APPROVERS.split(",").map((sub) => sub.trim()).filter(Boolean);
-  return createApprovals({ idp, approvers: createApproverRegistry({ allowed, path: config.WORLD_AGENTS_APPROVERS_PATH }) });
+  const path = packagePath(config.WORLD_AGENTS_APPROVERS_PATH);
+  return createApprovals({ idp, approvers: createApproverRegistry({ allowed, path, enroll: config.WORLD_AGENTS_ENROLL }) });
 }
 
 function createTriageBackends(config: Config): TriageBackend[] {
@@ -115,6 +119,11 @@ function workersAiTarget(config: Config) {
   const token = (config.WORKERS_AI_TOKEN ?? config.CLOUDFLARE_API_TOKEN)!;
   if (config.WORKERS_AI_URL) return { url: config.WORKERS_AI_URL, token, model };
   return { url: `https://api.cloudflare.com/client/v4/accounts/${config.CLOUDFLARE_ACCOUNT_ID}/ai/run/${model}`, token, model };
+}
+
+/** A data path from the configuration, relative to services/agent (not the working directory); absolute stays. */
+export function packagePath(path: string): string {
+  return resolve(PACKAGE_DIR, path);
 }
 
 /** "T2011001234567, 3999905000001" → ["2011001234567", "3999905000001"]; a malformed entry is a startup error. */

@@ -50,14 +50,21 @@ async function verifySignature(idToken: string, ctx: ValidationContext): Promise
       algorithms: ["RS256"],
       clockTolerance: SKEW_SECONDS,
       currentDate: new Date(ctx.now * 1000),
+      requiredClaims: ["exp", "iat", "sub", "auth_time"],
     });
     return payload;
   } catch (error) {
-    if (error instanceof errors.JWKSTimeout || !(error instanceof errors.JOSEError)) {
-      throw new IdpUnavailable("the World ID provider's signing keys could not be fetched");
-    }
+    if (keysUnavailable(error)) throw new IdpUnavailable("the World ID provider's signing keys could not be fetched");
     if (error instanceof errors.JWTExpired) throw new TokenRejected("the ID token has expired");
-    if (error instanceof errors.JWTClaimValidationFailed) throw new TokenRejected(`the ID token's ${error.claim} claim is wrong`);
-    throw new TokenRejected(`the ID token failed verification (${error.code})`);
+    if (error instanceof errors.JWTClaimValidationFailed) {
+      throw new TokenRejected(error.reason === "missing" ? `the ID token has no ${error.claim}` : `the ID token's ${error.claim} claim is wrong`);
+    }
+    throw new TokenRejected(`the ID token failed verification (${(error as errors.JOSEError).code})`);
   }
+}
+
+/** The key set couldn't be fetched or read (network, timeout, non-200, not JSON, not a key set): not the token's fault. */
+function keysUnavailable(error: unknown): boolean {
+  if (!(error instanceof errors.JOSEError)) return true;
+  return error instanceof errors.JWKSTimeout || error instanceof errors.JWKSInvalid || error.code === "ERR_JOSE_GENERIC";
 }
