@@ -1,0 +1,10 @@
+// Public demo host for the landing page: static assets only, no Worker code.
+// Deploy with scripts/deploy-demo.sh, which builds with the public env first.
+{
+  "name": "meigi",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}

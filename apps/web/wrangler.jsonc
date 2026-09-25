@@ -1,0 +1,10 @@
+// Public demo host for the web app (hosted mode): static assets only, no Worker code.
+// Deploy with scripts/deploy-demo.sh, which builds with VITE_HOSTED=1 first.
+{
+  "name": "meigi-app",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}
