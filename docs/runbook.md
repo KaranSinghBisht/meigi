@@ -6,12 +6,13 @@ Everything runs from the repo root, with secrets in a git-ignored `.env` (never 
 
 | Contract | Address |
 |---|---|
-| PayeeRegistry | `0xB2D61a2d1EF2C340F8b4cf9ec90E1eDCB08a6e84` (from block 11780968) |
-| PayeeResolver (parent `payee.eth`) | `0xEC8C23682Df12A0422d8a656F80c51858E6fEd92` |
-| PayRouter | `0x1fdf6b12f9734291d179C842074E34563b15fF1E` |
+| PayeeRegistry | `0x205c977cF1f4Ed42e51a48759550eF40160A6396` (from block 11781105) |
+| PayeeResolver (parent `payee.eth`) | `0xe3Fa4DC8C2920CC0a682781d8a51E4bbCaF025dA` |
+| PayRouter | `0xbA95BA5D4a2244cce46a76920f411B225116850C` |
 | MockJPYC (`mJPYC`) | `0xEcA2B093682a46B14b143474d188A120bA2d0EC2` |
-| AgentVault | `0x20554C36fe044d4725Fd1C9798fDA69e9a49f74D` |
+| AgentVault | `0x87A798CD92dE1340B1b761dd45196AC82bEF793B` |
 
+This is deployment v2, after two security-review rounds. v1 (`deployments/11155111-v1.json`) is retired.
 All are verified on Sourcify. Timelocks: 72h for payout changes, rotations and dispute resolutions; 1h for new vendors.
 
 Demo fixtures, fictional companies marked as such in their on-chain evidence:
