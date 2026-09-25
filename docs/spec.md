@@ -44,8 +44,12 @@ See `contracts/README.md` ("Who can change what" and "Trust model"). In short:
 - governance acts behind the same timelock;
 - every money-moving change is public for 72h and cancellable.
 
-An independent security review found 11 issues. All were fixed, with regression tests
-(`contracts/test/registry/PayeeRegistryRecovery.t.sol`).
+The contracts went through three independent review rounds, each by separate AI reviewers with
+proof-of-concept exploits:
+1. **Round 1** found 11 issues, three of them High (e.g. an officer alone could take over a payee). All 11 were fixed with regression tests.
+2. **Round 2** found that the fixes introduced one Medium (attester revocation could be undone or reach back in time) and four Lows. All five were fixed, and v2 was redeployed.
+3. **Round 3** confirmed all fixes with 39 PoCs and a mutation check: reverting any fix breaks its test (20/20).
+   Two residuals remain by design and are documented; the contracts README and `docs/runbook.md` list them.
 
 ## Demo
 
