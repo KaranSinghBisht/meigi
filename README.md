@@ -95,7 +95,7 @@ company it belongs to.
 | **Verifier** | Exact match against the NTA bulk data after NFKC normalisation. Keybase-style DNS proof. World ID 4.0 officer sessions. Approvals whose World ID signal pins the exact change. **Global:** `GET /lei/:lei` verifies any company's LEI against GLEIF and links Japanese ones to their T-number. For example, Sony Group's LEI links to `T5010401067252`. | [`services/verifier`](services/verifier) |
 | **AP agent** | Invoice → deterministic extraction → System-1 triage (our fine-tuned model) → deterministic kernel → Intercepta screening → pay or hold. The LLM proposes (it may pick the destination) and explains; the kernel and the vault decide. **The agent holds no key:** a separate signer does, signs only `payInvoice` after simulating it, and above ¥150,000 needs a human to approve through World ID for Agents. | [`services/agent`](services/agent), [`services/signer`](services/signer) |
 | **x402 guard** | Before an agent signs an x402 payment: a declared T-number must match `payTo`. Merchants that declare none get at most a small allowance (¥50 by default) after a clean Intercepta screen, or nothing. | [`packages/x402-guard`](packages/x402-guard), [`services/x402-demo`](services/x402-demo) |
-| **PayeeBench-JA** | A Japanese-first benchmark for triaging payment redirection, built from our own synthetic templates. Kev-0.8B, fine-tuned on a MacBook, reaches 0.918 mean accuracy on the held-out test templates at 39 ms p50 on the laptop. Mean accuracy isn't the whole story: Llama 3.3 70B (0.815) ranks safe versus held items at least as well, so the model only routes and the registry match decides. | [`bench`](bench) |
+| **PayeeBench-JA** | A Japanese-first benchmark for triaging payment redirection, built from our own synthetic templates. payee-0.8b, our fine-tune of Kev-0.8B on a MacBook, reaches 0.918 mean accuracy on the held-out test templates (the base model: 0.747) at 39 ms p50 on the laptop. Mean accuracy isn't the whole story: Llama 3.3 70B (0.815) ranks safe versus held items at least as well, so the model only routes and the registry match decides. | [`bench`](bench) |
 | **Web app / landing** | Registry explorer with a live event feed, registration, officer approvals, agent console and x402 demo; a three.js "Sakasa Fuji" landing page. | [`apps/web`](apps/web), [`apps/landing`](apps/landing) |
 
 ## Sponsor integrations
@@ -301,19 +301,43 @@ The threat model, audit plan and production roadmap are in [`docs/trust-and-comp
 
 ## Run it locally
 
-Needs Node ≥ 22, pnpm 11 and Foundry. The bench also needs Python with uv. Secrets live in a git-ignored
-`.env` at the repo root; each package README lists the variables it reads.
+Needs Node ≥ 22.18, pnpm 11 and Foundry. The bench also needs Python with uv.
+
+**The tests.** A shallow clone downloads 49 MB; the full history is 320 MB, mostly old screenshots.
 
 ```sh
+git clone --depth 1 https://github.com/KaranSinghBisht/meigi && cd meigi
 pnpm install
+git submodule update --init --depth 1 contracts/lib/forge-std contracts/lib/openzeppelin-contracts
 cd contracts && forge test && cd ..                    # 156 tests (two fork suites are skipped without an RPC)
-pnpm -r test                                           # unit tests (vitest): agent, verifier, x402 guard, signer
+pnpm -r test                                           # unit tests: agent, verifier, signer, x402 guard, AI proxy
+pnpm -r typecheck
+pnpm --filter @meigi/web test:worker                   # the site's Worker
+pnpm --filter @meigi/agent test:integration            # the agent against the real contracts on anvil
+(cd bench && uv sync && uv run --group dev pytest -q)
+```
+
+**The agent on a local chain, with no secrets.** Four terminals, from the repo root:
+
+```sh
+touch .env                                             # the scripts load a root .env, even an empty one
+pnpm --filter @meigi/agent local:chain                 # anvil :8547 with the contracts and demo vendors; keep it running
+pnpm --filter @meigi/signer dev:local                  # the signer :8797, with anvil's public agent key
+TRIAGE_REQUIRED=false pnpm --filter @meigi/agent dev:local   # no Kev or Ollama here: a warning, not a hold
+pnpm --filter @meigi/agent demo --force                # the BEC is refused (payout_mismatch); the routine invoice pays
+```
+
+`pnpm --filter @meigi/web dev` serves the landing and the app on :5173 with no env vars. Its Settlements panel needs
+our MultiBaas key.
+
+**Our demo machine (needs our keys, which we don't publish).** These read secrets from a git-ignored `.env` at
+the repo root:
+
+```sh
 pnpm --filter @meigi/verifier start                    # :8787 (needs the NTA index: services/verifier/scripts/build_nta_index.py)
 scripts/ap-stack.sh                                    # the signer :8796 (the only key holder), then the agent :8788
-pnpm --filter @meigi/agent multibaas:setup --awaji     # optional: index the Awaji contracts in Curvegrid MultiBaas
-pnpm --filter @meigi/x402-demo start                   # :8790
-pnpm --filter @meigi/web dev                           # :5173
-pnpm dev:landing
+pnpm --filter @meigi/agent multibaas:setup --awaji     # index the Awaji contracts in Curvegrid MultiBaas
+pnpm --filter @meigi/x402-demo start                   # :8790, with funded buyer and facilitator keys
 ```
 
 Service ports, re-seeding and demo checks: [`docs/runbook.md`](docs/runbook.md). Public deploy:
