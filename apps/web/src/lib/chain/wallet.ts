@@ -84,6 +84,26 @@ export async function sendPayoutChange(
   return walletClient(provider).writeContract({ ...request, account, chain: sepolia })
 }
 
+/**
+ * The controller cancels a queued payout change directly: `cancelPayoutChange(tNumber)`. No officer approval
+ * needed - `PayeeRegistry._requireCanceller` allows the controller, an attester or governance, and this is the
+ * controller exercising that on their own, without going through the verifier's officer-quorum intent at all.
+ */
+export async function sendCancelPayoutChange(
+  provider: EIP1193Provider,
+  account: HexAddress,
+  tNumber: bigint,
+): Promise<Hex> {
+  const { request } = await publicClient.simulateContract({
+    account,
+    address: env.registry,
+    abi: payeeRegistryAbi,
+    functionName: 'cancelPayoutChange',
+    args: [tNumber],
+  })
+  return walletClient(provider).writeContract({ ...request, account, chain: sepolia })
+}
+
 export async function waitForReceipt(hash: Hex): Promise<TransactionReceipt> {
   return publicClient.waitForTransactionReceipt({ hash, timeout: 180_000 })
 }

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { formatJst } from '../../lib/chain/format'
 import { Countdown } from '../../ui/components/Countdown'
 import './registry.css'
@@ -23,10 +24,12 @@ interface PendingBannerProps {
   readonly kind: PendingKind
   readonly landsAt: Date
   readonly onElapsed?: () => void
+  /** e.g. the controller's own "cancel with your wallet" button; only ever offered where the chain allows it. */
+  readonly action?: ReactNode
 }
 
 /** Loud, on purpose: a pending change is the one thing a payer must never miss. */
-export function PendingBanner({ kind, landsAt, onElapsed }: PendingBannerProps) {
+export function PendingBanner({ kind, landsAt, onElapsed, action }: PendingBannerProps) {
   const copy = COPY[kind]
   return (
     <div className="pending" role="status">
@@ -40,6 +43,7 @@ export function PendingBanner({ kind, landsAt, onElapsed }: PendingBannerProps) 
       <p className="pending__body">
         {copy.body} <span className="pending__when">({formatJst(landsAt)})</span>
       </p>
+      {action}
     </div>
   )
 }

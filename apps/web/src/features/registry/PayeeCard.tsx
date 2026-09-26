@@ -6,6 +6,7 @@ import { Address } from '../../ui/components/Address'
 import { Badge } from '../../ui/components/Badge'
 import { CopyButton } from '../../ui/components/CopyButton'
 import { useSceneMood } from '../../ui/stage/useSceneMood'
+import { CancelPayoutChange } from './CancelPayoutChange'
 import { PendingBanner } from './PendingBanner'
 import { useClaimedProfile } from './useClaimedProfile'
 import { useEnsCheck, type EnsCheck } from './usePayee'
@@ -128,7 +129,12 @@ function Pending({ payee, onElapsed }: { readonly payee: PayeeSnapshot; readonly
   return (
     <>
       {payee.payoutChangeLandsAt ? (
-        <PendingBanner kind="payout" landsAt={payee.payoutChangeLandsAt} onElapsed={onElapsed} />
+        <PendingBanner
+          kind="payout"
+          landsAt={payee.payoutChangeLandsAt}
+          onElapsed={onElapsed}
+          action={<CancelPayoutChange payee={payee} onCancelled={onElapsed} />}
+        />
       ) : null}
       {payee.rotationLandsAt ? (
         <PendingBanner kind="rotation" landsAt={payee.rotationLandsAt} onElapsed={onElapsed} />
