@@ -10,6 +10,18 @@ export interface UnsavedWallet {
   readonly downloaded: boolean
 }
 
+/** Where the key lives while the screen is open; cleared when the screen goes. */
+function useKeyRef() {
+  const key = useRef<Hex | null>(null)
+  useEffect(
+    () => () => {
+      key.current = null
+    },
+    [],
+  )
+  return key
+}
+
 /**
  * A payout wallet made in this browser. Its key lives only in a ref while the wallets screen is open: it is never
  * rendered, put in state or storage, sent or logged. Saving the backup is the one way out, and it happens once:
@@ -17,17 +29,10 @@ export interface UnsavedWallet {
  * download), and only then does the address become usable as the payout.
  */
 export function useNewPayoutWallet(onSaved: (address: HexAddress) => void) {
-  const key = useRef<Hex | null>(null)
+  const key = useKeyRef()
   const [unsaved, setUnsaved] = useState<UnsavedWallet | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  useEffect(
-    () => () => {
-      key.current = null
-    },
-    [],
-  )
 
   const create = useCallback(() => {
     const privateKey = generatePrivateKey()
