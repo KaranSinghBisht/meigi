@@ -24,12 +24,14 @@ export interface Env {
   AI: AiBinding;
   PROXY_TOKEN: string;
   BUDGET: BudgetNamespace;
+  AI_TIMEOUT_MS?: string; // tests shorten it; unset in production (AI_TIMEOUT_MS below)
 }
 
 /** Workers extends SubtleCrypto with a constant-time comparison. */
 type WorkersSubtle = SubtleCrypto & { timingSafeEqual(a: ArrayBufferView, b: ArrayBufferView): boolean };
 
 const CHAT_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+const AI_TIMEOUT_MS = 60_000; // an answer later than this is a 504; its reservation stays, as for any failed call
 const MAX_BODY_BYTES = 64 * 1024;
 const MAX_TOKENS = 1024;
 const DEFAULT_TOKENS = 512;
@@ -95,17 +97,36 @@ function budgetOf(env: Env, now: number) {
   };
 }
 
+class AiTimeout extends Error {}
+
+/** The AI binding takes no AbortSignal, so a slow call is abandoned here; it may still finish and cost. */
+async function withTimeout<T>(call: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new AiTimeout()), ms);
+  });
+  try {
+    return await Promise.race([call, timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function run(env: Env, target: Target, now: number): Promise<Response> {
   const budget = budgetOf(env, now);
   const reserved = await budget.reserve(target.neurons);
   if (!reserved.ok) {
-    const message = `The proxy's daily ${reserved.spent === "calls" ? "call" : "neuron"} budget is spent; it resets at 00:00 UTC.`;
+    const message =
+      reserved.spent === "day"
+        ? "The proxy's budget has moved on to a new UTC day; try again."
+        : `The proxy's daily ${reserved.spent === "calls" ? "call" : "neuron"} budget is spent; it resets at 00:00 UTC.`;
     return json({ code: "daily_budget_spent", message }, 429);
   }
   let result: unknown;
   try {
-    result = await env.AI.run(target.model, target.input);
+    result = await withTimeout(env.AI.run(target.model, target.input), Number(env.AI_TIMEOUT_MS) || AI_TIMEOUT_MS);
   } catch (error) {
+    if (error instanceof AiTimeout) return json({ code: "upstream_timeout", message: "The model didn't answer in time." }, 504);
     const message = error instanceof Error ? error.message : "upstream error";
     const status = /balance|credits|402|2021/iu.test(message) ? 402 : 502;
     return json({ code: status === 402 ? "insufficient_credits" : "upstream_error", message }, status);

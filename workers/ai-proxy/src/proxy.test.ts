@@ -86,6 +86,35 @@ describe("the daily budget", () => {
     assert.equal(calls.length, 1);
   });
 
+  it("never lets a call from before midnight touch the new day's counters", async () => {
+    const budget = new ProxyBudget({ storage: memoryStorage() });
+    const post = async (path: string) => (await budget.fetch(new Request(`https://budget${path}`, { method: "POST" }))).json();
+    const peek = async (day: string) => (await budget.fetch(new Request(`https://budget/peek?day=${day}`))).json();
+    await post("/reserve?day=2026-09-26&neurons=500"); // yesterday's slow call
+    await post("/reserve?day=2026-09-27&neurons=100"); // today's first call
+    assert.deepEqual(await post("/settle?day=2026-09-26&delta=-400"), { ok: true, ignored: true }); // yesterday's call settles late
+    assert.deepEqual(await peek("2026-09-27"), { calls: 1, neurons: 100 });
+    assert.deepEqual(await post("/reserve?day=2026-09-26&neurons=1"), { ok: false, spent: "day" });
+    assert.deepEqual(await peek("2026-09-27"), { calls: 1, neurons: 100 });
+  });
+
+  it("answers 504 when the model takes too long, and keeps that call's reservation", async () => {
+    const { budget } = setup();
+    let answer: (value: unknown) => void = () => {};
+    const env: Env = {
+      PROXY_TOKEN: TOKEN,
+      AI_TIMEOUT_MS: "20",
+      AI: { run: () => new Promise((resolve) => (answer = resolve)) },
+      BUDGET: { idFromName: () => "global", get: () => ({ fetch: (input, init) => budget.fetch(new Request(input, init)) }) },
+    };
+    const response = await proxy.fetch(new Request("https://proxy.example/v1/chat", { method: "POST", headers: { authorization: `Bearer ${TOKEN}` }, body: JSON.stringify(chat) }), env);
+    assert.equal(response.status, 504);
+    answer({ usage: { prompt_tokens: 1, completion_tokens: 1 } }); // it finishes after all, and is not settled
+    const day = new Date().toISOString().slice(0, 10);
+    const bytes = new TextEncoder().encode(JSON.stringify(chat)).byteLength;
+    assert.deepEqual(await (await budget.fetch(new Request(`https://budget/peek?day=${day}`))).json(), { calls: 1, neurons: worstCase(bytes, 8) });
+  });
+
   it("starts each UTC day empty", async () => {
     const budget = new ProxyBudget({ storage: memoryStorage() });
     const reserve = (day: string) => budget.fetch(new Request(`https://budget/reserve?day=${day}&neurons=${NEURON_CAP}`, { method: "POST" }));

@@ -7,6 +7,8 @@
  *   reports; a call that fails keeps its reservation.
  * - Jev (/v1/systemone) spends prepaid AI Gateway credits, not neurons, so it counts towards the calls only.
  * - One SQLite-backed Durable Object holds the counters. It handles one event at a time, so a reservation can't race.
+ * - Only the newest day is ever written. A request dated before the stored day (a call that began before 00:00 UTC
+ *   and settles after the new day's first write) is refused, or its settle ignored, so it can't reset today.
  */
 
 export const CALL_CAP = 200;
@@ -46,7 +48,7 @@ interface Day {
   readonly neurons: number;
 }
 
-export type Reserved = { readonly ok: true } | { readonly ok: false; readonly spent: "calls" | "neurons" };
+export type Reserved = { readonly ok: true } | { readonly ok: false; readonly spent: "calls" | "neurons" | "day" };
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/u;
 const KEY = "today";
@@ -71,10 +73,17 @@ export class ProxyBudget {
     if (!DAY.test(day)) return new Response(null, { status: 400 });
     const stored = await this.storage.get<Day>(KEY);
     const today: Day = stored?.day === day ? stored : { day, calls: 0, neurons: 0 };
+    const past = stored !== undefined && stored.day > day; // "YYYY-MM-DD" sorts by date
     if (url.pathname === "/peek") return Response.json({ calls: today.calls, neurons: today.neurons });
     if (request.method !== "POST") return new Response(null, { status: 405 });
-    if (url.pathname === "/reserve") return this.reserve(today, whole(url.searchParams.get("neurons")));
-    if (url.pathname === "/settle") return this.settle(today, whole(url.searchParams.get("delta")));
+    if (url.pathname === "/reserve") {
+      if (past) return Response.json({ ok: false, spent: "day" } satisfies Reserved);
+      return this.reserve(today, whole(url.searchParams.get("neurons")));
+    }
+    if (url.pathname === "/settle") {
+      if (past) return Response.json({ ok: true, ignored: true }); // yesterday's call: it can't touch today's counters
+      return this.settle(today, whole(url.searchParams.get("delta")));
+    }
     return new Response(null, { status: 404 });
   }
 
