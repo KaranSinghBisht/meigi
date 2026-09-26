@@ -76,7 +76,7 @@ describe("a deployment on the wrong chain", () => {
     stub.invoicesPaid.push({ txHash: "0xdd", block: 1, at: "2026-09-26T03:00:00Z", inputs: { tNumber: "2011001234567", payout: MEIGI_PAYOUT, amount: "1", invoiceRef: REF } });
     const { body } = await call(withMultiBaas(), "GET", "/payments");
     expect(body.source).toEqual({ settled: "rpc", received: "rpc" });
-    expect(body.notes[0]).toBe("MultiBaas unavailable (the MultiBaas deployment is on chain 6497, not 11155111); read from RPC logs");
+    expect(body.notes).toEqual(["MultiBaas unavailable (the MultiBaas deployment is on chain 6497, not 11155111); read from RPC logs"]);
     expect(body.settled).toEqual([]);
   });
 

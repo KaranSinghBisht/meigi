@@ -32,7 +32,7 @@ export function paymentRoutes(deps: AppDeps) {
     const received = await receivedRows(deps, filter ?? deps.vendorTNumbers, decimals, names);
     return c.json({
       source: { settled: settled.source, received: received.source },
-      notes: [settled.note, received.note].filter((note): note is string => Boolean(note)),
+      notes: [...new Set([settled.note, received.note].filter((note): note is string => Boolean(note)))],
       settled: await Promise.all(rows.map(async (p) => settledRow(p, decimals, await names(p.tNumber)))),
       received: received.rows,
       refused: refusedRows(deps.store.recent(500), filter, query.limit),
