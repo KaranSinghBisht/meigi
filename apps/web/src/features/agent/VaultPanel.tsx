@@ -1,20 +1,14 @@
-import { useEffect, useId, useState, type ReactNode } from 'react'
-import { describeChainError } from '../../lib/chain/errors'
+import { useId, type ReactNode } from 'react'
 import { formatJst, shortAddress } from '../../lib/chain/format'
-import { FIXTURE_T_NUMBER, parseTNumber } from '../../lib/chain/tNumber'
-import { readVault, type VaultState } from '../../lib/chain/vault'
+import { FIXTURE_T_NUMBER } from '../../lib/chain/tNumber'
+import type { VaultState } from '../../lib/chain/vault'
 import { env } from '../../lib/env/env'
 import { Address } from '../../ui/components/Address'
 import { Badge } from '../../ui/components/Badge'
 import { useEnsCheck, usePayee, type EnsCheck } from '../registry/usePayee'
+import { AGENT_ENS_NAME, useAgentEns } from './useAgentEns'
+import { useVault, type VaultLoad } from './useVault'
 import './vault.css'
-
-type Load = { kind: 'loading' } | { kind: 'ready'; vault: VaultState } | { kind: 'error'; message: string }
-
-const FIXTURE = parseTNumber(FIXTURE_T_NUMBER)
-
-/** The agent's own ENS name (ENSv2, under meigi.eth); it should resolve to this vault in any ENS client. */
-const AGENT_ENS_NAME = 'ap.meigi.eth'
 
 const ENS_NOTES: Record<EnsCheck, { text: string; tone: 'ok' | 'muted' | 'bad' }> = {
   checking: { text: 'checking…', tone: 'muted' },
@@ -22,23 +16,6 @@ const ENS_NOTES: Record<EnsCheck, { text: string; tone: 'ok' | 'muted' | 'bad' }
   none: { text: 'not resolving yet', tone: 'muted' },
   other: { text: 'resolves to a different address', tone: 'bad' },
   error: { text: 'lookup failed', tone: 'muted' },
-}
-
-/** The vault read live from Sepolia; `version` changes after each payment attempt, so it is read again. */
-function useVault(version: number): Load {
-  const [load, setLoad] = useState<Load>({ kind: 'loading' })
-  useEffect(() => {
-    if (!FIXTURE) return
-    let live = true
-    readVault(FIXTURE.value).then(
-      (vault) => live && setLoad({ kind: 'ready', vault }),
-      (error: unknown) => live && setLoad({ kind: 'error', message: describeChainError(error).message }),
-    )
-    return () => {
-      live = false
-    }
-  }, [version])
-  return load
 }
 
 interface TileProps {
@@ -75,7 +52,7 @@ function Tiles({ vault }: { readonly vault: VaultState }) {
 }
 
 /** Whether the agent key can pay at all right now: the owner can pause the vault. */
-function VaultStatus({ load }: { readonly load: Load }) {
+function VaultStatus({ load }: { readonly load: VaultLoad }) {
   if (load.kind !== 'ready') return null
   const { paused } = load.vault
   return <Badge tone={paused ? 'disputed' : 'active'}>{paused ? 'Paused by the owner' : 'Active'}</Badge>
@@ -109,6 +86,7 @@ export function VaultPanel({ version }: { readonly version: number }) {
   // Empty unless the vendor is active: a disputed payee's name is withheld, so the T-number is shown instead.
   const name = payee.status === 'ready' ? payee.payee.legalName || null : null
   const ens = ENS_NOTES[useEnsCheck(AGENT_ENS_NAME, env.vault)]
+  const { primary } = useAgentEns()
   return (
     <section className="vault-panel window" aria-labelledby={id} aria-live="polite">
       <header className="vault-panel__head">
@@ -130,6 +108,7 @@ export function VaultPanel({ version }: { readonly version: number }) {
       <p className="vault-panel__foot">
         <span className="mono">{AGENT_ENS_NAME}</span>{' '}
         <span className={`vault-panel__ens vault-panel__ens--${ens.tone}`}>{ens.text}</span>
+        {primary ? <span className="vault-panel__ens vault-panel__ens--ok"> · ✓ primary name</span> : null}
       </p>
     </section>
   )
