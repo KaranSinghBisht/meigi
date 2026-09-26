@@ -30,7 +30,9 @@ const schema = z
     AGENT_ALLOWED_HOSTS: z.string().default(""), // extra Host names for LAN use, e.g. "192.168.1.20:8788"
     APP_ORIGINS: z.string().default("http://localhost:5173,http://localhost:4173"),
     // System-1 triage
-    TRIAGE_BACKENDS: z.string().default("systemone,proxy"), // fine-tuned Kev first, then Jev via the team proxy
+    // Local only by default: the fine-tuned Kev on this machine. "proxy" (Jev through workers/ai-proxy, which spends
+    // AI Gateway credits) and "cloudflare" (Jev over the REST API) are opt-in fallbacks.
+    TRIAGE_BACKENDS: z.string().default("systemone"),
     TRIAGE_REQUIRED: flag.default(true),
     TRIAGE_MIN_P_SAFE: probability.default(0.9),
     SYSTEMONE_URL: z.url().default("http://127.0.0.1:8102/v1/systemone"), // the fine-tuned payee-0.8b (kev.serve)

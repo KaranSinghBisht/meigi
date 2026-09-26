@@ -321,7 +321,7 @@ All settings come from the environment; see `.env.example`.
 
 | Area | Default |
 |---|---|
-| Triage | `TRIAGE_BACKENDS=systemone,proxy`, `SYSTEMONE_URL=http://127.0.0.1:8102/v1/systemone`, `TRIAGE_MIN_P_SAFE=0.9`, `TRIAGE_REQUIRED=true` |
+| Triage | `TRIAGE_BACKENDS=systemone` (local Kev only; add `,proxy` to fall back to Jev through workers/ai-proxy, which is capped daily), `SYSTEMONE_URL=http://127.0.0.1:8102/v1/systemone`, `TRIAGE_MIN_P_SAFE=0.9`, `TRIAGE_REQUIRED=true` |
 | LLM | `LLM_PROVIDER=local` (the default for demos: a model on this machine behind an OpenAI-compatible API, `LOCAL_LLM_URL=http://127.0.0.1:11434/v1`, `LOCAL_LLM_MODEL=llama3.1:8b`, `LOCAL_LLM_TIMEOUT_MS=60000`), `proxy` (Llama 3.3 via `AI_PROXY_URL/v1/chat` with `AI_PROXY_TOKEN`), `anthropic` (`ANTHROPIC_API_KEY`, `claude-haiku-4-5`), `workers-ai` or `none` |
 | Screening | `INTERCEPTA_API_KEY` (optional), `INTERCEPTA_CACHE_PATH=../../data/agent/intercepta-cache.json`, `INTERCEPTA_MAX_CALLS=900`, `INTERCEPTA_TOXIC_THRESHOLD=50` |
 | Judgement holds | `TRIAGE_MAX_PRESSURE=0.5`, `AUTO_CLEAR_MAX_YEN` (unset: the signer's ceiling, ¥150,000, is the budget) |
