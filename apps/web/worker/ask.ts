@@ -1,13 +1,15 @@
 // "Ask the ledger": POST /api/ask { question } answers a question about the settlements GET /api/settlements serves,
-// from those rows only, as { answer, citedTx }. GET /api/ask says whether it is on and whether questions are open
-// today. Read-only, no tools. Off unless ASK_ENABLED is "true". Limits: 300 characters, 3 a minute per IP (the
-// rate-limit binding) and a daily cap for everyone (a Durable Object, 30 unless ASK_DAILY_CAP says otherwise).
-// Errors are generic; nothing a visitor typed is logged.
+// as { answer, citedTx, suggestions }. The model only reads the question into a fixed query; the Worker computes the
+// answer from the rows and writes it from templates, so nothing the model says is ever shown. GET /api/ask says
+// whether it is on and whether questions are open today. Read-only, no tools. Off unless ASK_ENABLED is "true".
+// Limits: 300 characters, 3 a minute per IP (the rate-limit binding) and a daily cap for everyone (a Durable Object,
+// 30 unless ASK_DAILY_CAP says otherwise). Errors are generic; nothing a visitor typed is logged.
 
-import { allowedIn, factsOf } from './ask-facts'
-import { guardAnswer } from './ask-guard'
+import { answerFor, refusal } from './ask-answer'
+import { payeesOf, queryOf } from './ask-intent'
 import { MAX_QUESTION, MODEL, modelInput, modelReply } from './ask-prompt'
 import { peekQuota, takeQuota, utcDay } from './ask-quota'
+import { jstDay } from './ask-scope'
 import type { Env } from './env'
 import type { SettlementsApi } from './settlements'
 
@@ -59,21 +61,23 @@ function allocationSpent(error: unknown): boolean {
   return error instanceof Error && /\b4006\b|daily free allocation/i.test(error.message)
 }
 
-/** The rows, the facts worked out from them, one model call, and the guard over what it said. */
-async function answer(env: Env, api: SettlementsApi, question: string): Promise<Response> {
+/** The rows, one model call that reads the question into a query, and the answer computed from the rows. */
+async function answer(env: Env, api: SettlementsApi, question: string, now: number): Promise<Response> {
   const body = await api.list(null)
-  const facts = factsOf(body)
-  const allowed = allowedIn(facts, body.settlements)
+  const rows = body.settlements
   const ai = env.AI
   if (!ai) return unavailable()
+  if (rows.length === 0) return reply({ answer: 'There are no settlements yet.', citedTx: [], suggestions: [] })
+  const payees = payeesOf(rows)
   let raw: unknown
   try {
-    raw = await withTimeout(ai.run(MODEL, modelInput(facts, body.settlements, question)), MODEL_TIMEOUT_MS)
+    raw = await withTimeout(ai.run(MODEL, modelInput(payees, question, jstDay(now))), MODEL_TIMEOUT_MS)
   } catch (error) {
     if (allocationSpent(error)) return paused()
     throw error
   }
-  return reply({ ...guardAnswer(modelReply(raw), allowed), asOf: body.asOf })
+  const query = queryOf(modelReply(raw), payees)
+  return reply({ ...(query ? answerFor(query, rows) : refusal()), asOf: body.asOf })
 }
 
 async function ask(request: Request, env: Env, api: SettlementsApi, now: number): Promise<Response> {
@@ -86,7 +90,7 @@ async function ask(request: Request, env: Env, api: SettlementsApi, now: number)
   if (!(await limiter.limit({ key: ip })).success)
     return refuse(429, 'rate_limited', 'Three questions a minute: try again shortly.')
   if (!(await takeQuota(quota, utcDay(now), dailyCap(env)))) return paused()
-  return answer(env, api, question)
+  return answer(env, api, question, now)
 }
 
 /** Off unless ASK_ENABLED is "true": then the panel shows no box at all, and a direct request finds no API. */

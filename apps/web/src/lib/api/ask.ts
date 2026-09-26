@@ -8,9 +8,12 @@ import { isRecord } from './parse'
 export const MAX_QUESTION = 300
 
 export interface LedgerAnswer {
+  /** Written by the Worker from the rows, never by the model. */
   readonly answer: string
   /** Transactions the answer relies on, each one of the settlement rows. */
   readonly citedTx: readonly `0x${string}`[]
+  /** With the refusal: questions it can answer. */
+  readonly suggestions: readonly string[]
 }
 
 /** Why a question got no answer: the daily cap, the per-minute limit, a question it won't take, or anything else. */
@@ -29,9 +32,11 @@ export async function askLedger(question: string, signal?: AbortSignal): Promise
   const body = await requestJson('/api/ask', { method: 'POST', body: { question }, timeoutMs: 40_000, signal })
   if (!isRecord(body) || typeof body.answer !== 'string') throw new ApiError(502, 'bad_response', 'Unreadable answer.')
   const cited = Array.isArray(body.citedTx) ? body.citedTx : []
+  const suggestions = Array.isArray(body.suggestions) ? body.suggestions : []
   return {
     answer: body.answer,
     citedTx: cited.filter((tx): tx is `0x${string}` => typeof tx === 'string' && HASH.test(tx)),
+    suggestions: suggestions.filter((text): text is string => typeof text === 'string'),
   }
 }
 

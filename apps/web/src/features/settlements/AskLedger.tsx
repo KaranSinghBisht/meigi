@@ -37,6 +37,7 @@ function Reply({ state }: { readonly state: AskState }) {
           ))}
         </p>
       ) : null}
+      {state.reply.suggestions.length > 0 ? <p className="ask__note">Try one of the questions above.</p> : null}
     </div>
   )
 }
@@ -54,8 +55,9 @@ function Suggested({ disabled, onPick }: { readonly disabled: boolean; readonly 
 }
 
 /**
- * "Ask the ledger": a question about the settlements above, answered only from them by the site's Worker (Workers AI,
- * checked before it is shown). Read-only; greyed out calmly once the day's questions are used up.
+ * "Ask the ledger": a question about the settlements above. The model only reads the question into a fixed query; the
+ * site's Worker computes the answer from the rows and writes it. Read-only; greyed out calmly once the day's questions
+ * are used up.
  */
 export function AskLedger() {
   const id = useId()
