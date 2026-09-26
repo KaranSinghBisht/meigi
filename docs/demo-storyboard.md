@@ -37,7 +37,7 @@ It autoplays, loops, and has chapter chips and pause. Reduced motion turns it in
   The chain log is at the bottom.
 - **Captions:** one line at a time in a bottom caption bar, English with the Japanese term where it matters.
 
-## Chapters (about 2 min 20 s loop)
+## Chapters (about 2 min 30 s loop)
 
 ### 0. A company joins Meigi (0:00–0:24)
 
@@ -97,19 +97,23 @@ no domain proof, the officer `keccak("meigi-demo-fixture-officer")`, and the evi
 | 1:38 | — | Pay → chain log: `payInvoice` → **Paid ¥55,000 to 0x9B4f…47e4** · tx `0xf15571d7…0c48` (real Sepolia) | "Only now does it pay, still through the vault's checks." |
 | 1:43 | The mail gets a green "Paid" label | — | — |
 
-### 5. Agents buying compute and data (1:46–2:12)
+### 5. Agents buying compute and data (1:46–2:20)
 
-The browser switches tab to a terminal-style "research agent" log. It plays worldui's recorded research-agent run on
-Sepolia (`content/x402-run.json`), paced by the run itself; its settlements also land in the chain log.
+The browser switches tab to a terminal-style "research agent" log. It plays the recorded research-agent run on
+Sepolia (`content/x402-run.json`, now the re-recorded Intercepta run: 6 purchases, 4 settled, 2 refused), paced by
+the run itself; its settlements also land in the chain log. The chapter's last second brings the end card in.
 
 | t | Screen | Caption |
 |---|---|---|
 | 1:46 | Two GPU-minutes from **Minato GPU Cloud**: `402 Payment Required` · 15 mJPYC, declaring `T6999900000003` / `t6999900000003.payee.eth` | "Agents pay each other over x402, before any human looks." |
-| 1:50 | The guard: the ENS name resolves, the registry agrees, payTo matches → signed → settled (tx `0x24b128e8…`, `0xce9c6cf8…`); then a dataset slice from Fuji Data (tx `0x48d3d33a…`) | "Before signing, the guard checks who it's paying." |
-| 2:01 | A cheaper-looking GPU inference mirror swaps `payTo` → **refused before signing**: "t6999900000003.payee.eth resolves to the registered payout 0x4d6D…, but payTo asks for 0xdCa5… instead" | "A hacked merchant is refused. The agent never signs." |
-| 2:07 | A web-scrape API with no Meigi record: refused ("no screening is configured"); with a clean screen it would get at most 50 mJPYC | "Unknown merchants get a small, screened allowance, or nothing." |
+| 1:50 | The guard: the ENS name resolves, the registry agrees, payTo matches, Intercepta screens it clean → signed → settled; then a dataset slice from Fuji Data | "Before signing, the guard checks who it's paying." |
+| 2:03 | A cheaper-looking GPU inference mirror swaps `payTo` → **refused before signing**: "t6999900000003.payee.eth resolves to the registered payout 0x4d6D…, but payTo asks for 0xdCa5… instead" | "A hacked merchant is refused. The agent never signs." |
+| 2:09 | A web-scrape API with no Meigi record gets a small, screened allowance and settles; another one, paying an address screening flags (known scammer), is refused | "Unknown merchants get a small, screened allowance, or nothing." |
 
-### 6. End card (2:12–2:20)
+### 6. End card (2:20–2:28)
+
+The card holds until the loop cuts back to chapter 0. Every chapter opens on a fully drawn frame, so a chapter chip
+pressed while paused always shows its stage.
 
 "**Pay companies, not addresses.**" Meigi: a company's official registry number, bound to one payout, verified once
 and checked on every payment, by people and by agents. Links: the live app, `t2011001234567.payee.eth`, GitHub.
