@@ -56,13 +56,23 @@ function NeedsHuman({ analysis }: { readonly analysis: Analysis }) {
   )
 }
 
+/**
+ * Who held it: forcing refused by the agent, the separate signer's own ceiling (it holds the agent key and signs
+ * nothing above it without a verified human's approval), or the kernel.
+ */
+function heldTitle(outcome: Held): string {
+  if (outcome.reasons.some((reason) => reason.code === 'force_refused')) return 'Held, and forcing it is refused.'
+  if (outcome.reasons.some((reason) => reason.code === 'signer_refused')) return 'Held by the signer. Nothing was sent.'
+  return 'Held. The kernel sent nothing.'
+}
+
 /** The explanation already on screen in the decision bar isn't repeated. */
 function HeldView({ outcome, analysis }: { readonly outcome: Held; readonly analysis: Analysis }) {
   if (outcome.reasons.some((reason) => reason.code === 'force_needs_human')) return <NeedsHuman analysis={analysis} />
   const refused = outcome.reasons.some((reason) => reason.code === 'force_refused')
   const explanation = outcome.explanation.text !== analysis.explanation.text ? outcome.explanation.text : null
   return (
-    <Notice tone="warn" title={refused ? 'Held, and forcing it is refused.' : 'Held. The kernel sent nothing.'}>
+    <Notice tone="warn" title={heldTitle(outcome)}>
       {explanation ? <p>{explanation}</p> : null}
       {outcome.reasons.length > 0 ? (
         <ul className="held__reasons">
