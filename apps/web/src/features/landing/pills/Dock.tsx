@@ -1,7 +1,7 @@
+import { Link } from 'react-router'
 import { landingConfig as env } from '../lib/config'
 import { ResolvePopover } from '../resolve/ResolvePopover'
 import { StatusPill } from '../status/StatusPill'
-import { CopyPill } from './CopyPill'
 import { ArrowUpRight } from './icons'
 import './pills.css'
 
@@ -24,7 +24,10 @@ export function Dock() {
         {env.githubUrl && <ExternalPill href={env.githubUrl} label="GitHub" />}
         {env.docsUrl && <ExternalPill href={env.docsUrl} label="Docs" />}
         <ResolvePopover />
-        <CopyPill label="x402 guard" text="npm i @meigi/x402-guard" />
+        {/* The guard is a workspace package in the repo, not on npm yet, so the pill opens its page instead of an install line. */}
+        <Link className="pill" to="/x402">
+          x402 guard
+        </Link>
       </nav>
     </footer>
   )
