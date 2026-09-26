@@ -43,6 +43,36 @@ function Methods() {
   )
 }
 
+/** What registration proves for a real company today, and what production adds. */
+function ProvenToday() {
+  return (
+    <Notice
+      tone="info"
+      title={
+        <span>
+          Today, registration proves an exact NTA name match, domain control and <span className="nowrap">World ID</span>{' '}
+          officers.
+        </span>
+      }
+    >
+      <p>In production it also proves the signer represents the company.</p>
+    </Notice>
+  )
+}
+
+/** A demo company proves none of that: it is fictional, so it says so, then what a real company proves. */
+function DemoProvesNothing() {
+  return (
+    <Notice tone="info" title="A demo company is fictional: it has no NTA record and no domain to prove.">
+      <p>
+        A real company's registration proves an exact NTA name match, domain control and{' '}
+        <span className="nowrap">World ID</span> officers today. In production it also proves the signer represents
+        the company.
+      </p>
+    </Notice>
+  )
+}
+
 /** The step's content, shared by the live wizard and the hosted replay: the methods, and what's proven today. */
 export function RepresentativeBody({ fixture }: { readonly fixture: boolean }) {
   return (
@@ -53,17 +83,7 @@ export function RepresentativeBody({ fixture }: { readonly fixture: boolean }) {
         </p>
       ) : null}
       <Methods />
-      <Notice
-        tone="info"
-        title={
-          <span>
-            Today, registration proves an exact NTA name match, domain control and <span className="nowrap">World ID</span>{' '}
-            officers.
-          </span>
-        }
-      >
-        <p>In production it also proves the signer represents the company.</p>
-      </Notice>
+      {fixture ? <DemoProvesNothing /> : <ProvenToday />}
     </>
   )
 }

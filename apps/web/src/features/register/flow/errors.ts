@@ -36,7 +36,7 @@ const WORDING: Record<string, Wording> = {
   }),
   registration_expired: () => ({
     tone: 'error',
-    title: 'This draft expired after 24 hours.',
+    title: 'This draft expired.',
     detail: 'Nothing was written on-chain. Start over to open a new one.',
   }),
   rate_limited: (error) => {
