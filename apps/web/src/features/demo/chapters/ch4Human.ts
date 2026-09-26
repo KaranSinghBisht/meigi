@@ -50,20 +50,23 @@ function read(c: BuildCtx): void {
   rise(c, 'u-flag', 4.4)
 }
 
+/** Triage holds it; the kernel's checks all pass (this run was analysed before it was paid); a person decides. */
 function triage(c: BuildCtx): void {
   step(c, 'urgent', 2, 4.9)
   card(c, 'urgent', 'u-card-triage', 5.0)
-  bar(c, 'u-bar-pressure', 5.5, 0.8)
-  bar(c, 'u-bar-safe', 5.9, 0.8)
-  bar(c, 'u-bar-susp', 6.3, 0.8)
-  rise(c, 'u-triage-hold', 7.0)
-  step(c, 'urgent', 3, 7.6)
-  card(c, 'urgent', 'u-card-decision', 7.7)
-  status(c, 'reading', 'hold', 7.8)
+  bar(c, 'u-bar-pressure', 5.4, 0.8)
+  bar(c, 'u-bar-safe', 5.7, 0.8)
+  bar(c, 'u-bar-susp', 6.0, 0.8)
+  rise(c, 'u-triage-hold', 6.7)
+  step(c, 'urgent', 3, 7.0)
+  card(c, 'urgent', 'u-card-kernel', 7.05)
+  step(c, 'urgent', 4, 7.9)
+  card(c, 'urgent', 'u-card-decision', 7.95)
+  status(c, 'reading', 'hold', 8.0)
 }
 
 function approve(c: BuildCtx): void {
-  step(c, 'urgent', 4, 9.4)
+  step(c, 'urgent', 5, 9.4)
   card(c, 'urgent', 'u-card-world', 9.5)
   status(c, 'hold', 'human', 9.6)
   show(c, 'phone', 10.6, { x: 0, duration: 0.7 })
@@ -77,18 +80,18 @@ function approve(c: BuildCtx): void {
   hide(c, 'u-world-wait', 14.5, { duration: 0.2 })
   rise(c, 'u-world-ok', 14.6)
   status(c, 'human', 'approved', 14.6)
-  stepDone(c, 'urgent', 4, 14.6)
+  stepDone(c, 'urgent', 5, 14.6)
 }
 
 function pay(c: BuildCtx): void {
-  step(c, 'urgent', 5, 16.2)
+  step(c, 'urgent', 6, 16.2)
   hide(c, 'cursor', 16.0)
   const sent = logLine(c, 'human', 'pay', 16.4, 70)
   const paid = logLine(c, 'human', 'paid', sent + 0.3, 60)
   logLine(c, 'human', 'block', paid + 0.15, 70)
   card(c, 'urgent', 'u-card-paid', paid - 0.2)
   status(c, 'approved', 'paid', paid - 0.2)
-  stepDone(c, 'urgent', 5, paid)
+  stepDone(c, 'urgent', 6, paid)
   show(c, 'row-urgent-paid', 20.4, { scale: 1 })
   show(c, 'msg-urgent-paid', 20.5, { scale: 1 })
   hide(c, 'phone', 20.8, { x: 40, duration: 0.5 })

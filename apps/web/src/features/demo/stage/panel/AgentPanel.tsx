@@ -118,7 +118,7 @@ export function AgentPanel() {
         <Scene id="bec" steps={['Read', 'Triage', 'Belief', 'Kernel', 'Screen', 'Decide']} idle={<Idle />}>
           <BecCards />
         </Scene>
-        <Scene id="urgent" steps={['Read', 'Triage', 'Decide', 'Human', 'Pay']} hidden>
+        <Scene id="urgent" steps={['Read', 'Triage', 'Kernel', 'Decide', 'Human', 'Pay']} hidden>
           <UrgentCards />
         </Scene>
         <Scene id="x402" steps={['402', 'ENS', 'Registry', 'Screen', 'Sign', 'Settle']} hidden>

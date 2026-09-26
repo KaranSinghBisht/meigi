@@ -1,9 +1,10 @@
+import { formatJstTime } from '../../../../lib/chain/format'
 import { HankoMark } from '../../../../ui/brand/HankoMark'
 import { Spinner } from '../../../../ui/components/Spinner'
 import { useQr } from '../../../../ui/world/useQr'
 import { keepTokens } from '../../content/tokens'
 import { APPROVAL, PAID, URGENT } from '../../content/urgent'
-import { layerLabel, percent } from './checks'
+import { checkLabel, layerLabel, percent } from './checks'
 import { Bar, Card, Chip, Field } from './parts'
 
 const { analysis, triage } = URGENT
@@ -73,9 +74,29 @@ function TriageCard() {
   )
 }
 
+/** This run's analysis was recorded before its payment, so every check the vault will make passes here. */
+function KernelCard() {
+  const { checks } = analysis.kernel
+  const passed = checks.filter((check) => check.ok).length
+  return (
+    <Card name="u-card-kernel" title="3 · Kernel" meta={`${passed} of ${checks.length} checks pass`}>
+      <ul className="pchecks pchecks--grid">
+        {checks.map((check) => (
+          <li key={check.code} className={check.ok ? 'pcheck' : 'pcheck pcheck--fail'}>
+            <span className="pcheck__mark" aria-hidden="true">
+              {check.ok ? '✓' : '✗'}
+            </span>
+            <span className="pcheck__label">{checkLabel(check.code)}</span>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  )
+}
+
 function DecisionCard() {
   return (
-    <Card name="u-card-decision" title="3 · Decision" meta="a person decides">
+    <Card name="u-card-decision" title="4 · Decision" meta="a person decides">
       <p className="pverdict">
         <Chip tone="hold">HOLD</Chip>
         <span className="pverdict__line">until a human approves with World ID</span>
@@ -97,7 +118,7 @@ function DecisionCard() {
 function WorldIdCard() {
   const qr = useQr(APPROVAL.qrUri)
   return (
-    <Card name="u-card-world" title="4 · World ID for Agents" meta="device flow · sandbox IdP" className="pcard--world">
+    <Card name="u-card-world" title="5 · World ID for Agents" meta="device flow · sandbox IdP" className="pcard--world">
       <div className="pworld">
         <span className="pworld__qr">
           {qr.src ? <img src={qr.src} alt="" width={96} height={96} /> : null}
@@ -107,9 +128,7 @@ function WorldIdCard() {
           <p className="mono pworld__link">{APPROVAL.link}</p>
           <p className="pworld__code">
             <span className="pcard__note">Code</span>
-            <span className="pworld__code-value" aria-label="user code, hidden in the recording">
-              ••••-••••
-            </span>
+            <span className="pworld__code-value">{APPROVAL.code}</span>
           </p>
         </div>
       </div>
@@ -123,8 +142,8 @@ function WorldIdCard() {
           <span>
             <b>Approved by the enrolled approver</b>
             <span className="pcard__note">
-              Sandbox token: acr {APPROVAL.acr} · amr {APPROVAL.amr} · fresh auth_time · single-use, bound to{' '}
-              {URGENT.invoice}
+              Sandbox token: acr {APPROVAL.acr} · approved {formatJstTime(APPROVAL.approvedAt)}, checked fresh ·
+              single-use, bound to {URGENT.invoice}
             </span>
           </span>
         </p>
@@ -135,7 +154,7 @@ function WorldIdCard() {
 
 function PaidCard() {
   return (
-    <Card name="u-card-paid" title="5 · Pay" meta="through the vault's checks" className="pcard--paid">
+    <Card name="u-card-paid" title="6 · Pay" meta="through the vault's checks" className="pcard--paid">
       <p className="pverdict">
         <Chip tone="ok">Paid</Chip>
         <span className="pverdict__line">
@@ -143,7 +162,12 @@ function PaidCard() {
         </span>
       </p>
       <p className="pcard__note">
-        tx <span className="mono">{PAID.txShort}</span> · block {PAID.block.toLocaleString('en-US')} · Sepolia
+        tx <span className="mono">{PAID.txShort}</span> · block {PAID.block.toLocaleString('en-US')} ·{' '}
+        {formatJstTime(PAID.at)} · Sepolia
+      </p>
+      <p className="pcard__note">
+        Sent by the agent key through the ENS MandateGate, under the mandate{' '}
+        <span className="mono">{PAID.mandate}</span>
       </p>
     </Card>
   )
@@ -154,6 +178,7 @@ export function UrgentCards() {
     <>
       <ReadCard />
       <TriageCard />
+      <KernelCard />
       <DecisionCard />
       <WorldIdCard />
       <PaidCard />

@@ -1,4 +1,5 @@
 import { HankoMark } from '../../../ui/brand/HankoMark'
+import { APPROVAL } from '../content/urgent'
 import './phone.css'
 
 /**
@@ -22,7 +23,7 @@ export function Phone() {
           </div>
           <p className="dphone__code">
             <span>Code</span>
-            <b className="dphone__code-value">••••-••••</b>
+            <b className="dphone__code-value">{APPROVAL.code}</b>
             <span className="dphone__match">matches</span>
           </p>
           <span className="dphone__btn dphone__btn--ink" data-d="phone-approve">

@@ -84,7 +84,7 @@
 
 .dphone__code-value {
   font-family: var(--font-mono);
-  filter: blur(3px);
+  white-space: nowrap;
 }
 
 .dphone__match {

@@ -1,6 +1,7 @@
 // Short labels for the kernel's checks, keyed by the codes the agent sends. Unknown codes show their code.
 
 const LABELS: Readonly<Record<string, string>> = {
+  mandate_live: 'ENS mandate answers',
   vendor_approved: 'Approved vendor',
   payee_registered: 'Registered and active',
   payout_mismatch: 'Registered payout',

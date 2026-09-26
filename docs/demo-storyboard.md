@@ -99,12 +99,16 @@ with no code change.
 
 ### 4. A genuine but urgent invoice, and a human decides (1:22–1:46)
 
+One real run on 2026-09-26 (`docs/world-agents-approve-run.md`, audit entries #77–#85): the invoice text is demo 07
+as it read then (MS-2026-0931; its SHA-256 is the audit's `documentSha256`), the analysis is that run's own (id
+`874eb11f…`, recorded before the payment), and the payment is the approved one.
+
 | t | Browser | Agent panel | Caption |
 |---|---|---|---|
-| 1:22 | A new mail: 【至急】ご請求書送付のお知らせ from the real `meigi-shoji.example`, with a PDF chip; the invoice is MS-2026-0940, the number the paid tx's invoiceRef commits to | Read → Triage: pressure high → **Hold until a human approves with World ID** | "A real invoice, but it pushes for speed (至急)." |
-| 1:28 | — | The World ID for Agents card: QR code, link and user code; "Waiting for a human to approve this payment with World ID" | "The agent asks a human to approve with World ID for Agents, on World's sandbox." |
-| 1:32 | A neutral approver's screen slides in beside the browser: World ID approve screen → "World ID proof: a fresh proof, from a sandbox identity" (World's sandbox uses test identities, so no face check is shown) → **Approved** | The card goes green: "Approved by the enrolled approver · Sandbox token: acr orb-v3 · fresh" | "One fresh World ID proof, bound to this invoice, single-use." |
-| 1:38 | — | Pay → chain log: `payInvoice` → **Paid ¥55,000 to 0x9B4f…47e4** · tx `0xf15571d7…0c48` (real Sepolia) | "Only now does it pay, still through the vault's checks." |
+| 1:22 | A new mail: 【至急】ご請求書送付のお知らせ from the real `meigi-shoji.example`, with a PDF chip; the invoice is MS-2026-0931, the number the paid tx's invoiceRef commits to | Read → Triage (kev-latest, 59 ms: pressure 100%, p_safe 0.64 < 0.90, suspicion 0.73 / 3) → Kernel: 9 of 9 checks pass, among them "ENS mandate answers" → **Hold until a human approves with World ID** | "A real invoice, but it pushes for speed (至急)." |
+| 1:28 | — | The World ID for Agents card: QR code, link and the run's real user code `RMHB9-MFQB4`; "Waiting for a human to approve this payment with World ID" | "The agent asks a human to approve with World ID for Agents, on World's sandbox." |
+| 1:32 | A neutral approver's screen slides in beside the browser: World ID approve screen → "World ID proof: a fresh proof, from a sandbox identity" (World's sandbox uses test identities, so no face check is shown) → **Approved** | The card goes green: "Approved by the enrolled approver · Sandbox token: acr orb-v3 · approved 22:16 JST, checked fresh · single-use, bound to MS-2026-0931" | "One fresh World ID proof, bound to this invoice, single-use." |
+| 1:38 | — | Pay → chain log (MandateGate `0x591d…83BF`): `payInvoice` → **Paid ¥55,000 to 0x9B4f…47e4** · tx `0xf7507446…ea5a03`, block 11,786,455, 22:17 JST, sent by the agent key through the ENS MandateGate under `ap.t4999900000005.payee.eth` (real Sepolia) | "Only now does it pay, still through the vault's checks." |
 | 1:43 | The mail gets a green "Paid" label | — | — |
 
 ### 5. Agents buying compute and data (1:46–2:22)
@@ -138,7 +142,8 @@ and checked on every payment, by people and by agents. Links: the live app, `t20
 - **Real data only:**
   - chapters 1–3: `features/agent/recorded/bec-*.json` (the real agent answers and the real `PayeeMismatch`
     simulation);
-  - chapter 4: the World ID for Agents run and tx `0xf15571d7…0c48`;
+  - chapter 4: the World ID for Agents run of 2026-09-26 22:14–22:17 JST (`docs/world-agents-approve-run.md`) and
+    its tx `0xf7507446…ea5a03`;
   - chapter 5: the recorded research-agent run from x402-demo.
 - **The Gmail clone** is ours (no Google marks): the colours and layout feel familiar, but the logo is "Mail", not Gmail's.
   Japanese text renders in Noto Sans JP.

@@ -296,12 +296,12 @@
   margin-top: 6px;
 }
 
-/* The real code isn't in the recording; it stays blurred. */
+/* The user code World's page showed the approver in the recorded run. */
 .pworld__code-value {
   font-family: var(--font-mono);
   font-size: var(--text-md);
   font-weight: var(--weight-strong);
-  filter: blur(3px);
+  white-space: nowrap;
 }
 
 .pworld__status {
