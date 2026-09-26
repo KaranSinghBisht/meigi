@@ -80,10 +80,18 @@
   box-shadow: 0 -1px 0 var(--lg-hairline);
 }
 
+/* The ENS name, then each check on it; a check wraps whole, never mid-phrase. */
 .vault-panel__foot {
-  display: block;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
   padding-bottom: 20px;
   font-size: var(--text-sm);
+}
+
+.vault-panel__ens {
+  white-space: nowrap;
 }
 
 .vault-vendor {

@@ -106,9 +106,9 @@ export function VaultPanel({ version }: { readonly version: number }) {
         {load.kind === 'ready' ? <Vendor vault={load.vault} name={name} /> : <p className="muted">…</p>}
       </div>
       <p className="vault-panel__foot">
-        <span className="mono">{AGENT_ENS_NAME}</span>{' '}
+        <span className="mono">{AGENT_ENS_NAME}</span>
         <span className={`vault-panel__ens vault-panel__ens--${ens.tone}`}>{ens.text}</span>
-        {primary ? <span className="vault-panel__ens vault-panel__ens--ok"> · ✓ primary name</span> : null}
+        {primary ? <span className="vault-panel__ens vault-panel__ens--ok">✓ primary name</span> : null}
       </p>
     </section>
   )
