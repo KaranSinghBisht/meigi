@@ -1,6 +1,7 @@
 /* The officers screen: who is enrolled, and the World ID request inline. */
 .officer-list {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
 }
 

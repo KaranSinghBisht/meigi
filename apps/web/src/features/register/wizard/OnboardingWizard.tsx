@@ -91,11 +91,13 @@ export function OnboardingWizard() {
   const screen = screenOf(state, step)
   const direction = useDirection(screen)
   const windowRef = useStepFocus(screen)
+  const disputed = step === 5 && state.submission?.outcome === 'disputed'
   return (
     <div ref={windowRef} className="onboard window cells">
       <ProgressRail
         current={step}
-        finished={step === 5}
+        finished={step === 5 && !disputed}
+        outcome={disputed ? 'Claim disputed' : undefined}
         canVisit={(target) => canRevisit({ ...state, step }, target)}
         onVisit={onboarding.goTo}
         footer={<RailFooter onboarding={onboarding} finished={step === 5} />}

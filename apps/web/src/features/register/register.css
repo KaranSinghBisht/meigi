@@ -3,6 +3,7 @@
    segmented bar above the stage. */
 .register {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   container: register / inline-size;
 }
@@ -62,6 +63,7 @@
 
 .onboard-step__head {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
 }
 
@@ -83,8 +85,10 @@
   line-height: 1.5;
 }
 
+/* Every grid here has one track that can't grow past its box, so no long token widens the screen around it. */
 .onboard-step__body {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
 }
 
@@ -116,6 +120,7 @@
 /* A section of a screen: a small heading and one line on why it matters. */
 .onboard-section {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
 }
 
@@ -133,6 +138,7 @@
 /* A cell: glass inside the window, tint and light only. */
 .onboard-cell {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   padding: 16px 20px;
   border-radius: var(--radius-md);
@@ -158,6 +164,7 @@
 
 .onboard--preview .onboard__stage {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   align-content: center;
 }
 

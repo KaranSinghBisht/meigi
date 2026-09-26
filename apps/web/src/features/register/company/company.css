@@ -40,6 +40,7 @@
 
 .company-record {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
   padding: 16px 20px;
   border-radius: var(--radius-md);
@@ -89,6 +90,7 @@
 
 .company-lei {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
 }
 

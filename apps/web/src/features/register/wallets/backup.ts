@@ -4,8 +4,9 @@
 import type { Hex } from 'viem'
 import type { HexAddress } from '../../../lib/env/env'
 
+/** Short enough to read whole on a phone: it is named on screen as one token. */
 export function backupFileName(address: HexAddress): string {
-  return `meigi-payout-wallet-${address.slice(2, 8).toLowerCase()}.json`
+  return `meigi-payout-${address.slice(2, 8).toLowerCase()}.json`
 }
 
 function backupJson(address: HexAddress, privateKey: Hex): string {

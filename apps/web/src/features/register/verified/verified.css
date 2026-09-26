@@ -21,6 +21,7 @@
 
 .payee-card__main {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   min-width: 0;
 }
@@ -31,6 +32,23 @@
   gap: 8px;
   font-size: var(--text-sm);
   font-weight: var(--weight-strong);
+}
+
+/* The seal comes down once the card has risen: a hanko stamped on the registration. */
+.payee-card__brand .hanko {
+  animation: payee-stamp 0.45s var(--ease-out) 0.45s both;
+}
+
+@keyframes payee-stamp {
+  from {
+    opacity: 0;
+    transform: scale(1.8) rotate(-8deg);
+  }
+
+  70% {
+    opacity: 1;
+    transform: scale(0.94) rotate(0deg);
+  }
 }
 
 .payee-card__name {

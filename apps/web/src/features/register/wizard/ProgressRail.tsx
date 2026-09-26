@@ -9,6 +9,8 @@ interface ProgressRailProps {
   readonly current: number
   /** True once the last step is reached: every marker is a tick. */
   readonly finished?: boolean
+  /** The last step's name when the outcome isn't a verified payee (a disputed claim). */
+  readonly outcome?: string
   readonly canVisit?: (step: StepIndex) => boolean
   readonly onVisit?: (step: StepIndex) => void
   readonly footer?: ReactNode
@@ -58,7 +60,7 @@ function RailItem({ index, label, state, onVisit }: ItemProps) {
 }
 
 /** The onboarding's progress: every step by name on a wide window, a segmented bar on a phone. */
-export function ProgressRail({ current, finished = false, canVisit, onVisit, footer }: ProgressRailProps) {
+export function ProgressRail({ current, finished = false, outcome, canVisit, onVisit, footer }: ProgressRailProps) {
   const reached = finished ? STEP_COUNT : Math.max(current, 0)
   return (
     <nav className="rail" aria-label="Onboarding progress">
@@ -77,7 +79,12 @@ export function ProgressRail({ current, finished = false, canVisit, onVisit, foo
           const visit = onVisit && canVisit?.(step) ? onVisit : null
           return (
             <li key={label}>
-              <RailItem index={step} label={label} state={stateOf(index, current, finished)} onVisit={visit} />
+              <RailItem
+                index={step}
+                label={outcome && index === STEP_COUNT - 1 ? outcome : label}
+                state={stateOf(index, current, finished)}
+                onVisit={visit}
+              />
             </li>
           )
         })}

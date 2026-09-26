@@ -37,7 +37,14 @@ function Saved({ address, onDiscard }: { readonly address: HexAddress; readonly 
 function ConfirmDownload({ wallet, unsaved }: { readonly wallet: Wallet; readonly unsaved: UnsavedWallet }) {
   return (
     <>
-      <Notice tone="info" title={`Check your downloads for ${backupFileName(unsaved.address)}.`}>
+      <Notice
+        tone="info"
+        title={
+          <span>
+            Check your downloads for <span className="mono">{backupFileName(unsaved.address)}</span>.
+          </span>
+        }
+      >
         <p>Once the file is there, confirm it. This page then forgets the key for good.</p>
       </Notice>
       <div className="new-wallet__actions">
