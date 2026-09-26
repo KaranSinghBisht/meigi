@@ -52,6 +52,7 @@
 
 .rpanel__rows {
   display: grid;
+  flex: none;
   margin: 0;
   overflow: hidden;
   border-radius: var(--radius-md);

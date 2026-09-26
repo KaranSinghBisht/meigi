@@ -224,8 +224,12 @@
 }
 
 .dstage__design--portrait .onb__screen {
-  gap: 8px;
-  padding: 16px;
+  gap: 6px;
+  padding: 14px 16px;
+}
+
+.dstage__design--portrait .onb__payee {
+  padding: 7px 12px;
 }
 
 .dstage__design--portrait .onb__title {
@@ -240,4 +244,13 @@
 .dstage__design--portrait :is(.onb__qr, .onb__card-qr) {
   width: 80px;
   height: 80px;
+}
+
+/* Phones: the step counter stays, the lede goes, and each screen's contents tighten so nothing is cut. */
+.dstage__design--portrait .onb__screen .onb__lede {
+  display: none;
+}
+
+.dstage__design--portrait .onb__input {
+  height: 36px;
 }

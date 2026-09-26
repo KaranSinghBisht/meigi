@@ -170,3 +170,17 @@
   font-size: 13px;
   font-weight: var(--weight-strong);
 }
+
+.dstage__design--portrait :is(.onb__record, .onb__wallet, .onb__txt, .onb__officer) {
+  padding: 8px 12px;
+}
+
+.dstage__design--portrait .onb__review > div {
+  padding: 5px 12px;
+  font-size: 12px;
+}
+
+/* The payee name and the domain were on earlier screens; the phone's review keeps the four that matter. */
+.dstage__design--portrait .onb__review > div:is(:nth-child(2), :nth-child(5)) {
+  display: none;
+}
