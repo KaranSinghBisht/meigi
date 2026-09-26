@@ -141,7 +141,7 @@ function NtaStatus({ lookup, fictionalName, onFictionalName }: Omit<CompanyRecor
   if (nta.status === 'error') return <Notice tone="warn" title={nta.message} />
   return (
     <Notice tone="warn" title="This number isn't in the NTA registry.">
-      <p>Check it for a typo. Sole proprietors are verified by hand, not here.</p>
+      <p>Check it for a typo. Sole proprietors are reviewed by hand, not here.</p>
     </Notice>
   )
 }

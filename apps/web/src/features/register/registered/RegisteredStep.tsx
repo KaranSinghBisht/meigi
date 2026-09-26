@@ -6,12 +6,13 @@ import { TxLink } from '../../../ui/components/Address'
 import { Button, LinkButton } from '../../../ui/components/Button'
 import { Notice } from '../../../ui/components/Notice'
 import { Spinner } from '../../../ui/components/Spinner'
+import { STEP } from '../flow/steps'
 import type { Onboarding } from '../flow/useOnboarding'
 import { StepActions, StepFrame } from '../wizard/StepFrame'
 import { PayeeCard } from './PayeeCard'
 import { sharePayee, type PayeeShare, type ShareOutcome } from './sharePayee'
 import { useEnsResolves } from './useEnsResolves'
-import './verified.css'
+import './registered.css'
 
 function EnsCheck({ ens, payout }: { readonly ens: string; readonly payout: HexAddress }) {
   const { state, retry } = useEnsResolves(ens, payout)
@@ -67,7 +68,7 @@ function ShareButton({ payee }: { readonly payee: PayeeShare }) {
 function Disputed({ submission }: { readonly submission: Submission }) {
   return (
     <StepFrame
-      step={5}
+      step={STEP.registered}
       title="This number was already claimed"
       actions={
         <StepActions>
@@ -87,7 +88,7 @@ function Disputed({ submission }: { readonly submission: Submission }) {
   )
 }
 
-export function VerifiedStep({ onboarding }: { readonly onboarding: Onboarding }) {
+export function RegisteredStep({ onboarding }: { readonly onboarding: Onboarding }) {
   const { submission, company, registration, payout } = onboarding.state
   const parsed = submission ? parseTNumber(submission.tNumber) : null
   if (!submission || !company || !registration || !payout || !parsed) return null
@@ -96,8 +97,8 @@ export function VerifiedStep({ onboarding }: { readonly onboarding: Onboarding }
   const url = `${window.location.origin}/registry/${parsed.display}`
   return (
     <StepFrame
-      step={5}
-      title="You're verified."
+      step={STEP.registered}
+      title="You're registered."
       lede={`Payers who check ${parsed.ens} will only ever pay the address below. Changing it takes your business key, your officers and 72 hours in public.`}
       actions={
         <StepActions>
@@ -110,7 +111,7 @@ export function VerifiedStep({ onboarding }: { readonly onboarding: Onboarding }
     >
       <PayeeCard legalName={legalName} tNumber={parsed.display} ens={parsed.ens} payout={payout} fixture={company.fixture} />
       <EnsCheck ens={parsed.ens} payout={payout} />
-      <p className="verified-tx">
+      <p className="registered-tx">
         Registered on Sepolia in <TxLink hash={submission.txHash} />
       </p>
     </StepFrame>

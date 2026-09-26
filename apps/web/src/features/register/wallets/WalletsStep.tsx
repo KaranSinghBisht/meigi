@@ -5,6 +5,7 @@ import type { HexAddress } from '../../../lib/env/env'
 import { Address } from '../../../ui/components/Address'
 import { Button } from '../../../ui/components/Button'
 import { TextField } from '../../../ui/components/Field'
+import { STEP } from '../flow/steps'
 import type { Drafts, Onboarding } from '../flow/useOnboarding'
 import { StepActions, StepFrame } from '../wizard/StepFrame'
 import { ControllerField } from './ControllerField'
@@ -13,8 +14,11 @@ import { PayoutChoice } from './PayoutChoice'
 import { useNewPayoutWallet, type NewPayoutWallet as NewWallet } from './useNewPayoutWallet'
 import './wallets.css'
 
-/** A pasted payout address, checksummed; null (with a reason) when it isn't one. */
-function parsePasted(value: string): { address: HexAddress | null; problem: string | null } {
+/**
+ * A pasted payout address, checksummed; null (with a reason) when it isn't one. The wallet made on this screen
+ * whose backup isn't saved yet is refused: its key would be gone the moment the screen closes.
+ */
+function parsePasted(value: string, unsaved: HexAddress | null): { address: HexAddress | null; problem: string | null } {
   const trimmed = value.trim()
   if (trimmed === '') return { address: null, problem: null }
   if (!isAddress(trimmed)) {
@@ -23,19 +27,23 @@ function parsePasted(value: string): { address: HexAddress | null; problem: stri
     return { address: null, problem }
   }
   const address = getAddress(trimmed)
-  return address === zeroAddress ? { address: null, problem: "That's the zero address." } : { address, problem: null }
+  if (address === zeroAddress) return { address: null, problem: "That's the zero address." }
+  if (unsaved && address === getAddress(unsaved)) {
+    return { address: null, problem: "That's the new wallet, and its backup isn't saved yet. Save it first." }
+  }
+  return { address, problem: null }
 }
 
-function resolvePayout(drafts: Drafts, account: HexAddress | null): HexAddress | null {
+function resolvePayout(drafts: Drafts, account: HexAddress | null, unsaved: HexAddress | null): HexAddress | null {
   if (drafts.payoutMode === 'connected') return account
-  if (drafts.payoutMode === 'paste') return parsePasted(drafts.pastedPayout).address
+  if (drafts.payoutMode === 'paste') return parsePasted(drafts.pastedPayout, unsaved).address
   return drafts.createdPayout
 }
 
-function PastedPayout({ onboarding }: { readonly onboarding: Onboarding }) {
+function PastedPayout({ onboarding, unsaved }: { readonly onboarding: Onboarding; readonly unsaved: HexAddress | null }) {
   const value = onboarding.state.drafts.pastedPayout
   const [touched, setTouched] = useState(false)
-  const { problem } = parsePasted(value)
+  const { problem } = parsePasted(value, unsaved)
   return (
     <TextField
       label="Payout address"
@@ -70,7 +78,9 @@ interface PayoutDetailProps {
 
 function PayoutDetail({ onboarding, account, newWallet }: PayoutDetailProps) {
   const { drafts } = onboarding.state
-  if (drafts.payoutMode === 'paste') return <PastedPayout onboarding={onboarding} />
+  if (drafts.payoutMode === 'paste') {
+    return <PastedPayout onboarding={onboarding} unsaved={newWallet.unsaved?.address ?? null} />
+  }
   if (drafts.payoutMode === 'connected') return <ConnectedPayout account={account} />
   return (
     <NewPayoutWallet
@@ -87,18 +97,18 @@ export function WalletsStep({ onboarding }: { readonly onboarding: Onboarding })
   // Held here, not in the payout choice, so switching choices never drops a key whose backup isn't saved yet.
   const { setDrafts } = onboarding
   const newWallet = useNewPayoutWallet(useCallback((address) => setDrafts({ createdPayout: address }), [setDrafts]))
-  const payout = resolvePayout(drafts, wallet.account)
+  const payout = resolvePayout(drafts, wallet.account, newWallet.unsaved?.address ?? null)
   const submit = () => {
     if (wallet.account && payout) onboarding.confirmWallets(wallet.account, payout)
   }
   return (
     <StepFrame
-      step={1}
+      step={STEP.wallets}
       title="Which wallets will it use?"
       lede="A business key that approves changes, and the one address every payment goes to."
       onSubmit={submit}
       actions={
-        <StepActions onBack={() => onboarding.goTo(0)}>
+        <StepActions onBack={() => onboarding.goTo(STEP.company)}>
           <Button type="submit" size="lg" disabled={!wallet.account || !payout}>
             Continue
           </Button>

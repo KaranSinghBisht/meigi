@@ -1,7 +1,5 @@
 import { useState } from 'react'
-import type { Explained } from '../../../lib/api/messages'
 import { Button } from '../../../ui/components/Button'
-import { ErrorNotice } from '../../../ui/components/Notice'
 
 interface StartOverProps {
   readonly onReset: () => void
@@ -31,13 +29,4 @@ export function StartOver({ onReset, finished = false, className }: StartOverPro
       </Button>
     </div>
   )
-}
-
-/** The verifier no longer has this registration open: the only way on is a fresh one. */
-const GONE = new Set(['registration_expired', 'registration_not_found', 'already_submitted'])
-
-/** A verifier error on a step, with Start over when the registration it was about is gone. */
-export function StepError({ error, onReset }: { readonly error: Explained; readonly onReset: () => void }) {
-  const gone = error.code !== undefined && GONE.has(error.code)
-  return <ErrorNotice error={error} action={gone ? <StartOver onReset={onReset} /> : undefined} />
 }

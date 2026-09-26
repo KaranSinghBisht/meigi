@@ -30,3 +30,8 @@
   display: flex;
   flex-wrap: wrap;
 }
+
+.officer-full {
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}

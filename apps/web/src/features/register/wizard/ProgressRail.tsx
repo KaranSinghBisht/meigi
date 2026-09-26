@@ -9,7 +9,7 @@ interface ProgressRailProps {
   readonly current: number
   /** True once the last step is reached: every marker is a tick. */
   readonly finished?: boolean
-  /** The last step's name when the outcome isn't a verified payee (a disputed claim). */
+  /** The last step's name when the outcome isn't a registered payee (a disputed claim). */
   readonly outcome?: string
   readonly canVisit?: (step: StepIndex) => boolean
   readonly onVisit?: (step: StepIndex) => void

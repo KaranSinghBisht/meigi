@@ -8,6 +8,7 @@ import type { HexAddress } from '../../../lib/env/env'
 import { Address } from '../../../ui/components/Address'
 import { Button } from '../../../ui/components/Button'
 import { Notice } from '../../../ui/components/Notice'
+import { STEP } from '../flow/steps'
 import type { Onboarding } from '../flow/useOnboarding'
 import { StepActions, StepFrame } from '../wizard/StepFrame'
 
@@ -68,7 +69,7 @@ export function SignChallenge({ onboarding, registration, controller, domain }: 
   const signer = useSign(registration, controller, (signature) => onboarding.signed(registration.id, signature))
   return (
     <StepFrame
-      step={2}
+      step={STEP.domain}
       title={
         <>
           Sign the proof for <span className="onboard-break">{domain}</span>

@@ -1,13 +1,25 @@
-/** The onboarding's six screens, as the progress rail names them. */
+/** The onboarding's screens, as the progress rail names them. */
 export const STEPS = [
   'Your company',
   'Your wallets',
   'Prove your domain',
+  'Prove representation',
   'Your officers',
   'Review and register',
-  "You're verified",
+  'Registered',
 ] as const
 
 export const STEP_COUNT = STEPS.length
 
-export type StepIndex = 0 | 1 | 2 | 3 | 4 | 5
+/** Each step by name, so no screen hard-codes where it sits in the rail. */
+export const STEP = {
+  company: 0,
+  wallets: 1,
+  domain: 2,
+  representative: 3,
+  officers: 4,
+  review: 5,
+  registered: 6,
+} as const
+
+export type StepIndex = (typeof STEP)[keyof typeof STEP]

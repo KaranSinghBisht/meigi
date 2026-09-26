@@ -1,0 +1,57 @@
+/* The representative screen: the two production methods, shown as options that can't be picked yet. */
+.rep-methods {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+/* An option that exists but isn't open: same cell as a payout choice, no radio, a chip instead. Text stays at full
+   ink so it reads at AA; only the cursor and the chip say it can't be picked. */
+.rep-method {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: 8px;
+  padding: 16px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--lg-cell);
+  box-shadow: var(--lg-highlight);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+}
+
+.rep-method:disabled {
+  cursor: not-allowed;
+}
+
+.rep-method__title {
+  font-weight: var(--weight-strong);
+  line-height: 1.3;
+}
+
+.rep-method__title [lang='ja'] {
+  font-family: var(--font-jp);
+  word-break: keep-all;
+}
+
+.rep-method__body {
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  line-height: 1.4;
+}
+
+.rep-method__chip {
+  display: flex;
+}
+
+.rep-skip {
+  display: flex;
+}
+
+@container onboard (max-width: 560px) {
+  .rep-methods {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -9,10 +9,10 @@
   background: var(--lg-sheen-window), var(--lavender);
   box-shadow: var(--lg-shadow);
   color: var(--ink);
-  animation: payee-in 0.7s var(--ease-out) both;
+  animation: onboard-payee-in 0.7s var(--ease-out) both;
 }
 
-@keyframes payee-in {
+@keyframes onboard-payee-in {
   from {
     opacity: 0;
     transform: translateY(12px) scale(0.98);
@@ -36,10 +36,10 @@
 
 /* The seal comes down once the card has risen: a hanko stamped on the registration. */
 .payee-card__brand .hanko {
-  animation: payee-stamp 0.45s var(--ease-out) 0.45s both;
+  animation: onboard-stamp 0.45s var(--ease-out) 0.45s both;
 }
 
-@keyframes payee-stamp {
+@keyframes onboard-stamp {
   from {
     opacity: 0;
     transform: scale(1.8) rotate(-8deg);
@@ -138,7 +138,7 @@
   font-size: var(--text-sm);
 }
 
-.verified-tx {
+.registered-tx {
   color: var(--ink-soft);
   font-size: var(--text-sm);
 }

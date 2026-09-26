@@ -9,10 +9,14 @@ import { Notice } from '../../../ui/components/Notice'
 import { CredentialNote } from '../../../ui/world/CredentialNote'
 import { WorldIdProof } from '../../../ui/world/WorldIdProof'
 import { explainStep } from '../flow/errors'
+import { STEP } from '../flow/steps'
 import type { Onboarding } from '../flow/useOnboarding'
-import { StepError } from '../wizard/StartOver'
+import { StepError } from '../wizard/StepError'
 import { StepActions, StepFrame } from '../wizard/StepFrame'
 import './officers.css'
+
+/** The registry's cap on officers per company (the verifier refuses a ninth with too_many_officers). */
+const MAX_OFFICERS = 8
 
 function OfficerList({ officers }: { readonly officers: readonly string[] }) {
   if (officers.length === 0) return null
@@ -65,12 +69,12 @@ function Officers({ onboarding, registration, officers }: OfficersProps) {
   const none = officers.length === 0
   return (
     <StepFrame
-      step={3}
+      step={STEP.officers}
       title="Who approves changes?"
       lede="Every future payout change needs one of these same people."
       actions={
-        <StepActions onBack={() => onboarding.goTo(2)}>
-          <Button size="lg" disabled={none} onClick={() => onboarding.goTo(4)}>
+        <StepActions onBack={() => onboarding.goTo(STEP.representative)}>
+          <Button size="lg" disabled={none} onClick={() => onboarding.goTo(STEP.review)}>
             Continue
           </Button>
         </StepActions>
@@ -79,16 +83,20 @@ function Officers({ onboarding, registration, officers }: OfficersProps) {
       <CredentialNote />
       <OfficerList officers={officers} />
       {enrolled ? <Notice tone="success" title="Officer added." /> : null}
-      {error ? <StepError error={error} onReset={onboarding.reset} /> : null}
-      <div className="officer-add">
-        <WorldIdProof
-          label={none ? 'Add an officer with World ID' : 'Add another officer'}
-          signal={registration.enrollmentSignal}
-          onProof={enroll}
-          variant={none ? 'primary' : 'ghost'}
-          size="lg"
-        />
-      </div>
+      {error ? <StepError error={error} onboarding={onboarding} /> : null}
+      {officers.length >= MAX_OFFICERS ? (
+        <p className="officer-full">A company can have at most {MAX_OFFICERS} officers.</p>
+      ) : (
+        <div className="officer-add">
+          <WorldIdProof
+            label={none ? 'Add an officer with World ID' : 'Add another officer'}
+            signal={registration.enrollmentSignal}
+            onProof={enroll}
+            variant={none ? 'primary' : 'ghost'}
+            size="lg"
+          />
+        </div>
+      )}
     </StepFrame>
   )
 }

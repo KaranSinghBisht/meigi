@@ -3,7 +3,7 @@ import type { Hex } from 'viem'
 import type { Registration, Submission } from '../../../lib/api/verifier'
 import type { HexAddress } from '../../../lib/env/env'
 import { useSessionState } from '../../../lib/hooks/useSessionState'
-import { STEP_COUNT, type StepIndex } from './steps'
+import { STEP, STEP_COUNT, type StepIndex } from './steps'
 
 export type PayoutMode = 'connected' | 'paste' | 'create'
 
@@ -62,7 +62,7 @@ const UNREGISTERED = {
 } as const satisfies Partial<OnboardingState>
 
 const EMPTY: OnboardingState = {
-  step: 0,
+  step: STEP.company,
   drafts: { query: '', fictionalName: '', payoutMode: 'create', pastedPayout: '', createdPayout: null, domain: '' },
   company: null,
   controller: null,
@@ -82,7 +82,7 @@ function revive(value: unknown): OnboardingState | null {
 /** Steps 1–2 feed the verifier's registration: once it exists, changing them means starting over. */
 export function canRevisit(state: OnboardingState, step: number): boolean {
   if (state.submission || step >= state.step) return false
-  return state.registration === null || step >= 2
+  return state.registration === null || step >= STEP.domain
 }
 
 /** Null leaves the state as it is: an answer that arrived for a registration the reader has since left. */
@@ -103,14 +103,14 @@ function useActions(update: (patch: Patch) => void) {
   return useMemo(
     () => ({
       setDrafts: (drafts: Partial<Drafts>) => update((prev) => ({ drafts: { ...prev.drafts, ...drafts } })),
-      confirmCompany: (company: Company) => update(() => ({ ...UNREGISTERED, company, step: 1 })),
+      confirmCompany: (company: Company) => update(() => ({ ...UNREGISTERED, company, step: STEP.wallets })),
       confirmWallets: (controller: HexAddress, payout: HexAddress) =>
-        update(() => ({ ...UNREGISTERED, controller, payout, step: 2 })),
+        update(() => ({ ...UNREGISTERED, controller, payout, step: STEP.domain })),
       created: (registration: Registration, basis: RegistrationBasis) =>
         update((prev) => (isBasis(prev, basis) ? { ...UNREGISTERED, registration } : null)),
       signed: (id: string, signature: Hex | null) => update(forRegistration(id, () => ({ signature }))),
       domainVerified: (id: string, domainMethod: string) =>
-        update(forRegistration(id, () => ({ domainMethod, step: 3 }))),
+        update(forRegistration(id, () => ({ domainMethod, step: STEP.representative }))),
       officerAdded: (id: string, officerId: string) =>
         update(
           forRegistration(id, (prev) => ({
@@ -120,14 +120,51 @@ function useActions(update: (patch: Patch) => void) {
       setThreshold: (threshold: number) => update(() => ({ threshold })),
       goTo: (step: StepIndex) => update(() => ({ step })),
       submitted: (id: string, submission: Submission) =>
-        update(forRegistration(id, () => ({ submission, step: 5 }))),
+        update(forRegistration(id, () => ({ submission, step: STEP.registered }))),
     }),
     [update],
   )
 }
 
+const STORAGE_KEY = 'meigi.onboarding.v2'
+/** The registration left behind by the last Start over in this tab, so it can be picked up again. */
+const PREVIOUS_KEY = 'meigi.onboarding.previous'
+
+function readPrevious(): OnboardingState | null {
+  try {
+    const raw = window.sessionStorage.getItem(PREVIOUS_KEY)
+    return raw === null ? null : revive(JSON.parse(raw))
+  } catch {
+    return null // Unreadable or unavailable storage: there is simply nothing to pick up.
+  }
+}
+
+function writePrevious(state: OnboardingState | null): void {
+  try {
+    if (state) window.sessionStorage.setItem(PREVIOUS_KEY, JSON.stringify(state))
+    else window.sessionStorage.removeItem(PREVIOUS_KEY)
+  } catch {
+    // Not kept: storage is unavailable. Starting over still works; only the way back is lost.
+  }
+}
+
+/** Start over, keeping an unsubmitted registration aside; and pick that registration up again. */
+function useRestart(state: OnboardingState, setState: (state: OnboardingState) => void, clear: () => void) {
+  const reset = useCallback(() => {
+    if (state.registration && !state.submission) writePrevious(state)
+    clear()
+  }, [state, clear])
+  const resume = useCallback(() => {
+    const previous = readPrevious()
+    if (!previous) return
+    writePrevious(null)
+    setState(previous)
+  }, [setState])
+  return { reset, resume, previous: readPrevious }
+}
+
 export function useOnboarding() {
-  const [state, setState, reset] = useSessionState<OnboardingState>('meigi.onboarding.v1', EMPTY, revive)
+  const [state, setState, clear] = useSessionState<OnboardingState>(STORAGE_KEY, EMPTY, revive)
   const update = useCallback(
     (patch: Patch) =>
       setState((prev) => {
@@ -137,7 +174,8 @@ export function useOnboarding() {
     [setState],
   )
   const actions = useActions(update)
-  return { state, reset, ...actions }
+  const restart = useRestart(state, setState, clear)
+  return { state, ...restart, ...actions }
 }
 
 export type Onboarding = ReturnType<typeof useOnboarding>

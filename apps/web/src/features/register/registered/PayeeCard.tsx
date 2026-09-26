@@ -33,7 +33,7 @@ export function PayeeCard({ legalName, tNumber, ens, payout, fixture }: PayeeCar
       <div className="payee-card__main">
         <p className="payee-card__brand">
           <HankoMark size={28} />
-          <span>{fixture ? 'Verified payee · fictional company' : 'Verified payee'}</span>
+          <span>{fixture ? 'Registered payee · fictional company' : 'Registered payee'}</span>
         </p>
         <p className="payee-card__name jp" lang="ja">
           {legalName}

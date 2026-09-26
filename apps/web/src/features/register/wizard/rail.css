@@ -197,10 +197,12 @@
     flex-basis: auto;
   }
 
+  /* One segment per step, however many steps there are. */
   .rail__bar {
     display: grid;
     grid-area: bar;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
     gap: 4px;
   }
 

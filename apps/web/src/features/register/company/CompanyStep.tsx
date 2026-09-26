@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Button } from '../../../ui/components/Button'
 import { TextField } from '../../../ui/components/Field'
+import { STEP } from '../flow/steps'
 import type { Company, Onboarding } from '../flow/useOnboarding'
 import { StepActions, StepFrame } from '../wizard/StepFrame'
 import { CompanyRecord } from './CompanyRecord'
@@ -31,7 +32,7 @@ export function CompanyStep({ onboarding }: { readonly onboarding: Onboarding })
   }
   return (
     <StepFrame
-      step={0}
+      step={STEP.company}
       title="Which company is joining?"
       lede="Enter its T-number, the qualified invoice number, or paste its LEI. Meigi fills in the rest from the National Tax Agency registry."
       onSubmit={submit}

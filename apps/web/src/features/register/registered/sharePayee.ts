@@ -9,7 +9,7 @@ export interface PayeeShare {
 export type ShareOutcome = 'shared' | 'copied' | 'cancelled' | 'failed'
 
 function shareText({ legalName, tNumber, ens }: PayeeShare): string {
-  return `${legalName} (${tNumber}) is a verified payee on Meigi. Pay it by name: ${ens}`
+  return `${legalName} (${tNumber}) is a registered payee on Meigi. Pay it by name: ${ens}`
 }
 
 /** The system share sheet where there is one (phones, Safari), otherwise the text and link go to the clipboard. */

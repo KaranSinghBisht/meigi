@@ -1,39 +1,47 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { prefersReducedMotion } from '../../../lib/hooks/motion'
 import { CompanyStep } from '../company/CompanyStep'
 import { DomainStep } from '../domain/DomainStep'
+import { STEP, type StepIndex } from '../flow/steps'
 import { canRevisit, useOnboarding, type Onboarding, type OnboardingState } from '../flow/useOnboarding'
-import type { StepIndex } from '../flow/steps'
 import { OfficersStep } from '../officers/OfficersStep'
+import { RegisteredStep } from '../registered/RegisteredStep'
+import { RepresentativeStep } from '../representative/RepresentativeStep'
 import { ReviewStep } from '../review/ReviewStep'
-import { VerifiedStep } from '../verified/VerifiedStep'
 import { WalletsStep } from '../wallets/WalletsStep'
 import { ProgressRail } from './ProgressRail'
 import { StartOver } from './StartOver'
 
 /** The furthest screen the saved state can back up: a step never shows before what it needs exists. */
 function visibleStep(state: OnboardingState): StepIndex {
-  if (!state.company) return 0
-  if (state.step < 2 || !state.controller || !state.payout) return state.step === 0 ? 0 : 1
-  if (state.step < 3 || !state.registration || !state.domainMethod) return 2
-  if (state.step < 4 || state.officers.length === 0) return 3
-  return state.step < 5 || !state.submission ? 4 : 5
+  if (!state.company || state.step === STEP.company) return STEP.company
+  if (state.step === STEP.wallets || !state.controller || !state.payout) return STEP.wallets
+  if (state.step === STEP.domain || !state.registration || !state.domainMethod) return STEP.domain
+  if (state.step === STEP.representative) return STEP.representative
+  if (state.step === STEP.officers || state.officers.length === 0) return STEP.officers
+  return state.step === STEP.review || !state.submission ? STEP.review : STEP.registered
 }
 
 /** Where the reader is, finer than the step: proving a domain takes three screens (domain, signature, record). */
 function screenOf(state: OnboardingState, step: StepIndex): number {
-  if (step !== 2 || state.domainMethod || state.company?.fixture) return step
-  if (!state.registration) return 2
-  return state.signature ? 2.2 : 2.1
+  if (step !== STEP.domain || state.domainMethod || state.company?.fixture) return step
+  if (!state.registration) return step
+  return state.signature ? step + 0.2 : step + 0.1
+}
+
+const SCREENS: Record<StepIndex, (props: { readonly onboarding: Onboarding }) => ReactNode> = {
+  [STEP.company]: CompanyStep,
+  [STEP.wallets]: WalletsStep,
+  [STEP.domain]: DomainStep,
+  [STEP.representative]: RepresentativeStep,
+  [STEP.officers]: OfficersStep,
+  [STEP.review]: ReviewStep,
+  [STEP.registered]: RegisteredStep,
 }
 
 function CurrentStep({ onboarding, step }: { readonly onboarding: Onboarding; readonly step: StepIndex }) {
-  if (step === 0) return <CompanyStep onboarding={onboarding} />
-  if (step === 1) return <WalletsStep onboarding={onboarding} />
-  if (step === 2) return <DomainStep onboarding={onboarding} />
-  if (step === 3) return <OfficersStep onboarding={onboarding} />
-  if (step === 4) return <ReviewStep onboarding={onboarding} />
-  return <VerifiedStep onboarding={onboarding} />
+  const Screen = SCREENS[step]
+  return <Screen onboarding={onboarding} />
 }
 
 type Direction = 'none' | 'forward' | 'back'
@@ -91,19 +99,20 @@ export function OnboardingWizard() {
   const screen = screenOf(state, step)
   const direction = useDirection(screen)
   const windowRef = useStepFocus(screen)
-  const disputed = step === 5 && state.submission?.outcome === 'disputed'
+  const disputed = step === STEP.registered && state.submission?.outcome === 'disputed'
   return (
     <div ref={windowRef} className="onboard window cells">
       <ProgressRail
         current={step}
-        finished={step === 5 && !disputed}
+        finished={step === STEP.registered && !disputed}
         outcome={disputed ? 'Claim disputed' : undefined}
         canVisit={(target) => canRevisit({ ...state, step }, target)}
         onVisit={onboarding.goTo}
-        footer={<RailFooter onboarding={onboarding} finished={step === 5} />}
+        footer={<RailFooter onboarding={onboarding} finished={step === STEP.registered} />}
       />
       <div className="onboard__stage">
-        <div key={screen} className={`onboard__screen onboard__screen--${direction}`}>
+        {/* A different registration (one picked up again) is a fresh screen: no answer from the last one lingers. */}
+        <div key={`${screen}:${state.registration?.id ?? ''}`} className={`onboard__screen onboard__screen--${direction}`}>
           <CurrentStep onboarding={onboarding} step={step} />
         </div>
       </div>

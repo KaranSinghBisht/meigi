@@ -1,8 +1,9 @@
 import { Button } from '../../../ui/components/Button'
 import { TextField } from '../../../ui/components/Field'
 import { Notice } from '../../../ui/components/Notice'
+import { STEP } from '../flow/steps'
 import type { Onboarding } from '../flow/useOnboarding'
-import { StepError } from '../wizard/StartOver'
+import { StepError } from '../wizard/StepError'
 import { StepActions, StepFrame } from '../wizard/StepFrame'
 import { ProofRecords } from './ProofRecords'
 import { SignChallenge } from './SignChallenge'
@@ -30,12 +31,12 @@ function DomainEntry({ onboarding, calls }: { readonly onboarding: Onboarding; r
   const valid = DOMAIN_RE.test(domain)
   return (
     <StepFrame
-      step={2}
+      step={STEP.domain}
       title="Which domain does the company use?"
       lede="The one on its website and email. You'll add one DNS record to prove it's yours."
       onSubmit={() => void (valid && calls.create(domain))}
       actions={
-        <StepActions onBack={calls.busy ? undefined : () => onboarding.goTo(1)}>
+        <StepActions onBack={calls.busy ? undefined : () => onboarding.goTo(STEP.wallets)}>
           <Button type="submit" size="lg" busy={calls.busy} disabled={!valid}>
             Continue
           </Button>
@@ -52,7 +53,7 @@ function DomainEntry({ onboarding, calls }: { readonly onboarding: Onboarding; r
         spellCheck={false}
         error={value.trim() !== '' && !valid && value.includes('.') ? 'Enter a public domain, like example.co.jp.' : null}
       />
-      {calls.error ? <StepError error={calls.error} onReset={onboarding.reset} /> : null}
+      {calls.error ? <StepError error={calls.error} onboarding={onboarding} /> : null}
     </StepFrame>
   )
 }
@@ -67,11 +68,11 @@ function FictionalDomain({ onboarding, calls }: { readonly onboarding: Onboardin
   }
   return (
     <StepFrame
-      step={2}
+      step={STEP.domain}
       title="No domain to prove"
       lede="A fictional company has no real domain, so Meigi skips this step and records it as fictional."
       actions={
-        <StepActions onBack={registration || calls.busy ? undefined : () => onboarding.goTo(1)}>
+        <StepActions onBack={registration || calls.busy ? undefined : () => onboarding.goTo(STEP.wallets)}>
           <Button size="lg" busy={calls.busy} onClick={() => void proceed()}>
             Continue
           </Button>
@@ -81,7 +82,7 @@ function FictionalDomain({ onboarding, calls }: { readonly onboarding: Onboardin
       <Notice tone="info" title="Fictional demo company">
         <p>Registry office 9999 is never issued, so there's nothing to sign and no DNS record to add.</p>
       </Notice>
-      {calls.error ? <StepError error={calls.error} onReset={onboarding.reset} /> : null}
+      {calls.error ? <StepError error={calls.error} onboarding={onboarding} /> : null}
     </StepFrame>
   )
 }
@@ -91,7 +92,7 @@ function PublishRecord({ onboarding, calls }: { readonly onboarding: Onboarding;
   if (!registration || !signature) return null
   return (
     <StepFrame
-      step={2}
+      step={STEP.domain}
       title="Add this record to your DNS"
       lede="Add it at your DNS provider, then check. New records can take a few minutes to appear."
       actions={
@@ -106,7 +107,7 @@ function PublishRecord({ onboarding, calls }: { readonly onboarding: Onboarding;
       }
     >
       <ProofRecords challenge={registration.domainProof} signature={signature} />
-      {calls.error ? <StepError error={calls.error} onReset={onboarding.reset} /> : null}
+      {calls.error ? <StepError error={calls.error} onboarding={onboarding} /> : null}
     </StepFrame>
   )
 }
@@ -122,11 +123,11 @@ function Proven({ onboarding }: { readonly onboarding: Onboarding }) {
   const fixture = company?.fixture === true
   return (
     <StepFrame
-      step={2}
+      step={STEP.domain}
       title={fixture ? 'No domain to prove' : 'Your domain is proven'}
       actions={
         <StepActions>
-          <Button size="lg" onClick={() => onboarding.goTo(3)}>
+          <Button size="lg" onClick={() => onboarding.goTo(STEP.representative)}>
             Continue
           </Button>
         </StepActions>

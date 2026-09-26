@@ -135,6 +135,19 @@
   color: var(--ink-soft);
 }
 
+/* A step's error, with its way on underneath. */
+.step-error {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.step-error__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 /* A cell: glass inside the window, tint and light only. */
 .onboard-cell {
   display: grid;

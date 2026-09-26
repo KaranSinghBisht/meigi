@@ -34,16 +34,18 @@
   overflow-wrap: anywhere;
 }
 
-.review-company {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 2px;
+.review-lookup {
+  margin-top: -8px;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
 }
 
-.review-company__address {
-  color: var(--ink-soft);
+.review-lookup__label {
+  font-weight: var(--weight-strong);
+}
+
+.review-lookup__address {
   font-family: var(--font-jp);
-  font-size: var(--text-sm);
   word-break: auto-phrase;
 }
 

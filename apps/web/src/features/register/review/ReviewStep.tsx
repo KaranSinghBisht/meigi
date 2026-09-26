@@ -7,8 +7,9 @@ import { Address } from '../../../ui/components/Address'
 import { Badge, type BadgeTone } from '../../../ui/components/Badge'
 import { Button } from '../../../ui/components/Button'
 import { explainStep } from '../flow/errors'
+import { STEP } from '../flow/steps'
 import type { Company, Onboarding } from '../flow/useOnboarding'
-import { StepError } from '../wizard/StartOver'
+import { StepError } from '../wizard/StepError'
 import { StepActions, StepFrame } from '../wizard/StepFrame'
 import { ThresholdPicker } from './ThresholdPicker'
 import './review.css'
@@ -42,26 +43,14 @@ function CompanyRows({ company, legalName }: { readonly company: Company; readon
   return (
     <>
       <Row label="Company">
-        <span className="review-company">
-          <span className="jp" lang="ja">
-            {legalName}
-          </span>
-          {company.address ? (
-            <span className="review-company__address" lang="ja">
-              {company.address}
-            </span>
-          ) : null}
+        <span className="jp" lang="ja">
+          {legalName}
         </span>
         {company.fixture ? <Badge tone="info">Fictional</Badge> : <Badge tone="active">NTA exact match</Badge>}
       </Row>
       <Row label="T-number">
         <span className="mono">{company.tNumber}</span>
       </Row>
-      {company.lei ? (
-        <Row label="LEI">
-          <span className="mono">{company.lei}</span>
-        </Row>
-      ) : null}
       <Row label="Payee name">
         <span className="mono">{parseTNumber(company.tNumber)?.ens ?? ''}</span>
       </Row>
@@ -69,7 +58,28 @@ function CompanyRows({ company, legalName }: { readonly company: Company; readon
   )
 }
 
-/** Everything that goes on-chain, as the registry and every ENS client will show it. */
+/** How the company was found: shown for the reader's check, but not part of what is submitted. */
+function LookupDetails({ company }: { readonly company: Company }) {
+  if (!company.address && !company.lei) return null
+  return (
+    <p className="review-lookup">
+      <span className="review-lookup__label">Lookup details, not submitted:</span>{' '}
+      {company.address ? (
+        <span lang="ja" className="review-lookup__address">
+          NTA head office {company.address}
+        </span>
+      ) : null}
+      {company.address && company.lei ? ' · ' : null}
+      {company.lei ? (
+        <span>
+          found by LEI <span className="mono">{company.lei}</span>
+        </span>
+      ) : null}
+    </p>
+  )
+}
+
+/** Everything the registration submits, as the registry and every ENS client will show it. */
 function SummaryCard({ summary }: { readonly summary: Summary }) {
   const { company, registration, controller, payout, domainMethod, officers } = summary
   const domain = registration.domainProof.txtName.replace(/^_meigi\./, '')
@@ -116,25 +126,30 @@ function thresholdOf(chosen: number | null, officers: number): number {
   return Math.min(Math.max(chosen ?? 2, 1), officers)
 }
 
+/** Answers after which submitting again can't help: the registration went through, or the number is claimed. */
+const SETTLED = new Set(['already_submitted', 'already_disputed', 'already_registered'])
+
 function Review({ onboarding, summary }: { readonly onboarding: Onboarding; readonly summary: Summary }) {
   const { busy, error, submit } = useSubmit(onboarding, summary.registration)
   const threshold = thresholdOf(onboarding.state.threshold, summary.officers)
+  const settled = error?.code !== undefined && SETTLED.has(error.code)
   return (
     <StepFrame
-      step={4}
+      step={STEP.review}
       title="Check everything, then register"
-      lede="Meigi's attester writes this to the public registry on Sepolia. A number that's already claimed is frozen as disputed, never overwritten."
+      lede="Meigi's attester writes this registration to the public registry on Sepolia. A number that's already claimed is frozen as disputed, never overwritten."
       actions={
-        <StepActions onBack={busy ? undefined : () => onboarding.goTo(3)}>
-          <Button size="lg" busy={busy} onClick={() => void submit(threshold)}>
+        <StepActions onBack={busy ? undefined : () => onboarding.goTo(STEP.officers)}>
+          <Button size="lg" busy={busy} disabled={settled} onClick={() => void submit(threshold)}>
             {busy ? 'Writing to the registry…' : 'Register company'}
           </Button>
         </StepActions>
       }
     >
       <SummaryCard summary={summary} />
+      <LookupDetails company={summary.company} />
       <ThresholdPicker max={summary.officers} value={threshold} onChange={onboarding.setThreshold} />
-      {error ? <StepError error={error} onReset={onboarding.reset} /> : null}
+      {error ? <StepError error={error} onboarding={onboarding} /> : null}
     </StepFrame>
   )
 }
