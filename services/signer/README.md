@@ -50,9 +50,8 @@ This small process holds the AgentVault's agent key and signs one call for it: `
 - **The right key.** At startup it checks on-chain that its key isn't the vault's owner (the owner may pay an invoice
   twice), and that it is the vault's agent, directly or through the ENS mandate (below).
 - **An ENS mandate (live since 2026-09-26 with `SIGNER_VIA_GATE=1`; the default, 0, is the rollback).** The buyer
-  company can issue its AP agent a name,
-  `ap.t<company>.payee.eth`, and make the `MandateGate` the vault's agent. The gate forwards `payInvoice` (same
-  arguments) only while that name answers and is held by this key.
+  company can issue its AP agent a name, `ap.t<company>.payee.eth`, and make the `MandateGate` the vault's agent.
+  The gate forwards `payInvoice` (same arguments) only while that name answers and is held by this key.
   - With `SIGNER_VIA_GATE=1` and `MANDATE_GATE_ADDRESS`, the signer sends `payInvoice` to the gate, still typed fields
     only and simulated first.
   - The startup check is strict. The gate must be the vault's agent, forward to this vault, enforce the configured
