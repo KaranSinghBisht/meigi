@@ -68,7 +68,7 @@ export async function pollOnce(idp: Idp, deviceCode: string): Promise<Poll> {
   if (error === "authorization_pending") return { kind: "pending" };
   if (error === "slow_down") return { kind: "slow_down" };
   if (error === "expired_token") return { kind: "expired" };
-  if (error === "access_denied") return { kind: "denied", reason: "the person declined in World App" };
+  if (error === "access_denied") return { kind: "denied", reason: "the person declined in the World ID app" };
   // invalid_grant and anything else stops too. Only a plain OAuth error code is repeated to the caller.
   const code = /^[a-z_]{1,40}$/u.test(error) ? error : `an error (${status})`;
   return { kind: "denied", reason: `the World ID provider returned ${code}` };

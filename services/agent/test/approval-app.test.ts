@@ -59,7 +59,7 @@ describe("human approval over HTTP", () => {
   });
 
   it.each([
-    ["denied in World App", denied, "denied"],
+    ["denied in the World ID app", denied, "denied"],
     ["expired", expired, "expired"],
   ])("pays nothing when the request is %s", async (_label, reply, status) => {
     const s = await setup();

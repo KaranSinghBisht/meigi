@@ -87,7 +87,7 @@ describe("World ID device grant", () => {
   });
 
   it.each([
-    ["access_denied", denied, "denied", "the person declined in World App"],
+    ["access_denied", denied, "denied", "the person declined in the World ID app"],
     ["expired_token", expired, "expired", "nobody approved in time"],
     ["invalid_grant", { status: 400, body: { error: "invalid_grant" } }, "denied", "the World ID provider returned invalid_grant"],
     ["a 200 with no ID token", { status: 200, body: { access_token: "at" } }, "denied", "no ID token was issued"],
