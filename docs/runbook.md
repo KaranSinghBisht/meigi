@@ -136,22 +136,25 @@ a trusted single-user machine; the ENS scripts and forge scripts read keys from 
 
 1. `curl localhost:8787/payees/T2011001234567`: the fixture vendor is active.
 2. `curl localhost:8788/health`: `signer` is `ok`, `triage` lists `systemone` (Kev on :8102). `screening` is true once
-   `INTERCEPTA_API_KEY` is set.
-3. `curl localhost:8790/demo/compromised`: refused before signing (`payto_mismatch`). With an Intercepta key,
+   `INTERCEPTA_API_KEY` is set. Kev and Ollama have no `/health` route of their own, so a 404 there doesn't mean
+   they're down; this agent check covers both.
+3. Warm up a few minutes before the slot: run one Analyze on any invoice (the first local-model call after idle is
+   markedly slower), and run one withdrawal check on `/business` (about 5 s cold, 2 s warm).
+4. `curl localhost:8790/demo/compromised`: refused before signing (`payto_mismatch`). With an Intercepta key,
    `/demo/unverified-flagged` is refused as `screened`.
-4. In the AP console, load the bank-change email:
+5. In the AP console, load the bank-change email:
    - The agent's LLM proposes paying `0xdCa5…6d5b`, and the kernel holds.
    - "Let the agent pay anyway" reverts `PayeeMismatch` in simulation, names 株式会社メイギ商事, and broadcasts
      nothing.
    - The prompt-injection invoice can't be forced at all (tampering). Use the bank-change email or the x402
      response for the on-chain moment.
-5. The registry explorer shows `t2011001234567.payee.eth` → `0x9B4f…47e4`.
-6. **World ID for Agents.** The Sepolia agent's approver was enrolled on 2026-09-26, in Karan's Brave browser, in
+6. The registry explorer shows `t2011001234567.payee.eth` → `0x9B4f…47e4`.
+7. **World ID for Agents.** The Sepolia agent's approver was enrolled on 2026-09-26, in Karan's Brave browser, in
    the sandbox: the first approval ran with `WORLD_AGENTS_ENROLL=1` and is written to the git-ignored
    `data/agent/approvers.json`. Approve in that same browser and the agent reports `matched`.
    - To show the other paths: "Deny sign-in" pays nothing. A different browser profile is a different human
      (`wrong_human`).
    - Use a fresh invoice number each time. A paid number holds as already paid, and that hold isn't
      approvable.
-7. Don't press Pay on the routine invoice before the demo: it auto-clears and pays for real, which uses up its
+8. Don't press Pay on the routine invoice before the demo: it auto-clears and pays for real, which uses up its
    invoice number.
