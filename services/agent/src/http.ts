@@ -49,6 +49,22 @@ function chainMessage(error: BaseError): string {
   return "the chain request failed; try again";
 }
 
+/**
+ * Answers only requests addressed to this machine by name (localhost, 127.0.0.1, [::1], with or without the port),
+ * or to a name in AGENT_ALLOWED_HOSTS. A DNS-rebinding page reaches 127.0.0.1 under its own host name, so it gets a
+ * 403 before any route runs. Both the Host header and the request URL are checked.
+ */
+export function requireHost(allowed: readonly string[]): MiddlewareHandler {
+  const hosts = new Set(allowed.map((host) => host.toLowerCase()));
+  return async (c, next) => {
+    const named = [c.req.header("host"), new URL(c.req.url).host].filter((host): host is string => Boolean(host));
+    if (named.length === 0 || !named.every((host) => hosts.has(host.toLowerCase()))) {
+      throw new HttpError(403, "forbidden_host", "this agent answers only on localhost");
+    }
+    await next();
+  };
+}
+
 /** When AGENT_API_TOKEN is set, every POST (analyze and pay) needs it as a bearer token. */
 export function requireToken(token: string): MiddlewareHandler {
   const expected = Buffer.from(`Bearer ${token}`);

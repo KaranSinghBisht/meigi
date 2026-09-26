@@ -19,7 +19,8 @@ Every document goes through these layers. Only the kernel, and then the vault it
 ## Endpoints
 
 The server listens on `http://127.0.0.1:8788`. POSTs must send `content-type: application/json`, and a bearer token too
-if `AGENT_API_TOKEN` is set.
+if `AGENT_API_TOKEN` is set. It answers only requests addressed to `localhost`, `127.0.0.1` or `[::1]` (or a name in
+`AGENT_ALLOWED_HOSTS`); any other Host gets `403 forbidden_host`, so a DNS-rebinding page can't drive it.
 
 | Method | Path | Returns |
 |---|---|---|
@@ -196,7 +197,7 @@ and token match the configuration, that the key is the vault's agent, and that i
 | Screening | `INTERCEPTA_API_KEY` (optional), `INTERCEPTA_CACHE_PATH=../../data/agent/intercepta-cache.json`, `INTERCEPTA_MAX_CALLS=900`, `INTERCEPTA_TOXIC_THRESHOLD=50` |
 | Judgement holds | `TRIAGE_MAX_PRESSURE=0.5`, `AUTO_CLEAR_MAX_YEN` (unset: no budget hold) |
 | Human approval | `WORLD_AGENTS_CLIENT_ID` and `WORLD_AGENTS_CLIENT_SECRET` (both or neither), `WORLD_AGENTS_ISSUER=https://sandbox.auth.world.org`, `WORLD_AGENTS_AUTH_METHOD=client_secret_basic` (or `client_secret_post`), `WORLD_AGENTS_APPROVERS`, `WORLD_AGENTS_ENROLL` (off), `WORLD_AGENTS_APPROVERS_PATH=../../data/agent/approvers.json`, `WORLD_AGENTS_TRACE` (off) |
-| Server | `AGENT_PORT=8788`, `AGENT_HOST=127.0.0.1`, `APP_ORIGINS=http://localhost:5173,http://localhost:4173`, `VENDOR_T_NUMBERS=2011001234567` |
+| Server | `AGENT_PORT=8788`, `AGENT_HOST=127.0.0.1`, `AGENT_ALLOWED_HOSTS` (extra Host names for LAN use), `APP_ORIGINS=http://localhost:5173,http://localhost:4173`, `VENDOR_T_NUMBERS=2011001234567` |
 
 ### Local LLM (the default for demos)
 

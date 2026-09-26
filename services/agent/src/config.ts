@@ -25,6 +25,7 @@ const schema = z
     AGENT_PORT: z.coerce.number().int().positive().default(8788),
     AGENT_HOST: z.string().default("127.0.0.1"), // 0.0.0.0 to serve the LAN (then set AGENT_API_TOKEN)
     AGENT_API_TOKEN: optional(z.string().min(16)), // if set, every POST needs Authorization: Bearer <token>
+    AGENT_ALLOWED_HOSTS: z.string().default(""), // extra Host names for LAN use, e.g. "192.168.1.20:8788"
     APP_ORIGINS: z.string().default("http://localhost:5173,http://localhost:4173"),
     // System-1 triage
     TRIAGE_BACKENDS: z.string().default("systemone,proxy"), // fine-tuned Kev first, then Jev via the team proxy

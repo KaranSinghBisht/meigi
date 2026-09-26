@@ -54,6 +54,7 @@ export function buildDeps(config: Config) {
     store: new AnalysisStore(),
     vendorTNumbers: parseVendorList(config.VENDOR_T_NUMBERS),
     origins: config.APP_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean),
+    allowedHosts: allowedHosts(config.AGENT_PORT, config.AGENT_ALLOWED_HOSTS),
     triageRequired: config.TRIAGE_REQUIRED,
     holds: { maxPressure: config.TRIAGE_MAX_PRESSURE, autoClearMaxYen: config.AUTO_CLEAR_MAX_YEN ?? null },
     approvals,
@@ -124,6 +125,12 @@ function workersAiTarget(config: Config) {
   const token = (config.WORKERS_AI_TOKEN ?? config.CLOUDFLARE_API_TOKEN)!;
   if (config.WORKERS_AI_URL) return { url: config.WORKERS_AI_URL, token, model };
   return { url: `https://api.cloudflare.com/client/v4/accounts/${config.CLOUDFLARE_ACCOUNT_ID}/ai/run/${model}`, token, model };
+}
+
+/** localhost, 127.0.0.1 and [::1], bare and with the port, plus any extra names (for LAN use). */
+export function allowedHosts(port: number, extra: string): string[] {
+  const local = ["localhost", "127.0.0.1", "[::1]"].flatMap((host) => [host, `${host}:${port}`]);
+  return [...local, ...extra.split(",").map((host) => host.trim()).filter(Boolean)];
 }
 
 /** A data path from the configuration, relative to services/agent (not the working directory); absolute stays. */

@@ -210,6 +210,7 @@ export function fakeDeps(parts: Partial<Fakes> = {}, llm: LlmPort | null = null)
     store: new AnalysisStore(),
     vendorTNumbers: ["2011001234567", "3999905000001"],
     origins: ["http://localhost:5173"],
+    allowedHosts: ["localhost", "127.0.0.1", "[::1]", "localhost:8788", "127.0.0.1:8788", "[::1]:8788"],
     triageRequired: true,
     holds: DEFAULT_HOLD_POLICY,
     approvals: null,

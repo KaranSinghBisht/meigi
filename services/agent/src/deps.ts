@@ -28,6 +28,7 @@ export interface AppDeps {
   store: AnalysisStore;
   vendorTNumbers: string[]; // 13 digits each, for GET /vault
   origins: string[];
+  allowedHosts: string[]; // Host names the agent answers on (localhost forms plus AGENT_ALLOWED_HOSTS)
   triageRequired: boolean;
   holds: HoldPolicy;
   approvals: ApprovalService | null; // null: World ID for Agents is not configured
