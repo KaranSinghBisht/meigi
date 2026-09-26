@@ -22,8 +22,9 @@ import {EnsV2Grant, IEnsV2Factory, IEnsV2Registry, IEnsV2Resolver} from "./IEnsV
 ///           darkens every name the old key issued.
 ///
 ///         This contract is the issued names' resolver (ENSIP-10), and every issued name's registry entry points at it.
-///         It answers only the exact `<label>.t<13 digits>.<parent>` of a live name in the current namespace, and only
-///         text, read from that name's own ENSv2 PermissionedResolver. It is the only role holder there and writes only
+///         It answers only the exact `<label>.t<13 digits>.<parent>` of a live name in the current namespace, once
+///         Meigi has attached that namespace to the claimed name, and only text, read from that name's own ENSv2
+///         PermissionedResolver. It is the only role holder there and writes only
 ///         the exact name, never the root node a PermissionedResolver would serve as every deeper name's default. A
 ///         holder updates its `agent-status` through `setStatus`, and nothing else.
 ///
@@ -329,13 +330,16 @@ contract CompanyNamespace is IERC165 {
         IEnsV2Resolver(records).setText(_dnsName(tNumber, label), key, value);
     }
 
-    /// @dev The record resolver that answers for a label now, or zero.
+    /// @dev The record resolver that answers for a label now, or zero. Only the namespace Meigi has attached to the
+    ///      claimed name answers: a reset stays dark until Meigi attaches the fresh registry, however the lookup
+    ///      arrived (e.g. through the old registry, which stays attached until then).
     function _answering(uint64 tNumber, bytes32 labelHash) private view returns (address) {
         if (frozen[tNumber] || blocked[tNumber][labelHash]) return address(0);
         address namespace = namespaceOf[tNumber];
-        if (namespace == address(0) || IEnsV2Registry(namespace).getOwner(uint256(labelHash)) == address(0)) {
+        if (namespace == address(0) || claims.getSubregistry(_claimLabel(tNumber)) != namespace) {
             return address(0);
         }
+        if (IEnsV2Registry(namespace).getOwner(uint256(labelHash)) == address(0)) return address(0);
         Issued memory issued = _issued[tNumber][epochOf[tNumber]][labelHash];
         if (issued.records == address(0)) return address(0);
         IPayeeRegistry.PayeeView memory payee = registry.payeeOf(tNumber);

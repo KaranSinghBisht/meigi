@@ -337,8 +337,17 @@ contract CompanyNamespaceTest is MeigiFixture {
         assertEq(_textOf("ap", "description"), "", "but it no longer answers");
         assertEq(gate.labelsOf(VENDOR).length, 0);
 
-        MockNamespaceRegistry second = _open();
+        // The controller re-opens and re-issues, but the old registry is still the one attached: nothing answers
+        // until Meigi attaches the fresh one.
+        vm.prank(controller);
+        MockNamespaceRegistry second = MockNamespaceRegistry(gate.open(VENDOR));
         assertTrue(address(second) != address(first));
+        vm.prank(controller);
+        gate.issue(VENDOR, _name("ap", agent, claimExpiry));
+        assertEq(_textOf("ap", "description"), "", "not attached yet: dark");
+        vm.prank(controller);
+        gate.revoke(VENDOR, "ap");
+        claims.setSubregistry(CLAIM, address(second));
         MockProfileResolver records = _issue("ap", stranger);
         (address holder, address resolver, address issuer,) = gate.nameOf(VENDOR, "ap");
         assertEq(holder, stranger);
@@ -500,6 +509,28 @@ contract CompanyNamespaceTest is MeigiFixture {
         assertEq(ns.tokenRoles("ap"), 0);
     }
 
+    function test_AnUnattachedNamespaceNeverAnswers() public {
+        vm.prank(controller);
+        gate.open(VENDOR);
+        vm.prank(controller);
+        gate.issue(VENDOR, _name("ap", agent, claimExpiry));
+        assertEq(_textOf("ap", "description"), "", "Meigi hasn't attached it");
+        assertFalse(gate.answers(VENDOR, "ap"));
+    }
+
+    function test_AMaximalLabelLengthByteFailsClosedWithoutPanicking() public {
+        _open();
+        _issue("ap", agent);
+        bytes memory label = new bytes(255);
+        for (uint256 i; i < label.length; ++i) {
+            label[i] = "a";
+        }
+        bytes memory name = bytes.concat(hex"ff", label, hex"0e", bytes(CLAIM), PARENT);
+        bytes memory q = abi.encodeWithSelector(TEXT, bytes32(0), "description");
+        assertEq(abi.decode(gate.resolve(name, q), (string)), "");
+        assertEq(abi.decode(gate.resolve(hex"ff61", q), (string)), "", "a length byte past the end");
+    }
+
     // ---- resolver plumbing and views ----
 
     function test_MulticallAndInterfaces() public {
@@ -555,9 +586,11 @@ contract CompanyNamespaceTest is MeigiFixture {
 
     // ---- helpers ----
 
-    function _open() internal returns (MockNamespaceRegistry) {
+    /// @dev Opens the namespace and attaches it to the claimed name, as Meigi does.
+    function _open() internal returns (MockNamespaceRegistry ns) {
         vm.prank(controller);
-        return MockNamespaceRegistry(gate.open(VENDOR));
+        ns = MockNamespaceRegistry(gate.open(VENDOR));
+        claims.setSubregistry(CLAIM, address(ns));
     }
 
     function _issue(string memory label, address holder) internal returns (MockProfileResolver) {

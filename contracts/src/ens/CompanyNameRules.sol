@@ -53,7 +53,7 @@ library CompanyNameRules {
     {
         label = name[0:0];
         if (name.length == 0) return (0, label, false);
-        uint256 end = 1 + uint8(name[0]);
+        uint256 end = 1 + uint256(uint8(name[0])); // widened first: a 255-byte label must not overflow
         // the label, then a 14-byte label `t<13 digits>`, then the parent
         if (end == 1 || name.length < end + 15 || uint8(name[end]) != 14 || name[end + 1] != "t") {
             return (0, label, false);

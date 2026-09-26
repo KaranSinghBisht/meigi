@@ -35,6 +35,8 @@ interface IEnsV2Registry {
     /// @dev Zero once the name has expired or was unregistered.
     function getOwner(uint256 anyId) external view returns (address);
     function getExpiry(uint256 anyId) external view returns (uint64);
+    /// @dev Zero once the name has expired or was unregistered.
+    function getSubregistry(string calldata label) external view returns (address);
 }
 
 /// @dev A PermissionedResolver proxy. Setters take the DNS-encoded name. A setter role is scoped by its argument

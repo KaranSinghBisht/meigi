@@ -138,11 +138,14 @@ contract CompanyNamespaceForkTest is Test {
         vm.prank(MEIGI);
         gate.resetNamespace(T_NUMBER);
         assertEq(_text(AP, "description").v, "");
+        // Re-opening and re-issuing isn't enough: the old registry stays attached, and nothing answers until Meigi
+        // attaches the fresh one.
         vm.prank(CONTROLLER);
         address fresh = gate.open(T_NUMBER);
+        _issue("ap", taxAccountant, 0, "a new holder, in a new namespace");
+        assertEq(_text(AP, "description").v, "", "the fresh registry isn't attached yet");
         vm.prank(MEIGI);
         IClaimsRegistry(CLAIMS).setSubregistry(uint256(keccak256("t2011001234567")), fresh);
-        _issue("ap", taxAccountant, 0, "a new holder, in a new namespace");
         assertEq(_text(AP, "description").v, "a new holder, in a new namespace");
     }
 

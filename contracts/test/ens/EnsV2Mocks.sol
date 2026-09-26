@@ -203,11 +203,20 @@ contract MockEnsFactory {
     }
 }
 
-/// @dev The parent's claims registry: only the claimed names' expiry matters to the gate.
+/// @dev The parent's claims registry: the claimed names' expiry, and which namespace Meigi attached to each.
 contract MockClaims {
     mapping(uint256 labelId => uint64) public getExpiry;
+    mapping(bytes32 labelHash => address) internal _subregistries;
 
     function setExpiry(string calldata label, uint64 expiry) external {
         getExpiry[uint256(keccak256(bytes(label)))] = expiry;
+    }
+
+    function setSubregistry(string calldata label, address registry) external {
+        _subregistries[keccak256(bytes(label))] = registry;
+    }
+
+    function getSubregistry(string calldata label) external view returns (address) {
+        return _subregistries[keccak256(bytes(label))];
     }
 }
