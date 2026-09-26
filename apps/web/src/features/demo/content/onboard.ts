@@ -56,7 +56,10 @@ export const ONBOARD_STEPS = [
   'Registered',
 ] as const
 
-/** Each screen's question and lede, verbatim from /register (register/flow/copy.ts), so the replica never drifts. */
+/**
+ * Each screen's question and lede, verbatim from /register (register/flow/copy.ts, and for this demo company
+ * representative/RepresentativeStep.tsx and COPY.registeredReplay), so the replica never drifts.
+ */
 export const ONBOARD_COPY = {
   company: {
     title: 'Which company is joining?',
@@ -72,7 +75,13 @@ export const ONBOARD_COPY = {
   },
   representative: {
     title: 'Prove you represent the company',
-    lede: 'Controlling a domain doesn’t make someone the company. Its registered representative will sign for it.',
+    lede: "Controlling a domain doesn't make someone the company. Its registered representative will sign for it.",
+  },
+  /** Step 4's note for a demo company, which proves none of what a real registration does. */
+  representativeDemo: {
+    title: 'A demo company is fictional: it has no NTA record and no domain to prove.',
+    detail:
+      "A real company's registration proves an exact NTA name match, domain control and World ID officers today. In production it also proves the signer represents the company.",
   },
   officers: {
     title: 'Who approves changes?',
@@ -80,11 +89,12 @@ export const ONBOARD_COPY = {
   },
   review: {
     title: 'Check everything, then register',
-    lede: 'Meigi’s attester writes this registration to the public registry on Sepolia. A number that’s already claimed is frozen as disputed, never overwritten.',
+    lede: "Meigi's attester writes this registration to the public registry on Sepolia. A number that's already claimed is frozen as disputed, never overwritten.",
   },
+  /** About the company, not to it (no one here registered anything), and true to its placeholder officer. */
   registered: {
-    title: 'You’re registered.',
-    lede: `Payers who check ${ONBOARD.ens} will only ever pay the address below. Changing it takes your business key, your officers and 72 hours in public.`,
+    title: "It's registered.",
+    lede: `Payers who check ${ONBOARD.ens} pay only the address below. Its placeholder officer means no one can change it; a real company changes it with its business key, its officers and 72 hours in public.`,
   },
 } as const
 
@@ -93,7 +103,7 @@ export const REPRESENTATION_METHODS = [
   {
     id: 'certificate',
     title: 'Sign with 商業登記電子証明書',
-    body: 'The Legal Affairs Bureau’s corporate e-certificate for the registered representative, signed remotely through gBizID.',
+    body: "The Legal Affairs Bureau's corporate e-certificate for the registered representative, signed remotely through gBizID.",
   },
   {
     id: 'mail',

@@ -96,7 +96,7 @@ export function DomainScreen() {
   )
 }
 
-/** Not built for anyone yet: both ways are shown disabled, and the note says what registration proves today. */
+/** Not built for anyone yet: both ways are shown disabled, and the note says this demo company proves none of it. */
 export function RepresentationScreen() {
   const { title, lede } = ONBOARD_COPY.representative
   return (
@@ -114,8 +114,7 @@ export function RepresentationScreen() {
         ))}
       </ul>
       <p className="onb__note">
-        <b>Today, registration proves an exact NTA name match, domain control and World ID officers.</b>{' '}
-        <span>In production it also proves the signer represents the company.</span>
+        <b>{ONBOARD_COPY.representativeDemo.title}</b> <span>{ONBOARD_COPY.representativeDemo.detail}</span>
       </p>
       <Next n={4} />
     </Screen>

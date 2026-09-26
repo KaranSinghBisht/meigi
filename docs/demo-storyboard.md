@@ -42,7 +42,7 @@ It autoplays, loops, and has chapter chips and pause. Reduced motion turns it in
 ### 0. A company joins Meigi (0:00–0:26)
 
 The browser shows Meigi's own `/register`, a replica of the seven-step onboarding wizard with its copy verbatim
-(`register/flow/copy.ts`). Beside it, instead of the agent panel, the registry on Sepolia fills in with what the chain
+(`register/flow/copy.ts`, and for a demo company `RepresentativeStep.tsx` and `COPY.registeredReplay`). Beside it, instead of the agent panel, the registry on Sepolia fills in with what the chain
 holds. 株式会社メイギ商事 is a fictional fixture, so the rail reads ✓ ✓ – – – ✓ ✓: the three steps it passes without
 doing are dashed, never ticked.
 
@@ -51,10 +51,10 @@ doing are dashed, never ticked.
 | 0:00 | Step 1, "Which company is joining?": `T2011001234567` is typed; 株式会社メイギ商事 fills in (labelled "Fictional demo company", as the real wizard labels it) and the payee name `t2011001234567.payee.eth` appears live | T-number and ENS name rows | "Register once: a company binds its registry number to one payout." |
 | 0:05 | Step 2, "Which wallets will it use?": business key `0xc33a…4638` connected; "Create a new payout wallet" → `0x9B4f…47e4` | Business key and payout address rows | "A business key approves changes; one address receives every payment." |
 | 0:09 | Step 3, "No domain to prove": "Demo companies skip this step", as the real wizard does | Domain · skipped (fictional demo company) | "Real companies also prove their domain and enroll World ID officers; this demo company is labelled." |
-| 0:11 | Step 4, "Prove you represent the company": "Sign with 商業登記電子証明書" and "Mail a code to the registered head office", both "Coming in production"; "Today, registration proves an exact NTA name match, domain control and World ID officers." | — | "Proving the signer represents the company comes in production; each step says what's proven today." |
+| 0:11 | Step 4, "Prove you represent the company": "Sign with 商業登記電子証明書" and "Mail a code to the registered head office", both "Coming in production", with "Demo companies skip this step" and "A demo company is fictional: it has no NTA record and no domain to prove." | — | "Proving the signer represents the company comes in production." |
 | 0:14 | Step 5, "Who approves changes?": the record's "Placeholder officer" `0xe221…a3ad`, which no one can prove, so no one can change the payout | Officers · placeholder officer (demo company) | — |
 | 0:16 | Step 6, "Check everything, then register": the summary (Fictional; Domain None · Not proven; 1 placeholder officer) → "Register" → "Registered on Sepolia" · tx `0x277c2115…d2dc` | Evidence · fixture evidence (fictional company); `PayeeRegistered` · block 11,781,118 · 26 Sep 03:49 JST; status → Active | "One registration on Sepolia, and t2011001234567.payee.eth resolves to that payout." |
-| 0:19 | Step 7, "You're registered.": "Payers who check t2011001234567.payee.eth will only ever pay the address below…", the payee card ("Registered payee · fictional company") with a QR of the public payee page, and "✓ Resolves in any ENS client" | `t2011001234567.payee.eth → 0x9B4f…47e4` | — |
+| 0:19 | Step 7, "It's registered.": "Payers who check t2011001234567.payee.eth pay only the address below. Its placeholder officer means no one can change it…", the payee card ("Registered payee · fictional company") with a QR of the public payee page, and "✓ Resolves in any ENS client" | `t2011001234567.payee.eth → 0x9B4f…47e4` | — |
 
 Real data: the registry's `PayeeRegistered` event for 2011001234567 (registry
 `0x205c977cF1f4Ed42e51a48759550eF40160A6396`, read from block 11781105) and `officersOf`: the tx, block, business

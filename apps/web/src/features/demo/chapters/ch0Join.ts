@@ -113,7 +113,7 @@ export const chapter0: ChapterDef = {
     { at: 0, text: 'Register once: a company binds its registry number to one payout.' },
     { at: 4.6, text: 'A business key approves changes; one address receives every payment.' },
     { at: 8.6, text: 'Real companies also prove their domain and enroll World ID officers; this demo company is labelled.' },
-    { at: 10.9, text: 'Proving the signer represents the company comes in production; each step says what’s proven today.' },
+    { at: 10.9, text: 'Proving the signer represents the company comes in production.' },
     { at: 15.8, text: `One registration on Sepolia, and ${ONBOARD.ens} resolves to that payout.` },
   ],
   build(c) {
