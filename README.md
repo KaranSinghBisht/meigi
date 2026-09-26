@@ -80,7 +80,7 @@ the vault reverts `PayeeMismatch` and names the registered company.
 | **PayeeResolver** (ENS) | `t<13 digits>.payee.eth` resolves to the active payout only. Unknown or disputed numbers resolve to nothing, and a queued change never resolves early. | [`contracts/src/ens`](contracts/src/ens) |
 | **AgentVault** | The agent's key can only pay owner-approved vendors, within caps, to the payout the owner pinned, which must still be the registry's. A swapped address reverts `PayeeMismatch`; a registry change reverts `VendorPayoutChanged`. | [`contracts/src/payments`](contracts/src/payments) |
 | **Verifier** | Exact match against the NTA bulk data after NFKC normalisation. Keybase-style DNS proof. World ID 4.0 officer sessions. Approvals whose World ID signal pins the exact change. **Global:** `GET /lei/:lei` verifies any company's LEI against GLEIF and links Japanese ones to their T-number. For example, Sony Group's LEI links to `T5010401067252`. | [`services/verifier`](services/verifier) |
-| **AP agent** | Invoice → deterministic extraction → System-1 triage (our fine-tuned model) → deterministic kernel → Intercepta screening → pay or hold. Only the kernel can move money; the LLM only explains. **The agent holds no key:** a separate signer does, signs only `payInvoice` after simulating it, and needs a verified human's approval above ¥50,000. | [`services/agent`](services/agent), [`services/signer`](services/signer) |
+| **AP agent** | Invoice → deterministic extraction → System-1 triage (our fine-tuned model) → deterministic kernel → Intercepta screening → pay or hold. Only the kernel can move money; the LLM only explains. **The agent holds no key:** a separate signer does, signs only `payInvoice` after simulating it, and needs a verified human's approval above ¥150,000. | [`services/agent`](services/agent), [`services/signer`](services/signer) |
 | **x402 guard** | Before an agent signs an x402 payment: a declared T-number must match `payTo`. Merchants that declare none get small amounts only, after a clean Intercepta screen. | [`packages/x402-guard`](packages/x402-guard), [`services/x402-demo`](services/x402-demo) |
 | **PayeeBench-JA** | A Japanese-first benchmark for triaging payment redirection. Kev-0.8B, fine-tuned on a MacBook, scores 0.918 accuracy. That beats the released Kev-4B (0.795) and Llama 3.3 70B (0.815), with ECE 0.024, at 39 ms. | [`bench`](bench) |
 | **Web app / landing** | Registry explorer with a live event feed, registration, officer approvals, agent console and x402 demo; a three.js "Sakasa Fuji" landing page. | [`apps/web`](apps/web), [`apps/landing`](apps/landing) |
@@ -122,7 +122,7 @@ Meigi's AP agent is three of the ideas in Curvegrid's brief:
 - **Stablecoin Payment Agent.** It reads Japanese invoices, pays them in mJPYC (our JPYC stand-in on Sepolia) and
   tracks settlement: `GET /invoices/:id/settlement` confirms each payment from MultiBaas's index.
 - **Policy-Aware Transaction Agent.** It pays only owner-approved vendors, only to the payout registered for their
-  T-number, and only within per-vendor caps, all enforced by the AgentVault. Above ¥50,000 the signer won't sign
+  T-number, and only within per-vendor caps, all enforced by the AgentVault. Above ¥150,000 the signer won't sign
   without a verified human's approval.
 - **Agent-to-Agent Payments.** Before a buying agent signs an x402 payment, the x402 guard checks the merchant's
   `payTo` against the registry and the merchant's ENS name.
@@ -138,7 +138,7 @@ handles each:
   re-checks the vendor, the payout and the caps on-chain.
 - **Human accountability.**
   - Risky payments wait for a verified human, who approves through World ID for Agents. The signer won't sign
-    anything above ¥50,000 without that approval.
+    anything above ¥150,000 without that approval.
   - A hash-chained audit log records every verdict, approval and payment, and `GET /audit?verify=1` checks the
     chain.
 
@@ -240,7 +240,7 @@ The contracts went through three review rounds by separate AI reviewers, with pr
 These reviews were AI-assisted, not a professional audit.
 
 Roles, delays and the trust model are in [`contracts/README.md`](contracts/README.md). The agent is untrusted
-by design and holds no key. The signer (`services/signer`) holds it, signs only `payInvoice`, and above ¥50,000 only
+by design and holds no key. The signer (`services/signer`) holds it, signs only `payInvoice`, and above ¥150,000 only
 with a verified human's approval. The worst case is overpaying an approved vendor, up to that vendor's caps. The threat model, audit plan
 and production roadmap are in [`docs/trust-and-compliance.md`](docs/trust-and-compliance.md).
 
