@@ -27,8 +27,10 @@ fixed canvas behind the shell (`src/ui/stage/SceneLayer.tsx`), with each flow at
   seam to the package.
 - `/` is the landing hero (`src/features/landing`, the landing's own UI with its styles scoped under `.landing`).
   "enter" stays on the same canvas: the hero fades, the stage holds `gate` while the torii glide runs, then the
-  router moves to `/start` and the app's header and panels fade in. Browser back returns to the hero; with reduced
-  motion or without WebGL, enter is a quick crossfade. A timer finishes the move if the tab is hidden mid-glide.
+  router moves to `/start` and the app's header and panels fade in. The header logo, the footer's "Back to the
+  lake" and browser back all return to the hero: the camera eases home and the hero fades back in, ready to enter
+  again (as often as you like, on the same canvas). With reduced motion or without WebGL, enter is a quick
+  crossfade. A timer finishes the move if the tab is hidden mid-glide; leaving mid-glide cancels it.
 - Arriving from the old standalone landing (which ends its glide in white), the app fades in from white.
 
 ## Run
