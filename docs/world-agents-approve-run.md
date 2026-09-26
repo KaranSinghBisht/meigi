@@ -1,8 +1,8 @@
-# World ID for Agents: a different human refused, then a real approved payment
+# World ID for Agents: a different World ID identity refused, then a real approved payment
 
 The denied path is in [`world-agents-deny-run.md`](world-agents-deny-run.md). This run shows the other two live
 outcomes on the same invoice, on 2026-09-26:
-- a proof from a **different human**, refused with nothing paid;
+- a proof from a **different World ID identity**, refused with nothing paid;
 - the **enrolled approver's** proof, which paid on Sepolia.
 
 The setup:
@@ -35,10 +35,11 @@ The analysis (audit #77, 13:14:27Z) held it on triage alone, a hold a verified h
  "warnings": ["urgent_language"], "screening": {"status": "ok", "flagged": []}, "approvable": true}
 ```
 
-## 1. A different human is refused (about 22:15 JST)
+## 1. A different World ID identity is refused (about 22:15 JST)
 
-Karan approved from his phone's browser. That browser was signed in as a different sandbox identity from the one
-enrolled as approver. World's page showed the user code `GC8TN-9SZCR` (sandbox reference ending `…68320746`).
+Karan approved from his phone's browser. That browser was signed in as a second sandbox identity (World's sandbox
+uses fake identities), not the one enrolled as approver. World's page showed the user code `GC8TN-9SZCR` (sandbox
+reference ending `…68320746`).
 
 ```json
 {"seq": 78, "at": "2026-09-26T13:14:32.183Z", "event": "approval.started", "approvalId": "07c5141f-3862-477b-9429-ce2d4817d2d6",
@@ -47,8 +48,8 @@ enrolled as approver. World's page showed the user code `GC8TN-9SZCR` (sandbox r
  "status": "wrong_human", "reason": "a different person proved than the approver on file"}
 ```
 
-The console showed: **"Not approved: nothing was paid. The proof came from a different human than the enrolled
-approver."**
+The audit reason and the console's text are quoted as the code writes them. The console showed: **"Not approved:
+nothing was paid. The proof came from a different human than the enrolled approver."**
 
 Nothing was broadcast:
 - The log has no `signer.simulate` or `signer.pay` entry between this attempt and the next one (#80). The agent never
