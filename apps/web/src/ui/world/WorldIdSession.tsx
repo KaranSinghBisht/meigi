@@ -128,6 +128,13 @@ export function WorldIdSession(props: WorldIdSessionProps) {
   )
 }
 
+/** The link deep-links into the World ID app; only a phone can have it installed. On desktop it just opens a
+ * "Get World ID app" download page instead of the request, which is confusing on camera - the confirmed desktop
+ * path is the QR plus the iPhone Camera app, so the link is hidden there rather than shown broken. */
+function isPhone(): boolean {
+  return /iPhone|iPad|iPod|Android/u.test(navigator.userAgent)
+}
+
 function WorldIdLinks({
   uri,
   onCancel,
@@ -139,7 +146,7 @@ function WorldIdLinks({
 }) {
   return (
     <div className="world-session__links">
-      {uri ? (
+      {uri && isPhone() ? (
         <a className="btn btn--ghost btn--sm" href={uri} target="_blank" rel="noreferrer">
           Open in World ID <span aria-hidden="true">↗</span>
         </a>
