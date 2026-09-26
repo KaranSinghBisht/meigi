@@ -1,0 +1,31 @@
+/* The officers screen: who is enrolled, and the World ID request inline. */
+.officer-list {
+  display: grid;
+  gap: 8px;
+}
+
+.officer-list__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  min-height: var(--control-lg);
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  background: var(--lg-cell);
+  box-shadow: var(--lg-highlight);
+  animation: onboard-appear 0.35s var(--ease-out) both;
+}
+
+.officer-list__name {
+  font-weight: var(--weight-strong);
+}
+
+.officer-list__item .badge {
+  margin-left: auto;
+}
+
+.officer-add {
+  display: flex;
+  flex-wrap: wrap;
+}

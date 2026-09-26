@@ -1,57 +1,100 @@
+/* Company onboarding: one glass window. The progress rail runs down its left side and the stage asks one question
+   per screen; cells are divided by the window's hairline, never a stroke. On a phone the rail folds into a
+   segmented bar above the stage. */
 .register {
   display: grid;
   gap: 16px;
 }
 
-.register .page-head {
-  margin-bottom: 4px;
-}
-
-.register__layout {
-  scroll-margin-top: 84px;
+.onboard {
   display: grid;
-  grid-template-columns: minmax(0, 660px) 300px;
-  justify-content: space-between;
-  gap: 20px;
-  align-items: start;
+  grid-template-columns: 272px minmax(0, 1fr);
+  width: 100%;
+  max-width: 1080px;
+  min-height: 640px;
+  margin: 0 auto;
+  scroll-margin-top: 88px;
 }
 
-.checklist {
-  position: sticky;
-  top: 88px;
+/* The rail: glass inside glass, so tint and light only. */
+.rail {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 28px 16px 20px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.rail__head {
   display: grid;
-  gap: 16px;
-  padding: 24px;
-  border: 0;
-  border-radius: var(--radius-lg);
-  background: var(--glass);
-  -webkit-backdrop-filter: var(--lg-blur);
-  backdrop-filter: var(--lg-blur);
-  box-shadow: var(--lg-shadow);
+  gap: 4px;
+  padding: 0 12px;
 }
 
-.checklist__title {
+.rail__title {
   font-size: var(--text-lg);
   font-weight: var(--weight-strong);
   letter-spacing: -0.015em;
+  line-height: 1.3;
 }
 
-.checklist__list {
-  display: grid;
-  gap: 16px;
+.rail__bar {
+  display: none;
 }
 
-.checklist__item {
+.rail__list {
   display: grid;
-  grid-template-columns: 26px 1fr;
-  gap: 8px;
+  gap: 4px;
+}
+
+.rail__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: var(--control-md);
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--ink-muted);
+  font-size: var(--text-md);
+  line-height: 1.3;
+  text-align: left;
+}
+
+.rail__item--done {
   color: var(--ink-soft);
 }
 
-.checklist__num {
+.rail__item--current {
+  background: var(--lg-sheen-bright), var(--lg-cell-strong);
+  color: var(--ink);
+  font-weight: var(--weight-strong);
+  box-shadow: var(--lg-shadow-control);
+}
+
+.rail__item--link {
+  cursor: pointer;
+  transition:
+    background-color 0.2s var(--ease-out),
+    color 0.2s var(--ease-out);
+}
+
+.rail__item--link:hover {
+  background: var(--lg-cell);
+  color: var(--ink);
+}
+
+.rail__item--link:focus-visible {
+  border-radius: 999px;
+}
+
+.rail__marker {
   display: inline-grid;
   width: 24px;
   height: 24px;
+  flex: none;
   place-items: center;
   border-radius: 50%;
   background: rgba(42, 39, 48, 0.08);
@@ -59,72 +102,179 @@
   font-weight: var(--weight-strong);
 }
 
-.checklist__item.is-current {
-  color: var(--ink);
-}
-
-.checklist__item.is-current .checklist__num {
+.rail__item--current .rail__marker {
   background: var(--lg-ink);
   color: #fff;
 }
 
-.checklist__text {
+.rail__item--done .rail__marker {
+  background: var(--jade);
+  color: #fff;
+}
+
+.rail__foot {
   display: grid;
-  gap: 2px;
+  gap: 16px;
+  margin-top: auto;
+  padding: 0 12px;
 }
 
-.checklist__name {
-  font-weight: var(--weight-strong);
+.rail__needs {
+  display: grid;
+  gap: 8px;
 }
 
-.checklist__body {
-  font-size: var(--text-md);
-  line-height: 1.45;
-}
-
-.register__who {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 12px;
-  align-items: baseline;
-  margin-bottom: 16px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid var(--lg-hairline);
-  font-size: var(--text-md);
-}
-
-.register__match {
-  color: var(--jade-deep);
+.rail__needs-title {
+  color: var(--ink-soft);
   font-size: var(--text-sm);
   font-weight: var(--weight-strong);
 }
 
-.register__match--fixture {
-  color: var(--iris-deep);
+.rail__needs-list {
+  display: grid;
+  gap: 4px;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
 }
 
-.register__nta-name {
-  color: var(--ink);
+.rail__needs-list li {
+  display: flex;
+  gap: 8px;
+}
+
+.rail__needs-list li::before {
+  color: var(--ink-muted);
+  content: '·';
+}
+
+.rail__restart {
+  justify-self: start;
+  margin-left: -8px;
+}
+
+/* The stage: the current screen slides in from the side it came from. */
+.onboard__stage {
+  min-width: 0;
+  padding: clamp(24px, 3.2vw, 44px);
+}
+
+.onboard__screen {
+  height: 100%;
+}
+
+.onboard__screen--forward {
+  animation: onboard-forward 0.5s var(--ease-out) both;
+}
+
+.onboard__screen--back {
+  animation: onboard-back 0.5s var(--ease-out) both;
+}
+
+@keyframes onboard-forward {
+  from {
+    opacity: 0;
+    transform: translateX(32px);
+  }
+}
+
+@keyframes onboard-back {
+  from {
+    opacity: 0;
+    transform: translateX(-32px);
+  }
+}
+
+.onboard-step {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-height: 100%;
+  max-width: 640px;
+}
+
+.onboard-step__head {
+  display: grid;
+  gap: 8px;
+}
+
+.onboard-step__title {
+  font-size: var(--text-display-sm);
+  font-weight: var(--weight-strong);
+  letter-spacing: -0.035em;
+  line-height: 1.15;
+}
+
+.onboard-step__title:focus {
+  outline: none;
+}
+
+.onboard-step__lede {
+  max-width: 58ch;
+  color: var(--ink-soft);
   font-size: var(--text-lg);
+  line-height: 1.5;
 }
 
-.step {
+.onboard-step__body {
   display: grid;
   gap: 16px;
 }
 
-.step__block {
+.onboard-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+.onboard-actions__main {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* Something the reader's answer just revealed rises into place. */
+@keyframes onboard-appear {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* A section of a screen: a small heading and one line on why it matters. */
+.onboard-section {
   display: grid;
   gap: 12px;
 }
 
-.step__lede {
-  max-width: 760px;
+.onboard-section__title {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-strong);
+  letter-spacing: -0.015em;
+}
+
+.onboard-section__lede {
+  margin-top: -8px;
   color: var(--ink-soft);
 }
 
-.step__note {
-  font-size: var(--text-sm);
+/* A cell: glass inside the window, tint and light only. */
+.onboard-cell {
+  display: grid;
+  gap: 12px;
+  padding: 16px 20px;
+  border-radius: var(--radius-md);
+  background: var(--lg-cell);
+  box-shadow: var(--lg-highlight);
+}
+
+.input--hero {
+  height: var(--control-lg);
+  font-size: var(--text-lg);
 }
 
 .input--jp {
@@ -133,179 +283,93 @@
   font-weight: var(--weight-strong);
 }
 
-.nta-hint {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px 16px;
-  padding: 8px 16px;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: var(--iris-tint);
-  font-size: var(--text-md);
+/* The hosted site: the steps as a preview beside the note that the verifier runs on the demo machine. */
+.onboard--preview {
+  min-height: 0;
 }
 
-.nta-hint--ok {
-  background: var(--jade-tint);
-}
-
-.nta-hint--muted {
-  justify-content: flex-start;
-  background: var(--lg-cell);
-  color: var(--ink-muted);
-}
-
-.nta-hint--warn {
-  background: var(--amber-tint);
-  color: var(--amber-deep);
-}
-
-.nta-hint--fixture {
-  justify-content: flex-start;
-  background: var(--iris-tint);
-  color: var(--ink);
-}
-
-.nta-hint__label {
-  color: var(--ink-soft);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-strong);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.nta-hint__address {
-  color: var(--ink-soft);
-}
-
-.nta-hint__match {
-  color: var(--jade-deep);
-  font-weight: var(--weight-strong);
-}
-
-.controller {
+.onboard--preview .onboard__stage {
   display: grid;
-  gap: 8px;
-  padding: 16px;
-  border-radius: var(--radius-md);
-  background: var(--lg-cell);
+  align-content: center;
 }
 
-.controller__value {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
+.onboard--preview .demo-machine {
+  background: none;
+  box-shadow: none;
 }
 
-.controller__ok {
-  color: var(--jade-deep);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-strong);
-}
-
-.controller__connect {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 16px;
-}
-
-.records {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.records__option {
-  display: grid;
-  align-content: start;
-  gap: 8px;
-  padding: 16px;
-  border: 0;
-  border-radius: 16px;
-  background: var(--lg-cell);
-}
-
-.records__title {
-  font-size: var(--text-md);
-  font-weight: var(--weight-strong);
-}
-
-.officers {
-  display: grid;
-  gap: 8px;
-}
-
-.officers__item {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 16px;
-  padding: 12px 16px;
-  border: 0;
-  border-radius: var(--radius-md);
-  background: var(--jade-tint);
-}
-
-.officers__index {
-  font-weight: var(--weight-strong);
-}
-
-.officers__ok {
-  margin-left: auto;
-  color: var(--jade-deep);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-strong);
-}
-
-.threshold {
-  display: grid;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-
-.threshold__options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.threshold__option {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--lg-cell);
-  cursor: pointer;
-}
-
-.threshold__option:has(input:checked) {
-  background: rgba(125, 110, 214, 0.18);
-  box-shadow: var(--lg-highlight);
-}
-
-.threshold__option input {
-  accent-color: var(--seal);
-}
-
-@media (max-width: 1100px) {
-  .register__layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .checklist {
-    position: static;
-  }
+.onboard--preview .demo-machine::before {
+  display: none;
 }
 
 @media (max-width: 760px) {
-  .records {
+  .onboard {
     grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+  }
+
+  .rail {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'head foot'
+      'bar bar';
+    gap: 12px 8px;
+    padding: 16px 16px 12px;
+  }
+
+  .rail__head {
+    grid-area: head;
+    padding: 0;
+  }
+
+  .rail__foot {
+    grid-area: foot;
+    align-self: center;
+    margin: 0;
+    padding: 0;
+  }
+
+  .rail__list,
+  .rail__needs {
+    display: none;
+  }
+
+  .rail__restart {
+    margin: 0;
+  }
+
+  .rail__bar {
+    display: grid;
+    grid-area: bar;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  .rail__seg {
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(42, 39, 48, 0.1);
+  }
+
+  .rail__seg.is-on {
+    background: var(--lg-ink);
+  }
+
+  .onboard__stage {
+    padding: 20px 16px 24px;
+  }
+
+  .onboard-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .onboard-actions__main {
+    margin-left: 0;
+  }
+
+  .onboard-actions__main > * {
+    flex: 1;
   }
 }

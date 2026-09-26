@@ -1,0 +1,120 @@
+/* The wallets screen: the business key, then three ways to name the payout address. */
+.wallet-cell__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  min-width: 0;
+}
+
+.wallet-cell__empty {
+  color: var(--ink-soft);
+}
+
+.payout-choice {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.payout-option {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  background: var(--lg-cell);
+  box-shadow: var(--lg-highlight);
+  cursor: pointer;
+  transition:
+    background-color 0.2s var(--ease-out),
+    box-shadow 0.2s var(--ease-out);
+}
+
+.payout-option:hover {
+  background: var(--lg-sheen), var(--lg-cell-strong);
+}
+
+.payout-option:has(input:checked) {
+  background: var(--lg-sheen-bright), var(--lg-cell-strong);
+  box-shadow: var(--lg-shadow-control);
+}
+
+.payout-option:has(input:focus-visible) {
+  outline: 2px solid var(--vermilion);
+  outline-offset: 2px;
+}
+
+/* The radio: an ink dot, not a ring. */
+.payout-option input {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  margin: 1px 0 0;
+  border-radius: 50%;
+  background: rgba(42, 39, 48, 0.1);
+  appearance: none;
+  cursor: pointer;
+}
+
+.payout-option input:checked {
+  background: radial-gradient(circle, #fff 0 3px, var(--lg-ink) 3.5px);
+}
+
+.payout-option input:focus-visible {
+  outline: none;
+}
+
+.payout-option__text {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.payout-option__title {
+  font-weight: var(--weight-strong);
+  line-height: 1.3;
+}
+
+.payout-option__body {
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  line-height: 1.4;
+}
+
+.new-wallet {
+  animation: onboard-appear 0.35s var(--ease-out) both;
+}
+
+.new-wallet__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.new-wallet__note {
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+
+.new-wallet__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+@media (max-width: 900px) {
+  .payout-choice {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .payout-option {
+    align-items: center;
+  }
+}

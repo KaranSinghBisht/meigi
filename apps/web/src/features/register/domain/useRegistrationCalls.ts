@@ -1,0 +1,50 @@
+import { useState } from 'react'
+import { explainError, type Explained } from '../../../lib/api/messages'
+import { checkDomainProof, createRegistration, type Registration } from '../../../lib/api/verifier'
+import type { Onboarding } from '../flow/useOnboarding'
+
+/** A fictional company has no real domain: it is recorded under its own name in the reserved .example TLD. */
+export function fictionalDomain(tNumber: string): string {
+  return `${tNumber.toLowerCase()}.example`
+}
+
+/**
+ * The verifier's first two calls, unchanged from the registration flow: create the registration (the exact NTA
+ * match, and the challenge the business key signs), then check the published domain proof.
+ */
+export function useRegistrationCalls(onboarding: Onboarding) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<Explained | null>(null)
+
+  const run = async <T>(call: () => Promise<T>): Promise<T | null> => {
+    setBusy(true)
+    setError(null)
+    try {
+      return await call()
+    } catch (reason) {
+      setError(explainError(reason, 'verifier'))
+      return null
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const create = (domain: string) =>
+    run(async (): Promise<Registration | null> => {
+      const { company, controller, payout } = onboarding.state
+      if (!company || !controller || !payout) return null
+      const input = { tNumber: company.tNumber, legalName: company.legalName, domain, controller, payout }
+      const registration = await createRegistration(input)
+      onboarding.created(registration)
+      return registration
+    })
+
+  const check = (id: string) =>
+    run(async () => {
+      const { method } = await checkDomainProof(id)
+      onboarding.domainVerified(method)
+      return method
+    })
+
+  return { busy, error, create, check }
+}

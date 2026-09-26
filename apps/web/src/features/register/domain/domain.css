@@ -1,0 +1,61 @@
+/* The domain screen: the record to publish, one row per field, each with its own copy chip. */
+.dns-record {
+  gap: 0;
+  padding: 4px 20px;
+}
+
+.dns-record__row {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: baseline;
+  padding: 12px 0;
+}
+
+.dns-record__row + .dns-record__row {
+  box-shadow: 0 -1px 0 var(--lg-hairline);
+}
+
+.dns-record__label {
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-strong);
+}
+
+/* A signature is a blob to copy, not a word to read: it wraps anywhere. */
+.dns-record__value {
+  min-width: 0;
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.dns-alt {
+  display: grid;
+  gap: 12px;
+}
+
+.dns-alt summary {
+  width: fit-content;
+  color: var(--ink-soft);
+  font-size: var(--text-md);
+  font-weight: var(--weight-strong);
+  cursor: pointer;
+}
+
+.dns-alt[open] summary {
+  margin-bottom: 12px;
+}
+
+@media (max-width: 560px) {
+  .dns-record__row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 12px;
+  }
+
+  .dns-record__value {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
