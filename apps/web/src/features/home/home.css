@@ -7,3 +7,8 @@
 .home {
   display: grid;
 }
+
+/* The poster already carries the 名義 seal, and its type runs where the vertical label would sit. */
+.shell:has(.home) .shell__vlabel {
+  display: none;
+}
