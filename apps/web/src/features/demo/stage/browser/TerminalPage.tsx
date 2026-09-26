@@ -11,7 +11,7 @@ export function TerminalPage() {
         <span className="term__meta">x402 · Meigi guard · Sepolia</span>
         {X402_RUN.placeholder ? <span className="term__placeholder">placeholder run</span> : null}
       </p>
-      <div className="term__view">
+      <div className="term__view" data-d="term-view">
         <ol className="term__lines" data-d="term-lines">
           {lines.map((line) => (
             <li key={line.id} className={`term__line term__line--${line.tone}`} data-d={`term-${line.id}`}>

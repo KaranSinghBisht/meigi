@@ -1,6 +1,7 @@
 // Chapter 5: agents buying compute and data over x402, each payment checked by the Meigi guard before signing.
-// The player reads an X402Run. Until the research-agent run from services/x402-demo is recorded, it plays the
-// PLACEHOLDER below, which says so on screen: only its transaction hash and refusal sentence are real.
+// The player reads an X402Run. A recorded research-agent run (services/x402-demo, `research-agent.ts --json`)
+// becomes one through fromScenario (x402Scenario.ts). Until that recording is in, the player plays the
+// PLACEHOLDER below and says so on screen: only its transaction hash and refusal sentence are real.
 
 export type GuardCheckState = 'pass' | 'fail' | 'skip'
 
@@ -11,19 +12,19 @@ export interface GuardCheck {
 }
 
 export type X402Outcome =
-  | { readonly status: 'settled'; readonly txHash: string }
+  | { readonly status: 'settled'; readonly txHash: string | null }
   | { readonly status: 'refused'; readonly reason: string }
 
 export interface X402Purchase {
   readonly id: string
-  /** What the buying agent wants, e.g. "2 GPU-minutes". */
-  readonly item: string
-  readonly merchant: string
-  /** The request line the terminal prints, e.g. "POST https://gpu.minato.example/v1/jobs". */
+  /** What the agent is buying, and from whom, e.g. "GPU-minute 1 of 2, from Minato GPU Cloud". */
+  readonly title: string
+  /** The request line the terminal prints, e.g. "POST /compute/minato/gpu-minute". */
   readonly request: string
-  readonly price: string
+  /** The 402's price, e.g. "15 mJPYC"; null when the merchant didn't quote one. */
+  readonly price: string | null
   /** The merchant's declared identity in its 402 answer; null for an API that declares none. */
-  readonly declared: { readonly tNumber: string; readonly ens: string } | null
+  readonly declared: { readonly tNumber: string; readonly ens: string | null } | null
   readonly payTo: string
   readonly checks: readonly GuardCheck[]
   readonly outcome: X402Outcome
@@ -37,7 +38,7 @@ export interface X402Run {
   readonly purchases: readonly X402Purchase[]
 }
 
-/** PLACEHOLDER: replace with the recorded research-agent run from services/x402-demo. */
+/** PLACEHOLDER: replaced by the recorded research-agent run from services/x402-demo. */
 export const PLACEHOLDER_X402_RUN: X402Run = {
   placeholder: true,
   recordedAt: null,
@@ -45,25 +46,22 @@ export const PLACEHOLDER_X402_RUN: X402Run = {
   purchases: [
     {
       id: 'gpu',
-      item: '2 GPU-minutes',
-      merchant: 'Minato GPU Cloud',
-      request: 'POST gpu.minato.example/v1/jobs',
-      price: '20 mJPYC',
-      declared: { tNumber: 'T7999900000001', ens: 't7999900000001.payee.eth' },
+      title: 'GPU-minutes, from Minato GPU Cloud',
+      request: 'POST /compute/minato/gpu-minute',
+      price: '15 mJPYC',
+      declared: { tNumber: 'T79999…', ens: 't79999….payee.eth' },
       payTo: 'the registered payout',
       checks: [
-        { label: 'ENS name resolves', state: 'pass', detail: 't7999900000001.payee.eth → registered payout' },
-        { label: 'Registry: active', state: 'pass', detail: 'T7999900000001 is registered and active' },
+        { label: 'ENS name resolves', state: 'pass', detail: 't79999….payee.eth → the registered payout' },
+        { label: 'Registry', state: 'pass', detail: 'registered and active' },
         { label: 'payTo matches', state: 'pass', detail: 'payTo is the registered payout' },
-        { label: 'Screening', state: 'pass', detail: 'clean' },
       ],
       outcome: { status: 'settled', txHash: '0x3146ec4fa1c89a192f8585f315c720724587f404e3d5e7e6cdfd341b825debd6' },
     },
     {
       id: 'swapped',
-      item: 'dataset slice',
-      merchant: 'Fuji Data (compromised)',
-      request: 'GET data.fuji.example/v1/slices/jp-invoices',
+      title: 'A compromised GPU inference mirror',
+      request: 'POST /compute/minato/inference/compromised',
       price: '30 mJPYC',
       declared: { tNumber: 'T8999900000001', ens: 't8999900000001.payee.eth' },
       payTo: '0xdCa5…6d5b',
@@ -79,18 +77,16 @@ export const PLACEHOLDER_X402_RUN: X402Run = {
     },
     {
       id: 'undeclared',
-      item: 'weather lookup',
-      merchant: 'an undeclared API',
-      request: 'GET api.undeclared.example/v1/weather',
-      price: '5 mJPYC',
+      title: 'A public web-scrape API with no Meigi record',
+      request: 'GET /web/scrape/undeclared',
+      price: '10 mJPYC',
       declared: null,
       payTo: 'an unregistered address',
       checks: [
-        { label: 'Declares a payee', state: 'skip', detail: 'no T-number: allowance only' },
-        { label: 'Within allowance', state: 'pass', detail: '5 ≤ 50 mJPYC' },
-        { label: 'Screening', state: 'pass', detail: 'clean screen required' },
+        { label: 'Declares a payee', state: 'skip', detail: 'no Meigi record: at most 50 mJPYC' },
+        { label: 'Screening', state: 'pass', detail: 'a clean screen is required' },
       ],
-      outcome: { status: 'settled', txHash: '' },
+      outcome: { status: 'settled', txHash: null },
     },
   ],
 }

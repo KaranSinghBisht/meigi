@@ -18,7 +18,7 @@ function Outcome({ purchase }: { readonly purchase: X402Purchase }) {
     <p className="pcard__row" data-d={`x-${purchase.id}-outcome`} data-enter="">
       <Chip tone="ok">Signed · settled</Chip>
       <span className="pcard__note">
-        {purchase.price}
+        {purchase.price ?? ''}
         {outcome.txHash ? (
           <>
             {' '}
@@ -32,16 +32,12 @@ function Outcome({ purchase }: { readonly purchase: X402Purchase }) {
 
 function PurchaseCard({ purchase, index }: { readonly purchase: X402Purchase; readonly index: number }) {
   return (
-    <Card
-      name={`x-card-${purchase.id}`}
-      title={`${index + 1} · ${purchase.merchant}`}
-      meta={`${purchase.item} · ${purchase.price}`}
-    >
+    <Card name={`x-card-${purchase.id}`} title={`${index + 1} · ${purchase.title}`} meta={purchase.price ?? undefined}>
       <p className="pcard__row">
-        {purchase.declared ? (
+        {purchase.declared?.ens ? (
           <span className="mono ptoken">{purchase.declared.ens}</span>
         ) : (
-          <span className="pcard__note">No payee declared</span>
+          <span className="pcard__note">{purchase.declared ? purchase.declared.tNumber : 'No payee declared'}</span>
         )}
       </p>
       <ul className="pchecks">

@@ -9,33 +9,44 @@ export interface TermLine {
   readonly tone: LineTone
   /** The purchase this line belongs to, so chapter 5 can pace each one. */
   readonly purchase: string
+  /** Index of the guard check this line reports, if it reports one. */
+  readonly check: number | null
 }
 
 const MARK: Record<GuardCheck['state'], string> = { pass: '✓', fail: '✗', skip: '–' }
 const TONE: Record<GuardCheck['state'], LineTone> = { pass: 'ok', fail: 'fail', skip: 'skip' }
 
-function outcomeLine(purchase: X402Purchase): Pick<TermLine, 'text' | 'tone'> {
+type Draft = Pick<TermLine, 'text' | 'tone'> & { readonly check?: number }
+
+function outcomeLine(purchase: X402Purchase): Draft {
   const { outcome } = purchase
   if (outcome.status === 'refused') return { text: `guard ✗ refused before signing: ${outcome.reason}`, tone: 'fail' }
   const tx = outcome.txHash ? ` · tx ${shortHash(outcome.txHash)}` : ''
-  return { text: `signed → settled ${purchase.price}${tx}`, tone: 'ok' }
+  return { text: `signed → settled${purchase.price ? ` ${purchase.price}` : ''}${tx}`, tone: 'ok' }
 }
 
 function purchaseLines(buyer: string, purchase: X402Purchase): TermLine[] {
   const declared = purchase.declared
-    ? `payee ${purchase.declared.tNumber} · ${purchase.declared.ens} · payTo ${purchase.payTo}`
-    : `no payee declared · payTo ${purchase.payTo}`
-  const raw: Pick<TermLine, 'text' | 'tone'>[] = [
-    { text: `› ${buyer} needs ${purchase.item} from ${purchase.merchant}`, tone: 'cmd' },
-    { text: `${purchase.request} → 402 Payment Required · ${purchase.price}`, tone: 'wire' },
+    ? `declares ${purchase.declared.tNumber}${purchase.declared.ens ? ` · ${purchase.declared.ens}` : ''} · payTo ${purchase.payTo}`
+    : `declares no payee · payTo ${purchase.payTo}`
+  const drafts: Draft[] = [
+    { text: `› ${buyer}: ${purchase.title}`, tone: 'cmd' },
+    { text: `${purchase.request} → 402 Payment Required${purchase.price ? ` · ${purchase.price}` : ''}`, tone: 'wire' },
     { text: declared, tone: 'plain' },
-    ...purchase.checks.map((check) => ({
+    ...purchase.checks.map((check, index) => ({
       text: `guard ${MARK[check.state]} ${check.label}: ${check.detail}`,
       tone: TONE[check.state],
+      check: index,
     })),
     outcomeLine(purchase),
   ]
-  return raw.map((line, index) => ({ ...line, id: `${purchase.id}-${index}`, purchase: purchase.id }))
+  return drafts.map((line, index) => ({
+    text: line.text,
+    tone: line.tone,
+    check: line.check ?? null,
+    id: `${purchase.id}-${index}`,
+    purchase: purchase.id,
+  }))
 }
 
 export function terminalLines(run: X402Run): TermLine[] {
