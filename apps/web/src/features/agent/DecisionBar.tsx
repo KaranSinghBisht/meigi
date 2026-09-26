@@ -63,6 +63,11 @@ function PayButtons({ analysis, ...controls }: PayControls & { readonly analysis
         <Button size="lg" busy={busyAsking} disabled={locked && !busyAsking} onClick={() => void approval.ask()}>
           Ask a human to approve with World ID
         </Button>
+      ) : hold ? (
+        // Pay can't release a hold (the agent answers "held" and sends nothing), so none is offered to mis-click.
+        <Button size="lg" variant="ghost" disabled>
+          Held
+        </Button>
       ) : (
         <Button
           size="lg"
