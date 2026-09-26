@@ -22,13 +22,15 @@ const schema = z.object({
   WORLD_AGENTS_CLIENT_ID: z.string().optional(), // and be for this client
   // Phase 2 (1): the signer verifies an approval's signature, approver and single use itself. 0: Phase 1, claims only.
   SIGNER_VERIFY_APPROVAL: z.enum(["0", "1"]).default("0"),
-  WORLD_AGENTS_APPROVERS: z.string().default(""), // Phase 2: the pinned approvers, as the agent reads them
+  SIGNER_APPROVERS: z.string().default(""), // Phase 2, set in .env.signer: when set, the only approvers
+  WORLD_AGENTS_APPROVERS: z.string().default(""), // otherwise the pinned approvers, as the agent reads them
   WORLD_AGENTS_APPROVERS_PATH: z.string().default("../../data/agent/approvers.json"), // and the agent's enrolled ones
 });
 
-const secureOrLoopback = (value: string) => {
+/** https, or http on loopback for a local mock IdP, which proves nothing, so only on the local chain. */
+const acceptableIssuer = (value: string, chainId: number) => {
   const { protocol, hostname } = new URL(value);
-  return protocol === "https:" || (protocol === "http:" && ["127.0.0.1", "localhost", "[::1]"].includes(hostname));
+  return protocol === "https:" || (chainId === 31337 && protocol === "http:" && ["127.0.0.1", "localhost", "[::1]"].includes(hostname));
 };
 
 export type Config = z.infer<typeof schema>;
@@ -48,8 +50,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     if (!config.WORLD_AGENTS_ISSUER || !config.WORLD_AGENTS_CLIENT_ID) {
       throw new ConfigError("SIGNER_VERIFY_APPROVAL=1 needs WORLD_AGENTS_ISSUER and WORLD_AGENTS_CLIENT_ID");
     }
-    if (!URL.canParse(config.WORLD_AGENTS_ISSUER) || !secureOrLoopback(config.WORLD_AGENTS_ISSUER)) {
-      throw new ConfigError("WORLD_AGENTS_ISSUER: must be https (http only on loopback, for a local mock IdP)");
+    if (!URL.canParse(config.WORLD_AGENTS_ISSUER) || !acceptableIssuer(config.WORLD_AGENTS_ISSUER, config.CHAIN_ID)) {
+      throw new ConfigError("WORLD_AGENTS_ISSUER: must be https (http only on loopback, for a local mock IdP on chain 31337)");
     }
   }
   return config;

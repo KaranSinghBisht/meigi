@@ -93,14 +93,15 @@ describe("the agent's remote payer against the signer", () => {
 });
 
 describe("the signer's exchanges, as the audit log gets them", () => {
-  const call33k = { signerId: SIGNER_KEY, tNumber: "T2011001234567", invoiceRef: REF, payout: MEIGI, amount: (33_000n * 10n ** 18n).toString(), approval: false };
+  const about33k = { signerId: SIGNER_KEY, tNumber: "T2011001234567", invoiceRef: REF, payout: MEIGI, amount: (33_000n * 10n ** 18n).toString() };
+  const call33k = { ...about33k, approval: false };
 
   it("names the signing key and its simulation, before the send and inside it", async () => {
     const { remote, events } = setup();
     await remote.simulate(call(33_000));
     await remote.send(call(33_000));
     expect(events).toEqual([
-      { event: "signer.simulate", fields: { ...call33k, simulation: { ok: true, payout: MEIGI } } },
+      { event: "signer.simulate", fields: { ...about33k, simulation: { ok: true, payout: MEIGI } } },
       { event: "signer.pay", fields: { ...call33k, outcome: "sent", txHash: TX, simulation: { ok: true, payout: MEIGI } } },
     ]);
   });
@@ -121,9 +122,33 @@ describe("the signer's exchanges, as the audit log gets them", () => {
   });
 
   it("records that the signer verified the approval itself (Phase 2), and whose it was", async () => {
-    const { remote, events } = setup({}, { verify: async () => ({ ok: true, approverId: "0123456789abcdef" }), spend: () => {} });
+    const { remote, events } = setup({}, { verify: async () => ({ ok: true, approverId: "0123456789abcdef", release: () => {} }) });
     await remote.send(call(160_000, { idToken: idToken({ acr: ORB_ACR, auth_time: NOW - 5 }) }));
     expect(events[0]?.fields).toMatchObject({ outcome: "sent", approval: true, approvalVerified: true, approverId: "0123456789abcdef" });
+  });
+
+  it("records a transaction already in flight as that, not as a new signature", async () => {
+    const { remote, events } = setup({ send: async () => ({ ok: true, txHash: TX, payout: null }) });
+    await remote.send(call(33_000));
+    expect(events).toEqual([{ event: "signer.pay", fields: { ...call33k, outcome: "in_flight", txHash: TX } }]);
+  });
+
+  it("never loses a broadcast payment over an audit-only field it can't read", async () => {
+    const events: { event: string; fields: Record<string, unknown> }[] = [];
+    const seen: Hex[] = [];
+    const odd = createRemotePayer({
+      url: "http://127.0.0.1:8796",
+      token: TOKEN,
+      fetch: (async (input: string) =>
+        input.endsWith("/pay") ? Response.json({ ok: true, txHash: TX, signer: "someone", simulation: "garbage" }) : Response.json({ receipt: null })) as typeof fetch,
+      observe: (event, fields) => void events.push({ event, fields }),
+      pollMs: 1,
+      wait: async () => {},
+      receiptTimeoutMs: 5,
+    });
+    expect(await odd.send(call(33_000), (txHash) => seen.push(txHash))).toMatchObject({ ok: "pending", txHash: TX });
+    expect(seen).toEqual([TX]);
+    expect(events[0]?.fields).toMatchObject({ signerId: null, outcome: "sent", txHash: TX, simulation: null });
   });
 
   it("records a send the signer never answered, since it may have signed", async () => {

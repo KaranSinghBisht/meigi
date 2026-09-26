@@ -106,7 +106,7 @@ describe("the signer", () => {
   it("says when it answered with the transaction already in flight, which it didn't simulate again", async () => {
     const { post, payer } = setup();
     payer.send = async () => ({ ok: true as const, txHash: TX, payout: null });
-    expect((await post("/pay", payment(1000))).body).toEqual({ ok: true, txHash: TX, signer: AGENT, simulation: null });
+    expect((await post("/pay", payment(1000))).body).toEqual({ ok: true, txHash: TX, signer: AGENT, simulation: null, inFlight: true });
   });
 
   it("returns a revert as raw data for the agent to decode, and signs nothing", async () => {

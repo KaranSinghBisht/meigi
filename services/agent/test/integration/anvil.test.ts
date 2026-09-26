@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { mkdtempSync, rmSync } from "node:fs";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
@@ -50,6 +51,7 @@ describe.skipIf(!hasFoundry())("agent against the real contracts on anvil", () =
       WORLD_AGENTS_APPROVERS_PATH: join(cacheDir, "no-enrolled-approvers.json"),
     });
     const started = await startSigner(signerConfig, { now: () => human.idp.clock.now, fetch: human.idp.fetch }); // the mock IdP's clock dates its proofs
+    human.idp.clock.now += 120; // the signer refuses approvals made before it started (a restart must not revive spent ones)
     signer = await new Promise<ServerType>((resolve) => {
       const server = serve({ fetch: started.app.fetch, port: 0, hostname: "127.0.0.1" }, () => resolve(server));
     });
@@ -251,7 +253,9 @@ describe.skipIf(!hasFoundry())("agent against the real contracts on anvil", () =
     expect(paid?.txHash).toBe(signing[1]?.txHash); // the signer's answer and the mined payment are the same tx
     expect(signing[1]!.seq).toBeLessThan(paid!.seq);
     const approved = oldestFirst.find((e) => e.event === "signer.pay" && e.invoiceRef === invoiceRefOf("2011001234567", "MS-2026-0931"));
-    expect(approved).toMatchObject({ outcome: "sent", approval: true, signerId: stack.accounts.agent.address });
+    // Below the ceiling too, the Phase 2 signer verified the approval the agent presented: the mock IdP's human.
+    const approverId = createHash("sha256").update("human-1").digest("hex").slice(0, 16);
+    expect(approved).toMatchObject({ outcome: "sent", approval: true, approvalVerified: true, approverId, signerId: stack.accounts.agent.address });
     const forced = oldestFirst.find((e) => e.event === "signer.simulate" && e.simulation?.ok === false);
     expect(forced?.simulation).toEqual({ ok: false, revert: "PayeeMismatch" }); // the forced bank-change attempt
     expect(JSON.stringify(entries)).not.toMatch(/idToken|eyJ/u); // an approval token is never recorded

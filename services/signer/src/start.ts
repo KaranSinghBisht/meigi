@@ -5,7 +5,7 @@ import { createPublicClient, createWalletClient, erc20Abi, getAddress, http, typ
 import { privateKeyToAccount } from "viem/accounts";
 import { foundry, sepolia } from "viem/chains";
 import { createSignerApp } from "./app.js";
-import type { Config } from "./config.js";
+import { ConfigError, type Config } from "./config.js";
 import { createPayer } from "./payer.js";
 import { approversFrom, createApprovalVerifier, type ApprovalVerifier } from "./verify.js";
 
@@ -27,13 +27,18 @@ export interface StartOptions {
   fetch?: typeof fetch; // for the World ID provider's discovery and keys (tests)
 }
 
-/** Phase 2's verifier, when SIGNER_VERIFY_APPROVAL=1 (loadConfig has checked the issuer and client are set). */
+/** Phase 2's verifier, when SIGNER_VERIFY_APPROVAL=1. Never a silent fallback to Phase 1. */
 function verifierFor(config: Config, now: () => number, fetcher?: typeof fetch): ApprovalVerifier | undefined {
-  if (config.SIGNER_VERIFY_APPROVAL !== "1" || !config.WORLD_AGENTS_ISSUER || !config.WORLD_AGENTS_CLIENT_ID) return undefined;
+  if (config.SIGNER_VERIFY_APPROVAL !== "1") return undefined;
+  if (!config.WORLD_AGENTS_ISSUER || !config.WORLD_AGENTS_CLIENT_ID) throw new ConfigError("SIGNER_VERIFY_APPROVAL=1 needs WORLD_AGENTS_ISSUER and WORLD_AGENTS_CLIENT_ID");
   return createApprovalVerifier({
     issuer: config.WORLD_AGENTS_ISSUER,
     clientId: config.WORLD_AGENTS_CLIENT_ID,
-    isApprover: approversFrom(config.WORLD_AGENTS_APPROVERS, resolve(PACKAGE_DIR, config.WORLD_AGENTS_APPROVERS_PATH)),
+    isApprover: approversFrom({
+      signerOnly: config.SIGNER_APPROVERS,
+      pinned: config.WORLD_AGENTS_APPROVERS,
+      enrolledPath: resolve(PACKAGE_DIR, config.WORLD_AGENTS_APPROVERS_PATH),
+    }),
     maxAgeS: config.SIGNER_APPROVAL_MAX_AGE_S,
     now,
     ...(fetcher ? { fetch: fetcher } : {}),

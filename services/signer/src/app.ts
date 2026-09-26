@@ -5,7 +5,7 @@ import type { Address, Hex } from "viem";
 import { z } from "zod";
 import type { PayCall, SignerPayer } from "./payer.js";
 import { approvalRefusal, ceilingRule, type Approval, type Policy } from "./policy.js";
-import type { ApprovalVerifier } from "./verify.js";
+import type { ApprovalVerifier, Invoice } from "./verify.js";
 
 /**
  * The signer's HTTP API, for the AP agent on localhost only. Typed fields in, never calldata: the signer builds
@@ -29,17 +29,23 @@ export interface SignerDeps {
   verifier?: ApprovalVerifier | undefined; // Phase 2 (SIGNER_VERIFY_APPROVAL=1); Phase 1 without it
 }
 
-type Gate = { ok: true; approverId?: string } | { ok: false; reason: string };
+type Gate = { ok: true; approverId?: string; release?: () => void } | { ok: false; reason: string };
 
-/** Whether a payment may be signed. Phase 1 reads the approval's claims; Phase 2 verifies it, approver and all. */
-async function gate(deps: SignerDeps, amount: bigint, approval: Approval | undefined, invoiceRef: Hex): Promise<Gate> {
-  if (!deps.verifier || amount <= deps.policy.ceilingUnits) {
+/**
+ * Whether a payment may be signed. Phase 1 reads the approval's claims, and only above the ceiling. Phase 2 verifies
+ * any approval the agent presents, whatever the amount (a claimed approval must be real, and is spent here), and
+ * requires one above the ceiling.
+ */
+async function gate(deps: SignerDeps, amount: bigint, approval: Approval | undefined, invoice: Invoice): Promise<Gate> {
+  const above = amount > deps.policy.ceilingUnits;
+  if (!deps.verifier) {
     const refusal = approvalRefusal(amount, approval, deps.policy);
     return refusal ? { ok: false, reason: refusal } : { ok: true };
   }
-  if (!approval) return { ok: false, reason: ceilingRule(deps.policy) };
-  const verdict = await deps.verifier.verify(approval.idToken, invoiceRef);
-  return verdict.ok ? { ok: true, approverId: verdict.approverId } : { ok: false, reason: `${ceilingRule(deps.policy)}, and the one presented ${verdict.reason}` };
+  if (!approval) return above ? { ok: false, reason: ceilingRule(deps.policy) } : { ok: true };
+  const verdict = await deps.verifier.verify(approval.idToken, invoice);
+  if (verdict.ok) return { ok: true, approverId: verdict.approverId, release: verdict.release };
+  return { ok: false, reason: above ? `${ceilingRule(deps.policy)}, and the one presented ${verdict.reason}` : `the human approval presented ${verdict.reason}` };
 }
 
 const call = z
@@ -85,14 +91,17 @@ export function createSignerApp(deps: SignerDeps) {
     const body = await parse(c, pay);
     if (!body) return invalid(c);
     const signer = deps.info.agent;
-    const allowed = await gate(deps, BigInt(body.amount), body.approval, body.invoiceRef as Hex);
+    const allowed = await gate(deps, BigInt(body.amount), body.approval, { tNumber: BigInt(body.tNumber), invoiceRef: body.invoiceRef as Hex });
     if (!allowed.ok) return c.json({ code: "human_approval_required", message: `The signer refused: ${allowed.reason}.`, signer }, 403);
-    const sent = await deps.payer.send(payCall(body));
-    if (!sent.ok) return c.json({ ok: false, revert: sent.revert, signer }); // the in-lock simulation reverted
-    const simulation = sent.payout ? { ok: true, payout: sent.payout } : null; // null: the tx already in flight
-    if (!allowed.approverId || !body.approval) return c.json({ ok: true, txHash: sent.txHash, signer, simulation });
-    deps.verifier?.spend(body.approval.idToken, body.invoiceRef as Hex);
-    return c.json({ ok: true, txHash: sent.txHash, signer, simulation, approval: { verified: true, approverId: allowed.approverId } });
+    const sent = await deps.payer.send(payCall(body)); // a throw keeps the approval reserved: it may have been sent
+    if (!sent.ok) {
+      allowed.release?.(); // the in-lock simulation reverted, so nothing was broadcast
+      return c.json({ ok: false, revert: sent.revert, signer });
+    }
+    // The same invoice's transaction, already in flight: nothing was simulated or approved for this request.
+    if (sent.payout === null) return c.json({ ok: true, txHash: sent.txHash, signer, simulation: null, inFlight: true });
+    const approval = allowed.approverId ? { approval: { verified: true, approverId: allowed.approverId } } : {};
+    return c.json({ ok: true, txHash: sent.txHash, signer, simulation: { ok: true, payout: sent.payout }, ...approval });
   });
 
   app.get("/receipt/:txHash", async (c) => {

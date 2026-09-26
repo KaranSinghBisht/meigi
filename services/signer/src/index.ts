@@ -4,4 +4,4 @@ export { createPayer, type PayCall, type SignerPayer } from "./payer.js";
 export { approvalRefusal, ceilingRule, ORB_ACR, type Approval, type Policy } from "./policy.js";
 export { ConfigError, loadConfig, type Config } from "./config.js";
 export { startSigner, type StartedSigner, type StartOptions } from "./start.js";
-export { approversFrom, createApprovalVerifier, type ApprovalVerifier, type Verdict } from "./verify.js";
+export { approversFrom, createApprovalVerifier, type ApprovalVerifier, type Invoice, type Verdict } from "./verify.js";

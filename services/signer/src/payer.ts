@@ -53,17 +53,18 @@ export interface PayerOptions {
  */
 export function createPayer(opts: PayerOptions): SignerPayer {
   const exclusive = createLock();
-  const inFlight = new Map<Hex, Hex>(); // invoiceRef → the tx paying it, until it is mined
+  const inFlight = new Map<string, Hex>(); // "tNumber:invoiceRef" (the vault's invoice identity) → its tx, until mined
   return {
     simulate: (call) => simulate(opts, call),
     send: (call) =>
       exclusive(async () => {
-        const sent = inFlight.get(call.invoiceRef);
+        const invoice = `${call.tNumber}:${call.invoiceRef.toLowerCase()}`;
+        const sent = inFlight.get(invoice);
         if (sent) return { ok: true, txHash: sent, payout: null };
         const outcome = await simulate(opts, call);
         if (!outcome.ok) return outcome;
         const txHash = await opts.walletClient.writeContract(outcome.request);
-        inFlight.set(call.invoiceRef, txHash);
+        inFlight.set(invoice, txHash);
         return { ok: true, txHash, payout: outcome.payout };
       }),
     async receipt(txHash) {
