@@ -46,7 +46,6 @@ export interface WidgetOutcome {
 }
 
 const WIDGET_ERRORS: Record<string, string> = {
-  verification_rejected: 'World ID rejected the verification.',
   connection_failed: "Couldn't connect to World ID. Try again.",
   max_verifications_reached: 'This World ID has reached its verification limit for this app.',
   invalid_rp_signature: "World ID didn't accept the verifier's signature. Check the RP id and signing key.",
@@ -75,6 +74,9 @@ const WIDGET_ERRORS: Record<string, string> = {
  * reads correctly in every flow that can hit it (declining an officer enrollment vs. an approval, say). */
 const WIDGET_CALM_LEAD: Record<string, string> = {
   user_rejected: 'Declined.',
+  // World's own error-codes doc: "Legacy rejection code (older bridge/app behavior). Handle same as
+  // `user_rejected`." - seen for real from Karan's own decline tonight, showing as a red alert before this fix.
+  verification_rejected: 'Declined.',
   cancelled: 'Cancelled.',
   timeout: "World ID didn't answer in time.",
   credential_unavailable: "This credential isn't available on your World ID.",
