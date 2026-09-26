@@ -427,3 +427,9 @@ budget are 0.884 (deployed) and 0.905 (oracle). A System-1 `credit_note` answer 
 
 Every T-number has a valid 法人番号 check digit and is absent from the nationwide NTA index (5,787,472 corporations).
 Bayside's number, T3999905000001, uses registry office 9999, which doesn't exist.
+
+**01 and 07 are single-use on the live chain.** The vault pays each (T-number, invoice number) once, so a live
+payment of 01 or 07 spends that document's number. After a live run, `pnpm --filter @meigi/agent demo:renumber`
+(`--dry-run` to preview) moves any spent one to the next number that no document uses and the vault hasn't paid.
+It rewrites only the 請求書番号 line, and 05's reference follows 01. The console picks up the new numbers without
+a restart. Evidence payments use their own numbers (`scripts/evidence/`), never a demo document's.

@@ -25,6 +25,11 @@ import { approvalHarness, approvedWith, CLIENT_ID, denied, ISSUER, type Harness 
  * no key: the signer (services/signer, in-process here) holds anvil's agent key and signs over localhost.
  * System-1 triage is a separate model service, so it is canned here; everything else is the production code.
  */
+/** The demo documents' own numbers: demo:renumber moves them once a live payment spends one. */
+const numberOf = (file: string) => /請求書番号: (MS-\d{4}-\d{4})/u.exec(demo(file))![1]!;
+const ROUTINE_NUMBER = numberOf("01-routine-invoice.ja.txt");
+const URGENT_NUMBER = numberOf("07-urgent-invoice.ja.txt");
+
 describe.skipIf(!hasFoundry())("agent against the real contracts on anvil", () => {
   let stack: LocalStack;
   let app: ReturnType<typeof createApp>;
@@ -100,7 +105,7 @@ describe.skipIf(!hasFoundry())("agent against the real contracts on anvil", () =
       tNumber: 2011001234567n,
       payout: MEIGI_PAYOUT,
       amount: yen(132_000),
-      invoiceRef: invoiceRefOf("2011001234567", "MS-2026-0917"),
+      invoiceRef: invoiceRefOf("2011001234567", ROUTINE_NUMBER),
     });
     expect((await balanceOf(MEIGI_PAYOUT)) - before).toBe(yen(132_000));
   });
@@ -115,7 +120,7 @@ describe.skipIf(!hasFoundry())("agent against the real contracts on anvil", () =
         legalName: "株式会社メイギ商事",
         payout: MEIGI_PAYOUT,
         amount: { units: yen(132_000).toString(), display: "¥132,000" },
-        invoiceRef: invoiceRefOf("2011001234567", "MS-2026-0917"),
+        invoiceRef: invoiceRefOf("2011001234567", ROUTINE_NUMBER),
       }),
     );
     expect(body.received).toEqual([expect.objectContaining({ tNumber: "T2011001234567", payout: MEIGI_PAYOUT, total: expect.objectContaining({ display: "¥132,000" }) })]);
@@ -201,7 +206,7 @@ describe.skipIf(!hasFoundry())("agent against the real contracts on anvil", () =
     expect(paid).toMatchObject({ status: "paid", forced: false, payTo: MEIGI_PAYOUT, amount: "¥55,000" });
     const receipt = await reader.getTransactionReceipt({ hash: paid.txHash as Hex });
     const [event] = parseEventLogs({ abi: agentVaultAbi, eventName: "InvoicePaid", logs: receipt.logs });
-    expect(event?.args).toMatchObject({ payout: MEIGI_PAYOUT, amount: yen(55_000), invoiceRef: invoiceRefOf("2011001234567", "MS-2026-0931") });
+    expect(event?.args).toMatchObject({ payout: MEIGI_PAYOUT, amount: yen(55_000), invoiceRef: invoiceRefOf("2011001234567", URGENT_NUMBER) });
   });
 
   const signerPay = async (body: Record<string, unknown>) => {
@@ -240,7 +245,7 @@ describe.skipIf(!hasFoundry())("agent against the real contracts on anvil", () =
     const { entries, chain } = (await res.json()) as { entries: Record<string, any>[]; chain: { ok: boolean } };
     expect(chain.ok).toBe(true);
     const oldestFirst = [...entries].reverse();
-    const routineRef = invoiceRefOf("2011001234567", "MS-2026-0917");
+    const routineRef = invoiceRefOf("2011001234567", ROUTINE_NUMBER);
     const signing = oldestFirst.filter((e) => e.event.startsWith("signer.") && e.invoiceRef === routineRef);
     // Paid once; the later forced second attempt stops at the signer's simulation.
     expect(signing.map((e) => [e.event, e.outcome ?? e.simulation.revert ?? null])).toEqual([
@@ -252,7 +257,7 @@ describe.skipIf(!hasFoundry())("agent against the real contracts on anvil", () =
     const paid = oldestFirst.find((e) => e.event === "payment" && e.status === "paid" && e.invoiceRef === routineRef);
     expect(paid?.txHash).toBe(signing[1]?.txHash); // the signer's answer and the mined payment are the same tx
     expect(signing[1]!.seq).toBeLessThan(paid!.seq);
-    const approved = oldestFirst.find((e) => e.event === "signer.pay" && e.invoiceRef === invoiceRefOf("2011001234567", "MS-2026-0931"));
+    const approved = oldestFirst.find((e) => e.event === "signer.pay" && e.invoiceRef === invoiceRefOf("2011001234567", URGENT_NUMBER));
     // Below the ceiling too, the Phase 2 signer verified the approval the agent presented: the mock IdP's human.
     const approverId = createHash("sha256").update("human-1").digest("hex").slice(0, 16);
     expect(approved).toMatchObject({ outcome: "sent", approval: true, approvalVerified: true, approverId, signerId: stack.accounts.agent.address });
