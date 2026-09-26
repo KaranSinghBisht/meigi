@@ -52,17 +52,35 @@ const WIDGET_ERRORS: Record<string, string> = {
   max_verifications_reached: 'This World ID has reached its verification limit for this app.',
   invalid_rp_signature: "World ID didn't accept the verifier's signature. Check the RP id and signing key.",
   unknown_rp: "World ID doesn't know this RP id. Check VITE_WORLD_RP_ID.",
+  invalid_rp_id_format: 'The RP id is malformed. Check VITE_WORLD_RP_ID.',
+  inactive_rp: 'This RP id is not active.',
   duplicate_nonce: 'That request was already used. Try again.',
   rp_signature_expired: 'The request expired before it was completed. Try again.',
+  timestamp_too_old: 'The request expired before it was completed. Try again.',
+  timestamp_too_far_in_future: "This device's clock looks wrong. Check the time and try again.",
+  invalid_timestamp: 'The request timestamp was rejected. Try again.',
   malformed_request: 'World ID rejected the request as malformed.',
+  invalid_network: 'World ID rejected the network for this request.',
+  world_id_4_not_available: "This World ID can't do a 4.0 session. Try World App's latest version.",
+  world_id_3_not_available: "This World ID can't complete this request.",
+  nullifier_replayed: 'This proof was already used elsewhere. Try again with a fresh one.',
+  identity_attributes_not_matched: "World ID couldn't match the requested identity attributes.",
+  inclusion_proof_failed: "World couldn't confirm this identity is included yet. Try again shortly.",
 }
 
-/** Choosing not to prove, or not holding a requested credential, is the person's own situation, not something
- * broken: shown calmly, not as an alert. */
+/** Choosing not to prove, not holding a requested credential, or a transient hiccup on World's own side while
+ * completing the check, is the person's situation right now, not something broken here: shown calmly, not as
+ * an alert. */
 const WIDGET_CALM: Record<string, string> = {
   user_rejected: 'Declined in World ID. Nothing changed — try again when you\'re ready.',
   credential_unavailable: "This credential isn't available on your World ID. Nothing changed.",
+  feature_unavailable: "This isn't available on your World ID right now. Nothing changed.",
   cancelled: 'Cancelled. Nothing changed — try again when you\'re ready.',
+  user_presence_failed: "The check didn't complete. Nothing changed — try again.",
+  failed_by_host_app: "World ID couldn't complete this. Nothing changed — try again in a moment.",
+  unexpected_response: "World ID gave an answer we didn't expect. Nothing changed — try again.",
+  generic_error: "Something didn't complete on World's side. Nothing changed — try again in a moment.",
+  inclusion_proof_pending: "World is still confirming this identity. Nothing changed — try again shortly.",
 }
 
 export function widgetOutcome(code: string): WidgetOutcome {
