@@ -13,13 +13,17 @@ Everything runs from the repo root, with secrets in a git-ignored `.env` (never 
 | MockJPYC (`mJPYC`) | `0xEcA2B093682a46B14b143474d188A120bA2d0EC2` |
 | AgentVault | `0x87A798CD92dE1340B1b761dd45196AC82bEF793B` |
 
-This is deployment v2, after two security-review rounds. v1 (`deployments/11155111-v1.json`) is retired.
-The resolver was redeployed on 2026-09-26 so that disputed payees publish only their status, not a claimant's
-name. `payee.eth` points at it on both ENSv2 deployments; the previous resolver `0xe3Fa…25dA` is unused.
+This is deployment v2: the registry, resolver, router and vault were all redeployed after the first two
+security-review rounds (only MockJPYC is unchanged); a third round mutation-tested those fixes and needed no redeploy.
+v1 (`deployments/11155111-v1.json`) is retired. Later, on 2026-09-26, the resolver alone was redeployed so that disputed
+payees publish only their status, not a claimant's name. `payee.eth` points at it on both ENSv2 deployments; the
+previous resolver `0xe3Fa…25dA` is unused.
 All are verified on Sourcify. Timelocks: 72h for payout changes, rotations and dispute resolutions; 1h for new vendors.
 
-**Mizuhiki (Awaji testnet, chain 6497):** not deployed yet - a first attempt was blocked on the PoW faucet
-(one session per IP, no reconnect) before the deployer address got any gas. See `docs/mizuhiki.md`.
+**Mizuhiki (Awaji testnet, chain 6497):** deployed on 2026-09-26 (blocks 2387847–2387849): PayeeRegistry
+`0x4dbF8b5C3da46996C156AC3d17B16a230387b7C4` and PayRouter `0x589E7f274Cd5E87d71443993AC30b39E2E70659e`, paying in
+Mizuhiki's predeployed MJPY, with the same 72h change delay. No AgentVault or ENS on Awaji. Registrations, real MJPY and
+MUSD router payments, a refused payment and a live x402 purchase are in `docs/mizuhiki.md`, with every tx hash.
 
 Demo fixtures, fictional companies marked as such in their on-chain evidence:
 - `T2011001234567` 株式会社メイギ商事: the AP-agent vendor. The vault approves it with caps of ¥500k per invoice and ¥1M per 30 days.
