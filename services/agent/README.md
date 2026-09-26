@@ -307,10 +307,16 @@ budget are 0.880 (deployed) and 0.903 (oracle). A System-1 `credit_note` answer 
   bad.
 - **Without a key:** the result is "screening not configured" (`screening_not_configured`, a warning), never mock
   data. The demo works without a key.
+- **Live (2026-09-26):**
+  - The registered payouts and our own demo attacker wallets all score 0. Fresh wallets have no history, which is
+    why the registry, not screening, stops 02, 04 and 06.
+  - The Ronin bridge exploiter (example 08) scores `toxicScore` 100, with `known_scammer`, `sanction_address` and
+    `blacklist`.
+  - A run of all eight examples used 5 calls.
 
 ## Demo documents
 
-`scripts/demo-invoices/` holds seven documents. `vendors.json` lists the fictional vendors and the expected outcomes.
+`scripts/demo-invoices/` holds eight documents. `vendors.json` lists the fictional vendors and the expected outcomes.
 
 | File | Expected |
 |---|---|
@@ -321,6 +327,7 @@ budget are 0.880 (deployed) and 0.903 (oracle). A System-1 `credit_note` answer 
 | `05-credit-note.ja.txt` | Holds; never paid |
 | `06-x402-swapped-payto.json` | Holds; force shows the `PayeeMismatch` revert on Sepolia |
 | `07-urgent-invoice.ja.txt` | Genuine but urgent (至急): holds for `pressure_hold`. A verified human approves it, then it pays; a denial or expiry pays nothing, and force answers `force_needs_human`. |
+| `08-bank-change-flagged-wallet.ja.txt` | Holds on `payout_mismatch` (`PayeeMismatch`) and `screening_flagged`: the new wallet is the Ronin bridge exploiter, which Intercepta flags `known_scammer` with toxic score 100. Force is refused unsimulated, and no person can approve it. Needs `INTERCEPTA_API_KEY`; without it, only the kernel's hold remains. |
 
 Every T-number has a valid 法人番号 check digit and is absent from the nationwide NTA index (5,787,472 corporations).
 Bayside's number, T3999905000001, uses registry office 9999, which doesn't exist.
