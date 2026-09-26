@@ -56,6 +56,8 @@ export interface MultiBaas {
   query(definition: unknown, limit?: number): Promise<Record<string, unknown>[]>;
   /** Any other call (the setup script): returns the envelope's `result`. */
   call(method: "GET" | "POST" | "PUT", path: string, body?: unknown): Promise<unknown>;
+  /** Throws unless the deployment serves `chainId`: a deployment's network is fixed when it is created. */
+  requireChain(chainId: number): Promise<void>;
 }
 
 export function createMultiBaas(opts: MultiBaasOptions): MultiBaas {
@@ -84,6 +86,13 @@ export function createMultiBaas(opts: MultiBaasOptions): MultiBaas {
       return parsed.data.rows.map((row) => Object.fromEntries(Object.entries(row).map(([key, value]) => [key.toLowerCase(), value])));
     },
     call,
+    async requireChain(chainId) {
+      const status = z.object({ chainID: z.number() }).safeParse(await call("GET", "/chains/ethereum/status"));
+      if (!status.success) throw new MultiBaasUnavailable("MultiBaas returned its chain status in an unexpected shape");
+      if (status.data.chainID !== chainId) {
+        throw new MultiBaasUnavailable(`the MultiBaas deployment is on chain ${status.data.chainID}, not ${chainId}`);
+      }
+    },
   };
 }
 

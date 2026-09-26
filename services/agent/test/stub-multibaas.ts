@@ -18,6 +18,8 @@ export interface StubEvent {
 export interface StubMultiBaas {
   url: string;
   down: boolean;
+  chainId: number; // what GET /chains/ethereum/status reports
+  shallowPlan: boolean; // refuse an absolute startingBlock, like a plan that caps past-log depth
   requests: { method: string; path: string; body: unknown }[];
   contracts: Map<string, Record<string, unknown>>;
   aliases: Map<string, { address: string; links: Record<string, unknown>[] }>;
@@ -34,6 +36,8 @@ const notFound = { status: 404, message: "not found" };
 export async function startStubMultiBaas(): Promise<StubMultiBaas> {
   const stub = {
     down: false,
+    chainId: 11155111,
+    shallowPlan: false,
     requests: [],
     contracts: new Map(),
     aliases: new Map(),
@@ -66,6 +70,7 @@ function route(stub: StubMultiBaas, method: string, url: URL, body: any, auth: s
   if (auth !== `Bearer ${STUB_KEY}`) return [401, { status: 401, message: "unauthorized" }];
   if (stub.down) return [503, { status: 503, message: "unavailable" }];
   const path = url.pathname.replace(/^\/api\/v0/u, "");
+  if (method === "GET" && path === "/chains/ethereum/status") return [200, ok({ chainID: stub.chainId, blockNumber: 11783500 })];
   const alias = /^\/chains\/ethereum\/addresses\/([^/]+)$/u.exec(path)?.[1];
   const link = /^\/chains\/ethereum\/addresses\/([^/]+)\/contracts$/u.exec(path)?.[1];
   const contract = /^\/contracts\/([^/]+)$/u.exec(path)?.[1];
@@ -83,6 +88,7 @@ function route(stub: StubMultiBaas, method: string, url: URL, body: any, auth: s
     return [200, ok(body)];
   }
   if (method === "POST" && link) {
+    if (stub.shallowPlan && !String(body.startingBlock).startsWith("-")) return [400, { status: 400, message: "starting block too far back" }];
     stub.aliases.get(link)?.links.push({ label: body.label, name: body.label, version: body.version, startingBlock: body.startingBlock });
     return [200, ok({})];
   }

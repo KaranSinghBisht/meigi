@@ -4,17 +4,30 @@ import { MultiBaasUnavailable } from "../multibaas/client.js";
 import { CONTRACTS, EVENTS, QUERIES } from "../multibaas/labels.js";
 import type { PaymentHistory, ReceivedTotal, SettledPayment } from "./types.js";
 
-/** Settlement history from MultiBaas's event index (Curvegrid). Throws MultiBaasUnavailable on any trouble. */
-export function createMultiBaasHistory(mb: MultiBaas): PaymentHistory {
+/**
+ * Settlement history from MultiBaas's event index (Curvegrid). Throws MultiBaasUnavailable on any trouble, including
+ * a deployment on another chain than the agent's (checked once, rechecked after a failure).
+ */
+export function createMultiBaasHistory(mb: MultiBaas, chainId: number): PaymentHistory {
+  let checked: Promise<void> | null = null;
+  const sameChain = () => {
+    checked ??= mb.requireChain(chainId).catch((error: unknown) => {
+      checked = null;
+      throw error;
+    });
+    return checked;
+  };
   return {
     source: "multibaas",
     async invoicesPaid(limit) {
+      await sameChain();
       const rows = await mb.query(QUERIES.meigi_invoices_paid, limit);
       return rows.map((row) =>
         payment({ txHash: row.txhash, blockNumber: row.block, at: row.at, tNumber: row.tnumber, payout: row.payout, amount: row.amount, invoiceRef: row.invoiceref }),
       );
     },
     async received(payouts) {
+      await sameChain();
       const wanted = new Set(payouts.map((p) => p.toLowerCase()));
       const rows = await mb.query(QUERIES.meigi_mjpyc_received, 1000);
       const totals: ReceivedTotal[] = [];
@@ -25,6 +38,7 @@ export function createMultiBaasHistory(mb: MultiBaas): PaymentHistory {
       return totals;
     },
     async settlementOf(txHash) {
+      await sameChain();
       const events = await mb.events({ contractLabel: CONTRACTS.vault.label, eventSignature: EVENTS.invoicePaid, txHash, limit: 10 });
       const paid = events.find((e) => e.event.name === "InvoicePaid");
       return paid ? fromEvent(paid) : null;

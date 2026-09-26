@@ -50,7 +50,7 @@ export function buildDeps(config: Config) {
   });
   const approvals = createApprovalService(config);
   const history = {
-    multibaas: config.MULTIBAAS_URL && config.MULTIBAAS_API_KEY ? createMultiBaasHistory(createMultiBaas({ url: config.MULTIBAAS_URL, apiKey: config.MULTIBAAS_API_KEY })) : null,
+    multibaas: config.MULTIBAAS_URL && config.MULTIBAAS_API_KEY ? createMultiBaasHistory(createMultiBaas({ url: config.MULTIBAAS_URL, apiKey: config.MULTIBAAS_API_KEY }), config.CHAIN_ID) : null,
     rpc: createRpcHistory({ client: publicClient, vault, token: async () => (await chain.token()).address, fromBlock: historyFrom(config) }),
   };
   const deps: AppDeps = {

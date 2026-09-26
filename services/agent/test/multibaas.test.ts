@@ -18,6 +18,7 @@ afterEach(() => stub.close());
 const mbClient = () => createMultiBaas({ url: stub.url, apiKey: STUB_KEY, timeoutMs: 2_000 });
 const REF = invoiceRefOf("2011001234567", "MS-2026-0917");
 const DEPLOYMENT = {
+  chainId: 11155111,
   registry: "0x205c977cF1f4Ed42e51a48759550eF40160A6396",
   vault: "0x87A798CD92dE1340B1b761dd45196AC82bEF793B",
   token: "0xEcA2B093682a46B14b143474d188A120bA2d0EC2",
@@ -25,7 +26,7 @@ const DEPLOYMENT = {
 
 function withMultiBaas(): AppDeps & Fakes {
   const deps = fakeDeps();
-  return { ...deps, history: { multibaas: createMultiBaasHistory(mbClient()), rpc: deps.history.rpc } };
+  return { ...deps, history: { multibaas: createMultiBaasHistory(mbClient(), 11155111), rpc: deps.history.rpc } };
 }
 
 async function call(deps: AppDeps, method: string, path: string, body?: unknown) {
@@ -66,6 +67,33 @@ describe("setup", () => {
     const before = stub.requests.filter((r) => r.method === "POST").length;
     await setupMultiBaas(mbClient(), DEPLOYMENT, () => {});
     expect(stub.requests.filter((r) => r.method === "POST").length).toBe(before); // nothing created twice
+  });
+});
+
+describe("a deployment on the wrong chain", () => {
+  it("is never used: /payments falls back to RPC and says why", async () => {
+    stub.chainId = 6497; // e.g. a deployment created on MIZUHIKI Awaji
+    stub.invoicesPaid.push({ txHash: "0xdd", block: 1, at: "2026-09-26T03:00:00Z", inputs: { tNumber: "2011001234567", payout: MEIGI_PAYOUT, amount: "1", invoiceRef: REF } });
+    const { body } = await call(withMultiBaas(), "GET", "/payments");
+    expect(body.source).toEqual({ settled: "rpc", received: "rpc" });
+    expect(body.notes[0]).toBe("MultiBaas unavailable (the MultiBaas deployment is on chain 6497, not 11155111); read from RPC logs");
+    expect(body.settled).toEqual([]);
+  });
+
+  it("is never written to by the setup script", async () => {
+    stub.chainId = 6497;
+    await expect(setupMultiBaas(mbClient(), DEPLOYMENT, () => {})).rejects.toThrow("the MultiBaas deployment is on chain 6497, not 11155111");
+    expect(stub.requests.filter((r) => r.method !== "GET")).toEqual([]);
+  });
+});
+
+describe("a plan that caps past-log depth", () => {
+  it("links from 100 blocks back when the v2 block is refused, and says so", async () => {
+    stub.shallowPlan = true;
+    const log: string[] = [];
+    await setupMultiBaas(mbClient(), DEPLOYMENT, (line) => log.push(line));
+    expect(stub.aliases.get("meigi_vault")?.links).toEqual([expect.objectContaining({ startingBlock: "-100" })]);
+    expect(log).toContain(`linked meigi_vault to meigi_agent_vault, indexing from 100 blocks back (the plan refused block ${V2_START_BLOCK})`);
   });
 });
 

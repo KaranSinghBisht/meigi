@@ -11,6 +11,7 @@ import { CONTRACT_VERSION, CONTRACTS, QUERIES, V2_START_BLOCK } from "./labels.j
  */
 
 export interface Deployment {
+  chainId: number;
   registry: string;
   vault: string;
   token: string;
@@ -24,6 +25,7 @@ const address = z.object({
 });
 
 export async function setupMultiBaas(mb: MultiBaas, deployment: Deployment, log: (line: string) => void): Promise<void> {
+  await mb.requireChain(deployment.chainId); // never write Sepolia addresses into another chain's deployment
   for (const key of ["registry", "vault", "token"] as const) {
     const contract = CONTRACTS[key];
     const at = deployment[key];
@@ -37,15 +39,29 @@ export async function setupMultiBaas(mb: MultiBaas, deployment: Deployment, log:
       log(`aliased ${at} as ${contract.alias}`);
     }
     const linked = address.parse(await mb.call("GET", `/chains/ethereum/addresses/${contract.alias}`)).contracts;
-    if (!linked.some((c) => c.label === contract.label)) {
-      const link = { label: contract.label, version: CONTRACT_VERSION, startingBlock: String(V2_START_BLOCK) };
-      await mb.call("POST", `/chains/ethereum/addresses/${contract.alias}/contracts`, link);
-      log(`linked ${contract.alias} to ${contract.label}, indexing events from block ${V2_START_BLOCK}`);
-    }
+    if (!linked.some((c) => c.label === contract.label)) await link(mb, contract, log);
   }
   for (const [name, definition] of Object.entries(QUERIES)) {
     await mb.call("PUT", `/queries/${name}`, definition);
     log(`saved event query ${name}`);
+  }
+}
+
+/**
+ * Links the address to the contract with event indexing from the v2 block. A plan that caps how far back past logs
+ * are read (the free plan: 100 blocks) may refuse that; then indexing starts 100 blocks back, and older payments
+ * stay on the RPC path.
+ */
+async function link(mb: MultiBaas, contract: (typeof CONTRACTS)[keyof typeof CONTRACTS], log: (line: string) => void) {
+  const path = `/chains/ethereum/addresses/${contract.alias}/contracts`;
+  const body = { label: contract.label, version: CONTRACT_VERSION };
+  try {
+    await mb.call("POST", path, { ...body, startingBlock: String(V2_START_BLOCK) });
+    log(`linked ${contract.alias} to ${contract.label}, indexing events from block ${V2_START_BLOCK}`);
+  } catch (error) {
+    if (!(error instanceof MultiBaasUnavailable) || error.status === null || error.status >= 500) throw error;
+    await mb.call("POST", path, { ...body, startingBlock: "-100" });
+    log(`linked ${contract.alias} to ${contract.label}, indexing from 100 blocks back (the plan refused block ${V2_START_BLOCK})`);
   }
 }
 
