@@ -67,7 +67,7 @@ HEADER = ["| Contender | " + " | ".join(f"{q} acc / F1" for q in QUESTION_IDS)
 def row(name, s):
     """One RESULTS.md table row for a contender summary."""
     ac = s["autoclear"]
-    deployed = f"{ac['deployed']['legit_cleared']:.0%}, {ac['deployed']['false_clears']} unsafe cleared" if "deployed" in ac else "n/a"
+    deployed = f"{ac['deployed']['legit_cleared']:.0%}, {ac['deployed']['false_clears']} held let through" if "deployed" in ac else "n/a"
     cost = "n/a" if s["usd_per_1k"] is None else f"{s['usd_per_1k']:.5f}" + (" (list-price est.)" if s.get("cost_estimated") else "")
     lat = s["latency_ms"]
     return (f"| {name} | " + " | ".join(_cell(s["questions"][q]) for q in QUESTION_IDS)
@@ -75,14 +75,27 @@ def row(name, s):
             + (f" | {lat['p50']:.0f} / {lat['p95']:.0f}" if lat else " | n/a") + f" | {cost} |")
 
 
-def markdown(result):
-    head, rows = HEADER, [row(name, s) for name, s in result["contenders"].items()]
-    lines = ["# PayeeBench-JA results", "", f"Test split, {result['n_items']} items x 4 questions. Generated {result['generated']}.", "", *head, *rows, ""]
+AGENT_CAVEAT = ("Each model answered the 150 test items as a Claude Code agent over the label-free kit (`payeebench.external kit`), "
+                "reading about 5-10 items per step in one session (Haiku 4.5: three sessions of 50), not in one independent call per "
+                "item. They got the same system prompt and user messages as Llama and never revised an answer; a first Haiku run that "
+                "wrote a keyword classifier was discarded. With no validation run, auto-clear is the oracle rate only, an upper bound. "
+                "Cost is the list price of Llama's token counts; latency was not measured. Details: `paper/frontier-protocol.md`.")
+
+
+def markdown(result, agents=()):
+    """The results table, with rows run as agents under their own heading and caveat."""
+    rows = [row(name, s) for name, s in result["contenders"].items() if name not in agents]
+    lines = ["# PayeeBench-JA results", "", f"Test split, {result['n_items']} items x 4 questions. Generated {result['generated']}.", "",
+             *HEADER, *rows, ""]
+    agent_rows = [row(name, s) for name, s in result["contenders"].items() if name in agents]
+    if agent_rows:
+        lines += ["## Claude models run as Claude Code agents (indicative)", "", AGENT_CAVEAT, "", *HEADER, *agent_rows, ""]
     for name, reason in result["skipped"].items():
         lines.append(f"- **{name}**: skipped ({reason})")
     for pair, c in result["comparisons"].items():
         lines.append(f"- {pair}: accuracy {100 * c['delta']:+.1f} pts, 95% CI [{100 * c['ci95'][0]:+.1f}, {100 * c['ci95'][1]:+.1f}], "
-                     f"{c['newly_right']} newly right / {c['newly_wrong']} newly wrong, McNemar p={c['mcnemar_exact_p']:.2g}")
+                     f"{c['newly_right']} newly right / {c['newly_wrong']} newly wrong, McNemar p={c['mcnemar_exact_p']:.2g}; "
+                     f"items better / worse {c['items_better']} / {c['items_worse']}, sign test p={c['sign_test_p']:.2g}")
     if result["jev_list_price_per_1k"] is not None:
         lines.append(f"- Jev at list price (${JEV_USD_PER_M_INPUT}/M input tokens) would cost about ${result['jev_list_price_per_1k']:.4f} per 1k items "
                      "(estimated from Kev's token counts; Jev's tokenizer may differ).")
@@ -119,7 +132,8 @@ def build(splits, status, budget, out_dir):
               "contenders": {n: {k: v for k, v in s.items() if k != "_ok"} for n, s in summaries.items()}}
     (out_dir / "results.json").write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     if summaries:
-        (out_dir / "RESULTS.md").write_text(markdown(result) + family_table(result), encoding="utf-8")
+        agents = {n for n, st in status.items() if st.get("source") == "agent"}
+        (out_dir / "RESULTS.md").write_text(markdown(result, agents) + family_table(result), encoding="utf-8")
         plots.draw_all(result, out_dir)
     log.info("scored %d contenders, skipped %d; wrote %s", len(summaries), len(skipped), out_dir)
     return result

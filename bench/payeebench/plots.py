@@ -163,7 +163,7 @@ def autoclear_chart(result, colors, path):
             continue
         pick = ac["deployed"]
         bars.append((y, 0.5, pick["legit_cleared"], colors[name], hatch_for(name)))
-        text = f"{pick['legit_cleared']:.0%} of safe items, {pick['false_clears']} unsafe let through"
+        text = f"{pick['legit_cleared']:.0%} of safe items, {pick['false_clears']} that should be held let through"
         inside = pick["legit_cleared"] > 0.55
         ax.text(pick["legit_cleared"] + (-0.015 if inside else 0.01), y, text, va="center", ha="right" if inside else "left",
                 fontsize=12, color=ink_on(colors[name]) if inside else INK, zorder=5)

@@ -129,11 +129,13 @@ def mcnemar_exact(b, c):
 
 def paired(ok_a, ok_b, items, samples=10000, seed=0):
     """Candidate a minus reference b on the same answers: accuracy delta with an item-clustered bootstrap CI (an item's
-    four answers are resampled together) and the exact McNemar p on discordant answers."""
+    four answers are resampled together), the exact McNemar p on discordant answers, and an exact sign test on items."""
     d = (ok_a - ok_b).reshape(len(QUESTION_IDS), items).sum(0)       # per-item delta, summed over questions
     rng = np.random.default_rng(seed)
     boots = d[rng.integers(0, items, (samples, items))].sum(1) / (items * len(QUESTION_IDS))
     lo, hi = np.percentile(boots, [2.5, 97.5])
     right, wrong = int(((ok_a == 1) & (ok_b == 0)).sum()), int(((ok_a == 0) & (ok_b == 1)).sum())
+    better, worse = int((d > 0).sum()), int((d < 0).sum())    # items, since an item's four answers are not independent
     return {"delta": float((ok_a - ok_b).mean()), "ci95": [float(lo), float(hi)], "newly_right": right, "newly_wrong": wrong,
-            "mcnemar_exact_p": mcnemar_exact(right, wrong)}
+            "mcnemar_exact_p": mcnemar_exact(right, wrong), "items_better": better, "items_worse": worse,
+            "sign_test_p": mcnemar_exact(better, worse)}

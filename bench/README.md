@@ -12,10 +12,9 @@ System-1 model routes, and how honest its confidence is.
 
 Test split: 150 items (600 answers) built from test-only templates. Every local model is served the same way
 (`kev.serve`, MLX bf16 on the M5 Max, one request at a time over localhost HTTP); Llama runs on Workers AI behind our
-own Worker; the Claude rows are Claude Code agents run on a label-free copy of the test split (see below). Full table
-with macro-F1, paired statistics and a per-family breakdown: [`results/RESULTS.md`](results/RESULTS.md); raw numbers:
-`results/results.json`; every prediction: `results/predictions/`. The six-page paper with the full analysis is
-[`paper/paper.pdf`](paper/paper.pdf).
+own Worker. Full table with macro-F1, paired statistics and a per-family breakdown:
+[`results/RESULTS.md`](results/RESULTS.md); raw numbers: `results/results.json`; every prediction:
+`results/predictions/`. The six-page paper with the full analysis is [`paper/paper.pdf`](paper/paper.pdf).
 
 | contender | request type | new destination | pressure | suspicion | mean acc | ECE | AUROC of p_safe | safe items auto-cleared at 1% budget (held items let through) | p50 latency | $ per 1k items |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -25,10 +24,6 @@ with macro-F1, paired statistics and a per-family breakdown: [`results/RESULTS.m
 | **payee-0.8b (ours)** | **0.947** | **0.967** | **0.973** | **0.787** | **0.918** | 0.024 | 0.944 | **45% (1)** | 39 ms | $0.00013 |
 | payee-4b (ours, 1 epoch) | 0.953 | 0.987 | 1.000 | 0.813 | 0.938 | 0.016 | 0.986 | 67% (1) | 165 ms | $0.00058 |
 | Llama 3.3 70B (Workers AI, FP8, JSON by prompt) | 0.833 | 0.947 | 0.920 | 0.560 | 0.815 | 0.092 | 0.986 | not run on validation (oracle 39%) | 2,047 ms | $0.46 |
-| Claude Haiku 4.5 (agent) | 0.887 | 0.933 | 0.947 | 0.687 | 0.863 | 0.035 | 0.932 | not run on validation (oracle 20%) | not measured | est. $1.3 |
-| Claude Sonnet 5 (agent) | 0.867 | 1.000 | 0.940 | 0.827 | 0.908 | 0.097 | 1.000 | not run on validation (oracle 100%) | not measured | est. $2.5 |
-| Claude Opus 5.5 (agent) | 0.993 | 1.000 | 0.940 | 0.880 | 0.953 | 0.067 | 1.000 | not run on validation (oracle 100%) | not measured | est. $5.1 |
-| Claude Fable 5.1 (agent) | 0.993 | 1.000 | 0.940 | 0.867 | 0.950 | 0.081 | 1.000 | not run on validation (oracle 100%) | not measured | est. $13 |
 | Jev (through our Worker) | not run: the Worker answers 402 `insufficient_credits` (see below) | | | | | | | | | est. $0.021 at list price |
 
 An item is *safe* to auto-clear when it is a routine invoice or credit note, keeps the registered destination and has
@@ -50,13 +45,6 @@ family-clustered intervals and the convention analysis below come from `paper/an
   instead of 2,047 ms p50 (5.6 s p95, which includes the network). Llama's clearest miss is invoices carrying a hidden
   instruction that redirects payment: it flags the new destination and the suspicion level on 2 of the 6 each, against
   6 of 6 for the fine-tune.
-- **Frontier Claude models (agents).** Haiku 4.5 is behind the fine-tune (its lead +5.5, CI +2.3 to +8.8), Sonnet 5 is
-  statistically tied (+1.0, CI -1.8 to +4.2), and Opus 5.5 and Fable 5.1 are ahead (-3.5, CI -5.8 to -1.0; -3.2, CI
-  -5.5 to -0.7), though their family-clustered intervals include zero. Sonnet 5, Opus 5.5 and Fable 5.1 rank every safe
-  test item above every held one (AUROC 1.000) and get binary suspicion right on every item. The protocol is not
-  Llama's: each agent answered many items in one context, could reason and run shell commands, and was run once
-  ([`paper/frontier-protocol.md`](paper/frontier-protocol.md)). Their latency is not measured, and their cost is the
-  list price of Llama's token counts, so probably low.
 - **Fine-tuned 4B vs fine-tuned 0.8B:** +2.0 points (CI -0.3 to +4.2, sign test p = 0.11): statistically tied for four
   times the latency, so the 0.8B is the System-1 we ship. The 4B ranks safe vs held better (AUROC 0.986 vs 0.944;
   difference CI -0.078 to -0.013 over items, -0.169 to +0.012 over families). It was trained for one epoch with a bf16
@@ -65,7 +53,7 @@ family-clustered intervals and the convention analysis below come from `paper/an
   gains most (0.79, 0.50 levels). The three other questions were already 0.8-0.96 zero-shot.
 - **Calibration:** ECE 0.024, against 0.016 for the 4B fine-tune, 0.11-0.13 for the released models, 0.092 for Llama
   (0.076 before a bin-edge fix on 2026-09-26: a stated 0.3, 0.6 or 0.7 used to fall into the bin below) and 0.035-0.097
-  for the Claude agents. Refitting the released model's temperature on our validation data lowers its ECE to 0.11 but
+  for the Claude agents (indicative). Refitting the released model's temperature on our validation data lowers its ECE to 0.11 but
   leaves its ranking weak (AUROC 0.84), so it still auto-clears nothing. Pooled ECE hides confident errors: 13 of the
   fine-tune's 600 test answers are wrong at 0.9 confidence or more (0 for the released 4B, 22 for Llama), and it rates
   4 of the 6 benign gentle reminders, all four Japanese, "very likely a scam" (0.49 to 0.93).
@@ -84,9 +72,9 @@ family-clustered intervals and the convention analysis below come from `paper/an
 - **Speed and cost:** fine-tuning adds nothing at inference: 39 ms p50 (36 ms model time) for all four answers, the same
   as the released 0.8B. At an assumed 60 W that is $0.00013 of electricity per 1,000 items; Jev at its list price would be
   about $0.021 per 1,000 (TypeSafe's $0.042 per million input tokens, estimated from Kev's token counts, about 491 per
-  item), Llama 3.3 70B costs $0.46 at Workers AI list price for its measured tokens, the Claude models an estimated $1.3
-  (Haiku 4.5) to $13 (Fable 5.1), and Kev-0.8B on a rented L4 about $0.0035. Electricity on owned hardware against a
-  list price is not a like-for-like ratio; against the rented L4, Llama costs about 129 times more.
+  item), Llama 3.3 70B costs $0.46 at Workers AI list price for its measured tokens, and Kev-0.8B on a rented L4 about
+  $0.0035. Llama costs about 3,400 times our electricity, but electricity on owned hardware against a list price is
+  not a like-for-like ratio; against the rented L4, Llama costs about 129 times more.
 - **Forgetting:** on Kev's own out-of-domain development suite (`transfer-v4`, 656 answers, same served path) accuracy
   held (0.8B: 0.651 to 0.637; 4B: 0.817 to 0.817), but calibration there broke: ECE 0.049 to 0.225 for the 0.8B (0.033
   to 0.131 for the 4B), and wrong answers given with at least 0.9 confidence rose from 0.2% to 12.8% (0.9% to 9.8% for
@@ -95,6 +83,11 @@ family-clustered intervals and the convention analysis below come from `paper/an
 - **Where it still misses** (per family, `results/RESULTS.md`): silently swapped invoices (0.68; four of the seven swap
   in a look-alike wallet that keeps the registered address's first six and last four hex digits), confident false
   alarms on benign Japanese reminders written in test-only phrasings (above), and level 2 vs 3 on polite scams.
+- **Claude models as agents (indicative, not in the table above).** Run as Claude Code agents that read many items per
+  session rather than one call per item, Haiku 4.5, Sonnet 5, Opus 5.5 and Fable 5.1 score 0.863 to 0.953; the
+  strongest two are ahead of payee-0.8b and tied with payee-4b. Their table, paired deltas and caveats are under their
+  own heading in [`results/RESULTS.md`](results/RESULTS.md) and in the paper; how they were run is in
+  [`paper/frontier-protocol.md`](paper/frontier-protocol.md).
 - **Dataset revision.** These numbers are on the current dataset, whose identifiers were fixed on 2026-09-26 (see
   "Fictional entities only"). The models were trained and calibrated on the previous build, which differs only in
   T-numbers, phone numbers and 48 company names. Re-scoring moved no model's accuracy by more than 0.2 points, but it

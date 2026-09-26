@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-26T14:00:14+00:00",
+  "generated": "2026-09-26T14:19:49+00:00",
   "n_items": 150,
   "budget": 0.01,
   "comparisons": {
@@ -11,7 +11,10 @@
       ],
       "newly_right": 0,
       "newly_wrong": 0,
-      "mcnemar_exact_p": 1.0
+      "mcnemar_exact_p": 1.0,
+      "items_better": 0,
+      "items_worse": 0,
+      "sign_test_p": 1.0
     },
     "kev-4b (base) vs kev-0.8b (base)": {
       "delta": 0.04833333333333333,
@@ -21,7 +24,10 @@
       ],
       "newly_right": 61,
       "newly_wrong": 32,
-      "mcnemar_exact_p": 0.003461853491442379
+      "mcnemar_exact_p": 0.003461853491442379,
+      "items_better": 46,
+      "items_worse": 23,
+      "sign_test_p": 0.007620521855025697
     },
     "payee-0.8b (ours) vs kev-0.8b (base)": {
       "delta": 0.17166666666666666,
@@ -31,7 +37,10 @@
       ],
       "newly_right": 109,
       "newly_wrong": 6,
-      "mcnemar_exact_p": 1.4321082389149617e-25
+      "mcnemar_exact_p": 1.4321082389149617e-25,
+      "items_better": 91,
+      "items_worse": 6,
+      "sign_test_p": 1.3331565348493776e-20
     },
     "payee-4b (ours, 1 epoch) vs kev-0.8b (base)": {
       "delta": 0.19166666666666668,
@@ -41,7 +50,10 @@
       ],
       "newly_right": 126,
       "newly_wrong": 11,
-      "mcnemar_exact_p": 6.647795917854296e-26
+      "mcnemar_exact_p": 6.647795917854296e-26,
+      "items_better": 94,
+      "items_worse": 4,
+      "sign_test_p": 2.378717289651507e-23
     },
     "llama-3.3-70b (worker) vs kev-0.8b (base)": {
       "delta": 0.06833333333333333,
@@ -51,7 +63,10 @@
       ],
       "newly_right": 72,
       "newly_wrong": 31,
-      "mcnemar_exact_p": 6.59633262692302e-05
+      "mcnemar_exact_p": 6.59633262692302e-05,
+      "items_better": 60,
+      "items_worse": 21,
+      "sign_test_p": 1.6935831215860105e-05
     },
     "claude-haiku-4.5 (agent) vs kev-0.8b (base)": {
       "delta": 0.11666666666666667,
@@ -61,7 +76,10 @@
       ],
       "newly_right": 97,
       "newly_wrong": 27,
-      "mcnemar_exact_p": 1.8545612885631625e-10
+      "mcnemar_exact_p": 1.8545612885631625e-10,
+      "items_better": 74,
+      "items_worse": 13,
+      "sign_test_p": 1.5938987081347696e-11
     },
     "claude-sonnet-5 (agent) vs kev-0.8b (base)": {
       "delta": 0.16166666666666665,
@@ -71,7 +89,10 @@
       ],
       "newly_right": 121,
       "newly_wrong": 24,
-      "mcnemar_exact_p": 8.920070266300998e-17
+      "mcnemar_exact_p": 8.920070266300998e-17,
+      "items_better": 89,
+      "items_worse": 8,
+      "sign_test_p": 1.9995754035249446e-18
     },
     "claude-opus-5.5 (agent) vs kev-0.8b (base)": {
       "delta": 0.20666666666666667,
@@ -81,7 +102,10 @@
       ],
       "newly_right": 137,
       "newly_wrong": 13,
-      "mcnemar_exact_p": 2.8290471991413683e-27
+      "mcnemar_exact_p": 2.8290471991413683e-27,
+      "items_better": 97,
+      "items_worse": 3,
+      "sign_test_p": 2.630866896130179e-25
     },
     "claude-fable-5.1 (agent) vs kev-0.8b (base)": {
       "delta": 0.20333333333333334,
@@ -91,7 +115,10 @@
       ],
       "newly_right": 135,
       "newly_wrong": 13,
-      "mcnemar_exact_p": 9.447870845132629e-27
+      "mcnemar_exact_p": 9.447870845132629e-27,
+      "items_better": 95,
+      "items_worse": 3,
+      "sign_test_p": 9.904811308210189e-25
     },
     "kev-4b (base) vs kev-0.8b (base, val-fitted T)": {
       "delta": 0.04833333333333333,
@@ -101,7 +128,10 @@
       ],
       "newly_right": 61,
       "newly_wrong": 32,
-      "mcnemar_exact_p": 0.003461853491442379
+      "mcnemar_exact_p": 0.003461853491442379,
+      "items_better": 46,
+      "items_worse": 23,
+      "sign_test_p": 0.007620521855025697
     },
     "payee-0.8b (ours) vs kev-0.8b (base, val-fitted T)": {
       "delta": 0.17166666666666666,
@@ -111,7 +141,10 @@
       ],
       "newly_right": 109,
       "newly_wrong": 6,
-      "mcnemar_exact_p": 1.4321082389149617e-25
+      "mcnemar_exact_p": 1.4321082389149617e-25,
+      "items_better": 91,
+      "items_worse": 6,
+      "sign_test_p": 1.3331565348493776e-20
     },
     "payee-4b (ours, 1 epoch) vs kev-0.8b (base, val-fitted T)": {
       "delta": 0.19166666666666668,
@@ -121,7 +154,10 @@
       ],
       "newly_right": 126,
       "newly_wrong": 11,
-      "mcnemar_exact_p": 6.647795917854296e-26
+      "mcnemar_exact_p": 6.647795917854296e-26,
+      "items_better": 94,
+      "items_worse": 4,
+      "sign_test_p": 2.378717289651507e-23
     },
     "llama-3.3-70b (worker) vs kev-0.8b (base, val-fitted T)": {
       "delta": 0.06833333333333333,
@@ -131,7 +167,10 @@
       ],
       "newly_right": 72,
       "newly_wrong": 31,
-      "mcnemar_exact_p": 6.59633262692302e-05
+      "mcnemar_exact_p": 6.59633262692302e-05,
+      "items_better": 60,
+      "items_worse": 21,
+      "sign_test_p": 1.6935831215860105e-05
     },
     "claude-haiku-4.5 (agent) vs kev-0.8b (base, val-fitted T)": {
       "delta": 0.11666666666666667,
@@ -141,7 +180,10 @@
       ],
       "newly_right": 97,
       "newly_wrong": 27,
-      "mcnemar_exact_p": 1.8545612885631625e-10
+      "mcnemar_exact_p": 1.8545612885631625e-10,
+      "items_better": 74,
+      "items_worse": 13,
+      "sign_test_p": 1.5938987081347696e-11
     },
     "claude-sonnet-5 (agent) vs kev-0.8b (base, val-fitted T)": {
       "delta": 0.16166666666666665,
@@ -151,7 +193,10 @@
       ],
       "newly_right": 121,
       "newly_wrong": 24,
-      "mcnemar_exact_p": 8.920070266300998e-17
+      "mcnemar_exact_p": 8.920070266300998e-17,
+      "items_better": 89,
+      "items_worse": 8,
+      "sign_test_p": 1.9995754035249446e-18
     },
     "claude-opus-5.5 (agent) vs kev-0.8b (base, val-fitted T)": {
       "delta": 0.20666666666666667,
@@ -161,7 +206,10 @@
       ],
       "newly_right": 137,
       "newly_wrong": 13,
-      "mcnemar_exact_p": 2.8290471991413683e-27
+      "mcnemar_exact_p": 2.8290471991413683e-27,
+      "items_better": 97,
+      "items_worse": 3,
+      "sign_test_p": 2.630866896130179e-25
     },
     "claude-fable-5.1 (agent) vs kev-0.8b (base, val-fitted T)": {
       "delta": 0.20333333333333334,
@@ -171,7 +219,10 @@
       ],
       "newly_right": 135,
       "newly_wrong": 13,
-      "mcnemar_exact_p": 9.447870845132629e-27
+      "mcnemar_exact_p": 9.447870845132629e-27,
+      "items_better": 95,
+      "items_worse": 3,
+      "sign_test_p": 9.904811308210189e-25
     },
     "payee-0.8b (ours) vs kev-4b (base)": {
       "delta": 0.12333333333333334,
@@ -181,7 +232,10 @@
       ],
       "newly_right": 84,
       "newly_wrong": 10,
-      "mcnemar_exact_p": 1.032699183755085e-15
+      "mcnemar_exact_p": 1.032699183755085e-15,
+      "items_better": 68,
+      "items_worse": 10,
+      "sign_test_p": 9.70811491825464e-12
     },
     "payee-4b (ours, 1 epoch) vs kev-4b (base)": {
       "delta": 0.14333333333333334,
@@ -191,7 +245,10 @@
       ],
       "newly_right": 90,
       "newly_wrong": 4,
-      "mcnemar_exact_p": 3.219068471442615e-22
+      "mcnemar_exact_p": 3.219068471442615e-22,
+      "items_better": 72,
+      "items_worse": 3,
+      "sign_test_p": 3.72567441849804e-18
     },
     "llama-3.3-70b (worker) vs kev-4b (base)": {
       "delta": 0.02,
@@ -201,7 +258,10 @@
       ],
       "newly_right": 39,
       "newly_wrong": 27,
-      "mcnemar_exact_p": 0.1752857944430353
+      "mcnemar_exact_p": 0.1752857944430353,
+      "items_better": 33,
+      "items_worse": 20,
+      "sign_test_p": 0.09837064844049181
     },
     "claude-haiku-4.5 (agent) vs kev-4b (base)": {
       "delta": 0.06833333333333333,
@@ -211,7 +271,10 @@
       ],
       "newly_right": 59,
       "newly_wrong": 18,
-      "mcnemar_exact_p": 3.0550570254445797e-06
+      "mcnemar_exact_p": 3.0550570254445797e-06,
+      "items_better": 50,
+      "items_worse": 12,
+      "sign_test_p": 1.2143807700186297e-06
     },
     "claude-sonnet-5 (agent) vs kev-4b (base)": {
       "delta": 0.11333333333333333,
@@ -221,7 +284,10 @@
       ],
       "newly_right": 84,
       "newly_wrong": 16,
-      "mcnemar_exact_p": 2.6059358186561008e-12
+      "mcnemar_exact_p": 2.6059358186561008e-12,
+      "items_better": 67,
+      "items_worse": 7,
+      "sign_test_p": 2.1198660113131958e-13
     },
     "claude-opus-5.5 (agent) vs kev-4b (base)": {
       "delta": 0.15833333333333333,
@@ -231,7 +297,10 @@
       ],
       "newly_right": 100,
       "newly_wrong": 5,
-      "mcnemar_exact_p": 5.006007865146344e-24
+      "mcnemar_exact_p": 5.006007865146344e-24,
+      "items_better": 79,
+      "items_worse": 3,
+      "sign_test_p": 3.803541892641332e-20
     },
     "claude-fable-5.1 (agent) vs kev-4b (base)": {
       "delta": 0.155,
@@ -241,7 +310,10 @@
       ],
       "newly_right": 98,
       "newly_wrong": 5,
-      "mcnemar_exact_p": 1.8172343385355978e-23
+      "mcnemar_exact_p": 1.8172343385355978e-23,
+      "items_better": 77,
+      "items_worse": 3,
+      "sign_test_p": 1.4128410298528223e-19
     },
     "payee-4b (ours, 1 epoch) vs payee-0.8b (ours)": {
       "delta": 0.02,
@@ -251,7 +323,10 @@
       ],
       "newly_right": 30,
       "newly_wrong": 18,
-      "mcnemar_exact_p": 0.11140289106101875
+      "mcnemar_exact_p": 0.11140289106101875,
+      "items_better": 25,
+      "items_worse": 14,
+      "sign_test_p": 0.10812902140605729
     },
     "llama-3.3-70b (worker) vs payee-0.8b (ours)": {
       "delta": -0.10333333333333333,
@@ -261,7 +336,10 @@
       ],
       "newly_right": 16,
       "newly_wrong": 78,
-      "mcnemar_exact_p": 5.7845433783994637e-11
+      "mcnemar_exact_p": 5.7845433783994637e-11,
+      "items_better": 14,
+      "items_worse": 58,
+      "sign_test_p": 1.6464300115968573e-07
     },
     "claude-haiku-4.5 (agent) vs payee-0.8b (ours)": {
       "delta": -0.055,
@@ -271,7 +349,10 @@
       ],
       "newly_right": 15,
       "newly_wrong": 48,
-      "mcnemar_exact_p": 3.760612132541752e-05
+      "mcnemar_exact_p": 3.760612132541752e-05,
+      "items_better": 13,
+      "items_worse": 33,
+      "sign_test_p": 0.004533861582189047
     },
     "claude-sonnet-5 (agent) vs payee-0.8b (ours)": {
       "delta": -0.01,
@@ -281,7 +362,10 @@
       ],
       "newly_right": 31,
       "newly_wrong": 37,
-      "mcnemar_exact_p": 0.5446122234192591
+      "mcnemar_exact_p": 0.5446122234192591,
+      "items_better": 24,
+      "items_worse": 20,
+      "sign_test_p": 0.651587827208914
     },
     "claude-opus-5.5 (agent) vs payee-0.8b (ours)": {
       "delta": 0.035,
@@ -291,7 +375,10 @@
       ],
       "newly_right": 36,
       "newly_wrong": 15,
-      "mcnemar_exact_p": 0.0046013097117665325
+      "mcnemar_exact_p": 0.0046013097117665325,
+      "items_better": 32,
+      "items_worse": 10,
+      "sign_test_p": 0.0009406740282429382
     },
     "claude-fable-5.1 (agent) vs payee-0.8b (ours)": {
       "delta": 0.03166666666666667,
@@ -301,7 +388,10 @@
       ],
       "newly_right": 33,
       "newly_wrong": 14,
-      "mcnemar_exact_p": 0.007942726509483578
+      "mcnemar_exact_p": 0.007942726509483578,
+      "items_better": 29,
+      "items_worse": 9,
+      "sign_test_p": 0.0016580525261815637
     },
     "llama-3.3-70b (worker) vs payee-4b (ours, 1 epoch)": {
       "delta": -0.12333333333333334,
@@ -311,7 +401,10 @@
       ],
       "newly_right": 11,
       "newly_wrong": 85,
-      "mcnemar_exact_p": 2.547339085237751e-15
+      "mcnemar_exact_p": 2.547339085237751e-15,
+      "items_better": 8,
+      "items_worse": 60,
+      "sign_test_p": 5.7477609314866146e-11
     },
     "claude-haiku-4.5 (agent) vs payee-4b (ours, 1 epoch)": {
       "delta": -0.075,
@@ -321,7 +414,10 @@
       ],
       "newly_right": 11,
       "newly_wrong": 56,
-      "mcnemar_exact_p": 2.1457960315833698e-08
+      "mcnemar_exact_p": 2.1457960315833698e-08,
+      "items_better": 9,
+      "items_worse": 40,
+      "sign_test_p": 9.263546409954415e-06
     },
     "claude-sonnet-5 (agent) vs payee-4b (ours, 1 epoch)": {
       "delta": -0.03,
@@ -331,7 +427,10 @@
       ],
       "newly_right": 28,
       "newly_wrong": 46,
-      "mcnemar_exact_p": 0.04739297550405179
+      "mcnemar_exact_p": 0.04739297550405179,
+      "items_better": 20,
+      "items_worse": 24,
+      "sign_test_p": 0.651587827208914
     },
     "claude-opus-5.5 (agent) vs payee-4b (ours, 1 epoch)": {
       "delta": 0.015,
@@ -341,7 +440,10 @@
       ],
       "newly_right": 33,
       "newly_wrong": 24,
-      "mcnemar_exact_p": 0.2892437471090205
+      "mcnemar_exact_p": 0.2892437471090205,
+      "items_better": 30,
+      "items_worse": 17,
+      "sign_test_p": 0.07894069368148848
     },
     "claude-fable-5.1 (agent) vs payee-4b (ours, 1 epoch)": {
       "delta": 0.011666666666666667,
@@ -351,7 +453,10 @@
       ],
       "newly_right": 30,
       "newly_wrong": 23,
-      "mcnemar_exact_p": 0.4101027163746913
+      "mcnemar_exact_p": 0.4101027163746913,
+      "items_better": 27,
+      "items_worse": 16,
+      "sign_test_p": 0.12628947438543037
     },
     "claude-haiku-4.5 (agent) vs llama-3.3-70b (worker)": {
       "delta": 0.04833333333333333,
@@ -361,7 +466,10 @@
       ],
       "newly_right": 45,
       "newly_wrong": 16,
-      "mcnemar_exact_p": 0.00026427866182729843
+      "mcnemar_exact_p": 0.00026427866182729843,
+      "items_better": 36,
+      "items_worse": 10,
+      "sign_test_p": 0.00015641720852954677
     },
     "claude-sonnet-5 (agent) vs llama-3.3-70b (worker)": {
       "delta": 0.09333333333333334,
@@ -371,7 +479,10 @@
       ],
       "newly_right": 71,
       "newly_wrong": 15,
-      "mcnemar_exact_p": 7.076057190944837e-10
+      "mcnemar_exact_p": 7.076057190944837e-10,
+      "items_better": 50,
+      "items_worse": 5,
+      "sign_test_p": 2.1358426138817777e-10
     },
     "claude-opus-5.5 (agent) vs llama-3.3-70b (worker)": {
       "delta": 0.13833333333333334,
@@ -381,7 +492,10 @@
       ],
       "newly_right": 89,
       "newly_wrong": 6,
-      "mcnemar_exact_p": 4.697192490523779e-20
+      "mcnemar_exact_p": 4.697192490523779e-20,
+      "items_better": 69,
+      "items_worse": 4,
+      "sign_test_p": 2.4422670374772693e-16
     },
     "claude-fable-5.1 (agent) vs llama-3.3-70b (worker)": {
       "delta": 0.135,
@@ -391,7 +505,10 @@
       ],
       "newly_right": 89,
       "newly_wrong": 8,
-      "mcnemar_exact_p": 1.9995754035249446e-18
+      "mcnemar_exact_p": 1.9995754035249446e-18,
+      "items_better": 69,
+      "items_worse": 6,
+      "sign_test_p": 1.1641661378765454e-14
     },
     "claude-sonnet-5 (agent) vs claude-haiku-4.5 (agent)": {
       "delta": 0.045,
@@ -401,7 +518,10 @@
       ],
       "newly_right": 54,
       "newly_wrong": 27,
-      "mcnemar_exact_p": 0.0035963477188240634
+      "mcnemar_exact_p": 0.0035963477188240634,
+      "items_better": 36,
+      "items_worse": 14,
+      "sign_test_p": 0.0026021714567221466
     },
     "claude-opus-5.5 (agent) vs claude-haiku-4.5 (agent)": {
       "delta": 0.09,
@@ -411,7 +531,10 @@
       ],
       "newly_right": 66,
       "newly_wrong": 12,
-      "mcnemar_exact_p": 3.485851300097458e-10
+      "mcnemar_exact_p": 3.485851300097458e-10,
+      "items_better": 46,
+      "items_worse": 9,
+      "sign_test_p": 4.336383137015787e-07
     },
     "claude-fable-5.1 (agent) vs claude-haiku-4.5 (agent)": {
       "delta": 0.08666666666666667,
@@ -421,7 +544,10 @@
       ],
       "newly_right": 64,
       "newly_wrong": 12,
-      "mcnemar_exact_p": 1.0023457813247953e-09
+      "mcnemar_exact_p": 1.0023457813247953e-09,
+      "items_better": 44,
+      "items_worse": 9,
+      "sign_test_p": 1.220851017613711e-06
     },
     "claude-opus-5.5 (agent) vs claude-sonnet-5 (agent)": {
       "delta": 0.045,
@@ -431,7 +557,10 @@
       ],
       "newly_right": 28,
       "newly_wrong": 1,
-      "mcnemar_exact_p": 1.1175870895385742e-07
+      "mcnemar_exact_p": 1.1175870895385742e-07,
+      "items_better": 27,
+      "items_worse": 1,
+      "sign_test_p": 2.1606683731079102e-07
     },
     "claude-fable-5.1 (agent) vs claude-sonnet-5 (agent)": {
       "delta": 0.041666666666666664,
@@ -441,7 +570,10 @@
       ],
       "newly_right": 29,
       "newly_wrong": 4,
-      "mcnemar_exact_p": 1.0928604751825333e-05
+      "mcnemar_exact_p": 1.0928604751825333e-05,
+      "items_better": 28,
+      "items_worse": 4,
+      "sign_test_p": 1.9301194697618484e-05
     },
     "claude-fable-5.1 (agent) vs claude-opus-5.5 (agent)": {
       "delta": -0.0033333333333333335,
@@ -451,7 +583,10 @@
       ],
       "newly_right": 1,
       "newly_wrong": 3,
-      "mcnemar_exact_p": 0.625
+      "mcnemar_exact_p": 0.625,
+      "items_better": 1,
+      "items_worse": 3,
+      "sign_test_p": 0.625
     }
   },
   "skipped": {
