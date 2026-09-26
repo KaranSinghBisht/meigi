@@ -2,12 +2,21 @@ import { z } from "zod";
 
 const privateKey = z.string().regex(/^0x[0-9a-fA-F]{64}$/u, "must be a 32-byte hex key");
 const address = z.string().regex(/^0x[0-9a-fA-F]{40}$/u, "must be an address");
+/** In a dotenv file an empty value means "not set". */
+const optional = <T extends z.ZodType>(schema: T) => z.preprocess((v) => (v === "" ? undefined : v), schema.optional());
+/** https, or plain http on this machine only - matches services/agent/src/config.ts's own rule. */
+const secureOrLoopback = (url: string) => {
+  if (!URL.canParse(url)) return false;
+  const { protocol, hostname } = new URL(url);
+  return protocol === "https:" || (protocol === "http:" && ["127.0.0.1", "localhost", "[::1]"].includes(hostname));
+};
 
 const schema = z.object({
   SEPOLIA_RPC_URL: z.url(),
   // Reads fall back to this RPC on a transport error (a hackathon venue shares one IP; publicnode has already
-  // 403'd this machine under that load). Optional: reads use SEPOLIA_RPC_URL alone when it's unset.
-  SEPOLIA_RPC_FALLBACK_URL: z.url().optional(),
+  // 403'd this machine under that load). Optional: reads use SEPOLIA_RPC_URL alone when it's unset (and an
+  // empty string in the environment counts as unset too, not a validation error).
+  SEPOLIA_RPC_FALLBACK_URL: optional(z.url().refine(secureOrLoopback, "must be https, or http on loopback")),
   CHAIN_ID: z.coerce.number().int().positive().default(11155111),
   REGISTRY_ADDRESS: address,
   ATTESTER_PRIVATE_KEY: privateKey,

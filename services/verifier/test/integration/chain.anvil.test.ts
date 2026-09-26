@@ -136,4 +136,56 @@ describe.skipIf(!hasFoundry())("verifier's write path against a real chain (anvi
       globalThis.fetch = realFetch;
     }
   });
+
+  it("a single read fails over to the fallback RPC in seconds, not the primary's full hang", async () => {
+    // Same real anvil behind both URLs, distinguished only by a query suffix (anvil ignores it) so the fetch
+    // wrapper can single out "the primary" and delay it well past FALLBACK_TIMEOUT_MS, without ever blocking
+    // "the fallback" - proving the short timeout, not just eventual success after the full hang. Isolated to
+    // one read (not a full register()): a real chain, unranked fallback pays the primary's bounded timeout on
+    // every separate RPC call in a multi-step write, which the anti-flake threshold below would have to be
+    // very loose to tolerate; this proves the mechanism itself precisely, one call at a time.
+    const primaryUrl = `${anvil.url}/?role=primary`;
+    const fallbackUrl = `${anvil.url}/?role=fallback`;
+    const realFetch = globalThis.fetch;
+    let primaryCalls = 0;
+    globalThis.fetch = (async (input, init) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+      if (url.includes("role=primary")) {
+        primaryCalls++;
+        // A real hanging server doesn't return early just because the client gave up - the client's own
+        // AbortSignal is what makes that fetch reject promptly. Honour it here too, or this mock would never
+        // actually exercise viem's `timeout` option (it would just measure the full 8s every time).
+        await new Promise<void>((resolve, reject) => {
+          const timer = setTimeout(resolve, 8_000);
+          init?.signal?.addEventListener("abort", () => {
+            clearTimeout(timer);
+            reject(new DOMException("The operation was aborted.", "AbortError"));
+          });
+        });
+        throw new TypeError("simulated hang: primary never answered");
+      }
+      return realFetch(input, init);
+    }) as typeof fetch;
+    try {
+      const config = loadConfig({
+        SEPOLIA_RPC_URL: primaryUrl,
+        SEPOLIA_RPC_FALLBACK_URL: fallbackUrl,
+        CHAIN_ID: "31337",
+        REGISTRY_ADDRESS: deployment.registry,
+        ATTESTER_PRIVATE_KEY: accounts.attester.key,
+        WORLD_APP_ID: "app_test",
+        WORLD_RP_ID: "rp_test",
+        WORLD_RP_SIGNING_KEY: `0x${"11".repeat(32)}`,
+      } as unknown as NodeJS.ProcessEnv);
+      const withFallback = createChainPort(config);
+      const start = Date.now();
+      const payee = await withFallback.payee(T1); // T1 was registered by the very first test in this file
+      const elapsedMs = Date.now() - start;
+      expect(payee.status).toBe(1);
+      expect(elapsedMs).toBeLessThan(8_000); // well under the primary's simulated 8s hang
+      expect(primaryCalls).toBeGreaterThan(0); // the primary really was tried, not skipped
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+  }, 15_000);
 });

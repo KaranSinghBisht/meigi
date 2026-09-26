@@ -1,42 +1,31 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { sepolia } from "viem/chains";
-import { readTransportFor, sendKnown } from "../src/registry/chain.js";
+import { readTransportFor } from "../src/registry/chain.js";
 
-const HASH = "0xaa11aa11aa11aa11aa11aa11aa11aa11aa11aa11aa11aa11aa11aa11aa11aa" as const;
-
-describe("sendKnown", () => {
-  it("returns the hash without checking isKnown when the send itself succeeds", async () => {
-    const send = vi.fn().mockResolvedValue(HASH);
-    const isKnown = vi.fn();
-    await expect(sendKnown(HASH, send, isKnown)).resolves.toBe(HASH);
-    expect(isKnown).not.toHaveBeenCalled();
-  });
-
-  it("still returns the hash when send fails but the RPC(s) already know it - no re-send", async () => {
-    const send = vi.fn().mockRejectedValue(new Error("socket hang up"));
-    const isKnown = vi.fn().mockResolvedValue(true);
-    await expect(sendKnown(HASH, send, isKnown)).resolves.toBe(HASH);
-    expect(send).toHaveBeenCalledTimes(1); // never re-sent
-    expect(isKnown).toHaveBeenCalledWith(HASH);
-  });
-
-  it("re-throws the original transport error when neither RPC knows the hash", async () => {
-    const error = new Error("HTTP 403");
-    const send = vi.fn().mockRejectedValue(error);
-    const isKnown = vi.fn().mockResolvedValue(false);
-    await expect(sendKnown(HASH, send, isKnown)).rejects.toBe(error);
-    expect(send).toHaveBeenCalledTimes(1);
-  });
-});
+// sendKnown's own tests moved to broadcast.test.ts, which covers the same decision logic through the real
+// broadcast() function chain.ts now uses instead.
 
 describe("readTransportFor", () => {
-  it("uses a plain http transport when no fallback URL is configured", () => {
+  it("uses a plain http transport, with viem's normal retry behaviour, when no fallback URL is configured", () => {
     const transport = readTransportFor("https://rpc.example/primary", undefined);
-    expect(transport({ chain: sepolia }).config.type).toBe("http");
+    const config = transport({ chain: sepolia }).config;
+    expect(config.type).toBe("http");
+    expect(config.retryCount).toBeGreaterThan(0); // viem's own default, untouched
   });
 
   it("wraps both RPCs in a fallback transport when a fallback URL is configured", () => {
     const transport = readTransportFor("https://rpc.example/primary", "https://rpc.example/fallback");
     expect(transport({ chain: sepolia }).config.type).toBe("fallback");
+  });
+
+  it("gives each RPC a short timeout and no built-in retries in fallback mode, so a hang fails over in seconds", () => {
+    const transport = readTransportFor("https://rpc.example/primary", "https://rpc.example/fallback");
+    const inner = (transport({ chain: sepolia }) as unknown as { value: { transports: { config: { timeout: number; retryCount: number } }[] } })
+      .value.transports;
+    expect(inner).toHaveLength(2);
+    for (const t of inner) {
+      expect(t.config.timeout).toBeLessThanOrEqual(5_000);
+      expect(t.config.retryCount).toBe(0);
+    }
   });
 });

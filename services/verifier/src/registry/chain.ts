@@ -6,6 +6,7 @@ import {
   fallback,
   http,
   keccak256,
+  publicActions,
   type Address,
   type Chain,
   type Hex,
@@ -14,6 +15,7 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { foundry, sepolia } from "viem/chains";
+import { broadcast, type BroadcastRpc } from "./broadcast.js";
 import type { Config } from "../config.js";
 import type { SignedApproval } from "./approvals.js";
 
@@ -58,38 +60,40 @@ function chainFor(chainId: number): Chain {
   throw new Error(`unsupported chain id ${chainId}`);
 }
 
-/**
- * Reads retry on the fallback RPC on any transport error (a hackathon venue shares one IP; publicnode has
- * already 403'd this machine under that load). `fallbackUrl` is optional: reads use `rpcUrl` alone when unset.
- */
-export function readTransportFor(rpcUrl: string, fallbackUrl: string | undefined) {
-  return fallbackUrl ? fallback([http(rpcUrl), http(fallbackUrl)]) : http(rpcUrl);
-}
+/** A short timeout with no built-in retries on each RPC in fallback mode, so a hanging publicnode fails over in
+ * seconds, not the ~30-40s viem would otherwise wait through its own retry backoff before giving up. */
+const FALLBACK_TIMEOUT_MS = 4_000;
 
 /**
- * Sends an already-signed transaction, tolerating a transport error on `send` if `hash` turns out to already be
- * known (by either RPC, when `isKnown` is backed by a fallback-aware reader). A dropped connection doesn't tell
- * us whether the RPC had already broadcast the transaction before it dropped, so re-sending the same signed tx
- * elsewhere would be redundant at best - this checks by hash instead, and only re-throws once neither RPC has
- * it. Exported and parameterised over `send`/`isKnown` so this decision is tested directly, without a real chain.
+ * Reads retry on the fallback RPC on any transport error (a hackathon venue shares one IP; publicnode has
+ * already 403'd this machine under that load). `fallbackUrl` is optional: reads use `rpcUrl` alone, with viem's
+ * normal timeout/retries, when unset.
  */
-export async function sendKnown(hash: Hex, send: () => Promise<Hex>, isKnown: (hash: Hex) => Promise<boolean>): Promise<Hex> {
-  try {
-    await send();
-  } catch (error) {
-    if (!(await isKnown(hash))) throw error;
-  }
-  return hash;
+export function readTransportFor(rpcUrl: string, fallbackUrl: string | undefined) {
+  if (!fallbackUrl) return http(rpcUrl);
+  const bounded = (url: string) => http(url, { timeout: FALLBACK_TIMEOUT_MS, retryCount: 0 });
+  return fallback([bounded(rpcUrl), bounded(fallbackUrl)]);
 }
 
 export function createChainPort(config: Config): ChainPort {
   const chain = chainFor(config.CHAIN_ID);
   const attester = privateKeyToAccount(config.ATTESTER_PRIVATE_KEY as Hex);
+  const rpcUrls = [config.SEPOLIA_RPC_URL, ...(config.SEPOLIA_RPC_FALLBACK_URL ? [config.SEPOLIA_RPC_FALLBACK_URL] : [])];
   const reader = createPublicClient({ chain, transport: readTransportFor(config.SEPOLIA_RPC_URL, config.SEPOLIA_RPC_FALLBACK_URL) });
-  // Writes deliberately don't get the fallback-wrapped transport: its default retries ANY method on a transport
-  // error, including eth_sendRawTransaction, which would blindly resend an already-broadcast signed tx to the
-  // other RPC. sendKnown (used below) handles that case explicitly instead.
-  const writer = createWalletClient({ chain, transport: http(config.SEPOLIA_RPC_URL), account: attester });
+  // Preparing a transaction (nonce, gas, fees - all reads) is safe to retry and fail over freely, so it goes
+  // through the same fallback-aware transport as `reader`.
+  const preparer = createWalletClient({ chain, transport: readTransportFor(config.SEPOLIA_RPC_URL, config.SEPOLIA_RPC_FALLBACK_URL), account: attester });
+  // Broadcasting deliberately doesn't go through viem's fallback transport: its default retries ANY method on a
+  // transport error, including eth_sendRawTransaction, which would blindly resend an already-broadcast signed tx
+  // to the other RPC. `broadcast()` (services/verifier/src/registry/broadcast.ts, mirroring the signer's own)
+  // handles that explicitly instead, one already-signed send at a time, never signing twice. Each RPC still gets
+  // the same short timeout and no built-in retries when a fallback is configured, so a hanging primary hands off
+  // to broadcast()'s own failover in seconds rather than waiting out viem's default retry backoff first.
+  const broadcastTransport = (url: string) =>
+    config.SEPOLIA_RPC_FALLBACK_URL ? http(url, { timeout: FALLBACK_TIMEOUT_MS, retryCount: 0 }) : http(url);
+  const broadcasters: BroadcastRpc[] = rpcUrls.map((url) =>
+    createWalletClient({ chain, transport: broadcastTransport(url), account: attester }).extend(publicActions),
+  );
   const registry = config.REGISTRY_ADDRESS as Address;
   const base = { account: attester, address: registry, abi: payeeRegistryAbi } as const;
 
@@ -105,18 +109,13 @@ export function createChainPort(config: Config): ChainPort {
     const data = encodeFunctionData({ abi: payeeRegistryAbi, functionName: request.functionName, args: request.args } as Parameters<
       typeof encodeFunctionData
     >[0]);
-    const prepared = await writer.prepareTransactionRequest({ account: attester, chain, to: registry, data, type: "eip1559" });
+    const prepared = await preparer.prepareTransactionRequest({ account: attester, chain, to: registry, data, type: "eip1559" });
+    // The node reporting a different chain id than ours would sign a transaction for the wrong chain entirely.
+    if (prepared.chainId !== chain.id) {
+      throw new Error(`RPC reported chain id ${prepared.chainId}, expected ${chain.id}; refusing to sign`);
+    }
     const serializedTransaction = await attester.signTransaction(prepared as TransactionSerializableEIP1559);
-    const hash = keccak256(serializedTransaction);
-    const isKnown = async (h: Hex) => {
-      try {
-        return (await reader.getTransaction({ hash: h })) !== null;
-      } catch {
-        return false; // neither RPC recognised it (or neither answered): can't confirm it landed
-      }
-    };
-    await sendKnown(hash, () => writer.sendRawTransaction({ serializedTransaction }), isKnown);
-    return confirm(hash);
+    return confirm(await broadcast(broadcasters, serializedTransaction));
   }
 
   return {
