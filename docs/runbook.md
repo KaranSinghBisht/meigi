@@ -22,6 +22,9 @@ Demo fixtures, fictional companies marked as such in their on-chain evidence:
 - `T2011001234567` 株式会社メイギ商事: the AP-agent vendor. The vault approves it with caps of ¥500k per invoice and ¥1M per 30 days.
 - `T8999900000001` 株式会社フジデータ: the x402 data merchant. Registry office 9999 doesn't exist, so no real
   company can ever hold this number.
+- `T3999905000001` 合同会社ベイサイド・アドバイザリー: the fake-CEO example's payee. It is registered but deliberately
+  **not** approved in the vault, so the agent holds it and a forced payment reverts `VendorNotApproved`
+  (registered on 2026-09-26 in `0xdd058c9f…b5af`).
 - `T2010401000001` is **retired**. It was registered in error: the number belongs to a real company
   (旭紙業株式会社). It is frozen by a dispute, so it pays nothing and resolves to nothing. Never reuse it.
 - Fixture numbers were checked against the nationwide NTA data (5,787,472 corporations): neither fixture exists.
@@ -48,13 +51,18 @@ Check: `EXPECT_ADDR=0x9B4fc8994FcF2d5FE08a82A9454B61AA14D647e4 contracts/script/
 | 5173 | web app | `pnpm --filter @meigi/web dev` |
 | — | landing | `pnpm dev:landing` |
 
+**Live World ID officer demo.** `scripts/world-live.sh --yes` restarts the verifier on World ID production with
+Selfie Check and starts a matching web server on :5190. It prints the click path (fictional company
+`T7999900000002`). `--staging` puts both back and `--stop` stops them. It only stops servers it started itself,
+so replacing the hand-started verifier needs `--yes`.
+
 The AI proxy (Workers AI chat + Jev) is deployed at `https://meigi-ai-proxy.karanbishttt.workers.dev`
 (`workers/ai-proxy`) and needs `AI_PROXY_TOKEN`.
 
 ## Re-seeding
 
 ```sh
-bash contracts/script/seed-demo.sh        # fixture vendor, vault funding, vendor approval (idempotent registration)
+bash contracts/script/seed-demo.sh        # fixture vendors, vault funding, vendor approval; every step is skipped when already done
 ```
 
 `seed-demo.sh` passes testnet keys to `cast` on the command line, where local `ps` can see them. Run it only on
