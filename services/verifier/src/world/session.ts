@@ -99,6 +99,24 @@ export function requireSignal(result: unknown, signal: string): void {
   }
 }
 
+/** The World ID credentials an officer may prove with: Proof of Human (Orb), or Selfie Check (phone only). */
+export type OfficerCredential = "proof_of_human" | "selfie";
+export const OFFICER_CREDENTIALS: readonly OfficerCredential[] = ["proof_of_human", "selfie"];
+
+/**
+ * Requires every credential in the proof to be one this verifier accepts for officers, so a client can't swap in a
+ * weaker credential than the deployment chose. World verifies the proof itself; this checks what was proven.
+ */
+export function requireCredential(result: unknown, allowed: ReadonlySet<string>): void {
+  const responses = (result as { responses?: unknown } | null)?.responses;
+  const identifiers = Array.isArray(responses)
+    ? responses.map((response) => (response as { identifier?: unknown })?.identifier)
+    : [];
+  if (identifiers.length === 0 || identifiers.some((id) => typeof id !== "string" || !allowed.has(id))) {
+    throw new WorldVerificationError("credential_not_allowed", "this World ID credential is not accepted for officers");
+  }
+}
+
 function firstResponse(result: unknown): { session_nullifier?: unknown; signal_hash?: unknown } | undefined {
   const responses = (result as { responses?: unknown } | null)?.responses;
   return Array.isArray(responses) ? (responses[0] as { session_nullifier?: unknown }) : undefined;

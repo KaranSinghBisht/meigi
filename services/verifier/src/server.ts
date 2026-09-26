@@ -6,9 +6,16 @@ import { gleifRegistry } from "./lei/lei.js";
 import { openCorporationIndex } from "./nta/corporations.js";
 import { createChainPort } from "./registry/chain.js";
 import { openStore } from "./store/db.js";
-import { createRpContext, requireSignal, toIdkitRpContext, verifySessionProof } from "./world/session.js";
+import {
+  createRpContext,
+  requireCredential,
+  requireSignal,
+  toIdkitRpContext,
+  verifySessionProof,
+} from "./world/session.js";
 
 const config = loadConfig();
+const officerCredentials = new Set(config.WORLD_OFFICER_CREDENTIALS.split(",").map((c) => c.trim()));
 
 const app = createApp({
   corporations: openCorporationIndex(config.NTA_DB_PATH),
@@ -17,6 +24,7 @@ const app = createApp({
   world: {
     rpContext: () => toIdkitRpContext(config.WORLD_RP_ID, createRpContext(config.WORLD_RP_SIGNING_KEY)),
     async verify(result, signal) {
+      requireCredential(result, officerCredentials);
       if (signal) requireSignal(result, signal);
       return verifySessionProof(config.WORLD_RP_ID, result, config.WORLD_ENVIRONMENT);
     },

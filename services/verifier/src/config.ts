@@ -12,6 +12,13 @@ const schema = z.object({
   WORLD_RP_ID: z.string().startsWith("rp_"),
   WORLD_RP_SIGNING_KEY: privateKey,
   WORLD_ENVIRONMENT: z.enum(["production", "staging", "sandbox"]).default("staging"),
+  // Credentials an officer may prove with: proof_of_human (Orb), selfie (Selfie Check, phone only), comma-separated.
+  WORLD_OFFICER_CREDENTIALS: z
+    .string()
+    .default("proof_of_human")
+    .refine((value) => value.split(",").every((c) => ["proof_of_human", "selfie"].includes(c.trim())), {
+      message: "must list proof_of_human and/or selfie",
+    }),
   NTA_DB_PATH: z.string().default("../../data/nta/corporations.sqlite"),
   VERIFIER_DB_PATH: z.string().default("../../data/verifier.sqlite"),
   VERIFIER_PORT: z.coerce.number().int().positive().default(8787),
