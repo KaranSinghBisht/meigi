@@ -28,6 +28,9 @@ export async function explainOutcome(
   if (!llm) return { source: "template", text: template };
   try {
     const text = await llm.explain(factsOf(kernel, verdict, revert, broadcast));
+    if (revert && !broadcast && !saysSimulated(text)) {
+      return { source: "template", text: template, error: "the model's explanation didn't say the refusal was in simulation" };
+    }
     return { source: "llm", text, model: llm.model };
   } catch (error) {
     if (!(error instanceof LlmError)) {
@@ -36,6 +39,11 @@ export async function explainOutcome(
     const reason = error instanceof LlmError ? error.message : "unexpected error";
     return { source: "template", text: template, error: reason };
   }
+}
+
+/** A refusal in simulation sent nothing: an explanation is used only if it says so, and never claims the chain refused it. */
+function saysSimulated(text: string): boolean {
+  return text.includes("nothing was sent") && !/\bon[- ]?chain\b/iu.test(text);
 }
 
 export function factsOf(kernel: KernelResult, verdict: Verdict, revert: DecodedRevert | null, broadcast = false): ExplanationFacts {

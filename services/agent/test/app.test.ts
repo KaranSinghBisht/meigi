@@ -180,9 +180,23 @@ describe("with a gullible LLM agent", () => {
     deps.payer.revert = payeeMismatch(SCAMMER);
     const forced = await call("POST", `/invoices/${body.id}/pay`, { force: true });
     expect(forced.body.error.sentence).toBe("T2011001234567 = 株式会社メイギ商事 pays 0x9B4f…47e4; this invoice asked for 0xdCa5…6d5b.");
-    expect(forced.body.explanation).toMatchObject({ source: "llm", text: "LLM explanation (reverted)" });
+    expect(forced.body.explanation).toMatchObject({ source: "llm", text: "LLM explanation (reverted; in simulation; nothing was sent)" });
     expect(llm.explained.at(-1)?.revert).toMatchObject({ name: "PayeeMismatch", broadcast: false }); // the model is told it was a simulation
     expect(deps.payer.sent).toEqual([]);
+  });
+
+  it("drops a model's explanation that calls a refusal in simulation on-chain, for the deterministic one", async () => {
+    const llm = new FakeLlm({ ...fooled, payTo: SCAMMER, amount: "132000", invoiceNumber: "MS-2026-1003" });
+    withLlm(llm);
+    const { body } = await analyze(demo("02-bank-change-bec.ja.txt"));
+    deps.payer.revert = payeeMismatch(SCAMMER);
+    llm.explanation = "The payment was refused on-chain because the address doesn't match.";
+    const forced = await call("POST", `/invoices/${body.id}/pay`, { force: true });
+    expect(forced.body.explanation).toEqual({
+      source: "template",
+      text: "The vault refused the payment (in simulation; nothing was sent): T2011001234567 = 株式会社メイギ商事 pays 0x9B4f…47e4; this invoice asked for 0xdCa5…6d5b.",
+      error: "the model's explanation didn't say the refusal was in simulation",
+    });
   });
 
   it("reports an LLM failure and falls back to the deterministic extraction", async () => {

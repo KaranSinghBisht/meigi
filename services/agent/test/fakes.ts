@@ -183,9 +183,12 @@ export class FakeLlm implements LlmPort {
     if (this.proposal instanceof LlmError) throw this.proposal;
     return this.proposal;
   }
+  /** Set to see what the agent does with an explanation that contradicts the facts. */
+  explanation: string | null = null;
   async explain(facts: ExplanationFacts) {
     this.explained.push(facts);
-    return `LLM explanation (${facts.decision})`;
+    if (this.explanation !== null) return this.explanation;
+    return facts.revert && !facts.revert.broadcast ? `LLM explanation (${facts.decision}; in simulation; nothing was sent)` : `LLM explanation (${facts.decision})`;
   }
 }
 
