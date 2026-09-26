@@ -1,3 +1,4 @@
+import { useRef, type ChangeEvent } from 'react'
 import type { HexAddress } from '../../../lib/env/env'
 import { Address } from '../../../ui/components/Address'
 import { Badge } from '../../../ui/components/Badge'
@@ -33,8 +34,14 @@ function Saved({ address, onDiscard }: { readonly address: HexAddress; readonly 
   )
 }
 
-/** Saved through a plain download, which a page can't see land: the reader says whether the file is there. */
+/** Saved through a plain download, which a page can't see land: choosing the file back proves it is there. */
 function ConfirmDownload({ wallet, unsaved }: { readonly wallet: Wallet; readonly unsaved: UnsavedWallet }) {
+  const input = useRef<HTMLInputElement>(null)
+  const chosen = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (file) void wallet.confirm(file)
+  }
   return (
     <>
       <Notice
@@ -45,13 +52,22 @@ function ConfirmDownload({ wallet, unsaved }: { readonly wallet: Wallet; readonl
           </span>
         }
       >
-        <p>Once the file is there, confirm it. This page then forgets the key for good.</p>
+        <p>Choose that file to confirm it saved. This page then forgets the key for good.</p>
       </Notice>
       <div className="new-wallet__actions">
-        <Button onClick={wallet.confirm}>I have the file</Button>
+        <Button onClick={() => input.current?.click()}>Choose the saved file</Button>
         <Button variant="quiet" busy={wallet.saving} onClick={() => void wallet.save()}>
           Download again
         </Button>
+        <input
+          ref={input}
+          type="file"
+          accept=".json,application/json"
+          className="sr-only"
+          tabIndex={-1}
+          aria-hidden="true"
+          onChange={chosen}
+        />
       </div>
     </>
   )

@@ -2,6 +2,7 @@
 // straight into the file; it is never stored, sent or logged.
 
 import type { Hex } from 'viem'
+import { privateKeyToAccount } from 'viem/accounts'
 import type { HexAddress } from '../../../lib/env/env'
 
 /** Short enough to read whole on a phone: it is named on screen as one token. */
@@ -24,6 +25,7 @@ function backupJson(address: HexAddress, privateKey: Hex): string {
 interface Writable {
   write(data: string): Promise<void>
   close(): Promise<void>
+  abort(): Promise<void>
 }
 
 type SavePicker = (options: {
@@ -56,25 +58,60 @@ function downloadWithLink(name: string, body: string): void {
  */
 export type BackupResult = 'saved' | 'cancelled' | 'downloaded'
 
+/** Writes the file the reader picked; a failed write is aborted and thrown, so the key is kept and it can be retried. */
+async function writeFile(handle: { createWritable(): Promise<Writable> }, body: string): Promise<void> {
+  const writable = await handle.createWritable()
+  try {
+    await writable.write(body)
+    await writable.close()
+  } catch (error) {
+    // Discard the half-written file. If aborting fails too, the write error is still the one to report.
+    await writable.abort().catch(() => undefined)
+    throw error
+  }
+}
+
+/** Throws when the file couldn't be written; the caller keeps the key and says so. */
 export async function saveBackup(address: HexAddress, privateKey: Hex): Promise<BackupResult> {
   const name = backupFileName(address)
   const body = backupJson(address, privateKey)
   const picker = savePicker()
-  if (picker) {
-    try {
-      const handle = await picker({
-        suggestedName: name,
-        types: [{ description: 'Wallet backup', accept: { 'application/json': ['.json'] } }],
-      })
-      const writable = await handle.createWritable()
-      await writable.write(body)
-      await writable.close()
-      return 'saved'
-    } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') return 'cancelled'
-      // The dialog isn't allowed here (an embedded page, a policy): hand the file over as a download instead.
-    }
+  if (!picker) {
+    downloadWithLink(name, body)
+    return 'downloaded'
   }
-  downloadWithLink(name, body)
-  return 'downloaded'
+  let handle: { createWritable(): Promise<Writable> }
+  try {
+    handle = await picker({
+      suggestedName: name,
+      types: [{ description: 'Wallet backup', accept: { 'application/json': ['.json'] } }],
+    })
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') return 'cancelled'
+    // The dialog can't open here (an embedded page, a policy): hand the file over as a download instead.
+    downloadWithLink(name, body)
+    return 'downloaded'
+  }
+  await writeFile(handle, body)
+  return 'saved'
+}
+
+/** A backup is a few hundred bytes; anything much bigger isn't one, and isn't read. */
+const MAX_BACKUP_BYTES = 16_384
+
+/**
+ * True when `file` is the backup of `address`: the key inside derives that address. It confirms a plain download
+ * landed, which the page itself can't see. The key read here goes out of scope at once and is never kept.
+ */
+export async function backupMatches(file: File, address: HexAddress): Promise<boolean> {
+  if (file.size > MAX_BACKUP_BYTES) return false
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(await file.text())
+  } catch {
+    return false // Not JSON: not a backup.
+  }
+  const privateKey = typeof parsed === 'object' && parsed !== null ? (parsed as { privateKey?: unknown }).privateKey : null
+  if (typeof privateKey !== 'string' || !/^0x[0-9a-fA-F]{64}$/.test(privateKey)) return false
+  return privateKeyToAccount(privateKey as Hex).address === address
 }
