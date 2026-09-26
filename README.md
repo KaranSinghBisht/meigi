@@ -38,6 +38,10 @@ verifier already checks the global **LEI**. Meigi binds a T-number to **one payo
   governance ruling on a dispute. Nothing changes it instantly;
 - **enforced** on-chain when money moves.
 
+Other agent-payment guards limit what their own agent may do. Meigi is a public payee registry that every agent,
+wallet and exchange can check: a company's government-issued number, bound to one wallet that nobody, including us,
+can change in under 72 hours.
+
 Registration doesn't yet prove that the registrant *represents* the company. That binding, through the
 商業登記電子証明書, is the production step. The threat model, our compliance posture and the roadmap are in
 [`docs/trust-and-compliance.md`](docs/trust-and-compliance.md).
@@ -53,9 +57,9 @@ flowchart LR
   R --> X["x402 guard<br/>+ Intercepta screening"]
 ```
 
-**"This is our AI accountant. It holds JPYC, reads every invoice, and only pays verified companies."** Write it a fake
-invoice or a bank-change email, or hide a prompt injection. Its LLM may well agree to pay the scammer. Then
-the vault reverts `PayeeMismatch` and names the registered company.
+**"This is our AI accountant. It holds a JPYC stand-in, reads every invoice, and only pays registered payees."**
+Write it a fake invoice or a bank-change email, or hide a prompt injection. Its LLM may well agree to pay the
+scammer. Then the vault reverts `PayeeMismatch` and names the registered company.
 
 ## Try it without installing anything
 
@@ -87,7 +91,7 @@ the vault reverts `PayeeMismatch` and names the registered company.
 | **Verifier** | Exact match against the NTA bulk data after NFKC normalisation. Keybase-style DNS proof. World ID 4.0 officer sessions. Approvals whose World ID signal pins the exact change. **Global:** `GET /lei/:lei` verifies any company's LEI against GLEIF and links Japanese ones to their T-number. For example, Sony Group's LEI links to `T5010401067252`. | [`services/verifier`](services/verifier) |
 | **AP agent** | Invoice → deterministic extraction → System-1 triage (our fine-tuned model) → deterministic kernel → Intercepta screening → pay or hold. Only the kernel can move money; the LLM only explains. **The agent holds no key:** a separate signer does, signs only `payInvoice` after simulating it, and needs a verified human's approval above ¥150,000. | [`services/agent`](services/agent), [`services/signer`](services/signer) |
 | **x402 guard** | Before an agent signs an x402 payment: a declared T-number must match `payTo`. Merchants that declare none get at most a small allowance (¥50 by default) after a clean Intercepta screen, or nothing. | [`packages/x402-guard`](packages/x402-guard), [`services/x402-demo`](services/x402-demo) |
-| **PayeeBench-JA** | A Japanese-first benchmark for triaging payment redirection. Kev-0.8B, fine-tuned on a MacBook, scores 0.918 accuracy. That beats the released Kev-4B (0.795) and Llama 3.3 70B (0.815), with ECE 0.024, at 39 ms. | [`bench`](bench) |
+| **PayeeBench-JA** | A Japanese-first benchmark for triaging payment redirection. Kev-0.8B, fine-tuned on a MacBook, scores 0.918 mean accuracy on the benchmark's held-out test templates. That beats the released Kev-4B (0.795) and Llama 3.3 70B (0.815), with ECE 0.024, at 39 ms p50. | [`bench`](bench) |
 | **Web app / landing** | Registry explorer with a live event feed, registration, officer approvals, agent console and x402 demo; a three.js "Sakasa Fuji" landing page. | [`apps/web`](apps/web), [`apps/landing`](apps/landing) |
 
 ## Sponsor integrations
