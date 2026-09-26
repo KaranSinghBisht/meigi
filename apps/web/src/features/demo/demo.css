@@ -100,7 +100,14 @@
   display: grid;
   height: 100vh;
   height: 100dvh;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 8px;
   padding: clamp(8px, 1.4vw, 24px);
+}
+
+/* The way back to the app, above the player. */
+.demo-page__back {
+  justify-self: start;
 }
 
 @media (max-width: 719px) {
