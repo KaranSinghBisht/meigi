@@ -33,8 +33,11 @@ const onContract = (alias: string) => ({ fieldType: "contract_address_alias", op
 const inputIs = (inputIndex: number, value: string) => ({ fieldType: "input", inputIndex, operator: "equal", value: value.toLowerCase() });
 const both = (...filters: object[]) => ({ rule: "and", children: filters });
 
-/** The x402 demo's research-agent wallet (public): its mJPYC pays for every x402 purchase. Sepolia only. */
-export const X402_BUYERS: Readonly<Record<number, string>> = { 11155111: "0x708106dcdee19be75ffcd5df20cbb1b6b3089882" };
+/** The x402 demo's research-agent wallet (public, the same on both chains): its tokens pay for every x402 purchase. */
+export const X402_BUYERS: Readonly<Record<number, string>> = {
+  11155111: "0x708106dcdee19be75ffcd5df20cbb1b6b3089882", // Sepolia, in mJPYC
+  6497: "0x708106dcdee19be75ffcd5df20cbb1b6b3089882", // Mizuhiki Awaji, in MJPY
+};
 
 /**
  * Event queries, in the format of Curvegrid's own Matsuri sample app. The setup script saves them (so they show in

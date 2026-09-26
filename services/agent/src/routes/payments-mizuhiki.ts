@@ -15,7 +15,7 @@ export async function mizuhikiSection(network: IndexedNetwork | null, filter: st
     snapshot = await network.read(limit);
   } catch (error) {
     if (!(error instanceof MultiBaasUnavailable)) throw error;
-    return { ...base, note: `MultiBaas unavailable (${error.message})`, token: null, settled: [], received: [], payees: [] };
+    return { ...base, note: `MultiBaas unavailable (${error.message})`, token: null, settled: [], x402: [], received: [], payees: [] };
   }
   const { token, settled, received } = snapshot;
   const keep = (tNumber: bigint) => !filter || filter.includes(tNumber.toString());
@@ -25,6 +25,13 @@ export async function mizuhikiSection(network: IndexedNetwork | null, filter: st
     ...base,
     token,
     settled: settled.filter((p) => keep(p.tNumber)).map((p) => ({ ...settledRow(p, token.decimals, { name: nameOf(p.tNumber) }), via: p.via ?? "vault" })),
+    // The x402 research agent's purchases, paid straight to a registered payout (no invoice, so no invoiceRef).
+    x402: snapshot.x402.flatMap((t) => {
+      const payee = payees.find((p) => p.payout.toLowerCase() === t.recipient.toLowerCase());
+      if (!payee) return [];
+      const at = { txHash: t.txHash, blockNumber: t.blockNumber.toString(), at: t.at, tNumber: `T${payee.tNumber}`, legalName: payee.legalName };
+      return [{ ...at, payout: t.recipient, amount: yenAmount(t.amount, token.decimals) }];
+    }),
     received: payees.map((p) => {
       const total = received.find((r) => r.payout.toLowerCase() === p.payout.toLowerCase())?.total ?? 0n;
       return { tNumber: `T${p.tNumber}`, legalName: p.legalName, payout: p.payout, total: yenAmount(total, token.decimals) };

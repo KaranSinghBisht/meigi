@@ -37,8 +37,14 @@ function seedAwaji() {
   );
   stub.invoicesPaid.push({ txHash: "0xb1", block: 2386710, at: "2026-09-26T04:31:00Z", inputs: { tNumber: MEIGI, payout: MEIGI_PAYOUT, amount: yen(55_000).toString(), invoiceRef: REF } });
   stub.routerPaid.push({ txHash: "0xb2", block: 2386720, at: "2026-09-26T04:32:00Z", inputs: { tNumber: MEIGI, payout: MEIGI_PAYOUT, amount: yen(1_000).toString(), invoiceRef: REF } });
-  stub.received.push({ payout: MEIGI_PAYOUT, total: yen(56_000).toString() });
+  stub.received.push({ payout: MEIGI_PAYOUT, total: yen(56_015).toString() });
+  stub.transfers.push(
+    { sender: BUYER, recipient: MEIGI_PAYOUT, amount: yen(15).toString(), block: 2386730, at: "2026-09-26T04:33:00Z", txHash: "0xc1" }, // an x402 purchase
+    { sender: BUYER, recipient: "0x1111111111111111111111111111111111111111", amount: yen(5).toString(), block: 2386731, at: "2026-09-26T04:33:06Z", txHash: "0xc2" }, // not a payee
+  );
 }
+
+const BUYER = "0x708106dcdee19be75ffcd5df20cbb1b6b3089882";
 
 describe("GET /payments on Mizuhiki Awaji", () => {
   it("adds Meigi on Mizuhiki, read through its MultiBaas deployment, beside the agent's own chain", async () => {
@@ -56,9 +62,12 @@ describe("GET /payments on Mizuhiki Awaji", () => {
         expect.objectContaining({ txHash: "0xb2", via: "router", tNumber: `T${MEIGI}`, legalName: "株式会社メイギ商事", amount: { units: yen(1_000).toString(), display: "¥1,000" } }),
         expect.objectContaining({ txHash: "0xb1", via: "vault", blockNumber: "2386710", amount: { units: yen(55_000).toString(), display: "¥55,000" } }),
       ],
+      x402: [
+        { txHash: "0xc1", blockNumber: "2386730", at: "2026-09-26T04:33:00.000Z", tNumber: `T${MEIGI}`, legalName: "株式会社メイギ商事", payout: MEIGI_PAYOUT, amount: { units: yen(15).toString(), display: "¥15" } },
+      ], // the research agent's purchase; its transfer to a non-payee isn't one
       received: [
         { tNumber: "T7999900000001", legalName: "フジデータ株式会社", payout: FUJI_PAYOUT, total: { units: "0", display: "¥0" } },
-        { tNumber: `T${MEIGI}`, legalName: "株式会社メイギ商事", payout: MEIGI_PAYOUT, total: { units: yen(56_000).toString(), display: "¥56,000" } },
+        { tNumber: `T${MEIGI}`, legalName: "株式会社メイギ商事", payout: MEIGI_PAYOUT, total: { units: yen(56_015).toString(), display: "¥56,015" } },
       ],
       payees: [
         { tNumber: "T7999900000001", legalName: "フジデータ株式会社", payout: FUJI_PAYOUT, at: "2026-09-26T04:30:06Z", txHash: "0xa2" },
@@ -75,6 +84,13 @@ describe("GET /payments on Mizuhiki Awaji", () => {
     expect(mizuhiki.token).toEqual({ symbol: "MJPY", decimals: 6 });
     expect(mizuhiki.settled[0].amount).toEqual({ units: "1000000000", display: "¥1,000" });
     expect(mizuhiki.payees.map((p: { tNumber: string }) => p.tNumber)).toEqual([`T${MEIGI}`]);
+  });
+
+  it("treats a transfer from anyone but the x402 buyer as a misconfigured query, not a purchase", async () => {
+    seedAwaji();
+    stub.transfers.push({ sender: "0x2222222222222222222222222222222222222222", recipient: MEIGI_PAYOUT, amount: "1", block: 2386740, at: "2026-09-26T04:34:00Z", txHash: "0xc3" });
+    const { mizuhiki } = await payments(withMizuhiki());
+    expect(mizuhiki).toMatchObject({ note: expect.stringContaining("another sender than the x402 buyer"), settled: [], x402: [] });
   });
 
   it("never shows another chain's events under the Mizuhiki label", async () => {

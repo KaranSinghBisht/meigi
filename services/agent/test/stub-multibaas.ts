@@ -38,6 +38,7 @@ export interface StubMultiBaas {
   routerPaid: StubEvent[];
   payees: StubPayee[];
   received: { payout: string; total: string }[];
+  transfers: { sender: string; recipient: string; amount: string; block: number; at: string; txHash: string }[]; // meigi_mjpy_transfers
   token: { symbol: string; decimals: number };
   linkStart: number | null; // where every link's event indexing starts; null: nothing linked
   tokenAliased: boolean; // false: the token's alias doesn't exist yet (before a deploy is linked)
@@ -61,6 +62,7 @@ export async function startStubMultiBaas(): Promise<StubMultiBaas> {
     routerPaid: [],
     payees: [],
     received: [],
+    transfers: [],
     token: { symbol: "mJPYC", decimals: 18 },
     linkStart: null,
     tokenAliased: true,
@@ -134,6 +136,10 @@ function route(stub: StubMultiBaas, method: string, url: URL, body: any, auth: s
   }
   if (method === "POST" && path === "/queries") return [200, ok({ rows: rowsFor(stub, body) })];
   const saved = /^\/queries\/([^/]+)\/results$/u.exec(path)?.[1];
+  if (method === "GET" && saved === "meigi_mjpy_transfers") {
+    const rows = [...stub.transfers].sort((a, b) => b.block - a.block).map((t) => ({ ...t, sender: t.sender.toLowerCase(), block: String(t.block), at: t.at.replace("T", " ").replace(/Z$/u, "+00"), txhash: t.txHash }));
+    return [200, ok({ rows })];
+  }
   if (method === "GET" && saved) {
     const eventName = SAVED_EVENTS[saved];
     return eventName ? [200, ok({ rows: rowsFor(stub, { events: [{ eventName, select: [] }] }) })] : [404, notFound];

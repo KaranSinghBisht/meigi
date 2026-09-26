@@ -242,6 +242,10 @@ Two MultiBaas deployments, one per chain:
     - `label: "Mizuhiki · via MultiBaas"`, plus `chainId`, `network`, `explorer` and `source: "multibaas"`;
     - `token` (`{ symbol, decimals }`, read through MultiBaas's contract call API);
     - `settled[]`: rows as above plus `via: "vault" | "router"`, from `InvoicePaid` and `Paid`;
+    - `x402[]`: the x402 research agent's purchases, `{ txHash, blockNumber, at, tNumber, legalName, payout, amount }`.
+      They come from the saved `meigi_mjpy_transfers` query, which filters on its wallet (`X402_BUYERS`), and count
+      only transfers to a registered payout that aren't already a vault or router payment. A row from any other
+      sender means the query was saved for another buyer, and the section says MultiBaas is unavailable;
     - `payees[]`: `{ tNumber, legalName, payout, at, txHash }`, from `PayeeRegistered`;
     - `received[]`: the MJPY each registered payout got.
 

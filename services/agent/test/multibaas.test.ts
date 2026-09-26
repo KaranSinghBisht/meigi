@@ -101,12 +101,18 @@ describe("the saved queries that name a deployment's addresses", () => {
   });
 
   it("are left out of a library-only setup, before the token exists, and on a chain without the x402 buyer", async () => {
-    stub.chainId = 6497;
-    await prepareLibrary(mbClient(), 6497, () => {});
+    stub.chainId = 31337;
+    await prepareLibrary(mbClient(), 31337, () => {});
     expect(stub.queries.has("meigi_router_paid")).toBe(false);
-    await setupMultiBaas(mbClient(), { ...DEPLOYMENT, chainId: 6497 }, () => {});
+    await setupMultiBaas(mbClient(), { ...DEPLOYMENT, chainId: 31337 }, () => {});
     expect(stub.queries.has("meigi_router_paid")).toBe(true);
     expect(stub.queries.has("meigi_mjpy_transfers")).toBe(false);
+  });
+
+  it("include the x402 buyer's transfers on Mizuhiki Awaji, where the research agent buys too", async () => {
+    stub.chainId = 6497;
+    await setupMultiBaas(mbClient(), { ...DEPLOYMENT, chainId: 6497 }, () => {});
+    expect(JSON.stringify(stub.queries.get("meigi_mjpy_transfers"))).toContain("0x708106dcdee19be75ffcd5df20cbb1b6b3089882");
   });
 });
 

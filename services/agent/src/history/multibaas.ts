@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { MultiBaas } from "../multibaas/client.js";
 import { MultiBaasUnavailable } from "../multibaas/client.js";
 import { CONTRACTS, MAX_QUERY_ROWS, QUERIES } from "../multibaas/labels.js";
-import type { IndexedHistory, ReceivedTotal, RegisteredPayee, SettledPayment, TokenInfo } from "./types.js";
+import type { IndexedHistory, ReceivedTotal, RegisteredPayee, SettledPayment, TokenInfo, X402Transfer } from "./types.js";
 
 /**
  * Settlement history from MultiBaas's event index (Curvegrid), from the block each contract was linked at. Throws
@@ -80,6 +80,19 @@ async function linkStart(mb: MultiBaas, contract: { alias: string; label: string
 export async function routerPaid(mb: MultiBaas, limit: number): Promise<SettledPayment[]> {
   const rows = await mb.saved("meigi_router_paid", Math.min(limit, MAX_QUERY_ROWS)); // saved: it filters on the deployment's token
   return rows.map((row) => ({ ...paymentRow(row), via: "router" as const }));
+}
+
+/**
+ * The x402 buyer's token transfers, newest first, from the saved query that filters on it (multibaas:setup saves it
+ * for a chain with an X402_BUYERS entry). A row from anyone else means the query was saved for another buyer.
+ */
+export async function x402Transfers(mb: MultiBaas, buyer: string, limit: number): Promise<X402Transfer[]> {
+  const rows = await mb.saved("meigi_mjpy_transfers", Math.min(limit, MAX_QUERY_ROWS));
+  return rows.map((row) => {
+    if (address(row.sender).toLowerCase() !== buyer.toLowerCase()) throw new MultiBaasUnavailable("meigi_mjpy_transfers returned a transfer from another sender than the x402 buyer");
+    if (!isHex(row.txhash)) throw new MultiBaasUnavailable("MultiBaas returned a transfer without a hash");
+    return { txHash: row.txhash, blockNumber: bigintOf(row.block), at: isoTime(row.at), recipient: address(row.recipient), amount: bigintOf(row.amount) };
+  });
 }
 
 /** Every company the registry has recorded, newest first. */

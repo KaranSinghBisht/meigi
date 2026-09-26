@@ -12,6 +12,15 @@ export interface SettledPayment {
   via?: "vault" | "router";
 }
 
+/** A token Transfer from the x402 research agent's wallet: an x402 purchase when its recipient is a registered payout. */
+export interface X402Transfer {
+  txHash: Hex;
+  blockNumber: bigint;
+  at: string | null;
+  recipient: Address;
+  amount: bigint; // token units
+}
+
 /** A PayeeRegistered the registry emitted: the T-number, the payout it bound, and the exact registered name. */
 export interface RegisteredPayee {
   tNumber: bigint;

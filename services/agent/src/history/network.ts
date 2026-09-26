@@ -1,6 +1,7 @@
 import type { MultiBaas } from "../multibaas/client.js";
-import { createMultiBaasHistory, payeesRegistered, routerPaid, tokenInfo } from "./multibaas.js";
-import type { ReceivedTotal, RegisteredPayee, SettledPayment, TokenInfo } from "./types.js";
+import { X402_BUYERS } from "../multibaas/labels.js";
+import { createMultiBaasHistory, payeesRegistered, routerPaid, tokenInfo, x402Transfers } from "./multibaas.js";
+import type { ReceivedTotal, RegisteredPayee, SettledPayment, TokenInfo, X402Transfer } from "./types.js";
 
 /**
  * A second network Meigi runs on, read only through its own MultiBaas deployment: Mizuhiki Awaji, the way Curvegrid's
@@ -17,6 +18,7 @@ export const MIZUHIKI_AWAJI = {
 export interface NetworkSnapshot {
   token: TokenInfo;
   settled: SettledPayment[]; // the vault's InvoicePaid and the router's Paid, newest first
+  x402: X402Transfer[]; // the research agent's purchases from registered payees, newest first ([] without a buyer)
   payees: RegisteredPayee[];
   received: ReceivedTotal[]; // per registered payout
 }
@@ -52,10 +54,21 @@ export function createIndexedNetwork(mb: MultiBaas, network: Omit<IndexedNetwork
     ...network,
     async read(limit) {
       await sameChain(); // before any query: never show another chain's events under this label
-      const [vault, router, payees] = await Promise.all([history.invoicesPaid(limit), routerPaid(mb, limit), payeesRegistered(mb)]);
+      const buyer = X402_BUYERS[network.chainId];
+      const [vault, router, payees, sent] = await Promise.all([
+        history.invoicesPaid(limit),
+        routerPaid(mb, limit),
+        payeesRegistered(mb),
+        buyer ? x402Transfers(mb, buyer, limit) : Promise.resolve([]),
+      ]);
       const [received, info] = await Promise.all([history.received(payees.map((p) => p.payout)), tokenOnce()]);
-      const settled = [...vault, ...router].sort((a, b) => (a.blockNumber === b.blockNumber ? 0 : a.blockNumber > b.blockNumber ? -1 : 1)).slice(0, limit);
-      return { token: info, settled, payees, received };
+      const newest = (a: { blockNumber: bigint }, b: { blockNumber: bigint }) => (a.blockNumber === b.blockNumber ? 0 : a.blockNumber > b.blockNumber ? -1 : 1);
+      const settled = [...vault, ...router].sort(newest).slice(0, limit);
+      // A purchase is a transfer to a registered payout that isn't already a vault or router payment.
+      const payouts = new Set(payees.map((p) => p.payout.toLowerCase()));
+      const paid = new Set([...vault, ...router].map((p) => p.txHash.toLowerCase()));
+      const x402 = sent.filter((t) => payouts.has(t.recipient.toLowerCase()) && !paid.has(t.txHash.toLowerCase())).sort(newest).slice(0, limit);
+      return { token: info, settled, x402, payees, received };
     },
   };
 }
