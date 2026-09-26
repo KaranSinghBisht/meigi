@@ -40,6 +40,7 @@ export interface StubMultiBaas {
   received: { payout: string; total: string }[];
   token: { symbol: string; decimals: number };
   linkStart: number | null; // where every link's event indexing starts; null: nothing linked
+  tokenAliased: boolean; // false: the token's alias doesn't exist yet (before a deploy is linked)
   close(): void;
 }
 
@@ -62,6 +63,7 @@ export async function startStubMultiBaas(): Promise<StubMultiBaas> {
     received: [],
     token: { symbol: "mJPYC", decimals: 18 },
     linkStart: null,
+    tokenAliased: true,
   } as unknown as StubMultiBaas;
   const server: Server = createServer((req, res) => {
     let raw = "";
@@ -103,7 +105,10 @@ function route(stub: StubMultiBaas, method: string, url: URL, body: any, auth: s
     return [200, ok({ startBlockNumber: stub.linkStart, latestBlockNumber: 11783999, isProcessingPastLogs: false })];
   }
   const read = /^\/chains\/ethereum\/addresses\/meigi_mjpy\/contracts\/meigi_jpy_token\/methods\/(symbol|decimals)$/u.exec(path)?.[1];
-  if (method === "POST" && read) return [200, ok({ kind: "MethodCallResponse", output: read === "symbol" ? stub.token.symbol : stub.token.decimals })];
+  if (method === "POST" && read) {
+    if (!stub.tokenAliased) return [400, { status: 400, message: "invalid address" }]; // what MultiBaas says for an unknown alias
+    return [200, ok({ kind: "MethodCallResponse", output: read === "symbol" ? stub.token.symbol : stub.token.decimals })];
+  }
   if (method === "GET" && alias) {
     const entry = stub.aliases.get(alias);
     return entry ? [200, ok({ alias, address: entry.address, chain: "ethereum", contracts: entry.links })] : [404, notFound];

@@ -95,7 +95,11 @@ const methodOutput = z.object({ output: z.union([z.string(), z.number()]) });
 export async function tokenInfo(mb: MultiBaas): Promise<TokenInfo> {
   const read = async (method: string) => {
     const path = `/chains/ethereum/addresses/${CONTRACTS.token.alias}/contracts/${CONTRACTS.token.label}/methods/${method}`;
-    const parsed = methodOutput.safeParse(await mb.call("POST", path, { args: [] }));
+    const answer = await mb.call("POST", path, { args: [] }).catch((error: unknown) => {
+      const unknownAlias = error instanceof MultiBaasUnavailable && (error.status === 404 || error.detail === "invalid address");
+      throw unknownAlias ? new MultiBaasUnavailable(`${CONTRACTS.token.alias} isn't linked in MultiBaas`, error.status) : error;
+    });
+    const parsed = methodOutput.safeParse(answer);
     if (!parsed.success) throw new MultiBaasUnavailable(`MultiBaas returned the token's ${method} in an unexpected shape`);
     return parsed.data.output;
   };

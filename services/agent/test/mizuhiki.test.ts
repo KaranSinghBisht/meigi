@@ -85,6 +85,13 @@ describe("GET /payments on Mizuhiki Awaji", () => {
     expect(stub.requests.some((r) => r.path.startsWith("/api/v0/queries"))).toBe(false);
   });
 
+  it("says so plainly before the contracts are linked", async () => {
+    stub.chainId = 6497;
+    stub.tokenAliased = false;
+    const { mizuhiki } = await payments(withMizuhiki());
+    expect(mizuhiki).toMatchObject({ note: "MultiBaas unavailable (meigi_mjpy isn't linked in MultiBaas)", token: null, settled: [] });
+  });
+
   it("is null when no Mizuhiki deployment is configured", async () => {
     expect((await payments(fakeDeps())).mizuhiki).toBeNull();
   });
