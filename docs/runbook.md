@@ -188,6 +188,8 @@ a trusted single-user machine; the ENS scripts and forge scripts read keys from 
 
 ## Demo checks (five minutes before judging)
 
+The live demo runs on http://localhost:5190 (`scripts/world-live.sh`): registration, the AP console (`/agent`) and `/demo`, all served from the main tree. The agent and verifier must allow that origin (`APP_ORIGINS` in `.env` includes http://localhost:5190). Never demo from an old `vite preview` build.
+
 1. `curl localhost:8787/payees/T2011001234567`: the fixture vendor is active.
 2. `curl localhost:8788/health`: `signer` is `ok`, `triage` lists `systemone` (Kev on :8102). `screening` is true once
    `INTERCEPTA_API_KEY` is set. Kev and Ollama have no `/health` route of their own, so a 404 there doesn't mean
