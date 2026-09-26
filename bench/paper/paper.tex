@@ -1,0 +1,417 @@
+% PayeeBench-JA. Build (from bench/): uv run python paper/analysis.py && uv run python paper/make_numbers.py
+%   && uv run python paper/make_figures.py && cd paper && /opt/homebrew/bin/tectonic paper.tex
+% Every number is a macro from generated/*.tex, written by the scripts from bench/results and bench/dataset.
+\documentclass[conference]{IEEEtran}
+\usepackage{fontspec}
+\setmainfont{texgyretermes}[Extension=.otf, UprightFont=*-regular, BoldFont=*-bold, ItalicFont=*-italic, BoldItalicFont=*-bolditalic]
+\usepackage{xeCJK}
+\setCJKmainfont{Hiragino Mincho ProN}
+\setCJKmonofont{Hiragino Kaku Gothic ProN}
+\usepackage{amsmath}
+\usepackage{unicode-math}
+\setmathfont{texgyretermes-math.otf}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning}
+\usepackage[hidelinks]{hyperref}
+\usepackage{xurl}
+\makeatletter\newcommand{\rows}[1]{\@@input #1 }\makeatother   % \input breaks \bottomrule inside tabular
+\setlength{\emergencystretch}{1.5em}
+\input{generated/numbers.tex}
+\input{generated/frontier.tex}
+% How the frontier agents were run: their instructions and transcripts (bench/paper/frontier-protocol.md); no result here
+\newcommand{\FrontierProtocol}{The Claude models ran as Claude Code agents on a label-free copy of the test split with
+Llama's prompt and a README noting that their probabilities drive the metrics: one agent per model, or three of 50
+items for Haiku 4.5 after a run that wrote a keyword classifier was discarded. Each read about 5--10 items per step in
+one session, never revised an answer, and could reason and run shell commands; Opus 5.5 used them for x402 unit
+conversions on five items, with amount ratios on all three overcharge items, and the single agents were told not to
+classify with code only as they finished. Their transcripts show no reads of labels, the repository or the web (\texttt{paper/frontier-protocol.md}).}
+
+\begin{document}
+
+\title{PayeeBench-JA: Measuring Calibrated Triage of\\Payment-Redirection Fraud for AI Payment Agents}
+
+\author{\IEEEauthorblockN{Karan Singh Bisht and Adithya Prasanna Suriya Prakash}
+\IEEEauthorblockA{Meigi, ETHGlobal Tokyo 2026}}
+
+\maketitle
+
+\begin{abstract}
+AI agents that pay invoices in stablecoins can be steered to a fraudster's account by a ``changed bank details'' e-mail,
+an executive's urgent request, or an instruction hidden in the invoice. In Meigi, a ``System-1'' classifier reads every
+invoice, e-mail and x402 payment request and routes it to a deterministic payment kernel or to a verified human; it
+never moves money itself. We introduce PayeeBench-JA:
+\NNTotal{} synthetic items (\NPctJa{} Japanese) in \NNFamilies{} families, labelled by rule on four typed questions, with
+test layouts, phrasings and entities never seen in training. A 0.8B decision model fine-tuned on
+\NNTrain{} items in \NTrainMin{} minutes on a laptop reaches \NOursMean{} mean accuracy on the \NNTest{} test items,
+\NVsBaseDelta{} points above the released model, with an ECE of \NOursEce{} at \NOursPfifty{}\,ms per item.
+\NFrontierAbstract{} Its lead of \NVsLlamaDelta{} points over Llama 3.3 70B falls to \NVsLlamaNcDelta{} without our
+convention answers, and Llama ranks safe against held items at least as well (AUROC \NLlamaAuroc{} against
+\NOursAuroc{}). Labels nearly follow from each item's family and one or two items decide the auto-clear rate; we report
+these limits and the self-audit that found them.
+\end{abstract}
+
+\section{Introduction}
+Payment redirection is an old fraud with a new target. The FBI's Internet Crime Complaint Center counted
+\$2.77 billion of business e-mail compromise (BEC) losses in 2024 alone~\cite{fbi2025ic3}, and in 2017 Japan Airlines
+paid \textyen{}384 million into accounts in Hong Kong after fake e-mails redirected its
+payments~\cite{kyodo2017jal,nhk2017jal}. Banks answered with name checks before a transfer: Confirmation of Payee in the
+UK since 2020~\cite{payuk_cop} and Verification of Payee, mandatory for euro-area payment providers from
+9 October 2025~\cite{eu2024_886}. Stablecoin payments, and the AI agents that now make them through protocols such as
+x402~\cite{x402}, have no such check: they pay an address, and nothing ties the address to the company.
+
+Meigi binds a Japanese company's qualified-invoice registration number (T-number)~\cite{nta_invoice} to one on-chain
+payout address and enforces it when money moves. Its accounts-payable agent reads supplier documents before paying.
+Every document first passes a \emph{System-1} model: a small classifier that answers typed questions with calibrated
+probabilities instead of generating text~\cite{typesafe_models,palmer2026kev}. System-1 decides only whether a document
+may go straight to the payment kernel or must wait for a person; the kernel, and in the end the on-chain vault, decides
+whether and whom to pay. So the model must be fast and local, right about what matters, and honest about its
+confidence, because the routing threshold is a probability.
+
+Neighbouring benchmarks measure other things. Phishing and BEC
+corpora~\cite{champa2024curated,elaassal2020phishbench} are mostly English and label whole messages as malicious or
+not. Prompt-injection benchmarks for agents, AgentDojo~\cite{debenedetti2024agentdojo},
+InjecAgent~\cite{zhan2024injecagent} and, for crypto agents, CrAIBench~\cite{patlan2025craibench}, measure whether an
+agent carries out an attacker's instruction, including transfers to an attacker's account; APort
+Vault~\cite{uchibeke2026aport} and AIP-Bench~\cite{louck2026aipbench} attack payment agents and agentic-commerce
+protocols directly. Nor is the principle that model inference must not by itself authorise a payment
+ours~\cite{gong2026ais,uchibeke2026aport}. To our knowledge, PayeeBench-JA is the first public benchmark for triaging
+accounts-payable requests for payment-redirection risk, and the first in Japanese. We contribute (i) \textbf{PayeeBench-JA}, a Japanese-first
+benchmark with hard negatives, leakage controls and provably fictional identifiers; (ii) an evaluation of accuracy,
+calibration, routing, speed, cost and forgetting across released, fine-tuned, open and frontier models, with paired and
+family-clustered statistics; (iii) \textbf{payee-0.8b}, a System-1 model fine-tuned from the open Kev-0.8B on a laptop;
+and (iv) an audit of our own claims, which narrowed several of them.
+
+\section{System context}
+Fig.~\ref{fig:system} shows where System-1 sits. Code extracts the T-number, amount and destination from the
+\emph{visible} text. System-1 answers four questions (Section~\ref{sec:bench}) and computes
+$p_\mathrm{safe} = P(\text{type}\in\{\text{routine invoice, credit note}\})\cdot P(\text{no new destination})\cdot
+P(\text{suspicion}\le 1)$. A document at or above a threshold $\tau$ auto-clears to the kernel; anything below it is
+held for an officer who proves personhood with World ID. A deliberately gullible LLM proposes a payment and explains
+holds; its proposal is never executed as is. The kernel re-checks the payment against the on-chain registry, and the
+vault reverts any payment to an address other than the T-number's registered payout. System-1 errors therefore cost
+either human attention (a safe item held) or a kernel check that must catch what the model missed (an item that
+needed a person, auto-cleared); neither lets the model move money on its own.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[font=\scriptsize, node distance=3.2mm and 3mm,
+  box/.style={draw=black!55, rounded corners=1.5pt, align=center, inner sep=2.5pt, minimum height=6.5mm},
+  money/.style={box, fill=black!8, draw=black!80, line width=0.6pt},
+  arr/.style={-{Stealth[length=1.6mm]}, black!70}]
+\node[box] (doc) {Invoice, e-mail,\\x402 402 response};
+\node[box, right=of doc] (ext) {Extraction\\(visible text)};
+\node[box, right=of ext, fill=blue!8] (s1) {\textbf{System-1}\\payee-0.8b\\$p_\mathrm{safe}$};
+\node[box, below=5mm of s1, xshift=-6mm] (hold) {Hold: officer\\with World ID};
+\node[money, right=6mm of s1] (kernel) {Kernel\\re-checks};
+\node[money, below=5mm of kernel] (vault) {AgentVault\\pays registered\\payout only};
+\node[box, left=of hold, xshift=-2mm] (llm) {LLM proposes\\\& explains};
+\node[box, below=4mm of vault] (reg) {PayeeRegistry\\T-number$\to$payout};
+\draw[arr] (doc) -- (ext);
+\draw[arr] (ext) -- (s1);
+\draw[arr] (s1) -- node[above, font=\tiny]{$\ge\tau$} (kernel);
+\draw[arr] (s1.south) -- node[right, font=\tiny, pos=0.4]{$<\tau$} (hold.north -| s1.south);
+\draw[arr] (hold.east) -- (kernel.south west);
+\draw[arr] (kernel) -- (vault);
+\draw[arr, dashed] (reg) -- (vault);
+\draw[arr, dashed] ([xshift=-5mm]ext.south) |- (llm.north);
+\end{tikzpicture}
+\caption{Where System-1 sits in Meigi. It only routes; the grey boxes are the only components that can move money.}
+\label{fig:system}
+\end{figure}
+
+\section{PayeeBench-JA}\label{sec:bench}
+\textbf{Task.} Each item is the state an agent would assemble: a channel (e-mail, invoice PDF text, chat or x402), the
+vendor-master record when one exists (\texttt{payee\_on\_file}: name, T-number, domain, registered destination), and
+the document. A model answers four questions: \emph{request type} (routine invoice, payee change, urgent executive
+request, credit note, other), \emph{new destination} (does it ask to pay an account or wallet other than the one on
+file?), \emph{pressure} (urgency, secrecy or authority used to speed payment or skip checks), and \emph{suspicion} on
+a 0--3 scale from clearly benign to very likely redirection fraud.
+
+\textbf{Families and labels.} Table~\ref{tab:families} lists the \NNFamilies{} families. Labels follow from each
+item's sampled variant through fixed written rules; for example, a silently swapped 振込先 is a routine invoice with a
+new destination, and an overdue notice to the registered account carries pressure but suspicion 1. Hard negatives
+include properly announced bank changes, urgent but legitimate reminders, executives expediting a known invoice, and
+notices of new addresses or contacts that are not payee changes. Attacks include keigo requests with no urgency,
+executive impersonation, silently swapped destinations, address-poisoned x402 \texttt{payTo} fields, and instructions
+to AI agents hidden in HTML, white text or PDF metadata.
+
+The labels are nearly a function of the family: in \NConstantFamilies{} of the \NNFamilies{} families all four labels
+are the same for every item, and answering each test item with its family's most common training labels would score
+\NFamilyMajority{}. PayeeBench-JA therefore measures whether a model recognises our families and applies our rules.
+\NConventionAnswers{} test answers (starred in Table~\ref{tab:families}) follow a convention that the question text does
+not settle, such as suspicion 1 rather than 0 for a properly announced bank change. Some red flags decide the label by
+construction: all \NFreeMailAll{} items with a free-mail sender and all \NSwiftAll{} with an overseas (SWIFT) account
+are suspicion 3, and no legitimate item has either, so false alarms on legitimate overseas vendors or small businesses
+using free mail are not measured.
+
+\begin{table}[t]
+\centering
+\caption{Families (items in train/val/test) and the labels they take: request type, new destination, pressure,
+suspicion. Mixed values are shown with a slash or range; $^*$marks a label that follows one of our conventions.}
+\label{tab:families}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lrllll@{}}
+\toprule
+Family & Items & Type & New & Press. & Susp. \\
+\midrule
+\rows{generated/table_families.tex}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Splits and anti-memorization.} There are \NNTrain{}/\NNVal{}/\NNTest{} items (train/validation/test) with the
+same family mix. Validation reuses training templates with its own entities; the test split draws layouts, phrasings,
+companies, people, banks and x402 merchants from pools that training never sees. Measured: \NTemplatesTestShared{} of
+\NTemplatesTest{} test phrase or layout choices and no company, person, bank account, wallet or T-number occur in
+training; \NSentTestShared{} of \NSentTest{} test sentences do, all boilerplate; and the mean character 5-gram Jaccard
+similarity to the nearest training item is \NJaccardTest{} for test against \NJaccardVal{} for validation. The novelty is
+paraphrase within one world model: we wrote both sides for the same slots, with \NInvoiceLayoutsTest{} test invoice
+layouts, \NXLayoutsTest{} x402 layout and \NInjectionTextsTest{} injection texts. Every identifier is provably fictional:
+T-numbers pass the national check digit~\cite{nta_checkdigit} but use registry office 9999, which no corporation has;
+none of our \NNTNumbers{} T-numbers or \NNCompanies{} company names matches the \NNNta{} corporations in the national
+index (\NNRenamed{} generic names that did were replaced); phones use exchanges Japan never assigns.
+
+\textbf{Metrics.} Per question we report the accuracy of the top answer (a tie goes to the first option) and
+macro-F1. Calibration is the expected calibration error (ECE)~\cite{naeini2015obtaining,guo2017calibration}: top label,
+\NBins{} equal-width bins, pooled over the $4\times\NNTest{}$ answers (a stated probability on a bin edge counts in the
+upper bin). Routing is selective prediction~\cite{geifman2017selective} on $p_\mathrm{safe}$. An item is \emph{safe} to
+auto-clear when it is a routine invoice or credit note, keeps the registered destination and has suspicion at most 1
+(\NSafeTest{} test items); the other \NHeldTest{} should be \emph{held}: \NHeldAttacks{} attacks and \NHeldBenign{}
+legitimate items that still need a person (\NHeldNotices{} notices, \NHeldChanges{} announced bank changes and
+\NHeldExec{} executive requests). Threshold-free, we report the AUROC of $p_\mathrm{safe}$ (safe against held items)
+and the most safe items one threshold clears while letting at most $k$ held items through. At a \NBudget{} error budget
+(the lowest threshold whose cleared set is at most \NBudget{} held items) we report the share of safe items
+auto-cleared, \emph{deployed} (threshold chosen on validation, applied to test) and \emph{oracle} (chosen on test);
+with \NNTest{} items this budget tolerates no held item in the cleared set. We also report latency and cost per 1,000
+items.
+
+\textbf{Protocol and fairness.} Every model sees the same states and question strings but not our labelling rules: the
+fine-tunes learned them from \NNTrain{} examples, the zero-shot models never saw them. Kev models are served through the
+same \texttt{/v1/systemone} API, in bf16 with MLX on one laptop. LLMs get one system prompt carrying every question's
+instructions and every option's criteria (the strings Kev receives), a short domain preamble and a JSON skeleton, and
+must return a probability per option. Llama 3.3 70B Instruct~\cite{meta2024llama33} (the FP8 variant on Cloudflare
+Workers AI) was called once per item at temperature 0; \NLlamaParseErrors{} of \NNTest{} replies failed to parse.
+\FrontierProtocol{} As a validity check, the kept runs give \NHaikuDistinct{}, \NSonnetDistinct{}, \NOpusDistinct{} and
+\NFableDistinct{} distinct answers to the \NNTest{} items (Haiku, Sonnet, Opus, Fable), the discarded one
+\NDiscardedDistinct{}. Temperatures and deployed thresholds come from validation; the zero-shot LLMs have no validation
+run, so only their oracle auto-clear is reported. Differences are paired over the same answers, with 95\% intervals
+from an item-clustered bootstrap~\cite{efron1979bootstrap} (\NResamples{} resamples, an item's four answers kept
+together) and from a two-level bootstrap that resamples families, then items within them; $p$-values are exact
+two-sided sign tests over items. We call a difference significant when the item-level interval excludes zero and
+parity when it contains zero, and say when the family-level interval disagrees.
+
+\section{Method}
+Our fine-tunes are supervised: cross-entropy on our labels, not reinforcement learning. payee-0.8b starts from
+Kev-0.8B~\cite{palmer2026kev} (\texttt{jaredpalmer/kev-0.8b}): a LoRA adapter~\cite{hu2022lora} (rank \NRank{}, all target
+modules) and a pointer head that scores each option's hidden state against the question's, on a frozen
+Qwen3.5-0.8B-Base~\cite{qwen2026qwen35base} (revision \texttt{\NBaseRevision}); \NParams{} parameters train. We continue
+from the released checkpoint (Hub snapshot \texttt{\NInitSnapshot}, Kev trainer at commit \texttt{\NKevCommit}) for
+\NEpochs{} epochs on the \NNTrain{} training items: mean cross-entropy over the four questions, AdamW (weight decay
+\NWeightDecay{}), learning rate $\NLr$ on a one-cycle schedule, batch \NBatch{} with \NAccum-step accumulation
+(\NTrainSteps{} optimizer steps), gradient-norm clipping at \NClipNorm{} (active on \NClippedSteps{} steps), and Kev's
+default augmentation of choice questions (options reshuffled every epoch; a ``none of the above'' option replacing the
+answer or added as a wrong one, or an irrelevant option added, for \NPNone{}, \NPNoneDistract{} and \NPDistract{}). We then fit one temperature on validation by minimum negative
+log-likelihood (T\,=\,\NTempOurs{}). Training took \NTrainMin{} minutes on an Apple M5 Max (48\,GB; fp32 on MPS, each
+state encoded once for its four questions), \NTrainStep{}\,s per step at the median and at most \NTrainPeakGpu{}\,GB of
+GPU memory. We also fine-tuned Kev-4B (snapshot \texttt{\NInitSnapshotFour}, \NParamsFour{} trainable parameters). The
+same recipe did not fit in 48\,GB, so it used a bf16 frozen backbone, gradient checkpointing and one epoch
+(\NFourSteps{} steps, \NFourMin{} minutes, T\,=\,\NTempFour{}); it was trained after the 0.8B's test results were known.
+\NOpenModels{}
+
+\section{Results}
+Table~\ref{tab:results} gives the test results and Fig.~\ref{fig:forest} the paired differences. payee-0.8b reaches
+\NOursMean{} mean accuracy: \NVsBaseDelta{} points over the released Kev-0.8B (95\% CI [\NVsBaseLo, \NVsBaseHi];
+family-clustered [\NVsBaseFamLo, \NVsBaseFamHi]; better on \NVsBaseBetter{} items and worse on \NVsBaseWorse{}, sign
+test $p=\NVsBaseP$), and \NVsBaseFourDelta{} over the five-times-larger released Kev-4B ([\NVsBaseFourLo,
+\NVsBaseFourHi]; [\NVsBaseFourFamLo, \NVsBaseFourFamHi]). Most of the gain is on suspicion, where the released models
+are near chance on the 0--3 scale (\NBaseSusp{} accuracy, mean error \NBaseSuspMae{} levels) and the fine-tune reaches
+\NOursSusp{} (\NOursSuspMae{} levels); the other three questions were already between \NBaseOtherMin{} and
+\NBaseOtherMax{} zero-shot. The gain is not mostly our conventions: without the convention answers it is
+\NVsBaseNcDelta{} and \NVsBaseFourNcDelta{} points. The fine-tuned 4B is statistically tied with the 0.8B in accuracy
+(the 0.8B's lead is \NVsOursFourDelta{} points, CI [\NVsOursFourLo, \NVsOursFourHi], $p=\NVsOursFourP$) but ranks safe
+against held items better (AUROC \NOursFourAuroc{} against \NOursAuroc{}; difference CI [\NVsOursFourAurocLo,
+\NVsOursFourAurocHi], though the family-clustered interval [\NVsOursFourAurocFamLo, \NVsOursFourAurocFamHi] contains
+zero).
+
+Against Llama 3.3 70B the lead is \NVsLlamaDelta{} points ([\NVsLlamaLo, \NVsLlamaHi]; family-clustered
+[\NVsLlamaFamLo, \NVsLlamaFamHi]), but it is a lead in following our labels, not in spotting fraud. On the
+\NConventionAnswers{} convention answers Llama scores \NLlamaConvAcc{} and payee-0.8b \NOursConvAcc{}; without them the
+lead is \NVsLlamaNcDelta{} points ([\NVsLlamaNcLo, \NVsLlamaNcHi]). It sits on request type
+(\NVsLlamaRequesttypeDelta{}) and the exact suspicion level (\NVsLlamaSuspicionDelta{}); new destination is tied
+(\NVsLlamaNewdestinationDelta{}, [\NVsLlamaNewdestinationLo, \NVsLlamaNewdestinationHi]), and so is the binary split that
+$p_\mathrm{safe}$ uses, suspicion 0--1 against 2--3: Llama scores \NLlamaBinSusp{} against \NOursBinSusp{}
+(\NVsLlamaBinDelta{} points, [\NVsLlamaBinLo, \NVsLlamaBinHi]) \NLlamaBinPhrase{}.
+Llama's clearest miss is invoices that hide an instruction to redirect payment: it flags the new destination on
+\NLlamaInjNewDest{} and the suspicion level on \NLlamaInjSusp{} of the \NInjectionN{}, against \NOursInjNewDest{} and
+\NOursInjSusp{} for payee-0.8b. The fine-tune is weakest on silently swapped invoices (\NOursSwap{}): \NSwapPoisoned{}
+of the \NSwapN{} test items swap in a look-alike wallet that keeps the registered address's first six and last four
+hex digits, which only a character-by-character comparison catches. \NFrontierResults{}
+
+\begin{table*}[t]
+\centering
+\caption{PayeeBench-JA test split (\NNTest{} items, $4\times\NNTest{}$ answers): accuracy per question, mean accuracy,
+ECE, AUROC of $p_\mathrm{safe}$, safe items auto-cleared at a \NBudget{} error budget (deployed threshold, held items
+let through, / oracle), p50 latency and cost per 1,000 items (electricity for local Kev, Section~\ref{sec:cost}).
+$^\dagger$Test split only; latency includes the network; list price for measured tokens. $^\ddagger$Run as an agent on
+the label-free kit; latency not measured; cost is a list-price estimate from Llama's token counts.}
+\label{tab:results}
+\footnotesize
+\setlength{\tabcolsep}{4.2pt}
+\begin{tabular}{@{}lcccccccccc@{}}
+\toprule
+Model & Req.\ type & New dest. & Pressure & Suspicion & Mean & ECE & AUROC & Auto-clear @\NBudget{} & p50 (ms) & \$ / 1k \\
+\midrule
+\rows{generated/table_results.tex}
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{figures/forest.pdf}
+\caption{payee-0.8b's lead in mean test accuracy over each contender: point estimate, item-bootstrap 95\% interval
+(thick) and family-clustered interval (thin). Negative values favour the contender.}
+\label{fig:forest}
+\end{figure}
+
+\textbf{External check.} We converted AgentDojo's banking suite~\cite{debenedetti2024agentdojo} into PayeeBench items:
+its \NExtGoals{} injection goals $\times$ \NExtAttacks{} attack strings $\times$ \NExtCarriers{} carrier documents
+(\NExtInjected{} injected items) and \NExtClean{} clean documents, labelled by our rules; and we added the \NExtPfn{}
+benign Japanese e-mails of PFN's Japanese-Mail-Bench~\cite{pfn2026mailbench} (Table~\ref{tab:external}; data in
+\texttt{results/external}). At its deployed
+threshold payee-0.8b auto-clears \NExtOursCleared{} injected items (\NExtOursOffGoal{} of them the password-change goal,
+which moves no money), and on the \NExtScope{} in-scope items flags a new destination on \NExtOursNewDest{} and suspicion
+2 or more on \NExtOursSusp{}, against \NExtBaseNewDest{} and \NExtBaseSusp{} for the released 0.8B. It flags suspicion 2 or more on
+\NExtOursPfnSusp{} benign e-mails (\NExtOursPfnSuspPct{}) and never a new destination. The items are English, Western
+and correlated (one attacker IBAN, fixed strings), only one clean document can be cleared, and the labels are our
+mapping, not AgentDojo's attack-success metric.
+
+\begin{table}[t]
+\centering
+\caption{AgentDojo-derived and benign-mail checks at each model's deployed threshold: injected items auto-cleared (of
+\NExtInjected{}), new destination and suspicion $\ge$\,2 flagged on the \NExtScope{} in-scope items and on the
+\NExtRedirect{} that ask to move money, and flags on \NExtPfn{} benign Japanese e-mails.}
+\label{tab:external}
+\scriptsize
+\setlength{\tabcolsep}{2.4pt}
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+ & & \multicolumn{2}{c}{In scope} & Money moves & \multicolumn{2}{c}{Benign mail} \\
+Model & Cleared & New dest. & Susp. & New / Susp. & New dest. & Susp. \\
+\midrule
+\rows{generated/table_external.tex}
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Calibration and routing}
+The released Kev models are under-confident (Fig.~\ref{fig:reliability}): Kev-0.8B states \NBaseMeanConf{} mean
+confidence at \NBaseMean{} accuracy and Kev-4B \NBaseFourMeanConf{} at \NBaseFourMean{}. Llama is over-confident: its
+\NLlamaBinN{} answers stated at about \NLlamaBinConf{} were right \NLlamaBinAcc{} of the time (ECE \NLlamaEce{}).
+\NFrontierCalibration{} payee-0.8b's ECE of \NOursEce{} is \NOursEceStanding{}. Pooled ECE hides confident errors,
+though: \NOursConfErrors{} of its answers are wrong at \NConfident{} confidence or more (released Kev-4B
+\NBaseFourConfErrors{}, Llama \NLlamaConfErrors{}), and it rated \NRemindersRated{} of the \NRemindersN{} benign gentle
+reminders in the test split (\NRemindersLang{}) ``very likely a scam'' with probability
+\NRemindersPmin{} to \NRemindersPmax{}.
+
+Threshold-free, payee-0.8b ranks safe above held items with an AUROC of \NOursAuroc{},
+better than the released Kev-0.8B (\NBaseAuroc{}) but not than the released Kev-4B (\NBaseFourAuroc{}; difference
+\NVsBaseFourAurocDelta{}, CI [\NVsBaseFourAurocLo, \NVsBaseFourAurocHi]) or Llama (\NLlamaAuroc{};
+\NVsLlamaAurocDelta{}, [\NVsLlamaAurocLo, \NVsLlamaAurocHi], though the family-clustered interval [\NVsLlamaAurocFamLo,
+\NVsLlamaAurocFamHi] contains zero). With no held item cleared, or one, where a \NBudget{} budget operates, it clears
+\NOursClearZero{} and \NOursClearOne{} of the \NSafeTest{} safe items, against \NBaseFourClearZero{} and
+\NBaseFourClearOne{} for Kev-4B and \NLlamaClearZero{} and \NLlamaClearOne{} for Llama; these are differences of
+\NClearGapMin{} to \NClearGapMax{} items whose intervals contain zero (against Llama, [\NVsLlamaClearZeroLo, \NVsLlamaClearZeroHi] and
+[\NVsLlamaClearOneLo, \NVsLlamaClearOneHi] points of the safe items). \NFrontierRouting{}
+
+With the threshold fixed on validation ($\tau$\,=\,\NOursThreshold), payee-0.8b clears \NOursDeployed{} of the safe test
+items (\NOursDeployedN{} of \NSafeTest{}; \NOursDeployedLo{} to \NOursDeployedHi{} when test items are resampled) and
+lets \NOursFalseClears{} held item through: an invoice whose 振込先 moved to another bank under the same account name,
+which the kernel's registry match exists to catch. The fine-tuned 4B clears \NOursFourDeployed{}, also with
+\NOursFourFalseClears{} held item; the released Kev-4B \NBaseFourDeployed{}, and the released 0.8B nothing, even with a
+refitted temperature. This is not like-for-like: validation shares training templates and fitted the temperature, so
+the fine-tunes rank it almost perfectly (AUROC \NOursAurocVal{} for payee-0.8b) and their threshold is loose on test,
+while the released Kev-4B ranks validation worse than test (\NBaseFourAurocVal{} against \NBaseFourAuroc{}). A
+production threshold should come from real held-out documents, with a margin.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/reliability.pdf}
+\caption{Reliability on the test split: share of answers correct against stated confidence, in \NBins{} bins over the
+four questions pooled. Marker area grows with the answers in a bin; bins with fewer than \NMinBin{} are omitted.}
+\label{fig:reliability}
+\end{figure*}
+
+
+\section{Cost and speed}\label{sec:cost}
+Latency is the client's wall time for one HTTP request answering all four questions, one request at a time, after
+warm-up. payee-0.8b answers in \NOursPfifty{}\,ms at p50 (\NOursPninetyfive{}\,ms at p95), the same as the released
+0.8B; the 4B models take about \NOursFourPfifty{}\,ms. These are over localhost; Llama's \NLlamaPfifty{}\,ms
+(\NLlamaPninetyfive{}\,ms at p95) includes the network and our proxy. A local model has no token bill, so we price the
+time a request occupies the machine:
+\[
+\text{cost per 1{,}000 items} = 1000\cdot \frac{t_\text{item}\,[\mathrm{s}]\cdot W}{3.6\times10^{6}}\cdot c_\mathrm{kWh},
+\]
+where $t_\text{item}$ is the mean wall time per item, $W$\,=\,\NWatts{}\,W an assumed package power and
+$c_\mathrm{kWh}$\,=\,\$\NUsdKwh{} a Tokyo household tariff, excluding the hardware; macOS does not expose package power
+without root. This gives \$\NOursCost{} per 1,000 items for payee-0.8b. Hosted models are priced
+at list price for their measured tokens: Llama 3.3 70B costs \$\NLlamaCost{} per 1,000 items~\cite{cloudflare_pricing}.
+\NFrontierCost{} Llama costs about \NLlamaOverOurs{} times our electricity, but electricity on owned hardware against a
+list price is not a like-for-like ratio. On a rented NVIDIA L4
+at \$\NLfourHour{} per hour and Kev's published throughput of \NLfourRps{} requests per second (a different workload:
+short texts, many concurrent clients), Kev-0.8B would cost about \$\NLfourCost{} per 1,000 items, still about
+\NLlamaOverLfour{} times less than Llama. Jev, TypeSafe's hosted System-1 model, would cost about \$\NJevCost{} at \$\NJevPrice{} per million input
+tokens~\cite{typesafe_models} if it tokenises like Kev; we could not run it without credit.
+
+
+\section{Forgetting}
+On Kev's own out-of-domain development suite
+(transfer-v4, \NFgN{} answers, served the same way) accuracy held: \NFgBaseAcc{} to \NFgOursAcc{} for the 0.8B and
+\NFgBaseFourAcc{} to \NFgOursFourAcc{} for the 4B. Calibration did not: ECE rose from \NFgBaseEce{} to \NFgOursEce{}
+(0.8B) and from \NFgBaseFourEce{} to \NFgOursFourEce{} (4B), and wrong answers given with at least 0.9 confidence rose
+from \NFgBaseConf{} to \NFgOursConf{} (0.8B). The fitted temperature belongs to the payee questions; Meigi serves the
+fine-tune for this question set only.
+
+\section{Limitations}
+PayeeBench-JA is synthetic and self-built: it measures how well a model learns our families and conventions, not fraud
+detection in real mail with OCR noise, threads and attachments. The test set is small and clustered: intervals are
+several points wide, family-clustered ones about twice as wide, and one or two items decide the \NBudget{} auto-clear
+figure. Validation shares training templates and fitted the temperature, which favours the fine-tunes' deployed
+thresholds. The test split was reused: the models were trained on an earlier build that differs only in identifiers,
+every model was scored once per build, the 4B was trained after the 0.8B's results were known, and the 0.8B was chosen
+on test. Each model was trained once, with one seed. The frontier rows are agents with context, reasoning and a shell,
+run once, with no latency and an estimated cost. Jev was not evaluated. Literal reading (18-decimal x402 amounts,
+transposed digits) is hard by design and left to the kernel.
+
+\textbf{Audit.} Before the frontier rows were added, an AI auditing agent re-derived the headline numbers with
+independent code and found one bug, fixed throughout: a probability exactly on a bin edge (0.3, 0.6, 0.7) fell into the
+lower bin, understating Llama's ECE (\NLlamaEceBeforeFix{}, now \NLlamaEce{}). Its other findings shaped the narrower
+claims above; its advice to keep batched agent rows out of head-to-head claims is why they are marked indicative. A
+second AI review recomputed the headline numbers, frontier rows included.
+
+\section{Conclusion}
+On PayeeBench-JA, a 0.8B decision model fine-tuned on \NNTrain{} synthetic items in \NTrainMin{} minutes on a laptop
+learns our labels: it is \NVsBaseDelta{} points more accurate than the released model, its calibration error is
+\NOursEceStanding{}, and it answers in \NOursPfifty{}\,ms at a negligible marginal cost. It is not a better detector of
+redirection than large LLMs, which rank safe against held items at least as well.\NFrontierConclusion{} What it offers
+a payment agent is a local, cheap first pass with mostly calibrated probabilities that never needs to be trusted with
+money: the model only routes, and money moves only through exact, on-chain checks.
+
+\section*{Reproducibility}
+Everything is under \texttt{bench/} in the Meigi repository: the dataset builder (byte-identical output when the
+national corporation index, not in the repository, is present), the fine-tuning script, the evaluation harness, the
+label-free kit and its scorer, the frontier agents' instructions, and the scripts in \texttt{paper/} that generate
+every number, table and figure here from \texttt{results/} and \texttt{dataset/}. The fine-tuned checkpoints are not
+published: their predictions can be re-scored, not re-run.
+
+\section*{Acknowledgment}
+This paper was written with AI assistance (Claude) and audited by AI agents. All numbers come from
+\texttt{bench/results} and \texttt{bench/dataset}, through the scripts above.
+
+\bibliographystyle{IEEEtran}
+\bibliography{refs}
+
+\end{document}

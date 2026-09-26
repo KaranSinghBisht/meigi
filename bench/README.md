@@ -39,8 +39,8 @@ family-clustered intervals and the convention analysis below come from `paper/an
 - **Against Llama, the lead is in following our labels, not in spotting fraud.** payee-0.8b is +10.3 points over
   Llama 3.3 70B (CI +6.7 to +14.2; family-clustered +3.6 to +19.3), but +7.0 (CI +3.8 to +10.3) without the convention
   answers, where Llama scores 0.11 and the fine-tune 0.62. On the split p_safe uses (suspicion 0-1 vs 2-3) the two are
-  tied either way it is scored: by top level Llama 0.893 vs 0.833 (-6.0 points, CI -12.7 to +0.7), by probability mass
-  0.813 vs 0.833 (+2.0, CI -6.0 to +10.0). Llama ranks safe above held items at least as well (AUROC of p_safe 0.986
+  statistically tied (Llama 0.893, payee-0.8b 0.833; -6.0 points, CI -12.7 to +0.7), whether the side is read from
+  the top level or from the probability mass (an even split counting as held, as in routing). Llama ranks safe above held items at least as well (AUROC of p_safe 0.986
   vs 0.944; difference CI -0.078 to -0.014 over items, -0.164 to +0.007 over families). The fine-tune answers in 39 ms
   instead of 2,047 ms p50 (5.6 s p95, which includes the network). Llama's clearest miss is invoices carrying a hidden
   instruction that redirects payment: it flags the new destination and the suspicion level on 2 of the 6 each, against

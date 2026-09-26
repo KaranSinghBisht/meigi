@@ -1,0 +1,20 @@
+\multicolumn{11}{@{}l}{\emph{Kev decision models, served locally}} \\
+Kev-0.8B (released) & 0.807 & 0.867 & 0.920 & 0.393 & 0.747 & 0.134 & 0.843 & 0\% (0) / 12\% & 38 & 0.00013 \\
+Kev-0.8B + temp.\ refit on val. & 0.807 & 0.867 & 0.920 & 0.393 & 0.747 & 0.106 & 0.844 & 0\% (0) / 12\% & 38 & 0.00014 \\
+Kev-4B (released) & 0.880 & 0.927 & 0.960 & 0.413 & 0.795 & 0.120 & 0.969 & 16\% (0) / 33\% & 169 & 0.00060 \\
+\textbf{payee-0.8b (ours)} & 0.947 & 0.967 & 0.973 & 0.787 & 0.918 & 0.024 & 0.944 & 45\% (1) / 43\% & 39 & 0.00013 \\
+payee-4b (ours, 1 epoch) & 0.953 & 0.987 & 1.000 & 0.813 & 0.938 & 0.016 & 0.986 & 67\% (1) / 53\% & 165 & 0.00058 \\
+Qwen3-4B, Kev recipe (ours) & \multicolumn{10}{c}{\emph{pending: training scheduled}} \\
+\midrule
+\multicolumn{11}{@{}l}{\emph{Open generative models, LoRA SFT, local (ours)}} \\
+Gemma 4 E2B + LoRA (ours) & \multicolumn{10}{c}{\emph{pending: training scheduled}} \\
+Llama 3.2 3B + LoRA (ours) & \multicolumn{10}{c}{\emph{pending: training scheduled}} \\
+\midrule
+\multicolumn{11}{@{}l}{\emph{Zero-shot LLM}} \\
+Llama 3.3 70B$^\dagger$ & 0.833 & 0.947 & 0.920 & 0.560 & 0.815 & 0.092 & 0.986 & -- / 39\% & 2,047 & 0.46 \\
+\midrule
+\multicolumn{11}{@{}l}{\emph{Claude models run as Claude Code agents (indicative)}} \\
+Claude Haiku 4.5$^\ddagger$ & 0.887 & 0.933 & 0.947 & 0.687 & 0.863 & 0.035 & 0.932 & -- / 20\% & -- & 1.3 \\
+Claude Sonnet 5$^\ddagger$ & 0.867 & 1.000 & 0.940 & 0.827 & 0.908 & 0.097 & 1.000 & -- / 100\% & -- & 2.5 \\
+Claude Opus 5.5$^\ddagger$ & 0.993 & 1.000 & 0.940 & 0.880 & 0.953 & 0.067 & 1.000 & -- / 100\% & -- & 5.1 \\
+Claude Fable 5.1$^\ddagger$ & 0.993 & 1.000 & 0.940 & 0.867 & 0.950 & 0.081 & 1.000 & -- / 100\% & -- & 13 \\

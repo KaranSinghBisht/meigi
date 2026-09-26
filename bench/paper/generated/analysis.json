@@ -1,0 +1,2096 @@
+{
+  "generated_from": "results/results.json, results/predictions/*-test.jsonl, dataset/*.jsonl",
+  "samples": 10000,
+  "seed": 0,
+  "confident_threshold": 0.9,
+  "dataset": {
+    "family_majority_test_acc": 0.9733333333333334,
+    "layouts": {
+      "train": {
+        "invoice": 4,
+        "x402": 1
+      },
+      "val": {
+        "invoice": 4,
+        "x402": 1
+      },
+      "test": {
+        "invoice": 3,
+        "x402": 1
+      }
+    },
+    "injection_texts": {
+      "train": {
+        "redirect": 5,
+        "bypass": 2
+      },
+      "test": {
+        "redirect": 4,
+        "bypass": 2
+      }
+    },
+    "constant_families": 12,
+    "families": 17,
+    "held_test": 99,
+    "held_benign_test": 37,
+    "held_benign_families": {
+      "notice": 18,
+      "change_legit": 12,
+      "exec_legit": 7
+    },
+    "swap_variants_test": {
+      "personal": 1,
+      "moved": 1,
+      "poisoned_wallet": 4,
+      "other_wallet": 1
+    },
+    "convention_answers_test": 45,
+    "conventions": {
+      "exec_legit": [
+        "pressure",
+        "suspicion"
+      ],
+      "reminder_overdue": [
+        "suspicion"
+      ],
+      "change_legit": [
+        "suspicion"
+      ],
+      "x402_overcharge": [
+        "suspicion"
+      ],
+      "injection_redirect": [
+        "request_type"
+      ],
+      "refund_scam": [
+        "request_type"
+      ]
+    },
+    "cues": {
+      "free_mail": {
+        "train": {
+          "items": 40,
+          "with_label": 40,
+          "legitimate": 0
+        },
+        "val": {
+          "items": 5,
+          "with_label": 5,
+          "legitimate": 0
+        },
+        "test": {
+          "items": 9,
+          "with_label": 9,
+          "legitimate": 0
+        }
+      },
+      "swift": {
+        "train": {
+          "items": 44,
+          "with_label": 44,
+          "legitimate": 0
+        },
+        "val": {
+          "items": 5,
+          "with_label": 5,
+          "legitimate": 0
+        },
+        "test": {
+          "items": 11,
+          "with_label": 11,
+          "legitimate": 0
+        }
+      },
+      "personal_account": {
+        "train": {
+          "items": 16,
+          "with_label": 16,
+          "legitimate": 0
+        },
+        "val": {
+          "items": 3,
+          "with_label": 3,
+          "legitimate": 0
+        },
+        "test": {
+          "items": 5,
+          "with_label": 5,
+          "legitimate": 0
+        }
+      }
+    }
+  },
+  "contenders": {
+    "kev-0.8b (base)": {
+      "auroc_test": 0.8425430778371955,
+      "auroc_val": 0.7994652406417112,
+      "safe_items": 51,
+      "held_items": 99,
+      "cleared_with_unsafe": {
+        "0": 6,
+        "1": 7,
+        "2": 9
+      },
+      "binary_suspicion_acc": 0.6133333333333333,
+      "binary_suspicion_mass_acc": 0.6333333333333333,
+      "within_one_level": 0.6466666666666666,
+      "confident_errors": 4,
+      "ece_before_fix": 0.1338921096395195,
+      "convention_acc": 0.5555555555555556,
+      "other_acc": 0.7621621621621621,
+      "reminder_gentle": {
+        "n": 6,
+        "rated_3": 0,
+        "p3_min": null,
+        "p3_max": null,
+        "langs": {}
+      },
+      "injection_redirect": {
+        "n": 6,
+        "request_type": 3,
+        "new_destination": 4,
+        "pressure": 2,
+        "suspicion": 0
+      },
+      "deployed_bootstrap": {
+        "safe_cleared_ci": [
+          0.0,
+          0.0
+        ],
+        "mean_held_cleared": 0.0
+      }
+    },
+    "kev-0.8b (base, val-fitted T)": {
+      "auroc_test": 0.8443256090314913,
+      "auroc_val": 0.8025846702317291,
+      "safe_items": 51,
+      "held_items": 99,
+      "cleared_with_unsafe": {
+        "0": 6,
+        "1": 6,
+        "2": 12
+      },
+      "binary_suspicion_acc": 0.6133333333333333,
+      "binary_suspicion_mass_acc": 0.6333333333333333,
+      "within_one_level": 0.6466666666666666,
+      "confident_errors": 7,
+      "ece_before_fix": 0.10636805056540682,
+      "convention_acc": 0.5555555555555556,
+      "other_acc": 0.7621621621621621,
+      "reminder_gentle": {
+        "n": 6,
+        "rated_3": 0,
+        "p3_min": null,
+        "p3_max": null,
+        "langs": {}
+      },
+      "injection_redirect": {
+        "n": 6,
+        "request_type": 3,
+        "new_destination": 4,
+        "pressure": 2,
+        "suspicion": 0
+      },
+      "deployed_bootstrap": {
+        "safe_cleared_ci": [
+          0.0,
+          0.0
+        ],
+        "mean_held_cleared": 0.0
+      }
+    },
+    "kev-4b (base)": {
+      "auroc_test": 0.9685086155674391,
+      "auroc_val": 0.9367201426024956,
+      "safe_items": 51,
+      "held_items": 99,
+      "cleared_with_unsafe": {
+        "0": 17,
+        "1": 22,
+        "2": 28
+      },
+      "binary_suspicion_acc": 0.7733333333333333,
+      "binary_suspicion_mass_acc": 0.7533333333333333,
+      "within_one_level": 0.8133333333333334,
+      "confident_errors": 0,
+      "ece_before_fix": 0.12039289906582899,
+      "convention_acc": 0.1111111111111111,
+      "other_acc": 0.8504504504504504,
+      "reminder_gentle": {
+        "n": 6,
+        "rated_3": 0,
+        "p3_min": null,
+        "p3_max": null,
+        "langs": {}
+      },
+      "injection_redirect": {
+        "n": 6,
+        "request_type": 1,
+        "new_destination": 6,
+        "pressure": 5,
+        "suspicion": 3
+      },
+      "deployed_bootstrap": {
+        "safe_cleared_ci": [
+          0.0625,
+          0.2608695652173913
+        ],
+        "mean_held_cleared": 0.0
+      }
+    },
+    "payee-0.8b (ours)": {
+      "auroc_test": 0.9437512378688849,
+      "auroc_val": 0.9888591800356507,
+      "safe_items": 51,
+      "held_items": 99,
+      "cleared_with_unsafe": {
+        "0": 22,
+        "1": 31,
+        "2": 32
+      },
+      "binary_suspicion_acc": 0.8333333333333334,
+      "binary_suspicion_mass_acc": 0.8333333333333334,
+      "within_one_level": 0.8333333333333334,
+      "confident_errors": 13,
+      "ece_before_fix": 0.023978431146865972,
+      "convention_acc": 0.6222222222222222,
+      "other_acc": 0.9423423423423424,
+      "reminder_gentle": {
+        "n": 6,
+        "rated_3": 4,
+        "p3_min": 0.4934,
+        "p3_max": 0.9272,
+        "langs": {
+          "ja": 4
+        }
+      },
+      "injection_redirect": {
+        "n": 6,
+        "request_type": 3,
+        "new_destination": 6,
+        "pressure": 6,
+        "suspicion": 6
+      },
+      "deployed_bootstrap": {
+        "safe_cleared_ci": [
+          0.3137254901960784,
+          0.5882352941176471
+        ],
+        "mean_held_cleared": 0.999
+      }
+    },
+    "payee-4b (ours, 1 epoch)": {
+      "auroc_test": 0.9863339275103981,
+      "auroc_val": 0.9924242424242424,
+      "safe_items": 51,
+      "held_items": 99,
+      "cleared_with_unsafe": {
+        "0": 27,
+        "1": 34,
+        "2": 39
+      },
+      "binary_suspicion_acc": 0.8933333333333333,
+      "binary_suspicion_mass_acc": 0.8933333333333333,
+      "within_one_level": 0.8933333333333333,
+      "confident_errors": 8,
+      "ece_before_fix": 0.015877291117559585,
+      "convention_acc": 0.8222222222222222,
+      "other_acc": 0.9477477477477477,
+      "reminder_gentle": {
+        "n": 6,
+        "rated_3": 0,
+        "p3_min": null,
+        "p3_max": null,
+        "langs": {}
+      },
+      "injection_redirect": {
+        "n": 6,
+        "request_type": 3,
+        "new_destination": 6,
+        "pressure": 6,
+        "suspicion": 5
+      },
+      "deployed_bootstrap": {
+        "safe_cleared_ci": [
+          0.5348837209302325,
+          0.7916666666666666
+        ],
+        "mean_held_cleared": 1.0002
+      }
+    },
+    "llama-3.3-70b (worker)": {
+      "auroc_test": 0.9855416914240444,
+      "auroc_val": null,
+      "safe_items": 51,
+      "held_items": 99,
+      "cleared_with_unsafe": {
+        "0": 20,
+        "1": 20,
+        "2": 20
+      },
+      "binary_suspicion_acc": 0.8933333333333333,
+      "binary_suspicion_mass_acc": 0.8933333333333333,
+      "within_one_level": 0.9066666666666666,
+      "confident_errors": 22,
+      "ece_before_fix": 0.07550000000000005,
+      "convention_acc": 0.1111111111111111,
+      "other_acc": 0.872072072072072,
+      "reminder_gentle": {
+        "n": 6,
+        "rated_3": 0,
+        "p3_min": null,
+        "p3_max": null,
+        "langs": {}
+      },
+      "injection_redirect": {
+        "n": 6,
+        "request_type": 0,
+        "new_destination": 2,
+        "pressure": 3,
+        "suspicion": 2
+      }
+    },
+    "claude-haiku-4.5 (agent)": {
+      "auroc_test": 0.9321647851059616,
+      "auroc_val": null,
+      "safe_items": 51,
+      "held_items": 99,
+      "cleared_with_unsafe": {
+        "0": 10,
+        "1": 10,
+        "2": 14
+      },
+      "binary_suspicion_acc": 0.86,
+      "binary_suspicion_mass_acc": 0.8466666666666667,
+      "within_one_level": 0.9066666666666666,
+      "confident_errors": 26,
+      "ece_before_fix": 0.03463333333333332,
+      "convention_acc": 0.3111111111111111,
+      "other_acc": 0.9081081081081082,
+      "reminder_gentle": {
+        "n": 6,
+        "rated_3": 0,
+        "p3_min": null,
+        "p3_max": null,
+        "langs": {}
+      },
+      "injection_redirect": {
+        "n": 6,
+        "request_type": 0,
+        "new_destination": 3,
+        "pressure": 3,
+        "suspicion": 2
+      }
+    },
+    "claude-sonnet-5 (agent)": {
+      "auroc_test": 1.0,
+      "auroc_val": null,
+      "safe_items": 51,
+      "held_items": 99,
+      "cleared_with_unsafe": {
+        "0": 51,
+        "1": 51,
+        "2": 51
+      },
+      "binary_suspicion_acc": 1.0,
+      "binary_suspicion_mass_acc": 1.0,
+      "within_one_level": 1.0,
+      "confident_errors": 2,
+      "ece_before_fix": 0.10403333333333328,
+      "convention_acc": 0.4666666666666667,
+      "other_acc": 0.9441441441441442,
+      "reminder_gentle": {
+        "n": 6,
+        "rated_3": 0,
+        "p3_min": null,
+        "p3_max": null,
+        "langs": {}
+      },
+      "injection_redirect": {
+        "n": 6,
+        "request_type": 6,
+        "new_destination": 6,
+        "pressure": 5,
+        "suspicion": 6
+      }
+    },
+    "claude-opus-5.5 (agent)": {
+      "auroc_test": 1.0,
+      "auroc_val": null,
+      "safe_items": 51,
+      "held_items": 99,
+      "cleared_with_unsafe": {
+        "0": 51,
+        "1": 51,
+        "2": 51
+      },
+      "binary_suspicion_acc": 1.0,
+      "binary_suspicion_mass_acc": 1.0,
+      "within_one_level": 1.0,
+      "confident_errors": 3,
+      "ece_before_fix": 0.06738333333333327,
+      "convention_acc": 0.5555555555555556,
+      "other_acc": 0.9855855855855856,
+      "reminder_gentle": {
+        "n": 6,
+        "rated_3": 0,
+        "p3_min": null,
+        "p3_max": null,
+        "langs": {}
+      },
+      "injection_redirect": {
+        "n": 6,
+        "request_type": 6,
+        "new_destination": 6,
+        "pressure": 5,
+        "suspicion": 6
+      }
+    },
+    "claude-fable-5.1 (agent)": {
+      "auroc_test": 1.0,
+      "auroc_val": null,
+      "safe_items": 51,
+      "held_items": 99,
+      "cleared_with_unsafe": {
+        "0": 51,
+        "1": 51,
+        "2": 51
+      },
+      "binary_suspicion_acc": 1.0,
+      "binary_suspicion_mass_acc": 1.0,
+      "within_one_level": 1.0,
+      "confident_errors": 0,
+      "ece_before_fix": 0.08078333333333335,
+      "convention_acc": 0.5777777777777777,
+      "other_acc": 0.9801801801801802,
+      "reminder_gentle": {
+        "n": 6,
+        "rated_3": 0,
+        "p3_min": null,
+        "p3_max": null,
+        "langs": {}
+      },
+      "injection_redirect": {
+        "n": 6,
+        "request_type": 6,
+        "new_destination": 6,
+        "pressure": 5,
+        "suspicion": 6
+      }
+    }
+  },
+  "vs_ours": {
+    "kev-0.8b (base)": {
+      "all": {
+        "delta": 0.17166666666666666,
+        "answers": 600,
+        "ci_items": [
+          0.14166666666666666,
+          0.20166666666666666
+        ],
+        "ci_families": [
+          0.10344665543168266,
+          0.2431518497810083
+        ],
+        "items_better": 91,
+        "items_worse": 6,
+        "sign_p": 1.3331565348493776e-20
+      },
+      "without_conventions": {
+        "delta": 0.18018018018018017,
+        "answers": 555,
+        "ci_items": [
+          0.148479427549195,
+          0.2119579620525426
+        ],
+        "ci_families": [
+          0.10714114995902758,
+          0.26016323877972325
+        ],
+        "items_better": 87,
+        "items_worse": 4,
+        "sign_p": 2.260482665715688e-21
+      },
+      "per_question": {
+        "request_type": {
+          "delta": 0.14,
+          "answers": 150,
+          "ci_items": [
+            0.08666666666666667,
+            0.2
+          ],
+          "ci_families": [
+            0.025157232704402517,
+            0.2671331035686239
+          ],
+          "items_better": 21,
+          "items_worse": 0,
+          "sign_p": 9.5367431640625e-07
+        },
+        "new_destination": {
+          "delta": 0.1,
+          "answers": 150,
+          "ci_items": [
+            0.05333333333333334,
+            0.15333333333333332
+          ],
+          "ci_families": [
+            0.016574585635359115,
+            0.234050864361702
+          ],
+          "items_better": 15,
+          "items_worse": 0,
+          "sign_p": 6.103515625e-05
+        },
+        "pressure": {
+          "delta": 0.05333333333333334,
+          "answers": 150,
+          "ci_items": [
+            0.02,
+            0.09333333333333334
+          ],
+          "ci_families": [
+            0.006060606060606061,
+            0.13445378151260504
+          ],
+          "items_better": 8,
+          "items_worse": 0,
+          "sign_p": 0.0078125
+        },
+        "suspicion": {
+          "delta": 0.3933333333333333,
+          "answers": 150,
+          "ci_items": [
+            0.3,
+            0.4866666666666667
+          ],
+          "ci_families": [
+            0.19018151396846322,
+            0.5970224381448461
+          ],
+          "items_better": 65,
+          "items_worse": 6,
+          "sign_p": 1.3321308760808536e-13
+        }
+      },
+      "binary_suspicion": {
+        "delta": 0.22,
+        "answers": 150,
+        "ci_items": [
+          0.12666666666666668,
+          0.31333333333333335
+        ],
+        "ci_families": [
+          -0.02129212610653827,
+          0.49058258854683856
+        ],
+        "items_better": 46,
+        "items_worse": 13,
+        "sign_p": 1.9167786796225883e-05
+      },
+      "binary_suspicion_mass": {
+        "delta": 0.2,
+        "answers": 150,
+        "ci_items": [
+          0.10666666666666667,
+          0.29333333333333333
+        ],
+        "ci_families": [
+          -0.036153372614545765,
+          0.4772727272727273
+        ],
+        "items_better": 44,
+        "items_worse": 14,
+        "sign_p": 0.00010049669926914806
+      },
+      "auroc": {
+        "delta": 0.10120816003168942,
+        "ci_items": [
+          0.0620095693779904,
+          0.1471743237965042
+        ],
+        "ci_families": [
+          0.021761198839832442,
+          0.25007004981320047
+        ]
+      },
+      "cleared_0": {
+        "delta": 0.3137254901960784,
+        "ci_items": [
+          0.14583333333333334,
+          0.6226415094339622
+        ],
+        "ci_families": [
+          0.0,
+          0.706787356321839
+        ]
+      },
+      "cleared_1": {
+        "delta": 0.47058823529411764,
+        "ci_items": [
+          0.12195121951219512,
+          0.6607142857142857
+        ],
+        "ci_families": [
+          0.0,
+          0.7319359756097559
+        ]
+      }
+    },
+    "kev-0.8b (base, val-fitted T)": {
+      "all": {
+        "delta": 0.17166666666666666,
+        "answers": 600,
+        "ci_items": [
+          0.14166666666666666,
+          0.20166666666666666
+        ],
+        "ci_families": [
+          0.10344665543168266,
+          0.2431518497810083
+        ],
+        "items_better": 91,
+        "items_worse": 6,
+        "sign_p": 1.3331565348493776e-20
+      },
+      "without_conventions": {
+        "delta": 0.18018018018018017,
+        "answers": 555,
+        "ci_items": [
+          0.148479427549195,
+          0.2119579620525426
+        ],
+        "ci_families": [
+          0.10714114995902758,
+          0.26016323877972325
+        ],
+        "items_better": 87,
+        "items_worse": 4,
+        "sign_p": 2.260482665715688e-21
+      },
+      "per_question": {
+        "request_type": {
+          "delta": 0.14,
+          "answers": 150,
+          "ci_items": [
+            0.08666666666666667,
+            0.2
+          ],
+          "ci_families": [
+            0.025157232704402517,
+            0.2671331035686239
+          ],
+          "items_better": 21,
+          "items_worse": 0,
+          "sign_p": 9.5367431640625e-07
+        },
+        "new_destination": {
+          "delta": 0.1,
+          "answers": 150,
+          "ci_items": [
+            0.05333333333333334,
+            0.15333333333333332
+          ],
+          "ci_families": [
+            0.016574585635359115,
+            0.234050864361702
+          ],
+          "items_better": 15,
+          "items_worse": 0,
+          "sign_p": 6.103515625e-05
+        },
+        "pressure": {
+          "delta": 0.05333333333333334,
+          "answers": 150,
+          "ci_items": [
+            0.02,
+            0.09333333333333334
+          ],
+          "ci_families": [
+            0.006060606060606061,
+            0.13445378151260504
+          ],
+          "items_better": 8,
+          "items_worse": 0,
+          "sign_p": 0.0078125
+        },
+        "suspicion": {
+          "delta": 0.3933333333333333,
+          "answers": 150,
+          "ci_items": [
+            0.3,
+            0.4866666666666667
+          ],
+          "ci_families": [
+            0.19018151396846322,
+            0.5970224381448461
+          ],
+          "items_better": 65,
+          "items_worse": 6,
+          "sign_p": 1.3321308760808536e-13
+        }
+      },
+      "binary_suspicion": {
+        "delta": 0.22,
+        "answers": 150,
+        "ci_items": [
+          0.12666666666666668,
+          0.31333333333333335
+        ],
+        "ci_families": [
+          -0.02129212610653827,
+          0.49058258854683856
+        ],
+        "items_better": 46,
+        "items_worse": 13,
+        "sign_p": 1.9167786796225883e-05
+      },
+      "binary_suspicion_mass": {
+        "delta": 0.2,
+        "answers": 150,
+        "ci_items": [
+          0.10666666666666667,
+          0.29333333333333333
+        ],
+        "ci_families": [
+          -0.036153372614545765,
+          0.4772727272727273
+        ],
+        "items_better": 44,
+        "items_worse": 14,
+        "sign_p": 0.00010049669926914806
+      },
+      "auroc": {
+        "delta": 0.09942562883739359,
+        "ci_items": [
+          0.060803113859179976,
+          0.14472074253430184
+        ],
+        "ci_families": [
+          0.021477122015915142,
+          0.24183356676003737
+        ]
+      },
+      "cleared_0": {
+        "delta": 0.3137254901960784,
+        "ci_items": [
+          0.14583333333333334,
+          0.6274509803921569
+        ],
+        "ci_families": [
+          0.0,
+          0.7096774193548387
+        ]
+      },
+      "cleared_1": {
+        "delta": 0.49019607843137253,
+        "ci_items": [
+          0.13333333333333333,
+          0.6667910447761175
+        ],
+        "ci_families": [
+          0.0,
+          0.7375
+        ]
+      }
+    },
+    "kev-4b (base)": {
+      "all": {
+        "delta": 0.12333333333333334,
+        "answers": 600,
+        "ci_items": [
+          0.0932916666666667,
+          0.155
+        ],
+        "ci_families": [
+          0.04965340553508101,
+          0.20967877246157177
+        ],
+        "items_better": 68,
+        "items_worse": 10,
+        "sign_p": 9.70811491825464e-12
+      },
+      "without_conventions": {
+        "delta": 0.0918918918918919,
+        "answers": 555,
+        "ci_items": [
+          0.06093074237193985,
+          0.12413058833305628
+        ],
+        "ci_families": [
+          0.020636932492920434,
+          0.17891101078133861
+        ],
+        "items_better": 49,
+        "items_worse": 10,
+        "sign_p": 2.706279703008907e-07
+      },
+      "per_question": {
+        "request_type": {
+          "delta": 0.06666666666666667,
+          "answers": 150,
+          "ci_items": [
+            0.02666666666666667,
+            0.11333333333333333
+          ],
+          "ci_families": [
+            0.00684931506849315,
+            0.15032802594722097
+          ],
+          "items_better": 11,
+          "items_worse": 1,
+          "sign_p": 0.00634765625
+        },
+        "new_destination": {
+          "delta": 0.04,
+          "answers": 150,
+          "ci_items": [
+            0.0,
+            0.08
+          ],
+          "ci_families": [
+            -0.013891317016317014,
+            0.11347517730496454
+          ],
+          "items_better": 8,
+          "items_worse": 2,
+          "sign_p": 0.109375
+        },
+        "pressure": {
+          "delta": 0.013333333333333334,
+          "answers": 150,
+          "ci_items": [
+            -0.013333333333333334,
+            0.04
+          ],
+          "ci_families": [
+            -0.021739130434782608,
+            0.061224489795918366
+          ],
+          "items_better": 3,
+          "items_worse": 1,
+          "sign_p": 0.625
+        },
+        "suspicion": {
+          "delta": 0.37333333333333335,
+          "answers": 150,
+          "ci_items": [
+            0.28,
+            0.4666666666666667
+          ],
+          "ci_families": [
+            0.15150878533231477,
+            0.624061483495974
+          ],
+          "items_better": 62,
+          "items_worse": 6,
+          "sign_p": 8.181953378705309e-13
+        }
+      },
+      "binary_suspicion": {
+        "delta": 0.06,
+        "answers": 150,
+        "ci_items": [
+          -0.02,
+          0.14
+        ],
+        "ci_families": [
+          -0.12582781456953643,
+          0.25714703425229735
+        ],
+        "items_better": 24,
+        "items_worse": 15,
+        "sign_p": 0.19959086691960692
+      },
+      "binary_suspicion_mass": {
+        "delta": 0.08,
+        "answers": 150,
+        "ci_items": [
+          -0.006666666666666667,
+          0.16666666666666666
+        ],
+        "ci_families": [
+          -0.11724137931034483,
+          0.29870327842888816
+        ],
+        "items_better": 29,
+        "items_worse": 17,
+        "sign_p": 0.10380535550410741
+      },
+      "auroc": {
+        "delta": -0.02475737769855413,
+        "ci_items": [
+          -0.062009594693805195,
+          0.009122917098522353
+        ],
+        "ci_families": [
+          -0.14481829476626806,
+          0.037186252626050374
+        ]
+      },
+      "cleared_0": {
+        "delta": 0.09803921568627451,
+        "ci_items": [
+          -0.20835755813953488,
+          0.40816326530612246
+        ],
+        "ci_families": [
+          -0.47368421052631576,
+          0.5882352941176471
+        ]
+      },
+      "cleared_1": {
+        "delta": 0.17647058823529413,
+        "ci_items": [
+          -0.27450980392156865,
+          0.4339622641509434
+        ],
+        "ci_families": [
+          -0.5,
+          0.6081166192604628
+        ]
+      }
+    },
+    "payee-4b (ours, 1 epoch)": {
+      "all": {
+        "delta": -0.02,
+        "answers": 600,
+        "ci_items": [
+          -0.041666666666666664,
+          0.0033333333333333335
+        ],
+        "ci_families": [
+          -0.06175331325301204,
+          0.015957446808510637
+        ],
+        "items_better": 14,
+        "items_worse": 25,
+        "sign_p": 0.10812902140605729
+      },
+      "without_conventions": {
+        "delta": -0.005405405405405406,
+        "answers": 555,
+        "ci_items": [
+          -0.02527075812274368,
+          0.014652014652014652
+        ],
+        "ci_families": [
+          -0.03874690202125902,
+          0.025594227901491847
+        ],
+        "items_better": 12,
+        "items_worse": 15,
+        "sign_p": 0.7011080384254456
+      },
+      "per_question": {
+        "request_type": {
+          "delta": -0.006666666666666667,
+          "answers": 150,
+          "ci_items": [
+            -0.04,
+            0.02666666666666667
+          ],
+          "ci_families": [
+            -0.05521472392638037,
+            0.042735042735042736
+          ],
+          "items_better": 3,
+          "items_worse": 4,
+          "sign_p": 1.0
+        },
+        "new_destination": {
+          "delta": -0.02,
+          "answers": 150,
+          "ci_items": [
+            -0.05333333333333334,
+            0.013333333333333334
+          ],
+          "ci_families": [
+            -0.07633587786259542,
+            0.012347596043248189
+          ],
+          "items_better": 2,
+          "items_worse": 5,
+          "sign_p": 0.453125
+        },
+        "pressure": {
+          "delta": -0.02666666666666667,
+          "answers": 150,
+          "ci_items": [
+            -0.05333333333333334,
+            -0.006666666666666667
+          ],
+          "ci_families": [
+            -0.088,
+            0.0
+          ],
+          "items_better": 0,
+          "items_worse": 4,
+          "sign_p": 0.125
+        },
+        "suspicion": {
+          "delta": -0.02666666666666667,
+          "answers": 150,
+          "ci_items": [
+            -0.1,
+            0.04666666666666667
+          ],
+          "ci_families": [
+            -0.1652892561983471,
+            0.09272654353996117
+          ],
+          "items_better": 13,
+          "items_worse": 17,
+          "sign_p": 0.584664711728692
+        }
+      },
+      "binary_suspicion": {
+        "delta": -0.06,
+        "answers": 150,
+        "ci_items": [
+          -0.12666666666666668,
+          0.006666666666666667
+        ],
+        "ci_families": [
+          -0.18803418803418803,
+          0.04762537993920963
+        ],
+        "items_better": 8,
+        "items_worse": 17,
+        "sign_p": 0.10775214433670044
+      },
+      "binary_suspicion_mass": {
+        "delta": -0.06,
+        "answers": 150,
+        "ci_items": [
+          -0.12666666666666668,
+          0.006666666666666667
+        ],
+        "ci_families": [
+          -0.19463087248322147,
+          0.06400256410256407
+        ],
+        "items_better": 9,
+        "items_worse": 18,
+        "sign_p": 0.12207812070846558
+      },
+      "auroc": {
+        "delta": -0.04258268964151313,
+        "ci_items": [
+          -0.07846752466155095,
+          -0.012754438837671002
+        ],
+        "ci_families": [
+          -0.16909888930684897,
+          0.011748833414164144
+        ]
+      },
+      "cleared_0": {
+        "delta": -0.09803921568627451,
+        "ci_items": [
+          -0.39287177985948474,
+          0.210551619433198
+        ],
+        "ci_families": [
+          -0.6767081447963801,
+          0.3333333333333333
+        ]
+      },
+      "cleared_1": {
+        "delta": -0.058823529411764705,
+        "ci_items": [
+          -0.45098039215686275,
+          0.23076923076923078
+        ],
+        "ci_families": [
+          -0.6507954545454545,
+          0.3508771929824561
+        ]
+      }
+    },
+    "llama-3.3-70b (worker)": {
+      "all": {
+        "delta": 0.10333333333333333,
+        "answers": 600,
+        "ci_items": [
+          0.06666666666666667,
+          0.14166666666666666
+        ],
+        "ci_families": [
+          0.036362975687103595,
+          0.19279695635316274
+        ],
+        "items_better": 58,
+        "items_worse": 14,
+        "sign_p": 1.6464300115968573e-07
+      },
+      "without_conventions": {
+        "delta": 0.07027027027027027,
+        "answers": 555,
+        "ci_items": [
+          0.03818008579442337,
+          0.10332267761180283
+        ],
+        "ci_families": [
+          0.01418239654292831,
+          0.14545667947076393
+        ],
+        "items_better": 45,
+        "items_worse": 14,
+        "sign_p": 6.530630444913366e-05
+      },
+      "per_question": {
+        "request_type": {
+          "delta": 0.11333333333333333,
+          "answers": 150,
+          "ci_items": [
+            0.06,
+            0.16666666666666666
+          ],
+          "ci_families": [
+            0.030534351145038167,
+            0.22297297297297297
+          ],
+          "items_better": 18,
+          "items_worse": 1,
+          "sign_p": 7.62939453125e-05
+        },
+        "new_destination": {
+          "delta": 0.02,
+          "answers": 150,
+          "ci_items": [
+            -0.02,
+            0.06
+          ],
+          "ci_families": [
+            -0.050955414012738856,
+            0.10596277342966082
+          ],
+          "items_better": 7,
+          "items_worse": 4,
+          "sign_p": 0.548828125
+        },
+        "pressure": {
+          "delta": 0.05333333333333334,
+          "answers": 150,
+          "ci_items": [
+            0.013333333333333334,
+            0.09333333333333334
+          ],
+          "ci_families": [
+            0.0,
+            0.13740696564885493
+          ],
+          "items_better": 9,
+          "items_worse": 1,
+          "sign_p": 0.021484375
+        },
+        "suspicion": {
+          "delta": 0.22666666666666666,
+          "answers": 150,
+          "ci_items": [
+            0.14,
+            0.31333333333333335
+          ],
+          "ci_families": [
+            0.053761636717904314,
+            0.43903008889901973
+          ],
+          "items_better": 44,
+          "items_worse": 10,
+          "sign_p": 3.385685953372075e-06
+        }
+      },
+      "binary_suspicion": {
+        "delta": -0.06,
+        "answers": 150,
+        "ci_items": [
+          -0.12666666666666668,
+          0.006666666666666667
+        ],
+        "ci_families": [
+          -0.2,
+          0.06428675856307434
+        ],
+        "items_better": 9,
+        "items_worse": 18,
+        "sign_p": 0.12207812070846558
+      },
+      "binary_suspicion_mass": {
+        "delta": -0.06,
+        "answers": 150,
+        "ci_items": [
+          -0.14,
+          0.013333333333333334
+        ],
+        "ci_families": [
+          -0.20689655172413793,
+          0.0844178708615328
+        ],
+        "items_better": 12,
+        "items_worse": 21,
+        "sign_p": 0.16275565745308995
+      },
+      "auroc": {
+        "delta": -0.041790453555159424,
+        "ci_items": [
+          -0.0775517383245115,
+          -0.013664507387113202
+        ],
+        "ci_families": [
+          -0.16432316267702846,
+          0.007246392765207927
+        ]
+      },
+      "cleared_0": {
+        "delta": 0.0392156862745098,
+        "ci_items": [
+          -0.4,
+          0.35294117647058826
+        ],
+        "ci_families": [
+          -0.6716629464285714,
+          0.41304347826086957
+        ]
+      },
+      "cleared_1": {
+        "delta": 0.21568627450980393,
+        "ci_items": [
+          -0.4600384615384615,
+          0.4081864564007418
+        ],
+        "ci_families": [
+          -0.6236805555555555,
+          0.5
+        ]
+      }
+    },
+    "claude-haiku-4.5 (agent)": {
+      "all": {
+        "delta": 0.055,
+        "answers": 600,
+        "ci_items": [
+          0.023333333333333334,
+          0.08833333333333333
+        ],
+        "ci_families": [
+          0.00531774916013438,
+          0.12420343137254873
+        ],
+        "items_better": 33,
+        "items_worse": 13,
+        "sign_p": 0.004533861582189047
+      },
+      "without_conventions": {
+        "delta": 0.03423423423423423,
+        "answers": 555,
+        "ci_items": [
+          0.003662836249673544,
+          0.06569343065693431
+        ],
+        "ci_families": [
+          -0.011284857149253683,
+          0.09544827421207089
+        ],
+        "items_better": 22,
+        "items_worse": 13,
+        "sign_p": 0.17546524899080396
+      },
+      "per_question": {
+        "request_type": {
+          "delta": 0.06,
+          "answers": 150,
+          "ci_items": [
+            0.02,
+            0.10666666666666667
+          ],
+          "ci_families": [
+            0.0,
+            0.15
+          ],
+          "items_better": 10,
+          "items_worse": 1,
+          "sign_p": 0.01171875
+        },
+        "new_destination": {
+          "delta": 0.03333333333333333,
+          "answers": 150,
+          "ci_items": [
+            0.0,
+            0.06666666666666667
+          ],
+          "ci_families": [
+            -0.005681818181818182,
+            0.0967741935483871
+          ],
+          "items_better": 6,
+          "items_worse": 1,
+          "sign_p": 0.125
+        },
+        "pressure": {
+          "delta": 0.02666666666666667,
+          "answers": 150,
+          "ci_items": [
+            -0.006666666666666667,
+            0.06666666666666667
+          ],
+          "ci_families": [
+            -0.02631578947368421,
+            0.09581043392666719
+          ],
+          "items_better": 6,
+          "items_worse": 2,
+          "sign_p": 0.2890625
+        },
+        "suspicion": {
+          "delta": 0.1,
+          "answers": 150,
+          "ci_items": [
+            0.02,
+            0.18
+          ],
+          "ci_families": [
+            -0.028368794326241134,
+            0.2446080897519746
+          ],
+          "items_better": 26,
+          "items_worse": 11,
+          "sign_p": 0.020073851919732988
+        }
+      },
+      "binary_suspicion": {
+        "delta": -0.02666666666666667,
+        "answers": 150,
+        "ci_items": [
+          -0.1,
+          0.04666666666666667
+        ],
+        "ci_families": [
+          -0.1718814036885246,
+          0.11333687943262406
+        ],
+        "items_better": 13,
+        "items_worse": 17,
+        "sign_p": 0.584664711728692
+      },
+      "binary_suspicion_mass": {
+        "delta": -0.013333333333333334,
+        "answers": 150,
+        "ci_items": [
+          -0.09333333333333334,
+          0.06016666666666424
+        ],
+        "ci_families": [
+          -0.16666666666666666,
+          0.1461585365853658
+        ],
+        "items_better": 16,
+        "items_worse": 18,
+        "sign_p": 0.8641662404406816
+      },
+      "auroc": {
+        "delta": 0.01158645276292336,
+        "ci_items": [
+          -0.032401887254901944,
+          0.056310555922362684
+        ],
+        "ci_families": [
+          -0.11032995185517376,
+          0.10750603467193325
+        ]
+      },
+      "cleared_0": {
+        "delta": 0.23529411764705882,
+        "ci_items": [
+          0.09803921568627451,
+          0.5531914893617021
+        ],
+        "ci_families": [
+          -0.1844230769230769,
+          0.6307692307692307
+        ]
+      },
+      "cleared_1": {
+        "delta": 0.4117647058823529,
+        "ci_items": [
+          0.09433962264150944,
+          0.6041666666666666
+        ],
+        "ci_families": [
+          -0.21428571428571427,
+          0.6747238372093022
+        ]
+      }
+    },
+    "claude-sonnet-5 (agent)": {
+      "all": {
+        "delta": 0.01,
+        "answers": 600,
+        "ci_items": [
+          -0.018333333333333333,
+          0.041666666666666664
+        ],
+        "ci_families": [
+          -0.043940909090909086,
+          0.0907258064516129
+        ],
+        "items_better": 20,
+        "items_worse": 24,
+        "sign_p": 0.651587827208914
+      },
+      "without_conventions": {
+        "delta": -0.0018018018018018018,
+        "answers": 555,
+        "ci_items": [
+          -0.023743597131514898,
+          0.02033271719038817
+        ],
+        "ci_families": [
+          -0.04099909789834696,
+          0.04578421706465796
+        ],
+        "items_better": 19,
+        "items_worse": 20,
+        "sign_p": 1.0
+      },
+      "per_question": {
+        "request_type": {
+          "delta": 0.08,
+          "answers": 150,
+          "ci_items": [
+            0.02,
+            0.14
+          ],
+          "ci_families": [
+            -0.04717299847016828,
+            0.2517495094833224
+          ],
+          "items_better": 17,
+          "items_worse": 5,
+          "sign_p": 0.01690053939819336
+        },
+        "new_destination": {
+          "delta": -0.03333333333333333,
+          "answers": 150,
+          "ci_items": [
+            -0.06666666666666667,
+            -0.006666666666666667
+          ],
+          "ci_families": [
+            -0.10638297872340426,
+            0.0
+          ],
+          "items_better": 0,
+          "items_worse": 5,
+          "sign_p": 0.0625
+        },
+        "pressure": {
+          "delta": 0.03333333333333333,
+          "answers": 150,
+          "ci_items": [
+            0.0,
+            0.07333333333333333
+          ],
+          "ci_families": [
+            -0.014708605664488015,
+            0.11215829439252324
+          ],
+          "items_better": 6,
+          "items_worse": 1,
+          "sign_p": 0.125
+        },
+        "suspicion": {
+          "delta": -0.04,
+          "answers": 150,
+          "ci_items": [
+            -0.11333333333333333,
+            0.03333333333333333
+          ],
+          "ci_families": [
+            -0.1746087246087246,
+            0.1092436974789916
+          ],
+          "items_better": 14,
+          "items_worse": 20,
+          "sign_p": 0.39152830513194203
+        }
+      },
+      "binary_suspicion": {
+        "delta": -0.16666666666666666,
+        "answers": 150,
+        "ci_items": [
+          -0.22666666666666666,
+          -0.11333333333333333
+        ],
+        "ci_families": [
+          -0.31746031746031744,
+          -0.06470588235294118
+        ],
+        "items_better": 0,
+        "items_worse": 25,
+        "sign_p": 5.960464477539063e-08
+      },
+      "binary_suspicion_mass": {
+        "delta": -0.16666666666666666,
+        "answers": 150,
+        "ci_items": [
+          -0.22666666666666666,
+          -0.10666666666666667
+        ],
+        "ci_families": [
+          -0.3119284403669725,
+          -0.06493330993330995
+        ],
+        "items_better": 0,
+        "items_worse": 25,
+        "sign_p": 5.960464477539063e-08
+      },
+      "auroc": {
+        "delta": -0.05624876213111507,
+        "ci_items": [
+          -0.0936759844919966,
+          -0.027360589981301673
+        ],
+        "ci_families": [
+          -0.19483294274916244,
+          -0.005078546078546107
+        ]
+      },
+      "cleared_0": {
+        "delta": -0.5686274509803921,
+        "ci_items": [
+          -0.6923076923076923,
+          -0.2553191489361702
+        ],
+        "ci_families": [
+          -1.0,
+          -0.09764808362369344
+        ]
+      },
+      "cleared_1": {
+        "delta": -0.39215686274509803,
+        "ci_items": [
+          -0.6607142857142857,
+          -0.19642857142857142
+        ],
+        "ci_families": [
+          -0.95,
+          -0.06934643143544536
+        ]
+      }
+    },
+    "claude-opus-5.5 (agent)": {
+      "all": {
+        "delta": -0.035,
+        "answers": 600,
+        "ci_items": [
+          -0.058333333333333334,
+          -0.01
+        ],
+        "ci_families": [
+          -0.08333333333333333,
+          0.01571478521478521
+        ],
+        "items_better": 10,
+        "items_worse": 32,
+        "sign_p": 0.0009406740282429382
+      },
+      "without_conventions": {
+        "delta": -0.043243243243243246,
+        "answers": 555,
+        "ci_items": [
+          -0.06338091957542355,
+          -0.023508137432188065
+        ],
+        "ci_families": [
+          -0.08565321156487539,
+          -0.010581544824502577
+        ],
+        "items_better": 4,
+        "items_worse": 26,
+        "sign_p": 5.947612226009369e-05
+      },
+      "per_question": {
+        "request_type": {
+          "delta": -0.04666666666666667,
+          "answers": 150,
+          "ci_items": [
+            -0.08,
+            -0.013333333333333334
+          ],
+          "ci_families": [
+            -0.11851851851851852,
+            0.0
+          ],
+          "items_better": 0,
+          "items_worse": 7,
+          "sign_p": 0.015625
+        },
+        "new_destination": {
+          "delta": -0.03333333333333333,
+          "answers": 150,
+          "ci_items": [
+            -0.06666666666666667,
+            -0.006666666666666667
+          ],
+          "ci_families": [
+            -0.10638297872340426,
+            0.0
+          ],
+          "items_better": 0,
+          "items_worse": 5,
+          "sign_p": 0.0625
+        },
+        "pressure": {
+          "delta": 0.03333333333333333,
+          "answers": 150,
+          "ci_items": [
+            0.0,
+            0.07333333333333333
+          ],
+          "ci_families": [
+            -0.014708605664488015,
+            0.11215829439252324
+          ],
+          "items_better": 6,
+          "items_worse": 1,
+          "sign_p": 0.125
+        },
+        "suspicion": {
+          "delta": -0.09333333333333334,
+          "answers": 150,
+          "ci_items": [
+            -0.16666666666666666,
+            -0.02
+          ],
+          "ci_families": [
+            -0.23200645161290323,
+            0.03597122302158273
+          ],
+          "items_better": 9,
+          "items_worse": 23,
+          "sign_p": 0.020061607006937265
+        }
+      },
+      "binary_suspicion": {
+        "delta": -0.16666666666666666,
+        "answers": 150,
+        "ci_items": [
+          -0.22666666666666666,
+          -0.11333333333333333
+        ],
+        "ci_families": [
+          -0.31746031746031744,
+          -0.06470588235294118
+        ],
+        "items_better": 0,
+        "items_worse": 25,
+        "sign_p": 5.960464477539063e-08
+      },
+      "binary_suspicion_mass": {
+        "delta": -0.16666666666666666,
+        "answers": 150,
+        "ci_items": [
+          -0.22666666666666666,
+          -0.10666666666666667
+        ],
+        "ci_families": [
+          -0.3119284403669725,
+          -0.06493330993330995
+        ],
+        "items_better": 0,
+        "items_worse": 25,
+        "sign_p": 5.960464477539063e-08
+      },
+      "auroc": {
+        "delta": -0.05624876213111507,
+        "ci_items": [
+          -0.0936759844919966,
+          -0.027360589981301673
+        ],
+        "ci_families": [
+          -0.19483294274916244,
+          -0.005078546078546107
+        ]
+      },
+      "cleared_0": {
+        "delta": -0.5686274509803921,
+        "ci_items": [
+          -0.6923076923076923,
+          -0.2553191489361702
+        ],
+        "ci_families": [
+          -1.0,
+          -0.09764808362369344
+        ]
+      },
+      "cleared_1": {
+        "delta": -0.39215686274509803,
+        "ci_items": [
+          -0.6607142857142857,
+          -0.19642857142857142
+        ],
+        "ci_families": [
+          -0.95,
+          -0.06934643143544536
+        ]
+      }
+    },
+    "claude-fable-5.1 (agent)": {
+      "all": {
+        "delta": -0.03166666666666667,
+        "answers": 600,
+        "ci_items": [
+          -0.055,
+          -0.006666666666666667
+        ],
+        "ci_families": [
+          -0.0779006282409254,
+          0.0171453201970443
+        ],
+        "items_better": 9,
+        "items_worse": 29,
+        "sign_p": 0.0016580525261815637
+      },
+      "without_conventions": {
+        "delta": -0.03783783783783784,
+        "answers": 555,
+        "ci_items": [
+          -0.05755395683453238,
+          -0.018516810168101704
+        ],
+        "ci_families": [
+          -0.07777830487033523,
+          -0.008385130729265276
+        ],
+        "items_better": 4,
+        "items_worse": 23,
+        "sign_p": 0.000310748815536499
+      },
+      "per_question": {
+        "request_type": {
+          "delta": -0.04666666666666667,
+          "answers": 150,
+          "ci_items": [
+            -0.08,
+            -0.013333333333333334
+          ],
+          "ci_families": [
+            -0.11851851851851852,
+            0.0
+          ],
+          "items_better": 0,
+          "items_worse": 7,
+          "sign_p": 0.015625
+        },
+        "new_destination": {
+          "delta": -0.03333333333333333,
+          "answers": 150,
+          "ci_items": [
+            -0.06666666666666667,
+            -0.006666666666666667
+          ],
+          "ci_families": [
+            -0.10638297872340426,
+            0.0
+          ],
+          "items_better": 0,
+          "items_worse": 5,
+          "sign_p": 0.0625
+        },
+        "pressure": {
+          "delta": 0.03333333333333333,
+          "answers": 150,
+          "ci_items": [
+            0.0,
+            0.07333333333333333
+          ],
+          "ci_families": [
+            -0.014708605664488015,
+            0.11215829439252324
+          ],
+          "items_better": 6,
+          "items_worse": 1,
+          "sign_p": 0.125
+        },
+        "suspicion": {
+          "delta": -0.08,
+          "answers": 150,
+          "ci_items": [
+            -0.14666666666666667,
+            -0.013333333333333334
+          ],
+          "ci_families": [
+            -0.20340712556208923,
+            0.03788118527042574
+          ],
+          "items_better": 8,
+          "items_worse": 20,
+          "sign_p": 0.03569813817739487
+        }
+      },
+      "binary_suspicion": {
+        "delta": -0.16666666666666666,
+        "answers": 150,
+        "ci_items": [
+          -0.22666666666666666,
+          -0.11333333333333333
+        ],
+        "ci_families": [
+          -0.31746031746031744,
+          -0.06470588235294118
+        ],
+        "items_better": 0,
+        "items_worse": 25,
+        "sign_p": 5.960464477539063e-08
+      },
+      "binary_suspicion_mass": {
+        "delta": -0.16666666666666666,
+        "answers": 150,
+        "ci_items": [
+          -0.22666666666666666,
+          -0.10666666666666667
+        ],
+        "ci_families": [
+          -0.3119284403669725,
+          -0.06493330993330995
+        ],
+        "items_better": 0,
+        "items_worse": 25,
+        "sign_p": 5.960464477539063e-08
+      },
+      "auroc": {
+        "delta": -0.05624876213111507,
+        "ci_items": [
+          -0.0936759844919966,
+          -0.027360589981301673
+        ],
+        "ci_families": [
+          -0.19483294274916244,
+          -0.005078546078546107
+        ]
+      },
+      "cleared_0": {
+        "delta": -0.5686274509803921,
+        "ci_items": [
+          -0.6923076923076923,
+          -0.2553191489361702
+        ],
+        "ci_families": [
+          -1.0,
+          -0.09764808362369344
+        ]
+      },
+      "cleared_1": {
+        "delta": -0.39215686274509803,
+        "ci_items": [
+          -0.6607142857142857,
+          -0.19642857142857142
+        ],
+        "ci_families": [
+          -0.95,
+          -0.06934643143544536
+        ]
+      }
+    }
+  },
+  "vs_ours4": {
+    "claude-haiku-4.5 (agent)": {
+      "delta": 0.075,
+      "answers": 600,
+      "ci_items": [
+        0.045,
+        0.10833333333333334
+      ],
+      "ci_families": [
+        0.023667200854700855,
+        0.14728682170542637
+      ],
+      "items_better": 40,
+      "items_worse": 9,
+      "sign_p": 9.263546409954415e-06
+    },
+    "claude-sonnet-5 (agent)": {
+      "delta": 0.03,
+      "answers": 600,
+      "ci_items": [
+        -0.0016666666666666668,
+        0.065
+      ],
+      "ci_families": [
+        -0.03685963114754098,
+        0.12755190007037295
+      ],
+      "items_better": 24,
+      "items_worse": 20,
+      "sign_p": 0.651587827208914
+    },
+    "claude-opus-5.5 (agent)": {
+      "delta": -0.015,
+      "answers": 600,
+      "ci_items": [
+        -0.041666666666666664,
+        0.013333333333333334
+      ],
+      "ci_families": [
+        -0.07342684659090909,
+        0.053451354679802915
+      ],
+      "items_better": 17,
+      "items_worse": 30,
+      "sign_p": 0.07894069368148848
+    },
+    "claude-fable-5.1 (agent)": {
+      "delta": -0.011666666666666667,
+      "answers": 600,
+      "ci_items": [
+        -0.03833333333333333,
+        0.016666666666666666
+      ],
+      "ci_families": [
+        -0.06651458649594086,
+        0.054140790870488315
+      ],
+      "items_better": 16,
+      "items_worse": 27,
+      "sign_p": 0.12628947438543037
+    }
+  },
+  "external": {
+    "kev-0.8b (base)": {
+      "injected": 225,
+      "injected_cleared": 0,
+      "clean": 4,
+      "design": {
+        "goal": 9,
+        "attack": 5,
+        "carrier": 5
+      },
+      "cleared_off_goal": 0,
+      "in_scope": {
+        "n": 180,
+        "new_dest": 63,
+        "susp2": 5
+      },
+      "redirect": {
+        "n": 160,
+        "new_dest": 59,
+        "susp2": 5
+      },
+      "pfn": {
+        "n": 500,
+        "new_dest": 0,
+        "susp2": 1
+      },
+      "clean_bill_cleared": false
+    },
+    "kev-4b (base)": {
+      "injected": 225,
+      "injected_cleared": 0,
+      "clean": 4,
+      "design": {
+        "goal": 9,
+        "attack": 5,
+        "carrier": 5
+      },
+      "cleared_off_goal": 0,
+      "in_scope": {
+        "n": 180,
+        "new_dest": 152,
+        "susp2": 157
+      },
+      "redirect": {
+        "n": 160,
+        "new_dest": 152,
+        "susp2": 152
+      },
+      "pfn": {
+        "n": 500,
+        "new_dest": 0,
+        "susp2": 0
+      },
+      "clean_bill_cleared": false
+    },
+    "payee-0.8b (ours)": {
+      "injected": 225,
+      "injected_cleared": 5,
+      "clean": 4,
+      "design": {
+        "goal": 9,
+        "attack": 5,
+        "carrier": 5
+      },
+      "cleared_off_goal": 4,
+      "in_scope": {
+        "n": 180,
+        "new_dest": 140,
+        "susp2": 161
+      },
+      "redirect": {
+        "n": 160,
+        "new_dest": 138,
+        "susp2": 152
+      },
+      "pfn": {
+        "n": 500,
+        "new_dest": 0,
+        "susp2": 8
+      },
+      "clean_bill_cleared": true
+    },
+    "payee-4b (ours, 1 epoch)": {
+      "injected": 225,
+      "injected_cleared": 0,
+      "clean": 4,
+      "design": {
+        "goal": 9,
+        "attack": 5,
+        "carrier": 5
+      },
+      "cleared_off_goal": 0,
+      "in_scope": {
+        "n": 180,
+        "new_dest": 161,
+        "susp2": 171
+      },
+      "redirect": {
+        "n": 160,
+        "new_dest": 160,
+        "susp2": 158
+      },
+      "pfn": {
+        "n": 500,
+        "new_dest": 1,
+        "susp2": 1
+      },
+      "clean_bill_cleared": false
+    }
+  },
+  "agent_validity": {
+    "claude-haiku-4.5 (agent)": {
+      "n": 150,
+      "distinct": 111,
+      "most_common": 13
+    },
+    "claude-sonnet-5 (agent)": {
+      "n": 150,
+      "distinct": 77,
+      "most_common": 12
+    },
+    "claude-opus-5.5 (agent)": {
+      "n": 150,
+      "distinct": 77,
+      "most_common": 12
+    },
+    "claude-fable-5.1 (agent)": {
+      "n": 150,
+      "distinct": 72,
+      "most_common": 11
+    },
+    "discarded claude-haiku-4.5 run 1": {
+      "n": 150,
+      "distinct": 21,
+      "most_common": 83
+    }
+  }
+}
