@@ -1,6 +1,6 @@
 import type { Analysis, PayMode } from '../../lib/api/agentTypes'
 import { Button } from '../../ui/components/Button'
-import { TokenText } from '../../ui/components/TokenText'
+import { AgentProse } from './AgentProse'
 import type { Approval } from './approval/useApproval'
 import { attackDemoFits } from './holds'
 import type { PayState } from './useAgentConsole'
@@ -96,6 +96,31 @@ interface DecisionBarProps {
   readonly controls?: PayControls
 }
 
+/**
+ * What the decision is about: the amount and the registered company it would go to. The name is the registry's,
+ * never the document's claim, and a payee that isn't active shows only its T-number.
+ */
+function Subject({ analysis }: { readonly analysis: Analysis }) {
+  const amount = analysis.extracted.amount?.display ?? null
+  const payee = analysis.kernel.payee
+  const tNumber = payee?.tNumber || analysis.extracted.tNumber
+  const name = payee?.legalName ?? null
+  if (!amount && !tNumber) return null
+  return (
+    <p className="decision__subject">
+      {amount ? <span className="num">{amount}</span> : null}
+      {amount && tNumber ? ' to ' : null}
+      {name ? (
+        <span className="jp" lang="ja">
+          {name}
+        </span>
+      ) : tNumber ? (
+        <span className="mono">{tNumber}</span>
+      ) : null}
+    </p>
+  )
+}
+
 /** The kernel's decision, the explanation of it, and (live) what can be done about it. */
 export function DecisionBar({ analysis, controls }: DecisionBarProps) {
   const hold = analysis.verdict.decision === 'hold'
@@ -110,8 +135,9 @@ export function DecisionBar({ analysis, controls }: DecisionBarProps) {
         </p>
       </div>
       <div className="decision__why">
+        <Subject analysis={analysis} />
         <p className="decision__text">
-          <TokenText text={analysis.explanation.text} />
+          <AgentProse text={analysis.explanation.text} />
         </p>
         {analysis.explanation.source === 'llm' ? (
           <p className="decision__source">

@@ -1,7 +1,7 @@
 import type { Kernel } from '../../../lib/api/agentTypes'
 import { formatJst, shortAddress } from '../../../lib/chain/format'
 import { Badge } from '../../../ui/components/Badge'
-import { TokenText } from '../../../ui/components/TokenText'
+import { AgentProse } from '../AgentProse'
 import { Column } from './Column'
 import { FlagList } from './FlagList'
 
@@ -64,7 +64,7 @@ export function KernelColumn({ kernel }: { readonly kernel: Kernel }) {
               </span>
               <span className="sr-only">{check.ok ? 'Passed: ' : 'Failed: '}</span>
               <span className="checks__msg">
-                <TokenText text={check.message} />
+                <AgentProse text={check.message} />
                 {!check.ok && check.revert ? (
                   <span className="checks__revert"> chain reverts {check.revert}</span>
                 ) : null}

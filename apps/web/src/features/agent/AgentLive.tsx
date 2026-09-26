@@ -3,7 +3,7 @@ import { ErrorNotice } from '../../ui/components/Notice'
 import { Results } from './AgentResults'
 import { InvoiceInput } from './InvoiceInput'
 import { useAgentConsole } from './useAgentConsole'
-import { VaultStrip } from './VaultStrip'
+import { VaultPanel } from './VaultPanel'
 import './agent.css'
 
 function AgentOffline() {
@@ -11,14 +11,23 @@ function AgentOffline() {
   return <ErrorNotice error={{ ...offline, detail: `${offline.detail} The examples below are built in until then.` }} />
 }
 
-/** The live console: only mounted when the agent can be used from this page. */
+/**
+ * The live console, laid out as a dashboard: the document to check beside the vault it would be paid from, then
+ * the result. Only mounted when the agent can be used from this page.
+ */
 export function AgentLive() {
   const agent = useAgentConsole()
   return (
     <>
-      <VaultStrip version={agent.payments} />
-      {agent.examples.offline ? <AgentOffline /> : null}
-      <InvoiceInput agent={agent} />
+      <div className="agent-board">
+        <div className="agent-board__main">
+          {agent.examples.offline ? <AgentOffline /> : null}
+          <InvoiceInput agent={agent} />
+        </div>
+        <aside className="agent-board__side" aria-label="The vault the agent pays from">
+          <VaultPanel version={agent.payments} />
+        </aside>
+      </div>
       <Results agent={agent} />
     </>
   )

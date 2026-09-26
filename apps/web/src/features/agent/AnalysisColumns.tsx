@@ -14,7 +14,10 @@ export function AnalysisColumns({ analysis }: { readonly analysis: Analysis }) {
       <ExtractionColumn extracted={analysis.extracted} />
       <TriageColumn triage={analysis.triage} />
       <KernelColumn kernel={analysis.kernel} />
-      <ScreeningColumn screening={analysis.screening} />
+      <ScreeningColumn
+        screening={analysis.screening}
+        holds={analysis.verdict.reasons.some((reason) => reason.code === 'screening_unavailable')}
+      />
       <BeliefColumn proposal={analysis.proposal} />
     </div>
   )

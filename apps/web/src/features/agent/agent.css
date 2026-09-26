@@ -1,7 +1,12 @@
 /* The AP console is shown on a projector: bigger type, stronger contrast, one clear action at a time. */
+/* The console as a dashboard: the heading and the document to check on the left, the vault it spends from in a
+   column beside both, and the result with its reasoning across the page below. The wrappers in between are
+   display: contents, so all of these share this one grid. */
 .agent {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
   gap: 16px;
+  align-items: start;
 }
 
 .agent__head {
@@ -9,9 +14,9 @@
   gap: 16px;
 }
 
+/* The heading plate fills its column, so its edges line up with the document window below it. */
 .agent__head-text {
-  width: fit-content;
-  max-width: 100%;
+  min-width: 0;
 }
 
 .agent__title {
@@ -28,45 +33,56 @@
   font-size: var(--text-lg);
 }
 
-.vault {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 24px;
-  width: fit-content;
-  max-width: 100%;
-  min-height: var(--control-md);
-  padding: 8px 24px;
-  border-radius: var(--radius-lg);
-  background: var(--lg-window);
-  -webkit-backdrop-filter: var(--lg-blur);
-  backdrop-filter: var(--lg-blur);
-  box-shadow: var(--lg-shadow-control);
-  font-size: var(--text-md);
+.agent-board,
+.agent__hosted {
+  display: contents;
 }
 
-.vault__item {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 8px;
+.agent__head {
+  grid-column: 1;
+  grid-row: 1;
 }
 
-.vault__label {
-  color: var(--ink-soft);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-strong);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+.agent-board__main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-column: 1;
+  grid-row: 2;
+  gap: 16px;
+  min-width: 0;
 }
 
-.vault__to {
-  white-space: nowrap;
+.agent-board__side {
+  grid-column: 2;
+  grid-row: 1 / span 2;
 }
 
-.vault__paused {
-  color: var(--seal-deep);
-  font-weight: var(--weight-strong);
+/* Everything after the board (progress, the result, the pipeline, the recorded run) spans the page. */
+.agent > :not(.agent__head, .agent-board, .agent__hosted),
+.agent__hosted > :not(.agent-board) {
+  grid-column: 1 / -1;
+}
+
+/* Below 1000 px one column: the heading, the vault's figures in a row, then the document. */
+@media (max-width: 999px) {
+  .agent {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .agent__head,
+  .agent-board__main,
+  .agent-board__side {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  .agent__head {
+    order: -2;
+  }
+
+  .agent-board__side {
+    order: -1;
+  }
 }
 
 .agent__working {
@@ -105,6 +121,14 @@
   text-transform: uppercase;
 }
 
+.decision--hold {
+  background: radial-gradient(120% 160% at 0% 0%, rgba(224, 69, 43, 0.14), transparent 55%), var(--lg-window-dense);
+}
+
+.decision--pay {
+  background: radial-gradient(120% 160% at 0% 0%, rgba(63, 157, 120, 0.16), transparent 55%), var(--lg-window-dense);
+}
+
 .decision--hold .decision__word {
   color: var(--seal);
 }
@@ -119,9 +143,15 @@
   font-size: var(--text-md);
 }
 
-.decision__text {
+.decision__subject {
+  margin-bottom: 4px;
   font-size: var(--text-lg);
-  line-height: 1.5;
+  font-weight: var(--weight-strong);
+}
+
+.decision__text {
+  font-size: var(--text-md);
+  line-height: 1.55;
   overflow-wrap: break-word;
 }
 
@@ -227,25 +257,6 @@
   }
 }
 
-.vault__ens--ok {
-  color: var(--jade-deep);
-  font-weight: var(--weight-strong);
-}
-
-.vault__ens--muted {
-  color: var(--ink-muted);
-}
-
-.vault__ens--bad {
-  color: var(--seal-deep);
-  font-weight: var(--weight-strong);
-}
-
-.vault__pending {
-  color: var(--amber-deep);
-  font-weight: var(--weight-strong);
-}
-
 .token {
   display: flex;
   flex-wrap: wrap;
@@ -257,11 +268,6 @@
 .token .field {
   flex: 1;
   min-width: 260px;
-}
-
-.agent__hosted {
-  display: grid;
-  gap: 16px;
 }
 
 .recorded__doc {

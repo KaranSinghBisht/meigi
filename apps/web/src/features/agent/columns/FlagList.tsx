@@ -1,5 +1,5 @@
 import type { Severity } from '../../../lib/api/agentTypes'
-import { TokenText } from '../../../ui/components/TokenText'
+import { AgentProse } from '../AgentProse'
 import './columns.css'
 
 interface Item {
@@ -20,7 +20,7 @@ export function FlagList({ items, limit = 4 }: { readonly items: readonly Item[]
         <li key={`${item.code}-${index}`} className={`flags__item flags__item--${item.severity}`}>
           <span className="flags__sev">{item.severity === 'block' ? 'Blocks' : 'Note'}</span>
           <span className="flags__msg">
-            <TokenText text={item.message} />
+            <AgentProse text={item.message} />
           </span>
           {item.evidence ? <q className="flags__evidence">{item.evidence}</q> : null}
         </li>

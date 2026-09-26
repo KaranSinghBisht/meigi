@@ -1,0 +1,132 @@
+/* The AgentVault panel: a sidebar-like window of figures, the vendor it may pay, and its ENS name. */
+.vault-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.vault-panel__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 20px 24px 16px;
+}
+
+.vault-panel__address {
+  margin-left: auto;
+}
+
+.vault-panel__title {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-strong);
+  letter-spacing: -0.015em;
+}
+
+.vault-panel__note {
+  padding: 0 24px 16px;
+}
+
+/* Three figures: the balance across the top, the two limits side by side under it; in one row when the panel spans
+   the page. Each figure scales with its own tile, so a long number never runs into the next one. */
+.vault-tiles {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  box-shadow: 0 -1px 0 var(--lg-hairline);
+}
+
+.vault-tile {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-width: 0;
+  padding: 16px 20px;
+  container-type: inline-size;
+}
+
+.vault-tile--lead {
+  grid-column: 1 / -1;
+  padding: 16px 24px;
+}
+
+.vault-tile__label,
+.vault-panel__label {
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-strong);
+}
+
+.vault-tile__value {
+  font-size: clamp(20px, 17cqi, 32px);
+  font-weight: var(--weight-strong);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.vault-tile--lead .vault-tile__value {
+  font-size: clamp(28px, 15cqi, 48px);
+}
+
+.vault-tile__unit {
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+}
+
+.vault-panel__section,
+.vault-panel__foot {
+  display: grid;
+  gap: 4px;
+  padding: 16px 24px;
+  box-shadow: 0 -1px 0 var(--lg-hairline);
+}
+
+.vault-panel__foot {
+  display: block;
+  padding-bottom: 20px;
+  font-size: var(--text-sm);
+}
+
+.vault-vendor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+}
+
+.vault-vendor__to {
+  white-space: nowrap;
+}
+
+.vault-vendor__pending {
+  color: var(--amber-deep);
+  font-weight: var(--weight-strong);
+}
+
+.vault-panel__ens--ok {
+  color: var(--jade-deep);
+  font-weight: var(--weight-strong);
+}
+
+.vault-panel__ens--muted {
+  color: var(--ink-muted);
+}
+
+.vault-panel__ens--bad {
+  color: var(--seal-deep);
+  font-weight: var(--weight-strong);
+}
+
+@media (min-width: 641px) and (max-width: 999px) {
+  .vault-tiles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .vault-tile--lead {
+    grid-column: auto;
+  }
+
+  /* In one row the three figures share one size. */
+  .vault-tile--lead .vault-tile__value {
+    font-size: clamp(20px, 17cqi, 32px);
+  }
+}

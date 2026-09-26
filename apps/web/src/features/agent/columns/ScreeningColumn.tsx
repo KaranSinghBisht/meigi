@@ -3,11 +3,18 @@ import { shortAddress } from '../../../lib/chain/format'
 import { Badge } from '../../../ui/components/Badge'
 import { Column } from './Column'
 
+interface ScreeningColumnProps {
+  readonly screening: Screening
+  /** The verdict holds because screening couldn't answer (screening_unavailable). */
+  readonly holds: boolean
+}
+
 /**
  * Without a key, screening is advisory and simply off. With one, an address that couldn't be screened holds the
- * payment (a verified human may release it), so "unavailable" reads as a hold, not a shrug.
+ * payment (a verified human may release it). Whether it held is the verdict's call: an older agent (and the
+ * recorded run) also said "unavailable" for a missing key, which held nothing.
  */
-export function ScreeningColumn({ screening }: { readonly screening: Screening }) {
+export function ScreeningColumn({ screening, holds }: ScreeningColumnProps) {
   if (screening.status === 'not_configured') {
     return (
       <Column step={4} title="Screening" tag="Intercepta" tone="muted">
@@ -17,10 +24,14 @@ export function ScreeningColumn({ screening }: { readonly screening: Screening }
     )
   }
   if (screening.status === 'unavailable') {
+    const status = holds ? <Badge tone="disputed">Hold</Badge> : undefined
     return (
-      <Column step={4} title="Screening" tag="Intercepta" tone="hold" status={<Badge tone="disputed">Hold</Badge>}>
+      <Column step={4} title="Screening" tag="Intercepta" tone={holds ? 'hold' : 'muted'} status={status}>
         <p className="col__unavailable">Screening unavailable.</p>
-        <p className="col__note">{screening.reason}. Nothing is auto-cleared until it answers.</p>
+        <p className="col__note">
+          {screening.reason}
+          {holds ? '. Nothing is auto-cleared until it answers.' : ''}
+        </p>
       </Column>
     )
   }

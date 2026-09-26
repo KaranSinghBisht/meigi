@@ -38,9 +38,9 @@ export function Results({ agent }: { readonly agent: AgentConsole }) {
   }
   return (
     <div ref={ref} className="agent__results">
-      <h2 className="sr-only">What each stage found</h2>
-      <AnalysisColumns analysis={analysis.analysis} />
       <LiveDecision key={analysis.analysis.id} agent={agent} analysis={analysis.analysis} />
+      <h2 className="sr-only">How each stage decided</h2>
+      <AnalysisColumns analysis={analysis.analysis} />
     </div>
   )
 }

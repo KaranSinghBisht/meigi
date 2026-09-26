@@ -4,7 +4,7 @@ import { shortAddress } from '../../lib/chain/format'
 import { prefersReducedMotion } from '../../lib/hooks/motion'
 import { HankoMark } from '../../ui/brand/HankoMark'
 import { TxLink } from '../../ui/components/Address'
-import { TokenText } from '../../ui/components/TokenText'
+import { AgentProse } from './AgentProse'
 import { useSceneMood } from '../../ui/stage/useSceneMood'
 import './refusal.css'
 
@@ -54,7 +54,12 @@ function RefusalMeta({ outcome }: { readonly outcome: Reverted }) {
   return (
     <p className="refusal__meta">
       {how}
-      {explanation ? ` ${explanation}` : ''}
+      {explanation ? (
+        <>
+          {' '}
+          <AgentProse text={explanation} />
+        </>
+      ) : null}
     </p>
   )
 }
@@ -99,7 +104,7 @@ export function Refusal({ outcome, analysis, live = true }: RefusalProps) {
           <Mismatch outcome={outcome} analysis={analysis} />
         ) : (
           <p className="refusal__line">
-            <TokenText text={outcome.error.sentence} />
+            <AgentProse text={outcome.error.sentence} />
           </p>
         )}
         <RefusalMeta outcome={outcome} />
