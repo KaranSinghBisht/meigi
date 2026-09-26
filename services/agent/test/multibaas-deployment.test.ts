@@ -47,6 +47,13 @@ describe("the deployment to index", () => {
     expect(() => loadDeployment(dir, 6497)).toThrow("the latest broadcast has no receipts yet");
   });
 
+  it("takes a minimal deployment with no AgentVault (Mizuhiki Awaji: a registry and a router)", () => {
+    const { vault: _vault, resolver: _resolver, ...minimal } = AWAJI;
+    writeFileSync(join(dir, "deployments/6497.json"), JSON.stringify(minimal));
+    expect(loadDeployment(dir, 6497, 2387847)).toMatchObject({ registry: AWAJI.registry, router: AWAJI.router, startBlock: 2387847 });
+    expect(loadDeployment(dir, 6497, 2387847).vault).toBeUndefined();
+  });
+
   it("starts Sepolia at the v2 block, and names a chain with no deployment", () => {
     writeFileSync(join(dir, "deployments/11155111.json"), JSON.stringify({ ...AWAJI, chainId: 11155111 }));
     expect(loadDeployment(dir, 11155111).startBlock).toBe(V2_START_BLOCK);

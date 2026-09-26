@@ -14,7 +14,7 @@ const SEPOLIA = 11155111;
 const addresses = z.object({
   chainId: z.number().int(),
   registry: z.string(),
-  vault: z.string(),
+  vault: z.string().optional(), // a minimal deploy (e.g. Mizuhiki Awaji) may have no AgentVault
   router: z.string().optional(),
   token: z.string(),
 });
@@ -42,7 +42,7 @@ export function loadDeployment(contractsDir: string, chainId: number, fromBlock?
 /** The broadcast's first block, once it is confirmed to be the one that created these addresses. */
 export function broadcastStart(run: z.infer<typeof broadcast>, deployment: z.infer<typeof addresses>): number {
   const created = new Set(run.transactions.flatMap((t) => (t.transactionType === "CREATE" && t.contractAddress ? [t.contractAddress.toLowerCase()] : [])));
-  for (const at of [deployment.registry, deployment.vault]) {
+  for (const at of [deployment.registry, deployment.vault ?? deployment.registry]) {
     if (!created.has(at.toLowerCase())) throw new Error(`the latest broadcast didn't create ${at}: pass --from-block <deploy block>`);
   }
   const blocks = run.receipts.map((r) => Number(BigInt(r.blockNumber)));

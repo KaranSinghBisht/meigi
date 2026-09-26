@@ -13,7 +13,7 @@ import { CONTRACT_VERSION, CONTRACTS, QUERIES, REQUIRED_EVENTS, scopedQueries, X
 export interface Deployment {
   chainId: number;
   registry: string;
-  vault: string;
+  vault?: string; // a minimal deploy may have no AgentVault
   router?: string;
   token: string;
   startBlock: number; // where event indexing starts: the deployment's first block, or negative: that many blocks back
