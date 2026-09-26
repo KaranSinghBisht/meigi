@@ -6,7 +6,9 @@ from what actually happened building against the real sandbox and staging endpoi
 ## Best Use of IDKit (officer sessions, payout-change approvals)
 
 **Time to first success:** about 3 hours from reading the IDKit 4.0 docs to a verified session proof round-
-tripping through our verifier — most of it spent on the two friction points below, not on our own code.
+tripping through our verifier — the mechanism itself, against sandbox/staging, most of it spent on the two
+friction points below, not on our own code. IDKit sessions only worked against **production**, with a real
+phone, in the evening (see below).
 
 **Friction, in the order we hit it:**
 - **Session flows reject presets.** IDKit's own example for `createSession` uses a preset, but a session
@@ -83,7 +85,8 @@ then the wrong-length array). I stopped once I'd confirmed liveness and structur
 guessing a real proof's shape — I did not reach the specific `integrity_verification_failed` code team-lead saw
 earlier the same day (their probe was evidently well-formed enough to pass schema validation and fail a deeper
 semantic/cryptographic check instead; mine never got past schema validation). Both are genuine, structured
-rejections from the same live production endpoint — no real phone proof has passed there yet.
+rejections from the same live production endpoint — no real phone proof had passed there until the Camera-app
+route (above).
 
 **Missing docs:** nothing explains that on-chain verification of World ID **4.0** proofs (`WorldIDVerifier.sol` /
 `WorldIDSatellite`) is only deployed on **World Chain and Arc** today — the contracts-3.0 legacy page (which
@@ -112,9 +115,9 @@ separate:
   set by that same production launch script): whichever an officer happens to hold clears the bar, since Selfie
   Check is already the floor there, not a ceiling. That's a production-only addition, not a standing default: the
   verifier's own code default (`services/verifier/src/config.ts`) is narrower, `proof_of_human` only, which is
-  what staging and sandbox runs get unless overridden. **Confirmed:** Karan's officers, both tonight's abandoned
-  attempt and the final recorded run, enrolled with Orb (`officerId` `0x8b843464…fd8d90`, then `0xdcf809aa…118b6f`)
-  - real production `proof_of_human` proofs, no Selfie Check involved in either.
+  what staging and sandbox runs get unless overridden. **Confirmed:** tonight's enrollment rehearsals enrolled
+  with Orb (`officerId` `0x8b843464…fd8d90`, then `0xdcf809aa…118b6f`) - real production `proof_of_human` proofs,
+  no Selfie Check involved in either; the recorded registration run is pending.
 - An **N-of-M quorum**, where several independent identities must each be genuinely unique humans (not just
   genuinely the same session-holder each time), should require Orb — that's exactly the case Selfie Check's
   weaker Sybil-resistance isn't built for. Gating on Selfie Check's own `sybil_score` (a real field on its
