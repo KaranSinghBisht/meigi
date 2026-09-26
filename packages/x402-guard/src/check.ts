@@ -27,6 +27,12 @@ export interface GuardDeps {
   network: string;
   /** Optional counterparty screening (e.g. Intercepta). */
   screen?(address: Address): Promise<ScreenResult>;
+  /**
+   * Resolves an ENS name to an address, or null if it doesn't resolve. When provided, a merchant's declared
+   * `ens` (if any) is checked against the registry as an independent, additional view; omit this to skip ENS
+   * checking entirely (e.g. in tests, or callers that don't care), regardless of what a declaration contains.
+   */
+  resolveEns?(name: string): Promise<Address | null>;
 }
 
 export type GuardCode =
@@ -35,6 +41,8 @@ export type GuardCode =
   | "network_mismatch"
   | "payee_not_active"
   | "payto_mismatch"
+  | "ens_mismatch"
+  | "ens_unresolved"
   | "screened"
   | "screening_unavailable"
   | "unverified_over_limit";
@@ -61,8 +69,51 @@ export function parseDeclaration(declaration: unknown): string | null {
   return T_NUMBER.exec(tNumber.trim().toUpperCase())?.[1] ?? null;
 }
 
+function declaredEnsOf(declaration: unknown): string | undefined {
+  const ens = (declaration as Partial<MeigiPayeeDeclaration> | null)?.ens;
+  return typeof ens === "string" ? ens : undefined;
+}
+
 function short(address: string): string {
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
+}
+
+/** The ens name a declaration for `digits` must use: the same convention `meigiPayeeDeclaration()` emits. */
+function expectedEnsName(digits: string): string {
+  return `t${digits}.payee.eth`;
+}
+
+type EnsCheck = { ok: true } | { ok: false; code: "ens_mismatch" | "ens_unresolved"; reason: string };
+
+/**
+ * Only runs when `deps.resolveEns` is configured (see `GuardDeps`); a declaration with no `ens`, or a guard with
+ * no resolver, is unaffected either way. When it does run, it must agree with both the registry and `payTo`,
+ * not replace either: the declared name must be exactly this payee's own, and must resolve to the registered
+ * payout. Comparing against `payTo` too (not just `payout`) is what catches a compromised server that swapped
+ * `payTo` but can't touch the company's ENS name or its registry entry - `payto_mismatch` alone would also
+ * catch that, but wouldn't name the ens name, which a reader would want to see first for this kind of attack.
+ */
+async function checkEns(deps: GuardDeps, digits: string, declaredEns: string | undefined, payout: Address, payTo: Address): Promise<EnsCheck> {
+  if (!deps.resolveEns || declaredEns === undefined) return { ok: true };
+  const expected = expectedEnsName(digits);
+  if (declaredEns !== expected) {
+    return { ok: false, code: "ens_mismatch", reason: `declared ens "${declaredEns}" is not ${expected}` };
+  }
+  const resolved = await deps.resolveEns(expected);
+  if (!resolved) return { ok: false, code: "ens_unresolved", reason: `${expected} did not resolve to an address` };
+  const address = getAddress(resolved);
+  if (address !== payout) {
+    return { ok: false, code: "ens_mismatch", reason: `${expected} resolves to ${short(address)}, not the registered payout ${short(payout)}` };
+  }
+  // ens agrees with the registry; payTo is the odd one out (e.g. a compromised server edited its own response).
+  if (address !== payTo) {
+    return {
+      ok: false,
+      code: "ens_mismatch",
+      reason: `${expected} resolves to the registered payout ${short(address)}, but payTo asks for ${short(payTo)} instead`,
+    };
+  }
+  return { ok: true };
 }
 
 /** Decides whether a buyer may sign a payment to `payTo` for a merchant that declared `declaration`. */
@@ -89,7 +140,12 @@ export async function checkPayee(
     const state = payee.status === 2 ? "disputed (payments frozen)" : "not registered";
     return { ok: false, code: "payee_not_active", reason: `${tNumber} is ${state}`, screening };
   }
-  if (payTo !== getAddress(payee.payout)) {
+  const payout = getAddress(payee.payout);
+  // Checked before the plain payTo/payout comparison: a compromised server can swap payTo, but not the
+  // company's ENS name, so a declared ens names the actual problem instead of just "payTo doesn't match".
+  const ens = await checkEns(deps, digits, declaredEnsOf(declaration), payout, payTo);
+  if (!ens.ok) return { ok: false, code: ens.code, reason: ens.reason, screening };
+  if (payTo !== payout) {
     const reason = `payTo ${short(payTo)} is not ${payee.legalName} (${tNumber})'s registered payout ${short(payee.payout)}`;
     return { ok: false, code: "payto_mismatch", reason, screening };
   }

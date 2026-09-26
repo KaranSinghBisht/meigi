@@ -18,5 +18,6 @@ export {
   screenUndeclaredPayee,
   type GuardOptions,
 } from "./extension.js";
+export { ensResolver } from "./ens.js";
 export { interceptaScreen, type InterceptaOptions } from "./intercepta.js";
 export { registryReader } from "./registry.js";
