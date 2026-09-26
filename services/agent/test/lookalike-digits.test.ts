@@ -3,7 +3,7 @@ import { analyzeDocument } from "../src/analysis/analyze.js";
 import { payAnalysis } from "../src/analysis/pay.js";
 import { approvalRefusal } from "../src/approval/holds.js";
 import { extractInvoice } from "../src/extract/extract.js";
-import { fakeDeps, MEIGI_PAYOUT } from "./fakes.js";
+import { demo, fakeDeps, MEIGI_PAYOUT } from "./fakes.js";
 
 /** NFKC folds ¹ ① ₁ into ASCII digits, which then joined the amount: ¥13,200¹ read as ¥132,001 (review H1). */
 
@@ -22,6 +22,27 @@ describe("look-alike digits", () => {
     const extracted = extractInvoice(invoice(line));
     expect(extracted.amount?.value).toBe("13200");
     expect(extracted.flags).toContainEqual(expect.objectContaining({ code: "lookalike_digits", severity: "block", evidence: char }));
+  });
+
+  it.each([
+    ["¥13,200¹", "ご請求金額 ¥13,200¹"],
+    ["13,200①円", "ご請求金額 13,200①円"],
+    ["¹13,200", "ご請求金額 ¹13,200円"],
+    ["¥¹13,200", "ご請求金額 ¥¹13,200"],
+  ])("blocks %s: a look-alike digit touching a number", (_label, line) => {
+    expect(blocks(invoice(line))).toContain("lookalike_digits");
+  });
+
+  it.each(["① ", "①"])("pays an invoice whose line items are numbered with ①② (marker %j), and reads the amounts unchanged", async (marker) => {
+    const text = demo("01-routine-invoice.ja.txt")
+      .replace("クラウド会計システム保守", `${marker}クラウド会計システム保守`)
+      .replace("導入サポート", `${marker.replace("①", "②")}導入サポート`);
+    const extracted = extractInvoice(text);
+    expect(extracted.flags.map((f) => f.code)).not.toContain("lookalike_digits");
+    expect(extracted.amount?.value).toBe("132000");
+    const deps = fakeDeps();
+    const stored = await analyzeDocument(deps, text);
+    expect(stored.verdict.decision).toBe("pay");
   });
 
   it("still reads full-width digits, which are ordinary Japanese typing", () => {

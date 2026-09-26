@@ -11,6 +11,8 @@ const INVISIBLE = /[­​-‍⁠-⁤﻿︀-️\u{E0000}-\u{E007F}\u{E0100}-\u{E0
 // Bidirectional overrides ("Trojan Source"): they reorder what a human sees without changing the bytes.
 const BIDI = /[‎‏‪-‮⁦-⁩]/gu;
 const NON_ASCII = /[^\x00-\x7F]/gu;
+// What a look-alike digit must not touch: a digit (ASCII or full-width), a comma or period inside a number, ¥/￥ or 円.
+const NUMBERISH = /^[0-9０-９,.，．¥￥円]$/u;
 // An opening tag that hides its content: display:none, visibility:hidden, font-size:0, opacity:0, white text,
 // or the `hidden` attribute. Bounded so hostile input stays linear.
 const HIDDEN_TAG =
@@ -22,7 +24,7 @@ export interface Normalized {
   hidden: string; // what was removed from `visible`
   hiddenMarkers: string[]; // human-readable descriptions of hidden content, if any
   bidiControls: number; // reorder what a person sees, so the displayed text may not be what extraction reads
-  lookalikeDigits: string[]; // superscript, circled and similar digits found (each replaced by a space)
+  lookalikeDigits: string[]; // superscript, circled and similar digits touching a number (all are replaced by a space)
 }
 
 export function normalizeText(raw: string): Normalized {
@@ -31,16 +33,29 @@ export function normalizeText(raw: string): Normalized {
   const bidi = raw.match(BIDI)?.length ?? 0;
   if (invisible > 0) hiddenMarkers.push(`${invisible} invisible character${invisible === 1 ? "" : "s"}`);
   if (bidi > 0) hiddenMarkers.push(`${bidi} bidirectional control character${bidi === 1 ? "" : "s"}`);
-  const found = new Set<string>();
-  // Before NFKC, which would turn ¹ ① ₁ into ASCII digits that silently join an amount (¥13,200¹ → ¥132,001).
-  const safe = raw.replace(INVISIBLE, "").replace(BIDI, "").replace(NON_ASCII, (ch) => (lookalikeDigit(ch) ? (found.add(ch), " ") : ch));
+  const touching = new Set<string>();
+  // Before NFKC, which would turn ¹ ① ₁ into ASCII digits that silently join an amount (¥13,200¹ → ¥132,001). Every
+  // one becomes a space; only one touching a number is reported, so a list marker ("① 設計費") passes.
+  const stripped = raw.replace(INVISIBLE, "").replace(BIDI, "");
+  const safe = stripped.replace(NON_ASCII, (ch: string, offset: number) => {
+    if (!lookalikeDigit(ch)) return ch;
+    if (touchesNumber(stripped, offset, ch.length)) touching.add(ch);
+    return " ";
+  });
   const text = safe.normalize("NFKC").replace(/\r\n?/gu, "\n");
   const comments = cut(text, commentSpans(text));
   const elements = cut(comments.kept, hiddenElementSpans(comments.kept));
   if (comments.removed.length > 0) hiddenMarkers.push("an HTML comment");
   if (elements.removed.length > 0) hiddenMarkers.push("an element styled to be invisible");
   const hidden = [...comments.removed, ...elements.removed].join("\n");
-  return { text, visible: elements.kept, hidden, hiddenMarkers, bidiControls: bidi, lookalikeDigits: [...found] };
+  return { text, visible: elements.kept, hidden, hiddenMarkers, bidiControls: bidi, lookalikeDigits: [...touching] };
+}
+
+/** The characters right before and after text[offset, offset + length), whole code points, with no gap allowed. */
+function touchesNumber(text: string, offset: number, length: number): boolean {
+  const before = Array.from(text.slice(Math.max(0, offset - 2), offset)).pop() ?? "";
+  const after = Array.from(text.slice(offset + length, offset + length + 2))[0] ?? "";
+  return NUMBERISH.test(before) || NUMBERISH.test(after);
 }
 
 /**
