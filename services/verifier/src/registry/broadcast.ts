@@ -18,9 +18,11 @@ export interface BroadcastRpc {
   getTransaction(args: { hash: Hex }): Promise<unknown>;
 }
 
-const ALREADY_KNOWN = /already known|known transaction|alreadyknown/iu;
+// Anchored so that "unknown transaction" never counts as sent.
+const ALREADY_KNOWN = /already known|\bknown transaction|alreadyknown/iu;
 
-function isTransportError(error: unknown): boolean {
+/** A timeout, a refused connection or an HTTP error: the RPC failed, not the transaction. */
+export function isTransportError(error: unknown): boolean {
   if (!(error instanceof BaseError)) return false;
   return error.walk((e) => e instanceof HttpRequestError || e instanceof TimeoutError) !== null;
 }
