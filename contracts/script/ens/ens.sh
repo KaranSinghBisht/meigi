@@ -2,7 +2,7 @@
 # payee.eth and the AP agent's namespace (ap.meigi.eth) on ENSv2 (Sepolia).
 # Usage: script/ens/ens.sh <command>
 #   payee.eth:     deploy | seed | register | set-resolver | check
-#   ap.meigi.eth:  agent-deploy | agent-setup | agent-status | agent-endpoint | agent-check | vault-name
+#   ap.meigi.eth:  agent-deploy | agent-setup | agent-status | agent-endpoint | agent-rotate | agent-check | vault-name
 #   claimed names: claim-deploy | claim-attach | claim | claim-profile | claim-check | claim-detach (rollback)
 # Transactions are only simulated unless BROADCAST=1. Keys and the RPC URL come from the environment or
 # meigi/.env and never appear on a command line; tool output is redacted. See README.md.
@@ -130,6 +130,12 @@ scope_keys() {
       require_key VAULT_OWNER_PRIVATE_KEY
       unset DEPLOYER_PRIVATE_KEY ATTESTER_PRIVATE_KEY AGENT_PRIVATE_KEY
       ;;
+    agent-rotate)
+      # Two signers: the deployer moves the ENS role, then the vault's owner moves the vault's agent slot.
+      require_key DEPLOYER_PRIVATE_KEY
+      require_key VAULT_OWNER_PRIVATE_KEY
+      unset ATTESTER_PRIVATE_KEY AGENT_PRIVATE_KEY
+      ;;
     *)
       require_key DEPLOYER_PRIVATE_KEY
       unset ATTESTER_PRIVATE_KEY AGENT_PRIVATE_KEY VAULT_OWNER_PRIVATE_KEY COMPANY_PRIVATE_KEY
@@ -202,7 +208,7 @@ main() {
   local cmd="${1:-}"
   case "$cmd" in
     deploy | seed | register | set-resolver | check) ;;
-    agent-deploy | agent-setup | agent-status | agent-endpoint | agent-check | vault-name) ;;
+    agent-deploy | agent-setup | agent-status | agent-endpoint | agent-rotate | agent-check | vault-name) ;;
     claim-deploy | claim-attach | claim-detach | claim | claim-profile | claim-check) ;;
     *) die "usage: ens.sh <command>; see the header of this file" ;;
   esac
@@ -227,6 +233,11 @@ main() {
     agent-setup) forge_script script/ens/AgentNamespace.s.sol --sig "setup()" ;;
     agent-status) forge_script script/ens/AgentNamespace.s.sol --sig "setStatus()" ;;
     agent-endpoint) forge_script script/ens/AgentNamespace.s.sol --sig "setEndpoint()" ;;
+    agent-rotate)
+      # Each step sees only the key it signs with.
+      (unset VAULT_OWNER_PRIVATE_KEY && forge_script script/ens/AgentNamespace.s.sol --sig "rotate()")
+      (unset DEPLOYER_PRIVATE_KEY && forge_script script/ens/AgentNamespace.s.sol --sig "rotateVault()")
+      ;;
     agent-check) (cd "$CONTRACTS" && forge script script/ens/CheckAgent.s.sol) 2>&1 | redact ;;
     vault-name) forge_script script/ens/VaultName.s.sol ;;
     claim-deploy) forge_script script/ens/ClaimName.s.sol --sig "deploy()" ;;

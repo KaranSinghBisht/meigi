@@ -21,6 +21,7 @@ Its money records still come only from `PayeeResolver`.
 | `AgentNamespace.s.sol`, `AgentNs.sol` | The AP agent's namespace `ap.meigi.eth`: `deploy()`, `setup()`, `setStatus()` (see below) |
 | `CheckAgent.s.sol` | Read-only proof of the namespace, the agent's one scoped role (simulated allowed and denied writes) and an unchanged `payee.eth` |
 | `agent-e2e.sh`, `check-agent-viem.mjs` | The namespace flow on an anvil fork, and stock viem resolving `ap.meigi.eth` |
+| `agent-rotate-e2e.sh` | Agent key rotation on a fork of the live `ap.meigi.eth` and AgentVault |
 | `VaultName.s.sol`, `vault-e2e.sh`, `check-primary-viem.mjs` | The AgentVault's primary name `ap.meigi.eth` (ENSIP-19), its fork proof, and stock viem `getEnsName` |
 | `ClaimName.s.sol`, `CheckClaim.s.sol`, `claim-e2e.sh` | Claimed payee names: `deploy()`, `attach()`, `claim()`, `profile()`, `detach()`, the read-only proof, and the fork proof |
 
@@ -105,14 +106,22 @@ ENS_LABEL=meigi ENS_SUBREGISTRY=$AGENT_SUBREGISTRY BROADCAST=1 script/ens/ens.sh
 BROADCAST=1 script/ens/ens.sh agent-setup           # canonical parent, then ap.meigi.eth, then the agent's scoped role
 AGENT_STATUS=online BROADCAST=1 script/ens/ens.sh agent-status   # signed by AGENT_PRIVATE_KEY
 BROADCAST=1 script/ens/ens.sh agent-endpoint        # agent-endpoint[web] = AGENT_ENDPOINT (default: the app's /agent)
+AGENT_ADDRESS=<new> AGENT_PREVIOUS_ADDRESS=<old> BROADCAST=1 script/ens/ens.sh agent-rotate   # a new agent key
 script/ens/ens.sh agent-check                       # read-only
 script/ens/agent-e2e.sh                             # the whole flow on a fork, plus eth_call denials and stock viem
+script/ens/agent-rotate-e2e.sh                      # key rotation on a fork of the live name and vault
 ```
 
 - `agent-e2e.sh` uses a fresh parent label (`meigifork<random>`, or `AGENT_PARENT`) because meigi.eth is live on
   Sepolia. It clears any leftover `AGENT_*` or `ENS_*` exports first.
-- To rotate the agent key, set the new `AGENT_ADDRESS` and `AGENT_PREVIOUS_ADDRESS=<old>`, then run
-  `agent-setup`. It grants the new key and revokes the old one.
+- **Key rotation:** the identity outlives the key. `agent-rotate` is one command with two signers:
+  1. the deployer grants `agent-status` to the new key and revokes it from the old one (`rotate()`);
+  2. the vault's owner moves the AgentVault's agent slot to the new key (`rotateVault()`).
+  `ap.meigi.eth`, its records and `getEnsName(vault)` don't change. `agent-rotate-e2e.sh` proves this on a Sepolia
+  fork of the live name and vault: stock viem gives the same answers before and after, the old key's
+  `setText(agent-status)` reverts `EACUnauthorizedAccountRoles` and its `payInvoice` reverts `NotAgent`, and the
+  new key writes `agent-status` through `ens.sh agent-status`. It has not been run on Sepolia, because the live
+  agent keeps its key for the demo.
 
 - The addresses of the factory and the two implementations are in `deployments/beta.env`. They come from
   `ensdomains/contracts-v2` `deployments/sepolia` at commit `71a3b733`, the 2026-09-15 redeploy. The main branch

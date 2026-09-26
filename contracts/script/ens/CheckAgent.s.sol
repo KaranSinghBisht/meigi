@@ -21,7 +21,8 @@ interface IPayeeResolverRegistry {
 ///         while writing `agent-context`, `agent-endpoint[web]` or `addr` reverts EACUnauthorizedAccountRoles. Both
 ///         outcomes are simulated from the agent address against live state and then rolled back. payee.eth
 ///         still resolves from the PayeeRegistry. Nothing is sent.
-/// @dev Env: AGENT_SUBREGISTRY, AGENT_RESOLVER, AGENT_ADDRESS, deployments/beta.env; optional EXPECT_STATUS.
+/// @dev Env: AGENT_SUBREGISTRY, AGENT_RESOLVER, AGENT_ADDRESS, deployments/beta.env; optional EXPECT_STATUS and
+///      AGENT_PREVIOUS_ADDRESS (a rotated-out key, which must hold no role any more).
 contract CheckAgent is Script {
     bytes4 private constant ADDR = 0x3b3b57de; // addr(bytes32)
     bytes4 private constant TEXT = 0x59d1d43c; // text(bytes32,string)
@@ -95,6 +96,15 @@ contract CheckAgent is Script {
     /// @dev Positive and negative EAC proofs, simulated from the agent address and rolled back.
     function _checkAgentScope(IPermissionedResolver resolver, address agent) private {
         require(resolver.roles(0, agent) == 0, "the agent holds a root role");
+        address previous = EnsV2Lib.envAddressOrZero("AGENT_PREVIOUS_ADDRESS");
+        if (previous != address(0)) {
+            uint256 status = AgentNsLib.textResource(AgentNsLib.STATUS_KEY);
+            require(
+                resolver.roles(status, previous) == 0 && resolver.roles(0, previous) == 0,
+                "old key still has a role"
+            );
+            console.log("Rotated-out key %s holds no role", previous);
+        }
         require(
             resolver.roles(AgentNsLib.textResource(AgentNsLib.STATUS_KEY), agent) == AgentNsLib.ROLE_SET_TEXT,
             "the agent's agent-status role is missing or not exact (no admin bit allowed)"

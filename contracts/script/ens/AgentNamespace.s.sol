@@ -12,6 +12,12 @@ import {
 } from "./AgentNs.sol";
 import {EnsV2, EnsV2Lib} from "./EnsV2.sol";
 
+/// @dev The AgentVault's agent slot: the one key allowed to pay registered payees from it (owner-only setter).
+interface IAgentVaultAgent {
+    function agent() external view returns (address);
+    function setAgent(address agent_) external;
+}
+
 /// @notice Gives the AP agent its own ENSv2 namespace: `<AGENT_LABEL>.<AGENT_PARENT>.eth` (ap.meigi.eth). The parent
 ///         is a pure namespace whose subregistry is a UserRegistry. The subname has its own PermissionedResolver
 ///         that holds the agent's address and ENSIP-26 records. The agent key holds one argument-scoped role:
@@ -20,7 +26,7 @@ import {EnsV2, EnsV2Lib} from "./EnsV2.sol";
 ///      Env: DEPLOYER_PRIVATE_KEY, AGENT_ADDRESS, and the ENS_* factory and implementations from
 ///      deployments/beta.env. After agent-deploy, also AGENT_SUBREGISTRY and AGENT_RESOLVER. See AgentConfig for
 ///      the optional names and records, AGENT_STATUS for setStatus(), AGENT_PREVIOUS_ADDRESS to revoke a
-///      rotated-out agent key in setup(), and AGENT_ENDPOINT for setEndpoint().
+///      rotated-out agent key in setup() or rotate(), and AGENT_ENDPOINT for setEndpoint().
 contract AgentNamespace is Script {
     /// @notice Deploys the subregistry and the resolver as VerifiableFactory proxies. The resolver's records are
     ///         written by its initializer, which skips permission checks. Skips a proxy whose env var is set.
@@ -109,6 +115,53 @@ contract AgentNamespace is Script {
         console.log("%s agent-endpoint[web] = %s", AgentConfig.name(), endpoint);
     }
 
+    /// @notice Key rotation, part 1, signed by the deployer: grants `agent-status` to the new key (AGENT_ADDRESS) and
+    ///         revokes it from the old one (AGENT_PREVIOUS_ADDRESS). The name, its records and the vault's primary name
+    ///         stay as they are: the identity survives the key. `rotateVault()` then moves the vault's agent slot.
+    function rotate() external {
+        IPermissionedResolver resolver = _agentResolver();
+        (address agent, address previous) = _rotation();
+        require(
+            agent != EnsV2Lib.signer("DEPLOYER_PRIVATE_KEY", "DEPLOYER_ADDRESS"),
+            "the agent can't be the deployer"
+        );
+
+        EnsV2Lib.startBroadcast("DEPLOYER_PRIVATE_KEY", "DEPLOYER_ADDRESS");
+        if (!resolver.hasRoles(_statusResource(), AgentNsLib.ROLE_SET_TEXT, agent)) {
+            resolver.grantSetterRoles(AgentNsLib.textSetter(AgentNsLib.STATUS_KEY), agent);
+        }
+        if (resolver.roles(_statusResource(), previous) != 0) {
+            resolver.revokeRoles(_statusResource(), AgentNsLib.ROLE_SET_TEXT, previous);
+        }
+        vm.stopBroadcast();
+
+        require(
+            resolver.roles(_statusResource(), agent) == AgentNsLib.ROLE_SET_TEXT,
+            "new key's scope is not exact"
+        );
+        require(resolver.roles(0, agent) == 0, "the agent must hold no root role");
+        require(resolver.roles(_statusResource(), previous) == 0, "the old key still holds agent-status");
+        console.log("%s agent-status: granted to %s, revoked from %s", AgentConfig.name(), agent, previous);
+    }
+
+    /// @notice Key rotation, part 2, signed by the vault's owner: the AgentVault's agent slot moves to the new key.
+    function rotateVault() external {
+        (address agent, address previous) = _rotation();
+        (address vault,) = AgentConfig.meigi();
+        IAgentVaultAgent slot = IAgentVaultAgent(vault);
+        address current = slot.agent();
+        require(
+            current == previous || current == agent, "the vault's agent is neither the old nor the new key"
+        );
+
+        EnsV2Lib.startBroadcast("VAULT_OWNER_PRIVATE_KEY", "VAULT_OWNER_ADDRESS");
+        if (current != agent) slot.setAgent(agent);
+        vm.stopBroadcast();
+
+        require(slot.agent() == agent, "the vault's agent was not updated");
+        console.log("AgentVault %s agent = %s", vault, agent);
+    }
+
     /// @notice Signed by the agent key: writes the one record it is allowed to write.
     function setStatus() external {
         uint256 pk = vm.envUint("AGENT_PRIVATE_KEY");
@@ -146,6 +199,16 @@ contract AgentNamespace is Script {
         (address parent, string memory label) = subregistry.getParent();
         return parent == address(ens.ethRegistry)
             && keccak256(bytes(label)) == keccak256(bytes(AgentConfig.parent()));
+    }
+
+    /// @dev The new key (AGENT_ADDRESS) and the one it replaces (AGENT_PREVIOUS_ADDRESS).
+    function _rotation() private view returns (address agent, address previous) {
+        agent = vm.envAddress("AGENT_ADDRESS");
+        previous = vm.envAddress("AGENT_PREVIOUS_ADDRESS");
+        require(
+            agent != address(0) && agent != previous,
+            "set AGENT_ADDRESS to the new key, distinct from the old"
+        );
     }
 
     /// @dev AGENT_RESOLVER, checked to be the resolver of the live agent name.
