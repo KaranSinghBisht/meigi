@@ -15,8 +15,8 @@ interface IPayeeResolverRegistry {
 /// @notice Read-only proof of claimed payee names, against live state. Nothing is sent.
 ///         - Wiring: payee.eth's subregistry is CLAIMS_REGISTRY (a VerifiableFactory UserRegistry). CLAIMS_RESOLVER
 ///           forwards to payee.eth's own PayeeResolver.
-///         - The claim: the token is owned by the registry's controller and carries no roles. The company's profile
-///           resolver has no holder of the address role.
+///         - The claim: the token is owned by the registry's controller and carries no roles. The profile is bound
+///           to that controller, which holds only the text role there, and no account can set or grant an address.
 ///         - What the company cannot do, simulated from its address and rolled back: set an address, re-point its
 ///           name, or mask `name` or `meigi.status`.
 ///         - Every T-number in CHECK_T_NUMBERS resolves through the UniversalResolver exactly as the registry says.
@@ -45,6 +45,7 @@ contract CheckClaim is Script {
             address(resolver.payees()) == ens.ethRegistry.getResolver("payee"),
             "claims resolver forwards elsewhere"
         );
+        require(resolver.registry() == registry, "claims resolver reads another registry");
         uint64 tNumber = SafeCast.toUint64(vm.envOr("T_NUMBER", uint256(2011001234567)));
         address company = registry.payeeOf(tNumber).controller;
         IPermissionedResolver profile = _checkClaim(claims, resolver, tNumber, company);
@@ -62,13 +63,22 @@ contract CheckClaim is Script {
         uint256 id = EnsV2Lib.labelId(label);
         require(claims.getOwner(id) == company, "the token is not owned by the registry's controller");
         require(claims.getResolver(label) == address(resolver), "the claimed name uses another resolver");
-        require(
-            !claims.hasRoles(id, AgentNsLib.REGISTRY_ROLE_SET_RESOLVER, company), "the company can re-point"
-        );
+        require(resolver.claimantOf(tNumber) == company, "the profile belongs to another claimant");
+        // EAC hasRoles needs every bit, so each registry role the ETHRegistrar would give an owner is checked alone.
+        uint256[5] memory bits =
+            [uint256(1 << 20), (1 << 20) << 128, 1 << 24, (1 << 24) << 128, (1 << 28) << 128];
+        for (uint256 i; i < bits.length; i++) {
+            require(!claims.hasRoles(id, bits[i], company), "the company holds a role on its token");
+        }
         profile = IPermissionedResolver(address(resolver.profileOf(tNumber)));
         require(address(profile) != address(0), "no profile resolver");
         require(!profile.hasAssignees(0, AgentNsLib.ROLE_SET_ADDRESS), "someone holds the address role");
-        require(profile.hasRoles(0, AgentNsLib.ROLE_SET_TEXT, company), "the company cannot edit its profile");
+        require(
+            !profile.hasAssignees(0, AgentNsLib.ROLE_SET_ADDRESS_ADMIN), "someone can grant the address role"
+        );
+        require(
+            profile.roles(0, company) == AgentNsLib.ROLE_SET_TEXT, "the company holds more than the text role"
+        );
         console.log("%s.payee.eth: token owned by %s, profile %s", label, company, address(profile));
     }
 

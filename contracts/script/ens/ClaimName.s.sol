@@ -32,6 +32,8 @@ contract ClaimName is Script {
         address deployer = EnsV2Lib.signer("DEPLOYER_PRIVATE_KEY", "DEPLOYER_ADDRESS");
         address payees = ens.ethRegistry.getResolver(PARENT);
         require(EnsV2Lib.supportsExtendedResolver(payees), "payee.eth has no ENSIP-10 resolver");
+        require(EnsV2Lib.servesParent(payees, PARENT), "payee.eth's resolver is bound to another parent");
+        IPayeeRegistry registry = IPayeeResolverRegistry(payees).registry();
         address claims = EnsV2Lib.envAddressOrZero("CLAIMS_REGISTRY");
         address resolver = EnsV2Lib.envAddressOrZero("CLAIMS_RESOLVER");
         bytes memory init = abi.encodeCall(IUserRegistry.initialize, (_grant(deployer, AgentNsLib.ALL_ROLES)));
@@ -43,7 +45,8 @@ contract ClaimName is Script {
         }
         if (resolver == address(0)) {
             bytes memory parentDns = EnsV2Lib.dnsEncode(string.concat(PARENT, ".eth"));
-            resolver = address(new ClaimedPayeeResolver(IExtendedResolver(payees), parentDns, deployer));
+            resolver =
+                address(new ClaimedPayeeResolver(IExtendedResolver(payees), registry, parentDns, deployer));
         }
         (address canonicalParent,) = IUserRegistry(claims).getParent();
         if (canonicalParent != address(ens.ethRegistry)) {
@@ -55,6 +58,7 @@ contract ClaimName is Script {
             _factory().verifyContract(claims) == vm.envAddress("ENS_USER_REGISTRY_IMPL"), "claims registry"
         );
         require(address(ClaimedPayeeResolver(resolver).payees()) == payees, "resolver forwards elsewhere");
+        require(ClaimedPayeeResolver(resolver).registry() == registry, "resolver reads another registry");
         console.log("CLAIMS_REGISTRY=%s", claims);
         console.log("CLAIMS_RESOLVER=%s", resolver);
     }
@@ -83,7 +87,9 @@ contract ClaimName is Script {
         EnsV2Lib.startBroadcast("DEPLOYER_PRIVATE_KEY", "DEPLOYER_ADDRESS");
         if (company.balance < fund) _send(company, fund - company.balance);
         if (address(resolver.profileOf(tNumber)) == address(0)) {
-            resolver.setProfile(tNumber, IExtendedResolver(_deployProfile(deployer, company, tNumber)));
+            resolver.setProfile(
+                tNumber, IExtendedResolver(_deployProfile(deployer, company, tNumber)), company
+            );
         }
         if (claims.getOwner(EnsV2Lib.labelId(label)) == address(0)) {
             claims.register(
@@ -133,11 +139,17 @@ contract ClaimName is Script {
 
     function _setSubregistry(address claims) private {
         EnsV2 memory ens = EnsV2Lib.load();
-        require(
-            claims == address(0)
-                || _factory().verifyContract(claims) == vm.envAddress("ENS_USER_REGISTRY_IMPL"),
-            "CLAIMS_REGISTRY is not a VerifiableFactory UserRegistry"
-        );
+        if (claims != address(0)) {
+            require(
+                _factory().verifyContract(claims) == vm.envAddress("ENS_USER_REGISTRY_IMPL"),
+                "CLAIMS_REGISTRY is not a VerifiableFactory UserRegistry"
+            );
+            (address parent, string memory label) = IUserRegistry(claims).getParent();
+            require(
+                parent == address(ens.ethRegistry) && keccak256(bytes(label)) == keccak256(bytes(PARENT)),
+                "CLAIMS_REGISTRY's canonical parent is not payee.eth"
+            );
+        }
         EnsV2Lib.startBroadcast("DEPLOYER_PRIVATE_KEY", "DEPLOYER_ADDRESS");
         ens.ethRegistry.setSubregistry(EnsV2Lib.labelId(PARENT), claims);
         vm.stopBroadcast();

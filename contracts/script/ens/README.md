@@ -153,7 +153,7 @@ records.
 | Piece | Setup |
 |---|---|
 | Claims registry | A `UserRegistry` proxy from `VerifiableFactory`, managed by Meigi: the deployer holds the root roles. `claim-attach` makes it `payee.eth`'s subregistry, and its canonical parent is `payee.eth`. |
-| `ClaimedPayeeResolver` | In `src/ens/`; the resolver of every claimed name. `addr` (every coin type), `name` and `meigi.*` come from `payee.eth`'s `PayeeResolver`, and read as zero or empty if it reverts. Other text keys come from the company's profile, and only while the registry lists the payee as active. |
+| `ClaimedPayeeResolver` | In `src/ens/`; the resolver of every claimed name. `addr` (every coin type), `name` and `meigi.*` (in any letter case) come from `payee.eth`'s `PayeeResolver`, and read as zero or empty if it reverts. Other text keys come from the company's profile, and only while the registry lists the payee as active under the controller that claimed the name. A dispute, or a new controller, hides the profile. |
 | A claim | `t<T>` is minted in the claims registry to the payee's registry controller, with no roles, so the company can't re-point the name or give it a subregistry. Only an active payee can claim. |
 | Profile resolver | One `PermissionedResolver` per company, since a resolver's scoped grants cover every name it serves. The company holds `ROLE_SET_TEXT`. The deployer holds the other roles except `ROLE_SET_ADDRESS` and its admin, which no account holds. |
 | Unclaimed names | They are not in the claims registry, so the UniversalResolver falls back to `payee.eth`'s resolver as before. |
@@ -179,7 +179,11 @@ script/ens/claim-e2e.sh                        # fork proof: impersonates payee.
 - The fork proof resolves four reference names with stock viem after every step (two active payees, a disputed
   one and an unknown T-number), and the output must stay byte-identical to the baseline.
 - `claim-detach` leaves the registry, tokens and profiles deployed but unreachable, and `claim-attach` restores
-  them. Meigi, not the company, can re-point or revoke a claim, and `setProfile(t, 0)` hides a profile.
+  them. Meigi, not the company, can re-point or revoke a claim, and `setProfile(t, 0, 0)` hides a profile.
+- `ClaimedPayeeResolver` pins `payee.eth`'s resolver and its registry when it is deployed. If `payee.eth` ever gets
+  a new resolver, run `claim-detach` (or redeploy and re-point the claims); `check` fails until then.
+- A claim expires with `payee.eth`'s expiry at claim time. An expired claim falls back to the wildcard: the money
+  records stay the same and only the profile disappears.
 
 ## Verified ENSv2 facts
 
