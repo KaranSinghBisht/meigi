@@ -74,6 +74,23 @@ describe("registration", () => {
   });
 });
 
+describe("payee lookup", () => {
+  const record = { controller: CONTROLLER, payout: PAYOUT, pending: zeroAddress, nextController: zeroAddress, nonce: 1n, threshold: 1, officers: [] };
+
+  it("names an active payee and shows its payout", async () => {
+    chain.payees.set(T, { ...record, status: 1, legalName: "Curvegrid株式会社" });
+    const body = (await (await app.request("/payees/T1010601051968")).json()) as Record<string, unknown>;
+    expect(body).toMatchObject({ status: "active", legalName: "Curvegrid株式会社", payout: PAYOUT });
+  });
+
+  it("never names a disputed payee or shows its payout: the record may be the claim under dispute", async () => {
+    chain.payees.set(T, { ...record, status: 2, legalName: "株式会社フジデータ" });
+    const body = (await (await app.request("/payees/T1010601051968")).json()) as Record<string, unknown>;
+    expect(body).toMatchObject({ tNumber: "T1010601051968", status: "disputed", legalName: null, payout: null });
+    expect(JSON.stringify(body)).not.toContain("フジデータ");
+  });
+});
+
 describe("approval intents", () => {
   const officerSession = sessionId("c");
 

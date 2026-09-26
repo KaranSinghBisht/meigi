@@ -35,15 +35,19 @@ export function lookupRoutes(deps: AppDeps) {
     });
   });
 
-  /** The registry's view of a payee. A queued payout address is reported as a flag, never shown. */
+  /**
+   * The registry's view of a payee. A queued payout address is reported as a flag, never shown. Only an active
+   * payee is named: a disputed record's name may be the claim under dispute (like the resolver and the agent).
+   */
   app.get("/payees/:tNumber", async (c) => {
     const digits = requireDigits(c.req.param("tNumber"));
     const payee = await deps.chain.payee(toChainId(digits));
+    const active = payee.status === 1;
     return c.json({
       tNumber: formatTNumber(digits),
       status: STATUS[payee.status] ?? "unknown",
-      legalName: payee.legalName,
-      payout: payee.status === 1 ? payee.payout : null,
+      legalName: active ? payee.legalName : null,
+      payout: active ? payee.payout : null,
       changePending: payee.pending !== "0x0000000000000000000000000000000000000000",
       rotationPending: payee.nextController !== "0x0000000000000000000000000000000000000000",
       threshold: payee.threshold,
