@@ -183,6 +183,22 @@ export const mandateGateAbi = [
   },
   {
     "type": "error",
+    "name": "RegistryMismatch",
+    "inputs": [
+      {
+        "name": "names",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "vault",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
     "name": "ZeroAddress",
     "inputs": []
   }
