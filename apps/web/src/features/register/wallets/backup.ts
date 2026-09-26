@@ -113,5 +113,9 @@ export async function backupMatches(file: File, address: HexAddress): Promise<bo
   }
   const privateKey = typeof parsed === 'object' && parsed !== null ? (parsed as { privateKey?: unknown }).privateKey : null
   if (typeof privateKey !== 'string' || !/^0x[0-9a-fA-F]{64}$/.test(privateKey)) return false
-  return privateKeyToAccount(privateKey as Hex).address === address
+  try {
+    return privateKeyToAccount(privateKey as Hex).address === address
+  } catch {
+    return false // 64 hex digits that aren't a valid key (zero, or past the curve order): not a backup.
+  }
 }
