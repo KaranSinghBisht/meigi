@@ -72,6 +72,7 @@ describe("setup", () => {
       "meigi_invoices_paid",
       "meigi_mjpy_balances",
       "meigi_mjpy_received",
+      "meigi_mjpy_transfers",
       "meigi_payees_registered",
       "meigi_router_paid",
     ]);

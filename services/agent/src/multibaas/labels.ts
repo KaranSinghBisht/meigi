@@ -135,6 +135,26 @@ export const QUERIES = {
     orderBy: "balance",
     order: "DESC",
   },
+  // Every MJPY Transfer, newest first. The site's settlements feed (apps/web/worker) keeps those to registered
+  // payouts: x402 sales, and the transfers inside vault and router payments.
+  meigi_mjpy_transfers: {
+    events: [
+      {
+        eventName: "Transfer",
+        select: [
+          { type: "input", inputIndex: 0, alias: "sender" },
+          { type: "input", inputIndex: 1, alias: "recipient" },
+          { type: "input", inputIndex: 2, alias: "amount" },
+          { type: "block_number", alias: "block" },
+          { type: "triggered_at", alias: "at" },
+          { type: "tx_hash", alias: "txhash" },
+        ],
+        filter: onContract(CONTRACTS.token.alias),
+      },
+    ],
+    orderBy: "block",
+    order: "DESC",
+  },
   // MJPY each address has received (vault payments and x402 sales alike): the seller-side view.
   meigi_mjpy_received: {
     events: [

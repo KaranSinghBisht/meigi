@@ -1,10 +1,23 @@
 // The landing URL (meigi.karanbishttt.workers.dev) serves the same app build: its "/" is the Sakasa Fuji hero,
 // and enter glides into the app on one canvas. Deploy with scripts/deploy-demo.sh.
+//
+// The Worker (worker/index.ts) runs first only for /api/*: GET /api/settlements reads Curvegrid MultiBaas
+// server-side. Its URL and key are Worker secrets, never vars:
+//   grep '^MULTIBAAS_URL=' ../../.env | cut -d= -f2- | npx wrangler secret put MULTIBAAS_URL --config wrangler.landing.jsonc
+//   grep '^MULTIBAAS_API_KEY=' ../../.env | cut -d= -f2- | npx wrangler secret put MULTIBAAS_API_KEY --config wrangler.landing.jsonc
 {
   "name": "meigi",
   "compatibility_date": "2026-09-01",
+  "main": "./worker/index.ts",
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "single-page-application"
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "vars": {
+    // Registered payees whose direct mJPYC receipts (x402 sales) count as settlements: Meigi Shoji, Minato GPU
+    // Cloud, Fuji Data, Bayside Advisory. The vault's and the router's payments count for any T-number.
+    "SETTLEMENT_PAYEES": "T2011001234567,T6999900000003,T8999900000001,T3999905000001"
   }
 }
