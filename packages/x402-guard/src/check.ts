@@ -99,7 +99,13 @@ async function checkEns(deps: GuardDeps, digits: string, declaredEns: string | u
   if (declaredEns !== expected) {
     return { ok: false, code: "ens_mismatch", reason: `declared ens "${declaredEns}" is not ${expected}` };
   }
-  const resolved = await deps.resolveEns(expected);
+  let resolved: Address | null;
+  try {
+    resolved = await deps.resolveEns(expected);
+  } catch {
+    // Never surface the raw error: an RPC timeout or a UR revert can carry the resolver's URL in its message.
+    return { ok: false, code: "ens_unresolved", reason: `${expected}: ENS lookup failed` };
+  }
   if (!resolved) return { ok: false, code: "ens_unresolved", reason: `${expected} did not resolve to an address` };
   const address = getAddress(resolved);
   if (address !== payout) {

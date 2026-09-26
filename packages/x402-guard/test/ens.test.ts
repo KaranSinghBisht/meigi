@@ -41,6 +41,19 @@ describe("checkPayee: ens (independent of the registry check)", () => {
     expect((verdict as { reason: string }).reason).toContain(EXPECTED_ENS);
   });
 
+  it("fails closed without leaking the raw error when resolveEns rejects", async () => {
+    const resolveEns = async () => {
+      throw new Error(`RPC request to https://eth-sepolia.example/v2/super-secret-key-abc123 timed out`);
+    };
+    const declared = meigiPayeeDeclaration(T_NUMBER)["meigi-payee"];
+    const verdict = await checkPayee(deps(resolveEns), declared, { payTo: REGISTERED, network: NETWORK });
+    expect(verdict).toMatchObject({ ok: false, code: "ens_unresolved" });
+    const reason = (verdict as { reason: string }).reason;
+    expect(reason).toContain(EXPECTED_ENS);
+    expect(reason).not.toContain("super-secret-key");
+    expect(reason).not.toContain("eth-sepolia.example");
+  });
+
   it("refuses a declared ens for the wrong label without ever resolving it", async () => {
     const resolveEns = vi.fn(async () => REGISTERED);
     const declared = { tNumber: T_NUMBER, ens: "t2011001234567.payee.eth" };
