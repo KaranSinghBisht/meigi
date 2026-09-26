@@ -237,6 +237,10 @@ On Sepolia, live since 2026-09-26:
 | PayRouter | [`0xbA95BA5D4a2244cce46a76920f411B225116850C`](https://repo.sourcify.dev/11155111/0xbA95BA5D4a2244cce46a76920f411B225116850C) |
 | MockJPYC (`mJPYC`) | [`0xEcA2B093682a46B14b143474d188A120bA2d0EC2`](https://repo.sourcify.dev/11155111/0xEcA2B093682a46B14b143474d188A120bA2d0EC2) |
 
+Also on Sepolia, deployed after these: `CompanyNamespace` at `0x7ECaD5Fd6892270F09D91aB296786186C5bC660A`. It runs the
+names companies issue under their payee names ([`docs/ens.md`](docs/ens.md)). Its source is verified on Sourcify at
+publication, with [`verify-at-publication.sh`](contracts/script/ens/verify-at-publication.sh).
+
 Demo payees are fictional companies, marked as fictional in their on-chain evidence:
 - `T2011001234567` 株式会社メイギ商事, the AP agent's supplier;
 - `T8999900000001` 株式会社フジデータ, the x402 merchant.
