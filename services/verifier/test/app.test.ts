@@ -5,7 +5,7 @@ import type { AppDeps } from "../src/deps.js";
 import { addressTarget, approvalTypedData } from "../src/registry/approvals.js";
 import { enrollmentSignal } from "../src/routes/registrations.js";
 import { officerIdFor } from "../src/world/session.js";
-import { ATTESTER, CONTROLLER, FakeChain, PAYOUT, REGISTRY, fakeDeps, proof, sessionId } from "./fakes.js";
+import { ATTESTER, CONTROLLER, FakeChain, PAYOUT, REGISTRY, fakeDeps, proof, selfieProof, sessionId } from "./fakes.js";
 
 const T = 1010601051968n;
 const NEW_PAYOUT = "0x3333333333333333333333333333333333333333";
@@ -45,6 +45,19 @@ describe("registration", () => {
     const submitted = await post(`/registrations/${id}/submit`, { threshold: 1 });
     expect(submitted.body).toMatchObject({ outcome: "registered", tNumber: "T1010601051968" });
     expect(chain.calls[0]).toBe(`register:${T}:1:${officerIdFor(sessionId("a"))}`);
+  });
+
+  it("stores and returns Self Check's sybil score, and nothing for any other credential", async () => {
+    const id = (await startRegistration()).body.id as string;
+    const selfie = await post(`/registrations/${id}/officers`, {
+      result: selfieProof(sessionId("a"), "0x01", enrollmentSignal(id), 7),
+    });
+    expect(selfie.body.sybilScore).toBe(7);
+
+    const other = await post(`/registrations/${id}/officers`, {
+      result: proof(sessionId("b"), "0x02", enrollmentSignal(id)),
+    });
+    expect(other.body.sybilScore).toBeNull();
   });
 
   it("never accepts a fuzzy name", async () => {

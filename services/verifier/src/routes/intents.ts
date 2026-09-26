@@ -90,7 +90,7 @@ export function intentRoutes(deps: AppDeps) {
     if (!deps.store.consumeNullifier(session.sessionNullifier, `intent:${intent.id}`)) {
       throw new HttpError(409, "proof_replayed", "this proof was already used");
     }
-    const approvals = deps.store.addApproval(intent.id, session.officerId);
+    const approvals = deps.store.addApproval(intent.id, session.officerId, session.sybilScore);
     return c.json(await settle(deps, intent, approvals as Hex[]));
   });
 

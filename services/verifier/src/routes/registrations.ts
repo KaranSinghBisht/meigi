@@ -164,7 +164,11 @@ export function registrationRoutes(deps: AppDeps, limiter: RateLimiter) {
       throw new HttpError(409, "proof_replayed", "this proof was already used");
     }
     deps.store.addOfficer(registration.id, registration.tNumber, session);
-    return c.json({ officerId: session.officerId, officers: deps.store.officersOf(registration.id).length });
+    return c.json({
+      officerId: session.officerId,
+      officers: deps.store.officersOf(registration.id).length,
+      sybilScore: session.sybilScore ?? null,
+    });
   });
 
   /**

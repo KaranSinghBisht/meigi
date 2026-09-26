@@ -5,7 +5,7 @@ import type { LeiRecord, LeiRegistry } from "../src/lei/lei.js";
 import { nameKey, type Corporation } from "../src/nta/corporations.js";
 import type { ChainPort, PayeeState, RegistrationArgs } from "../src/registry/chain.js";
 import { openStore } from "../src/store/db.js";
-import { officerIdFor, WorldVerificationError } from "../src/world/session.js";
+import { officerIdFor, sybilScoreOf, WorldVerificationError } from "../src/world/session.js";
 
 export const ATTESTER = privateKeyToAccount(`0x${"a7".repeat(32)}`);
 export const REGISTRY: Address = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
@@ -57,6 +57,15 @@ export function sessionId(tag: string): string {
 /** What a World ID session result looks like to our fake verifier. */
 export function proof(session: string, nullifier: string, signal: string) {
   return { session_id: session, signal, responses: [{ session_nullifier: [nullifier, "0x0"] }] };
+}
+
+/** The same, but proved with Self Check specifically, carrying its z-score. */
+export function selfieProof(session: string, nullifier: string, signal: string, sybilScore: number) {
+  return {
+    session_id: session,
+    signal,
+    responses: [{ identifier: "selfie", sybil_score: sybilScore, session_nullifier: [nullifier, "0x0"] }],
+  };
 }
 
 export class FakeChain implements ChainPort {
@@ -111,7 +120,12 @@ export function fakeDeps(chain: FakeChain, clock: { now: number }): AppDeps {
       async verify(result, signal) {
         const r = result as { session_id: string; signal: string; responses: { session_nullifier: string[] }[] };
         if (signal && r.signal !== signal) throw new WorldVerificationError("signal_mismatch", "wrong signal");
-        return { sessionId: r.session_id, officerId: officerIdFor(r.session_id), sessionNullifier: r.responses[0]!.session_nullifier[0]! };
+        return {
+          sessionId: r.session_id,
+          officerId: officerIdFor(r.session_id),
+          sessionNullifier: r.responses[0]!.session_nullifier[0]!,
+          sybilScore: sybilScoreOf(result),
+        };
       },
     },
     lei: fakeLei(),

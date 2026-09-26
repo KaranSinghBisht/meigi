@@ -38,6 +38,9 @@ export interface VerifiedSession {
   sessionId: string;
   officerId: Hex; // what the registry stores: keccak256(session_id)
   sessionNullifier: string; // per-proof replay protection
+  /** Self Check's z-score for this proof, if it used Self Check; undefined for any other credential (Proof of
+   * Human, Passport, MNC). A risk signal from the issuer, not a uniqueness verdict - never gated on. */
+  sybilScore?: number;
 }
 
 export class WorldVerificationError extends Error {
@@ -84,7 +87,12 @@ export async function verifySessionProof(
   if (typeof sessionId !== "string" || !SESSION_ID.test(sessionId)) {
     throw new WorldVerificationError("not_a_session", "the proof is not a World ID session proof");
   }
-  return { sessionId, officerId: officerIdFor(sessionId), sessionNullifier: sessionNullifierOf(result) };
+  return {
+    sessionId,
+    officerId: officerIdFor(sessionId),
+    sessionNullifier: sessionNullifierOf(result),
+    sybilScore: sybilScoreOf(result),
+  };
 }
 
 /**
@@ -117,9 +125,22 @@ export function requireCredential(result: unknown, allowed: ReadonlySet<string>)
   }
 }
 
-function firstResponse(result: unknown): { session_nullifier?: unknown; signal_hash?: unknown } | undefined {
+function firstResponse(
+  result: unknown,
+): { session_nullifier?: unknown; signal_hash?: unknown; identifier?: unknown; sybil_score?: unknown } | undefined {
   const responses = (result as { responses?: unknown } | null)?.responses;
-  return Array.isArray(responses) ? (responses[0] as { session_nullifier?: unknown }) : undefined;
+  return Array.isArray(responses) ? (responses[0] as Record<string, unknown>) : undefined;
+}
+
+/**
+ * Self Check's z-score for this proof, if it used Self Check (`identifier === "selfie"`); undefined for any
+ * other credential, which carries no such field. World documents it as a risk signal, not a uniqueness
+ * verdict - store and show it, but never gate on it.
+ */
+export function sybilScoreOf(result: unknown): number | undefined {
+  const response = firstResponse(result);
+  if (response?.identifier !== "selfie") return undefined;
+  return typeof response.sybil_score === "number" ? response.sybil_score : undefined;
 }
 
 /** The per-proof nullifier IDKit returns as `responses[].session_nullifier = [nullifier, action]`. */
