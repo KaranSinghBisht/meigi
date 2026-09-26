@@ -196,8 +196,8 @@
     margin: 0;
   }
 
-  /* Asking before starting over takes a row of its own under the bar. */
-  .rail__foot:has(.start-over) {
+  /* Asking before starting over, or the longer "Register another company", takes a row of its own under the bar. */
+  .rail__foot:has(.start-over, .start-over--next) {
     grid-area: auto;
     grid-column: 1 / -1;
     grid-row: 3;
@@ -205,6 +205,11 @@
 
   .rail__foot .start-over__text {
     flex-basis: auto;
+  }
+
+  /* On its own row, the text button lines up with the heading above it. */
+  .rail__foot .start-over--next {
+    margin-left: -8px;
   }
 
   /* One segment per step, however many steps there are. */

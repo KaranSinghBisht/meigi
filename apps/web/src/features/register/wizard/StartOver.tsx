@@ -13,7 +13,12 @@ export function StartOver({ onReset, finished = false, className }: StartOverPro
   const [asking, setAsking] = useState(false)
   if (finished || !asking) {
     return (
-      <Button variant="quiet" size="sm" className={className} onClick={finished ? () => onReset() : () => setAsking(true)}>
+      <Button
+        variant="quiet"
+        size="sm"
+        className={[className, finished ? 'start-over--next' : null].filter(Boolean).join(' ')}
+        onClick={finished ? () => onReset() : () => setAsking(true)}
+      >
         {finished ? 'Register another company' : 'Start over'}
       </Button>
     )
