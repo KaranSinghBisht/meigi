@@ -83,7 +83,10 @@ Only after Karan's video, and only on the lead's word. The demo must never depen
    one retry need ¥561,000.
 3. **Evidence for the ENS judges** (a short section of `docs/ens.md`): tx A (sent to the gate; the vault emits
    `InvoicePaid`), tx B, the audit entry with the `MandateNotLive` simulation, tx C and tx D.
-4. **Rollback, if anything is off:** ens runs `ens.sh mandate-unwire`, which hands the vault back to the key. Set
+4. **Don't run `ens.sh agent-rotate` while the gate is wired.** It refuses, because the vault's agent is the gate. To
+   change the agent's key, Haruka issues `ap.t4999900000005.payee.eth` to the new key (`ens.sh mandate-revoke`, then
+   `MANDATE_HOLDER=<new key> ens.sh mandate-issue`). Or unwire first.
+5. **Rollback, if anything is off:** ens runs `ens.sh mandate-unwire`, which hands the vault back to the key. Set
    `SIGNER_VIA_GATE=0`, restart the pair, and tell the lead. `/health` then shows `"via":"vault"`. The signer won't
    start while the flag and the chain disagree, so a half-done rollback shows up at once.
 

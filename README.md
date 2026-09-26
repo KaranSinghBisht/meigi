@@ -106,7 +106,7 @@ company it belongs to.
     10525 per ENSIP-25. Its key can edit only `agent-status` (Enhanced Access Control), and it is the AgentVault's
     ENSIP-19 primary name.
   - The names survive changing keys. Payouts and business keys change behind a 72h public timelock, and
-    `ens.sh agent-rotate` moves the agent to a new key without changing `ap.meigi.eth` (fork-tested).
+    `ens.sh agent-rotate` moves the agent to a new key without changing `ap.meigi.eth` (fork-tested before the gate went live).
   - Anyone can check them with stock viem and no configuration. The story and evidence: [`docs/ens.md`](docs/ens.md);
     scripts: [`contracts/script/ens`](contracts/script/ens).
 - **World ID (IDKit 4.0).**

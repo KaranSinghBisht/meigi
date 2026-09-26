@@ -92,6 +92,10 @@ to stop. The T-number name stays the only one.
 - On a Sepolia fork of the live name and vault, stock viem resolves `ap.meigi.eth` and the vault's primary name the
   same before and after. The old key is refused.
 - We haven't run the rotation on Sepolia, because the live agent keeps its key for the demo.
+- **While the MandateGate is the vault's agent** (since 2026-09-26), the vault's agent slot holds the gate, not a key.
+  So `agent-rotate` refuses up front. The buyer rotates instead: it issues `ap.t4999900000005.payee.eth` to the new
+  key, and the name stays the same. The fork proof now shows that refusal first, then unwires on the fork and rotates
+  as before.
 
 **The vault's primary name is `ap.meigi.eth`**, so wallets show the agent's name instead of `0x87A7…793B`.
 
@@ -180,8 +184,9 @@ Tests behind it:
 - 25 unit tests against the real PayeeRegistry, so rotations and disputes are the registry's own flows.
 - 6 fork tests on the live Beta through the canonical UniversalResolver.
 - [`names-e2e.sh`](../contracts/script/ens/names-e2e.sh) on an anvil fork with stock viem.
-- contracts-review passed it (48/48 on a Sepolia fork, no open findings) after two rounds whose findings shaped this
-  design.
+- contracts-review passed it after two rounds whose findings shaped this design: 48 of 48, no open findings. Those
+  counts come from contracts-review's own fork harness, which is kept outside the repo. The fork tests in the repo
+  are [`CompanyNamespaceFork.t.sol`](../contracts/test/ens/CompanyNamespaceFork.t.sol) and the unit tests above.
 
 **The mandate: an ENS name the vault obeys** (live since 2026-09-26).
 [`MandateGate`](../contracts/src/payments/MandateGate.sol) at
@@ -189,7 +194,8 @@ Tests behind it:
 agent. It passes `payInvoice` on only while `ap.t4999900000005.payee.eth` answers and the caller is its holder. The
 buyer revokes the name, and the agent's next payment is refused on-chain (`MandateNotLive`); it issues the name again,
 and payments continue. The vault still checks every payment itself. contracts-review passed the gate: 30 of 30 on a
-fork in front of the live vault and against the live names.
+fork in front of the live vault and against the live names, in its own harness kept outside the repo. The repo's
+fork test is [`MandateGateFork.t.sol`](../contracts/test/payments/MandateGateFork.t.sol).
 
 The live rehearsal (Sepolia, 2026-09-26, ¥1,100 invoices to 株式会社メイギ商事; every transaction status 1):
 
@@ -298,14 +304,14 @@ Live on Sepolia. ENS app: [app.ens.dev](https://app.ens.dev). Explorer: [explore
 | A payout change resolves only after 72 hours, exactly when it lands | [`test_addr_switchesExactlyAtEffectiveAt`](../contracts/test/ens/PayeeResolver.t.sol), [`testFuzz_payoutChange_neverLandsEarly`](../contracts/test/registry/PayeeRegistry.t.sol); `changeDelay()` = 259200 on [PayeeRegistry](https://repo.sourcify.dev/11155111/0x205c977cF1f4Ed42e51a48759550eF40160A6396) |
 | A claimed company publishes its own profile | [app: t2011001234567.payee.eth](https://app.ens.dev/t2011001234567.payee.eth) (claim [`0xb60e…77e1`](https://sepolia.etherscan.io/tx/0xb60e778bd1355c662f2fbe18cd13a34d7b013005c8c7bb85a3472e14a9e077e1), url [`0xcbe9…3ccf`](https://sepolia.etherscan.io/tx/0xcbe90c90e03e07b0f2c4f58b13596f0904b1038db140cf1be4099c4e38b43ccf), avatar [`0x877c…0baa`](https://sepolia.etherscan.io/tx/0x877cafe13cd902dc10d400a81f34c9a8196e9633e401b160b7d7441db8dd0baa)) · [app: t8999900000001.payee.eth](https://app.ens.dev/t8999900000001.payee.eth) (claim [`0xe03d…612b`](https://sepolia.etherscan.io/tx/0xe03d70436822a74b9b69ce9b086ed9d6419ed95d15f3a23881c17e591870612b), profile [`0xcc8d…330b`](https://sepolia.etherscan.io/tx/0xcc8d1aa24780bcf540e7f50b50d13b6cae24c0ad0b76f6802daaa47c58de330b)) |
 | A claim can be revoked, and the name still resolves | `t6999900000003.payee.eth`: listed in [`0xf24f…5878`](https://sepolia.etherscan.io/tx/0xf24fa19c056654fe07f7d93d43ad5ebfc44ce5d3ecdb6814335cdcd9708d5878), revoked in [`0x0f3c…64bd`](https://sepolia.etherscan.io/tx/0x0f3c5d72bda2b2a894c97e779570eae8cfa44b11516465532754f4ea914364bd). Stock viem still returns 株式会社ミナトGPUクラウド and `0x4d6D…FD30`, through payee.eth's resolver |
-| A claim inherits `payee.eth`'s expiry | `ens.sh claim-check` prints and asserts it: both live claims expire at 1821898512, the same second as `payee.eth` |
+| A claim inherits `payee.eth`'s expiry | `ens.sh claim-check` prints and asserts it: all three live claims (t2011001234567, t8999900000001 and t4999900000005) expire at 1821898512, the same second as `payee.eth` |
 | A claimed name can't be transferred | `ens.sh claim-check`: the company's `unsafeTransfer` reverts `TransferDisallowed`, and its `safeTransferFrom` reverts too (ENSv2 requires `ROLE_CAN_TRANSFER_ADMIN`, and claims carry no roles) |
 | A claim never changes the address | [ClaimedPayeeResolver](https://sepolia.etherscan.io/address/0xe4679507c08c61BE0328EDC72c91D62Bd6f03ebd) and its [22 tests](../contracts/test/ens/ClaimedPayeeResolver.t.sol). `ens.sh claim-check` simulates the company setting an address (reverts), re-pointing its name (reverts) and overriding `name` or `meigi.status` (no effect). After each claim, stock viem resolved seven reference names byte for byte as before |
 | Payout wallets carry their company's name | `getEnsName(0x9B4f…47e4)` = `t2011001234567.payee.eth` ([`0x98a1…8f1f`](https://sepolia.etherscan.io/tx/0x98a15959ee452dbd8b09d7c81e5d6ab0702d20dfb35787fed8ff512c222dfb1f)) · `getEnsName(0x0C1d…578D)` = `t8999900000001.payee.eth` ([`0x3b5e…cdc7`](https://sepolia.etherscan.io/tx/0x3b5e1fe3e08defb1ea434d40cd68f59212ef76482b04db4ee364552583afcdc7)) |
 | The agent has an ENS profile and ENSIP-26 records | [app: ap.meigi.eth](https://app.ens.dev/ap.meigi.eth) (profile [`0x64de…65d0`](https://sepolia.etherscan.io/tx/0x64def3ea137ea182ef899983b0100b6ea63de862fe7e8a51c5ed55b9a2a965d0)) · resolver [`0x047A…5716`](https://sepolia.etherscan.io/address/0x047A1B0E18fc4092706F7696ffeCF61625865716) |
 | ENSIP-25: the agent's ERC-8004 registration and its ENS name point at each other | ERC-8004 agent 10525 on [`0x8004A818…BD9e`](https://sepolia.etherscan.io/address/0x8004A818BFB912233c491871b3d84c89A494BD9e), registered in [`0x7abf…88f3`](https://sepolia.etherscan.io/tx/0x7abf01a79e3f740ebf19538bff3b6d896d05e2607253e61ba1062779860188f3) · the record on ap.meigi.eth set in [`0x0f12…c107`](https://sepolia.etherscan.io/tx/0x0f12e323e39f5256ab3b6360320eec96d48e811747717f11f552ebb97b03c107) · check: `(cd apps/landing && RPC_URL=… AGENT_ID=10525 node --input-type=module) < contracts/script/ens/check-agent-8004-viem.mjs` |
 | The agent's key can write only `agent-status` | It set that record itself: [`0x91f4…f640`](https://sepolia.etherscan.io/tx/0x91f4a833075ca25b5728fae27788fa5009a6ff829b83207a9b53978e780cf640). `ens.sh agent-check` simulates its other writes, and each reverts `EACUnauthorizedAccountRoles` |
-| The agent's key rotates without changing the name | [`agent-rotate-e2e.sh`](../contracts/script/ens/agent-rotate-e2e.sh), on a Sepolia fork of the live name and vault (not run live) |
+| The agent's key rotates without changing the name | [`agent-rotate-e2e.sh`](../contracts/script/ens/agent-rotate-e2e.sh), on a Sepolia fork of the live name and vault (not run live). With the MandateGate wired, the script first shows `agent-rotate` refusing, then unwires on the fork; live, the buyer rotates by issuing `ap.t4999900000005.payee.eth` to the new key |
 | The vault's primary name is `ap.meigi.eth` | `getEnsName(0x87A7…793B)` · [`0xb4a6…963a`](https://sepolia.etherscan.io/tx/0xb4a6c4b8b2da4197da0354e9ff3387e58eb2ad01c525223975ecde69b3ff963a) |
 | The namespace root has a profile | [app: meigi.eth](https://app.ens.dev/meigi.eth), resolver set in [`0xd877…597b`](https://sepolia.etherscan.io/tx/0xd87729c4ccdf7d415473476d66462a4b664cd0e2b38125b59d4521d2cc0c597b) |
 | ENS's agent CLI would see the same answers | `ens get address t2011001234567.payee.eth --chain sepolia` calls viem's `getEnsAddress` with the default Sepolia Universal Resolver ([source](https://github.com/ensdomains/ens-cli/blob/main/src/commands/get.ts)), the same call as the check above. We haven't run it ourselves: it ships only as an unpinned preview build |

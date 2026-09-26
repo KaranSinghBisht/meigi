@@ -169,6 +169,7 @@ contract AgentNamespace is Script {
             agent != EnsV2Lib.signer("DEPLOYER_PRIVATE_KEY", "DEPLOYER_ADDRESS"),
             "the agent can't be the deployer"
         );
+        _requireKeyInVaultSlot(agent, previous); // refuse before moving the ENS role, so part 2 can't be left undone
 
         EnsV2Lib.startBroadcast("DEPLOYER_PRIVATE_KEY", "DEPLOYER_ADDRESS");
         if (!resolver.hasRoles(_statusResource(), AgentNsLib.ROLE_SET_TEXT, agent)) {
@@ -194,9 +195,7 @@ contract AgentNamespace is Script {
         (address vault,) = AgentConfig.meigi();
         IAgentVaultAgent slot = IAgentVaultAgent(vault);
         address current = slot.agent();
-        require(
-            current == previous || current == agent, "the vault's agent is neither the old nor the new key"
-        );
+        _requireKeyInVaultSlot(agent, previous);
 
         EnsV2Lib.startBroadcast("VAULT_OWNER_PRIVATE_KEY", "VAULT_OWNER_ADDRESS");
         if (current != agent) slot.setAgent(agent);
@@ -246,6 +245,18 @@ contract AgentNamespace is Script {
     }
 
     /// @dev The new key (AGENT_ADDRESS) and the one it replaces (AGENT_PREVIOUS_ADDRESS).
+    /// @dev The vault's agent slot must hold the old or the new key. While the MandateGate is the vault's agent (since
+    ///      2026-09-26) it holds the gate: the buyer rotates by issuing its mandate name to the new key instead
+    ///      (`ens.sh mandate-issue` with MANDATE_HOLDER), or Meigi runs `ens.sh mandate-unwire` first.
+    function _requireKeyInVaultSlot(address agent, address previous) private view {
+        (address vault,) = AgentConfig.meigi();
+        address current = IAgentVaultAgent(vault).agent();
+        require(
+            current == previous || current == agent,
+            "the vault's agent is not the old or new key (the MandateGate is wired?): issue the mandate name to the new key, or mandate-unwire first"
+        );
+    }
+
     function _rotation() private view returns (address agent, address previous) {
         agent = vm.envAddress("AGENT_ADDRESS");
         previous = vm.envAddress("AGENT_PREVIOUS_ADDRESS");

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Fork proof that the AP agent's identity survives a change of key. On an anvil fork of Sepolia, against the live
 # ap.meigi.eth and AgentVault, it impersonates the resolver's admin (the deployer) and the vault's owner (no key is
-# read), makes a fresh key the new agent with the two steps of `ens.sh agent-rotate`, and then checks:
+# read), makes a fresh key the new agent with the two steps of `ens.sh agent-rotate`, and then checks the points below.
+# While the MandateGate is the vault's agent, it first checks that agent-rotate refuses, then unwires on the fork.
 #   - the old key's setText(agent-status) reverts EACUnauthorizedAccountRoles, and it can no longer pay from the vault;
 #   - the new key sets agent-status through `ens.sh agent-status`, and holds exactly that one scoped role;
 #   - stock viem: ap.meigi.eth still resolves to the vault with the same records, and getEnsName(vault) is still
@@ -77,6 +78,13 @@ DEPLOYER_ADDRESS="$(call "$ETH_REGISTRY" "getOwner(uint256)(address)" "$(cast ke
 VAULT="$(jq -r .vault "$MEIGI/contracts/deployments/11155111.json")"
 VAULT_OWNER_ADDRESS="$(call "$VAULT" "owner()(address)")"
 OLD_AGENT="$(call "$VAULT" "agent()(address)")"
+GATE=""
+if [[ $(cast code "$OLD_AGENT" --rpc-url "$RPC_URL") != 0x ]]; then
+  # Since 2026-09-26 the vault's agent is the MandateGate; the key is the mandate's holder.
+  GATE="$OLD_AGENT"
+  OLD_AGENT="$(call "$GATE" "holder()(address)")"
+  [[ $OLD_AGENT != 0x0000000000000000000000000000000000000000 ]] || fail "the gate's mandate is dark: no key to rotate"
+fi
 NEW_KEY="$(jq -r '.private_keys[0]' "$TMP/anvil.json")"
 NEW_AGENT="$(jq -r '.available_accounts[0]' "$TMP/anvil.json")"
 export AGENT_SUBREGISTRY AGENT_RESOLVER DEPLOYER_ADDRESS VAULT_OWNER_ADDRESS
@@ -90,6 +98,17 @@ echo "$before"
 primary="$(viem check-primary-viem.mjs ENS_ADDRESS="$VAULT")" || fail "viem failed: $primary"
 echo "$primary"
 jq -e --arg n "$NAME" '.name == $n' <<<"$primary" >/dev/null || fail "getEnsName(vault) is not $NAME before the rotation"
+
+if [[ -n $GATE ]]; then
+  step "With the MandateGate wired, agent-rotate refuses before touching the ENS role"
+  if out="$(AGENT_ADDRESS="$NEW_AGENT" AGENT_PREVIOUS_ADDRESS="$OLD_AGENT" forge_as "$DEPLOYER_ADDRESS" "rotate()")"; then
+    fail "rotate ran while the gate is the vault's agent"
+  fi
+  grep -q "MandateGate is wired" <<<"$out" || fail "rotate refused for another reason: $out"
+  echo "refused: the vault's agent is the gate $GATE"
+  step "On the fork only: unwire, as ens.sh mandate-unwire would (the vault's owner hands the slot back to the key)"
+  cast send "$VAULT" "setAgent(address)" "$OLD_AGENT" --from "$VAULT_OWNER_ADDRESS" --unlocked --rpc-url "$RPC_URL" >/dev/null
+fi
 
 step "ens.sh agent-rotate, part 1 (deployer): agent-status role to the new key, revoked from the old one"
 out="$(AGENT_ADDRESS="$NEW_AGENT" AGENT_PREVIOUS_ADDRESS="$OLD_AGENT" forge_as "$DEPLOYER_ADDRESS" "rotate()")" ||
