@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {IPayeeRegistry} from "../registry/IPayeeRegistry.sol";
 import {TNumber} from "../registry/TNumber.sol";
 
 /// @notice ENSIP-10 `resolve(bytes,bytes)`: implemented by PayeeResolver and by ENSv2's PermissionedResolver.
@@ -18,7 +19,8 @@ interface IExtendedResolver {
 ///         - `addr`, `addr(coinType)`, `name` and every `meigi.*` text are answered by the PayeeResolver, which reads
 ///           the PayeeRegistry (timelocked changes; disputed or unknown payees fail closed);
 ///         - every other text key (url, avatar, description, ...) comes from the company's own ENSv2
-///           PermissionedResolver, where the company holds ROLE_SET_TEXT, and shows only while the payee is active.
+///           PermissionedResolver, where the company holds ROLE_SET_TEXT. It shows only while the registry lists the
+///           payee as active under the controller that claimed the name.
 ///         No claim, profile or company key can change where a payment goes.
 contract ClaimedPayeeResolver is IERC165, Ownable2Step {
     bytes4 private constant EXTENDED_RESOLVER = 0x9061b923; // resolve(bytes,bytes)
@@ -29,28 +31,39 @@ contract ClaimedPayeeResolver is IERC165, Ownable2Step {
 
     /// @notice The PayeeResolver that serves payee.eth; the single source for money records.
     IExtendedResolver public immutable payees;
+    /// @notice The registry that PayeeResolver reads; it decides whether a profile shows.
+    IPayeeRegistry public immutable registry;
     /// @notice keccak256 of the DNS-encoded parent, e.g. "\x05payee\x03eth\x00".
     bytes32 public immutable parentNameHash;
     /// @notice The company's own profile resolver for each claimed T-number (set by Meigi at claim time).
     mapping(uint64 tNumber => IExtendedResolver) public profileOf;
+    /// @notice The registry controller that claimed each T-number, and so wrote its profile.
+    mapping(uint64 tNumber => address) public claimantOf;
 
-    event ProfileSet(uint64 indexed tNumber, address profile);
+    event ProfileSet(uint64 indexed tNumber, address profile, address claimant);
 
     error UnsupportedRecord(bytes4 selector);
     error InvalidParentName();
 
-    constructor(IExtendedResolver payees_, bytes memory parentDnsName, address owner_) Ownable(owner_) {
+    constructor(
+        IExtendedResolver payees_,
+        IPayeeRegistry registry_,
+        bytes memory parentDnsName,
+        address owner_
+    ) Ownable(owner_) {
         uint256 n = parentDnsName.length;
         if (n < 2 || parentDnsName[n - 1] != 0x00) revert InvalidParentName();
         payees = payees_;
+        registry = registry_;
         parentNameHash = keccak256(parentDnsName);
     }
 
-    /// @notice Points a claimed T-number at the company's profile resolver (zero clears it).
-    function setProfile(uint64 tNumber, IExtendedResolver profile) external onlyOwner {
+    /// @notice Points a claimed T-number at the profile resolver of the controller that claimed it (zero clears it).
+    function setProfile(uint64 tNumber, IExtendedResolver profile, address claimant) external onlyOwner {
         if (!TNumber.isValid(tNumber)) revert TNumber.InvalidTNumber();
         profileOf[tNumber] = profile;
-        emit ProfileSet(tNumber, address(profile));
+        claimantOf[tNumber] = claimant;
+        emit ProfileSet(tNumber, address(profile), claimant);
     }
 
     /// @notice ENSIP-10 entry point. `name` is DNS-encoded.
@@ -60,9 +73,9 @@ contract ClaimedPayeeResolver is IERC165, Ownable2Step {
         if (selector == MULTICALL) return _multicall(name, data);
         if (selector == ADDR || selector == ADDR_COIN) return _fromRegistry(name, data, selector);
         if (selector != TEXT) revert UnsupportedRecord(selector);
-        (bytes32 node, string memory key) = abi.decode(data[4:], (bytes32, string));
+        (, string memory key) = abi.decode(data[4:], (bytes32, string));
         if (_isRegistryKey(bytes(key))) return _fromRegistry(name, data, selector);
-        return _profileText(name, data, node);
+        return _profileText(name, data);
     }
 
     function supportsInterface(bytes4 interfaceId) external pure returns (bool) {
@@ -85,16 +98,11 @@ contract ClaimedPayeeResolver is IERC165, Ownable2Step {
         }
     }
 
-    /// @dev A company profile never answers for the registry's keys, and a failing profile reads as empty. It shows
-    ///      only while the registry lists the payee as active: a dispute means competing claimants, so, as with the
-    ///      legal name, neither one's profile is presented as the company's.
-    function _profileText(bytes calldata name, bytes calldata data, bytes32 node)
-        private
-        view
-        returns (bytes memory)
-    {
-        IExtendedResolver profile = profileOf[_tNumberOf(name)];
-        if (address(profile) == address(0) || !_isActive(name, node)) return abi.encode("");
+    /// @dev A company profile never answers for the registry's keys, and a failing profile reads as empty.
+    function _profileText(bytes calldata name, bytes calldata data) private view returns (bytes memory) {
+        uint64 tNumber = _tNumberOf(name);
+        IExtendedResolver profile = profileOf[tNumber];
+        if (address(profile) == address(0) || !_claimantIsActive(tNumber)) return abi.encode("");
         try profile.resolve(name, data) returns (bytes memory result) {
             return result;
         } catch {
@@ -102,12 +110,12 @@ contract ClaimedPayeeResolver is IERC165, Ownable2Step {
         }
     }
 
-    /// @dev Asks the PayeeResolver, so the registry stays the only source of status. Any failure reads as inactive.
-    function _isActive(bytes calldata name, bytes32 node) private view returns (bool) {
-        try payees.resolve(name, abi.encodeWithSelector(TEXT, node, "meigi.status")) returns (
-            bytes memory result
-        ) {
-            return keccak256(result) == keccak256(abi.encode("active"));
+    /// @dev A profile shows only while the registry lists the payee as active under the controller that claimed the
+    ///      name. A dispute means competing claimants, and a new controller (after a dispute or a key rotation) did
+    ///      not write this profile. So, as with the legal name, it is withheld. Any failure reads as inactive.
+    function _claimantIsActive(uint64 tNumber) private view returns (bool) {
+        try registry.payeeOf(tNumber) returns (IPayeeRegistry.PayeeView memory payee) {
+            return payee.status == IPayeeRegistry.Status.Active && payee.controller == claimantOf[tNumber];
         } catch {
             return false;
         }
@@ -126,13 +134,19 @@ contract ClaimedPayeeResolver is IERC165, Ownable2Step {
         return abi.encode(results);
     }
 
-    /// @dev `name` (the NTA-registered legal name) and every `meigi.*` key belong to the registry.
+    /// @dev `name` (the NTA-registered legal name) and every `meigi.*` key belong to the registry, in any letter case,
+    ///      so a profile can't publish a look-alike such as `Name` or `Meigi.status` either.
     function _isRegistryKey(bytes memory key) private pure returns (bool) {
-        if (keccak256(key) == keccak256("name")) return true;
-        bytes memory prefix = "meigi.";
+        return (key.length == 4 && _startsWithLower(key, "name")) || _startsWithLower(key, "meigi.");
+    }
+
+    /// @dev Whether `key`, with ASCII letters lowercased, starts with the lowercase `prefix`.
+    function _startsWithLower(bytes memory key, bytes memory prefix) private pure returns (bool) {
         if (key.length < prefix.length) return false;
         for (uint256 i; i < prefix.length; i++) {
-            if (key[i] != prefix[i]) return false;
+            bytes1 c = key[i];
+            if (c >= "A" && c <= "Z") c = bytes1(uint8(c) + 32);
+            if (c != prefix[i]) return false;
         }
         return true;
     }

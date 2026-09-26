@@ -5,6 +5,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ClaimedPayeeResolver, IExtendedResolver} from "../../src/ens/ClaimedPayeeResolver.sol";
 import {PayeeResolver} from "../../src/ens/PayeeResolver.sol";
 import {IPayeeRegistry} from "../../src/registry/IPayeeRegistry.sol";
+import {PayeeRegistry} from "../../src/registry/PayeeRegistry.sol";
 import {TNumber} from "../../src/registry/TNumber.sol";
 import {MeigiFixture} from "../utils/MeigiFixture.sol";
 
@@ -57,11 +58,13 @@ contract ClaimedPayeeResolverTest is MeigiFixture {
     function setUp() public override {
         super.setUp();
         payees = new PayeeResolver(IPayeeRegistry(address(registry)), PARENT);
-        claimed = new ClaimedPayeeResolver(IExtendedResolver(address(payees)), PARENT, governance);
+        claimed = new ClaimedPayeeResolver(
+            IExtendedResolver(address(payees)), IPayeeRegistry(address(registry)), PARENT, governance
+        );
         profile = new MockProfileResolver();
         _register(VENDOR, payout);
         vm.prank(governance);
-        claimed.setProfile(VENDOR, IExtendedResolver(address(profile)));
+        claimed.setProfile(VENDOR, IExtendedResolver(address(profile)), controller);
         profile.setText("url", URL);
     }
 
@@ -102,10 +105,14 @@ contract ClaimedPayeeResolverTest is MeigiFixture {
     }
 
     function test_failsClosedWhenThePayeeResolverReverts() public {
-        ClaimedPayeeResolver broken =
-            new ClaimedPayeeResolver(IExtendedResolver(address(new RevertingResolver())), PARENT, governance);
+        ClaimedPayeeResolver broken = new ClaimedPayeeResolver(
+            IExtendedResolver(address(new RevertingResolver())),
+            IPayeeRegistry(address(registry)),
+            PARENT,
+            governance
+        );
         vm.prank(governance);
-        broken.setProfile(VENDOR, IExtendedResolver(address(profile)));
+        broken.setProfile(VENDOR, IExtendedResolver(address(profile)), controller);
         profile.setAddr(attacker);
         profile.setText("name", "Scam K.K.");
         bytes memory name = _name(LABEL);
@@ -117,7 +124,24 @@ contract ClaimedPayeeResolverTest is MeigiFixture {
         );
         assertEq(abi.decode(broken.resolve(name, coin60), (bytes)).length, 0);
         assertEq(abi.decode(broken.resolve(name, legalName), (string)), "", "never the profile's claim");
-        assertEq(abi.decode(broken.resolve(name, url), (string)), "", "no status, so no profile either");
+        assertEq(abi.decode(broken.resolve(name, url), (string)), URL, "the profile is not a money record");
+    }
+
+    function test_text_aFailingRegistryHidesTheProfile() public {
+        ClaimedPayeeResolver blind = new ClaimedPayeeResolver(
+            IExtendedResolver(address(payees)),
+            IPayeeRegistry(address(new RevertingResolver())),
+            PARENT,
+            governance
+        );
+        vm.prank(governance);
+        blind.setProfile(VENDOR, IExtendedResolver(address(profile)), controller);
+        bytes memory url = abi.encodeWithSignature("text(bytes32,string)", bytes32(0), "url");
+        assertEq(abi.decode(blind.resolve(_name(LABEL), url), (string)), "");
+        bytes memory addrCall = abi.encodeWithSelector(ADDR, bytes32(0));
+        assertEq(
+            abi.decode(blind.resolve(_name(LABEL), addrCall), (address)), payout, "money records unaffected"
+        );
     }
 
     function testFuzz_addr_neverFollowsTheProfile(address evil) public {
@@ -150,6 +174,25 @@ contract ClaimedPayeeResolverTest is MeigiFixture {
         assertEq(_addr(LABEL), payout);
     }
 
+    function test_text_aNewControllerDoesNotInheritTheProfile() public {
+        _dispute();
+        PayeeRegistry.Registration memory winner = _registration(VENDOR, newPayout, 1);
+        winner.controller = makeAddr("winner");
+        vm.prank(governance);
+        registry.resolveDispute(winner);
+        vm.warp(block.timestamp + CHANGE_DELAY);
+        registry.finalizeDispute(VENDOR);
+        assertEq(_addr(LABEL), newPayout, "the winner's payout resolves");
+        assertEq(_text(LABEL, "name"), VENDOR_NAME);
+        assertEq(_text(LABEL, "url"), "", "the losing claimant's profile stays hidden");
+    }
+
+    function test_text_profileShowsOnlyForItsClaimant() public {
+        vm.prank(governance);
+        claimed.setProfile(VENDOR, IExtendedResolver(address(profile)), attacker);
+        assertEq(_text(LABEL, "url"), "", "claimed by someone other than the controller");
+    }
+
     function test_text_profileKeysComeFromTheCompany() public view {
         assertEq(_text(LABEL, "url"), URL);
         assertEq(_text(LABEL, "avatar"), "", "unset profile key");
@@ -165,17 +208,33 @@ contract ClaimedPayeeResolverTest is MeigiFixture {
         assertEq(_text(LABEL, "meigi.status"), "disputed", "a profile cannot mask a dispute");
     }
 
+    function test_text_lookAlikeRegistryKeysNeverComeFromTheProfile() public {
+        profile.setText("Name", "Scam K.K.");
+        profile.setText("MEIGI.status", "active");
+        assertEq(_text(LABEL, "Name"), "");
+        assertEq(_text(LABEL, "MEIGI.status"), "");
+    }
+
     function test_text_unclaimedAndForeignNamesReadNoProfile() public {
         vm.prank(governance);
-        claimed.setProfile(OTHER_VENDOR, IExtendedResolver(address(profile)));
+        claimed.setProfile(OTHER_VENDOR, IExtendedResolver(address(profile)), controller);
         bytes memory foreign = abi.encodePacked(uint8(14), LABEL, uint8(3), "eth", uint8(0)); // t...eth
         bytes memory call = abi.encodeWithSignature("text(bytes32,string)", bytes32(0), "url");
         assertEq(abi.decode(claimed.resolve(foreign, call), (string)), "", "wrong parent");
         assertEq(_text("t8999900000001", "url"), "", "a profile for an unregistered T-number never shows");
         vm.prank(governance);
-        claimed.setProfile(VENDOR, IExtendedResolver(address(0)));
+        claimed.setProfile(VENDOR, IExtendedResolver(address(0)), address(0));
         assertEq(_text(LABEL, "url"), "", "cleared profile");
         assertEq(_addr(LABEL), payout, "clearing the profile leaves the payout");
+    }
+
+    function test_subnamesOfAClaimedNameResolveToNothing() public {
+        profile.setAddr(attacker);
+        bytes memory sub = abi.encodePacked(uint8(3), "pay", uint8(14), LABEL, PARENT); // pay.t....payee.eth
+        bytes memory url = abi.encodeWithSignature("text(bytes32,string)", bytes32(0), "url");
+        bytes memory addrCall = abi.encodeWithSelector(ADDR, bytes32(0));
+        assertEq(abi.decode(claimed.resolve(sub, addrCall), (address)), address(0));
+        assertEq(abi.decode(claimed.resolve(sub, url), (string)), "");
     }
 
     function test_text_aBrokenProfileReadsEmpty() public {
@@ -200,13 +259,13 @@ contract ClaimedPayeeResolverTest is MeigiFixture {
     function test_setProfile_onlyOwner() public {
         vm.prank(attacker);
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, attacker));
-        claimed.setProfile(VENDOR, IExtendedResolver(attacker));
+        claimed.setProfile(VENDOR, IExtendedResolver(attacker), attacker);
     }
 
     function test_setProfile_rejectsInvalidTNumbers() public {
         vm.prank(governance);
         vm.expectRevert(TNumber.InvalidTNumber.selector);
-        claimed.setProfile(123, IExtendedResolver(address(profile)));
+        claimed.setProfile(123, IExtendedResolver(address(profile)), controller);
     }
 
     function test_resolve_rejectsUnsupportedRecords() public {
@@ -223,6 +282,11 @@ contract ClaimedPayeeResolverTest is MeigiFixture {
 
     function test_constructor_rejectsAnInvalidParent() public {
         vm.expectRevert(ClaimedPayeeResolver.InvalidParentName.selector);
-        new ClaimedPayeeResolver(IExtendedResolver(address(payees)), hex"0570617965650365746801", governance);
+        new ClaimedPayeeResolver(
+            IExtendedResolver(address(payees)),
+            IPayeeRegistry(address(registry)),
+            hex"0570617965650365746801",
+            governance
+        );
     }
 }
