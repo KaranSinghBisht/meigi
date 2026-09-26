@@ -6,7 +6,17 @@ import type { RecordedChangeRun } from './recorded'
 import './change.css'
 
 /** One officer row, replayed: every officer here proved, since the run it replays completed. */
-function OfficerRow({ officerId, sessionId, index }: { readonly officerId: string; readonly sessionId: string; readonly index: number }) {
+function OfficerRow({
+  officerId,
+  sessionId,
+  sybilScore,
+  index,
+}: {
+  readonly officerId: string
+  readonly sessionId: string
+  readonly sybilScore: number | null
+  readonly index: number
+}) {
   return (
     <li className="approvals__row is-done">
       <span className="approvals__who">
@@ -14,6 +24,11 @@ function OfficerRow({ officerId, sessionId, index }: { readonly officerId: strin
         <span className="mono" title={sessionId}>
           {shortHash(officerId)}
         </span>
+        {sybilScore !== null ? (
+          <span className="muted" title="A risk signal from World, not a uniqueness verdict.">
+            Selfie Check · sybil score {sybilScore}
+          </span>
+        ) : null}
       </span>
       <span className="approvals__ok">✓ approved with World ID</span>
     </li>
@@ -34,7 +49,13 @@ export function ChangeRecordedRun({ run }: { readonly run: RecordedChangeRun }) 
       </p>
       <ol className="approvals">
         {run.officers.map((officer, index) => (
-          <OfficerRow key={officer.officerId} officerId={officer.officerId} sessionId={officer.sessionId} index={index} />
+          <OfficerRow
+            key={officer.officerId}
+            officerId={officer.officerId}
+            sessionId={officer.sessionId}
+            sybilScore={officer.sybilScore}
+            index={index}
+          />
         ))}
       </ol>
       <Notice tone="success" title={`Approved by ${run.provedOfficerIds.length} of ${run.threshold} officers`}>

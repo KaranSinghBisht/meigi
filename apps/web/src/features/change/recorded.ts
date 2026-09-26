@@ -10,6 +10,9 @@ export interface RecordedOfficer {
   readonly officerId: string
   /** The World ID session id that proved this officer, shown short (public, not a secret). */
   readonly sessionId: string
+  /** Self Check's z-score, if that's the credential this officer approved with; null for any other credential.
+   * A risk signal from World, not a uniqueness verdict — shown as a quiet fact. */
+  readonly sybilScore: number | null
 }
 
 export interface RecordedChangeRun {

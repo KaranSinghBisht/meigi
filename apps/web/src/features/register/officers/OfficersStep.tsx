@@ -18,21 +18,26 @@ import './officers.css'
 /** The registry's cap on officers per company (the verifier refuses a ninth with too_many_officers). */
 const MAX_OFFICERS = 8
 
-/** Sends one officer's World ID session proof; a refusal is shown here and fails the widget. */
+/** Sends one officer's World ID session proof; a refusal is shown here and fails the widget.
+ * `sybilScores` is kept only in this component: the shared onboarding state tracks officer ids alone, and this
+ * is display-only (a risk signal, never gated on), so it doesn't need to live anywhere more durable. */
 function useEnroll(registration: Registration, onEnrolled: Onboarding['officerAdded']) {
   const [error, setError] = useState<Explained | null>(null)
   const [enrolled, setEnrolled] = useState(false)
+  const [sybilScores, setSybilScores] = useState<Record<string, number | null>>({})
   const enroll = async (result: IDKitResultSession) => {
     setError(null)
     try {
-      onEnrolled(registration.id, (await enrollOfficer(registration.id, result)).officerId)
+      const enrollment = await enrollOfficer(registration.id, result)
+      onEnrolled(registration.id, enrollment.officerId)
+      setSybilScores((prev) => ({ ...prev, [enrollment.officerId]: enrollment.sybilScore }))
       setEnrolled(true)
     } catch (reason) {
       setError(explainStep(reason))
       throw reason
     }
   }
-  return { error, enrolled, enroll }
+  return { error, enrolled, enroll, sybilScores }
 }
 
 export function OfficersStep({ onboarding }: { readonly onboarding: Onboarding }) {
@@ -48,7 +53,7 @@ interface OfficersProps {
 }
 
 function Officers({ onboarding, registration, officers }: OfficersProps) {
-  const { error, enrolled, enroll } = useEnroll(registration, onboarding.officerAdded)
+  const { error, enrolled, enroll, sybilScores } = useEnroll(registration, onboarding.officerAdded)
   const none = officers.length === 0
   return (
     <StepFrame
@@ -64,7 +69,9 @@ function Officers({ onboarding, registration, officers }: OfficersProps) {
       }
     >
       <CredentialNote />
-      <OfficerList officers={officers.map((id) => ({ id, proof: 'world-id' as const }))} />
+      <OfficerList
+        officers={officers.map((id) => ({ id, proof: 'world-id' as const, sybilScore: sybilScores[id] ?? null }))}
+      />
       {enrolled ? <Notice tone="success" title="Officer added." /> : null}
       {error ? <StepError error={error} onboarding={onboarding} /> : null}
       {officers.length >= MAX_OFFICERS ? (

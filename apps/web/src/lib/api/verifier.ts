@@ -3,7 +3,7 @@
 
 import { env, type HexAddress } from '../env/env'
 import { joinUrl, requestJson } from './http'
-import { bad, bigintStr, hex, isRecord, num, optStr, record, str, type Json } from './parse'
+import { bad, bigintStr, hex, isRecord, num, optNum, optStr, record, str, type Json } from './parse'
 
 const url = (path: string) => joinUrl(env.verifierUrl, path)
 
@@ -111,7 +111,10 @@ export async function checkDomainProof(id: string): Promise<{ readonly method: s
   return { method: str(body, 'method', 'domain check') }
 }
 
-export async function enrollOfficer(id: string, result: unknown): Promise<{ officerId: string; officers: number }> {
+export async function enrollOfficer(
+  id: string,
+  result: unknown,
+): Promise<{ officerId: string; officers: number; sybilScore: number | null }> {
   const response = await requestJson(url(`/registrations/${encodeURIComponent(id)}/officers`), {
     method: 'POST',
     body: { result },
@@ -120,6 +123,7 @@ export async function enrollOfficer(id: string, result: unknown): Promise<{ offi
   return {
     officerId: str(body, 'officerId', 'officer enrollment'),
     officers: num(body, 'officers', 'officer enrollment'),
+    sybilScore: optNum(body, 'sybilScore'),
   }
 }
 
@@ -151,6 +155,9 @@ export type IntentAction = 'PayoutChange' | 'ControllerRotation' | 'CancelPayout
 export interface OfficerSession {
   readonly officerId: string
   readonly sessionId: string
+  /** Self Check's z-score, if that's the credential this officer proved with; absent for any other credential.
+   * A risk signal, not a uniqueness verdict — shown as a quiet fact, never gated on. */
+  readonly sybilScore: number | null
 }
 
 export interface Intent {
@@ -167,6 +174,7 @@ function parseSessions(value: unknown): OfficerSession[] {
   return value.filter(isRecord).map((item: Json) => ({
     officerId: str(item, 'officerId', 'officer session'),
     sessionId: str(item, 'sessionId', 'officer session'),
+    sybilScore: optNum(item, 'sybilScore'),
   }))
 }
 
