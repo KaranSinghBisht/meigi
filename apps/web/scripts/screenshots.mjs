@@ -70,7 +70,7 @@ const SHOTS = [
   { name: 'enter-glide', path: '/', ready: '.hero__wordmark', act: enterGlide },
   { name: 'home', path: '/start', ready: 'main h1' },
   { name: 'registry', path: '/registry/T2011001234567', ready: '.payee__name', after: '.feed__item' },
-  { name: 'registry-empty', path: '/registry', ready: '.directory__chip' },
+  { name: 'registry-empty', path: '/registry', ready: '.finder__item' },
   { name: 'registry-pending', path: '/registry/T2011001234567', ready: '.pending', setup: pendingPayout },
   { name: 'register', path: '/register', ready: 'main h1' },
   { name: 'change', path: '/change/T2011001234567', ready: '.picker__option' },
