@@ -5,7 +5,8 @@ Before launch we'd seek an FSA no-action letter (法令適用事前確認手続)
 
 ## What a registration proves today
 
-- The number and the exact legal name match the NTA corporate registry (法人番号, 5,787,472 corporations).
+- The number and the exact legal name match an open company in the NTA corporate-number registry (法人番号: 5.79M
+  records, 5.0M of them open).
 - The registrant controls *a* domain: a DNS TXT record carries a challenge signed by the business key.
 - Unique humans enrolled with World ID as that number's officers.
 
@@ -92,7 +93,13 @@ production step (roadmap, item 1).
 
 **Invoice status.**
 - We match the 法人番号 registry, not the qualified-invoice issuer registry with its 登録/失効/取消 status [8].
-- Corporations that never registered as issuers, or were cancelled, currently pass.
+- The gap is large. In the NTA's data as of 2026-08-31, 5.0M corporate numbers are open, but only 2.48M
+  corporations hold an active T-number. So about half the companies that pass our check (≈2.5M) have none (our
+  count of the NTA's full files [8]).
+- Today the verifier rejects closed companies but doesn't check invoice registration. A company without one can still
+  register, and its "T-number" is then just "T" plus its 法人番号.
+- The fix is roadmap item 7: read the invoice data (a full file each month plus daily diffs) and require an active
+  registration.
 
 **Liability.**
 - Civil Code Art. 478: paying someone who merely appears entitled discharges the debt only if the payer acted in good

@@ -39,7 +39,7 @@ Registration doesn't yet prove that the registrant *represents* the company. Tha
 
 ```mermaid
 flowchart LR
-  NTA["NTA registry<br/>5,787,472 corporations"] --> V[Verifier / attester]
+  NTA["NTA corporate-number registry<br/>5.79M records, 5.0M open"] --> V[Verifier / attester]
   DNS[DNS TXT proof] --> V
   W["World ID 4.0 officers<br/>(IDKit sessions)"] --> V
   V -- "EIP-712 attestation" --> R[("PayeeRegistry<br/>T-number → payout")]
