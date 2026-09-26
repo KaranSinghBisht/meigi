@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Builds the web app (whose "/" is the Sakasa Fuji landing hero) in hosted mode and deploys the same build as two
-# static-assets Cloudflare Workers: meigi (the landing URL, apps/web/wrangler.landing.jsonc) and meigi-app
-# (apps/web/wrangler.jsonc). Every VITE_ value is compiled into a public bundle, so before deploying, the script
-# checks that no secret from the git-ignored .env appears in the build. apps/landing is no longer deployed.
+# Builds the web app (whose "/" is the Sakasa Fuji landing hero) in hosted mode and deploys it as one site, the
+# static-assets Cloudflare Worker meigi (apps/web/wrangler.landing.jsonc). The old second host, meigi-app
+# (apps/web/wrangler.jsonc), is now a small Worker that 301-redirects every path to the one site. Every VITE_
+# value is compiled into a public bundle, so before deploying, the script checks that no secret from the
+# git-ignored .env appears in the build. apps/landing is no longer deployed.
 #
 # It always builds the committed HEAD in a temporary git worktree, so uncommitted work in progress never ships.
 #
@@ -18,7 +19,7 @@ cd "$ROOT"
 
 WORKERS_SUBDOMAIN="${WORKERS_SUBDOMAIN:-karanbishttt}"
 LANDING_URL="https://meigi.${WORKERS_SUBDOMAIN}.workers.dev"
-APP_URL="https://meigi-app.${WORKERS_SUBDOMAIN}.workers.dev"
+OLD_APP_URL="https://meigi-app.${WORKERS_SUBDOMAIN}.workers.dev"
 PUBLIC_RPC_URL="${PUBLIC_RPC_URL:-https://ethereum-sepolia-rpc.publicnode.com}"
 CONTACT_EMAIL="${CONTACT_EMAIL:-karanbishttt@gmail.com}"
 WORKTREE="$(mktemp -d)/meigi-deploy"
@@ -69,7 +70,7 @@ deploy() {
 checkout_head
 build_app
 check_no_secrets "$WORKTREE/apps/web/dist"
-echo "build is clean: ${LANDING_URL} and ${APP_URL} will serve it"
+echo "build is clean: ${LANDING_URL} will serve it, and ${OLD_APP_URL} redirects there"
 
 if [[ "${DRY_RUN:-}" == "1" ]]; then
   echo "DRY_RUN=1: not deploying"

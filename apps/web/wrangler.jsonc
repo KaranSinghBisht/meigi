@@ -1,10 +1,8 @@
-// meigi-app.karanbishttt.workers.dev: the same build as the landing URL (see wrangler.landing.jsonc).
-// Deploy with scripts/deploy-demo.sh, which builds with VITE_HOSTED=1 first.
+// meigi-app.karanbishttt.workers.dev: a permanent redirect to the one canonical site,
+// meigi.karanbishttt.workers.dev (wrangler.landing.jsonc), so older links keep working.
+// Deploy with scripts/deploy-demo.sh.
 {
   "name": "meigi-app",
   "compatibility_date": "2026-09-01",
-  "assets": {
-    "directory": "./dist",
-    "not_found_handling": "single-page-application"
-  }
+  "main": "./redirect/app-redirect.js"
 }
