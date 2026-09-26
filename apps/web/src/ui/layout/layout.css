@@ -92,8 +92,10 @@
   pointer-events: auto;
 }
 
-/* How far down a sticky part of a page has to sit to clear the navigation: the compact bar and its gap. */
+/* The navigation's footprint at the top: the compact bar's height in the flow (a full-screen page subtracts it),
+   and how far down a sticky part of a page has to sit to clear the bar and its gap. */
 :root {
+  --shell-bar: 72px;
   --shell-top: 88px;
 }
 
@@ -101,6 +103,7 @@
    gives way and nothing covers the top but the inset. */
 @media (min-width: 1280px) {
   :root {
+    --shell-bar: 0px;
     --shell-top: var(--sidebar-inset);
   }
 

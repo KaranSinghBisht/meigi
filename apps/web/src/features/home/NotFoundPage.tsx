@@ -2,7 +2,7 @@ import { isRouteErrorResponse, useRouteError } from 'react-router'
 import { LinkButton } from '../../ui/components/Button'
 import { FujiBackdrop } from '../../ui/brand/FujiBackdrop'
 import '../../ui/layout/layout.css'
-import './home.css'
+import './notFound.css'
 
 export function NotFoundPage() {
   return (

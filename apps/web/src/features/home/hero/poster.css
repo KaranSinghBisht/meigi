@@ -1,0 +1,148 @@
+/* The poster: the whole first screen under the navigation, edge to edge over the live world. The type sits low,
+   over the lake, so Fuji stays in the picture above it. Sizes follow the poster's own width (container units), so
+   the Japanese line spans it whether the page sits beside the sidebar or under the bar. */
+.poster {
+  container-type: inline-size;
+  display: flex;
+  min-height: calc(100vh - var(--shell-bar, 72px));
+  min-height: calc(100svh - var(--shell-bar, 72px));
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: clamp(22px, 4vh, 40px);
+  padding: clamp(24px, 5vh, 56px) var(--gutter) clamp(36px, 8vh, 80px);
+}
+
+.poster__title {
+  display: grid;
+  gap: clamp(10px, 1.6cqi, 24px);
+  margin: 0;
+  color: var(--ink);
+}
+
+/* Heavy gothic, tight like a poster: proportional kana (palt), no tracking, lines nearly touching. */
+.poster__jp {
+  display: grid;
+  font-family: 'Noto Sans JP', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
+  font-size: clamp(44px, calc(100cqi / 7.95), 220px);
+  font-weight: 900;
+  font-feature-settings: 'palt';
+  letter-spacing: -0.01em;
+  line-height: 1.06;
+}
+
+/* Lines break only between phrases (each an inline block), and only if a fallback face runs wider. */
+.poster__line {
+  display: block;
+}
+
+.poster__phrase {
+  display: inline-block;
+}
+
+/* The company seal, pressed at the end of the sentence. */
+.poster__seal {
+  display: inline-block;
+  width: 0.6em;
+  height: 0.6em;
+  margin-left: 0.02em;
+  vertical-align: 0.12em;
+  transform: rotate(-5deg);
+}
+
+.poster__en {
+  display: block;
+  font-family: var(--font-latin);
+  font-size: clamp(30px, calc(100cqi / 15.5), 104px);
+  font-weight: var(--weight-strong);
+  letter-spacing: -0.045em;
+  line-height: 1.02;
+  text-wrap: balance;
+}
+
+.poster__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 32px;
+}
+
+.poster__link {
+  color: var(--ink);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-strong);
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 6px;
+}
+
+.poster__link:hover {
+  text-decoration-thickness: 2.5px;
+}
+
+/* A phone: one phrase a line, so each line can still be huge. */
+@container (max-width: 600px) {
+  .poster__jp {
+    font-size: clamp(40px, calc(100cqi / 4.2), 150px);
+    line-height: 1.08;
+  }
+
+  .poster__line {
+    display: contents;
+  }
+
+  .poster__phrase {
+    display: block;
+  }
+}
+
+/* The poster sets itself on arrival: phrases rise one after another, the English follows, and the seal is pressed
+   last. Reduced motion shows it set. */
+@media (prefers-reduced-motion: no-preference) {
+  .poster__phrase,
+  .poster__en,
+  .poster__actions {
+    animation: home-poster-rise 0.9s var(--ease-out) both;
+  }
+
+  .poster__line:first-child .poster__phrase:last-child {
+    animation-delay: 0.07s;
+  }
+
+  .poster__line:last-child .poster__phrase:first-child {
+    animation-delay: 0.14s;
+  }
+
+  .poster__line:last-child .poster__phrase:last-child {
+    animation-delay: 0.21s;
+  }
+
+  .poster__en {
+    animation-delay: 0.32s;
+  }
+
+  .poster__actions {
+    animation-delay: 0.44s;
+  }
+
+  .poster__seal {
+    animation: home-seal-press 0.6s cubic-bezier(0.3, 1.5, 0.5, 1) 0.7s both;
+  }
+}
+
+@keyframes home-poster-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.3em);
+  }
+}
+
+@keyframes home-seal-press {
+  from {
+    opacity: 0;
+    transform: scale(1.9) rotate(-16deg);
+  }
+
+  45% {
+    opacity: 1;
+  }
+}

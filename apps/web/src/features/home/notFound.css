@@ -1,0 +1,13 @@
+/* The 404 and route-error pages: one short message and the way back. */
+.lost {
+  display: grid;
+  justify-items: start;
+  gap: 16px;
+  max-width: 640px;
+  padding: 8vh 0;
+}
+
+.lost--standalone {
+  margin: 0 auto;
+  padding: 16vh var(--gutter);
+}
