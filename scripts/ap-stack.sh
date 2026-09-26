@@ -36,11 +36,22 @@ ours() {
   [[ $command == *ap-stack.sh* ]]
 }
 
+# True when the group $1 lost its leader but still holds processes running from this repo: a supervisor killed on
+# its own leaves pnpm, tsx and the signer or agent behind. A group's number can't be reused while it has members.
+orphaned() {
+  [[ $1 =~ ^[0-9]+$ ]] && ! ps -p "$1" >/dev/null 2>&1 || return 1
+  ps -A -o pgid= -o command= | awk -v group="$1" -v root="$ROOT/" '$1 == group && index($0, root) { found = 1 } END { exit !found }'
+}
+
 # Stale state (after a reboot, say) may name a process group that now belongs to something else: only ours is stopped.
 stop_pair() {
   [[ -f $PIDS ]] || die "nothing to stop: $PIDS is missing"
   while read -r pgid; do
-    if ours "$pgid"; then kill -TERM -- "-$pgid" 2>/dev/null || true; else echo "ap-stack: $pgid isn't one of ours; skipped" >&2; fi
+    if ours "$pgid" || orphaned "$pgid"; then
+      kill -TERM -- "-$pgid" 2>/dev/null || true
+    else
+      echo "ap-stack: $pgid isn't one of ours; skipped" >&2
+    fi
   done <"$PIDS"
   rm -f "$PIDS" "$SIGNER" "$PAUSED" "$PARKED"
   echo "ap-stack: stopped"
@@ -81,6 +92,7 @@ pause_signer() {
   rm -f "$PARKED" # an earlier reply mustn't count for this pause
   : >"$PAUSED"
   until [[ -f $PARKED ]] && signer_down "$port"; do
+    [[ -f $PAUSED ]] || die "the pause was lifted meanwhile (--resume-signer or --stop)"
     tries=$((tries + 1))
     [[ $tries -le 40 ]] || die "the signer on :$port didn't stop within 20 s (see ap-signer.log); --resume-signer lifts the pause"
     signal=TERM
@@ -98,11 +110,13 @@ resume_signer() {
   [[ -f $PAUSED ]] || echo "ap-stack: the signer isn't paused"
   rm -f "$PAUSED"
   for _ in $(seq 1 60); do
-    curl -sf -m 2 "http://127.0.0.1:$port/health" >/dev/null && break
+    if curl -sf -m 2 "http://127.0.0.1:$port/health" >/dev/null; then
+      echo "ap-stack: signer answering on :$port; the agent can pay again"
+      return
+    fi
     sleep 1
   done
-  curl -sf -m 2 "http://127.0.0.1:$port/health" >/dev/null || die "the signer isn't answering on :$port yet; see ap-signer.log"
-  echo "ap-stack: signer answering on :$port; the agent can pay again"
+  die "the signer isn't answering on :$port yet; see ap-signer.log"
 }
 
 case "${1:-}" in
@@ -137,7 +151,7 @@ supervise() {
         { : >"$PARKED"; } 2>/dev/null || true
         sleep 1 || true
       done
-      rm -f "$PARKED"
+      rm -f "$PARKED" 2>/dev/null || true
       note "$name" "resumed"
     fi
     "$@" >>"$ROOT/ap-$name.log" 2>&1 || true

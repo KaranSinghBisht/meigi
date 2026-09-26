@@ -88,6 +88,19 @@ describe("the agent with its signer stopped", () => {
     }
   });
 
+  it("hedges on an error answer during /pay, and says when an answer couldn't be read", async () => {
+    const during = agent(failingAt("/pay", 502));
+    const lost = await during.call("POST", `/invoices/${(await during.analyzed()).id}/pay`);
+    expect(lost.body.message).toBe(
+      "The signer couldn't reach the chain during the payment, so it may have been sent. Pay again once it answers: the vault refuses a second payment of this invoice.",
+    );
+
+    const garbled = agent(failingAt("/simulate", 200));
+    const refused = await garbled.call("POST", `/invoices/${(await garbled.analyzed()).id}/pay`);
+    expect(refused.body.message).toBe("The signer's answer couldn't be read, and the agent holds no key of its own: nothing was signed or sent.");
+    expect(garbled.wire.pays).toBe(0);
+  });
+
   it("says the payment may have been sent when the signer stops during /pay", async () => {
     const { call, analyzed, events } = agent(failingAt("/pay", null));
     const lost = await call("POST", `/invoices/${(await analyzed()).id}/pay`);
