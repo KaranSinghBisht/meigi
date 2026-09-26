@@ -90,9 +90,57 @@
 }
 
 .onb__review dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
   margin: 0;
   font-weight: var(--weight-strong);
   text-align: right;
+}
+
+/* Representation: two ways that aren't built yet, disabled, and what registration proves today. */
+.onb__methods {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+}
+
+.onb__method {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 12px;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.4);
+  color: var(--ink-muted);
+}
+
+.onb__method-title {
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.onb__method-body {
+  grid-column: 1;
+  font-size: 12px;
+}
+
+.onb__method .dchip {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+}
+
+.onb__note {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--iris-tint);
+  color: var(--iris-deep);
+  font-size: 12.5px;
+  line-height: 1.5;
 }
 
 .onb__card {
@@ -136,9 +184,28 @@
   font-size: 12px;
 }
 
-/* The payee name and the domain were on earlier screens; the phone's review keeps the four that matter. */
-.dstage__design--portrait .onb__review > div:is(:nth-child(2), :nth-child(5)) {
+/* The T-number, payee name and domain were on earlier screens; the phone's review keeps the four that matter. */
+.dstage__design--portrait .onb__review > div:is(:nth-child(2), :nth-child(3), :nth-child(6)) {
   display: none;
+}
+
+/* Phones: representation keeps its question and the two ways, each still marked "Coming in production"; the
+   demo chip and the note give way (the chips and the caption say it). */
+.dstage__design--portrait [data-d='onb-screen-4'] :is(.onb__skip, .onb__note),
+.dstage__design--portrait .onb__method-body {
+  display: none;
+}
+
+.dstage__design--portrait .onb__method {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+  padding: 6px 12px;
+}
+
+.dstage__design--portrait .onb__method .dchip {
+  grid-row: auto;
+  grid-column: 1;
+  justify-self: start;
 }
 
 /* Phones: each wallet is one row (label, then its button or result), without the explanatory note. */

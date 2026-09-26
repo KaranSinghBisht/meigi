@@ -1,6 +1,7 @@
-// Chapter 0 (0:00–0:24): 株式会社メイギ商事 joins Meigi. Its T-number and its two wallets, then the two steps a
-// fictional demo company can't really do (a domain, a World ID officer) shown as the record has them, one
-// registration on Sepolia, and a payee name that resolves. The registry panel beside it fills in as it goes.
+// Chapter 0 (0:00–0:26): 株式会社メイギ商事 joins Meigi, through the seven steps /register has. Its T-number and
+// its two wallets; then the three steps it passes without doing (no domain as a fictional company,
+// representation not built for anyone yet, a placeholder officer), shown as the record has them; one registration
+// on Sepolia, and a payee name that resolves. The registry panel beside it fills in as it goes.
 
 import { ONBOARD } from '../content/onboard'
 import type { BuildCtx, ChapterDef } from '../engine/types'
@@ -56,33 +57,37 @@ function wallets(c: BuildCtx): void {
   rise(c, 'r-payout', 7.6)
 }
 
-/** A demo company skips the domain proof and carries a placeholder officer: both screens say so, then move on. */
-function domainAndOfficer(c: BuildCtx): void {
-  advance(c, 2, 8.9)
-  rise(c, 'r-domain', 9.6)
-  advance(c, 3, 11.8)
-  rise(c, 'r-officers', 12.5)
+/**
+ * The three steps a demo company passes without doing: no domain, representation (not built for anyone yet), and a
+ * placeholder officer. Each screen says so, then moves on.
+ */
+function passedSteps(c: BuildCtx): void {
+  advance(c, 2, 8.6)
+  rise(c, 'r-domain', 9.3)
+  advance(c, 3, 10.9)
+  advance(c, 4, 13.6)
+  rise(c, 'r-officers', 14.3)
 }
 
 function register(c: BuildCtx): void {
-  advance(c, 4, 14.8)
-  rise(c, 'r-evidence', 15.2)
-  cursorTo(c, 'onb-register', 15.5, { duration: 0.8 })
-  click(c, 16.4)
-  hide(c, 'onb-register', 16.6, { duration: 0.2 })
-  show(c, 'onb-registered', 16.8, { duration: 0.3 })
-  rise(c, 'r-event', 16.9)
-  hide(c, 'r-status-none', 17.0, { duration: 0.2 })
-  show(c, 'r-status-active', 17.15, { duration: 0.3 })
+  advance(c, 5, 15.8)
+  rise(c, 'r-evidence', 16.2)
+  cursorTo(c, 'onb-register', 16.5, { duration: 0.8 })
+  click(c, 17.4)
+  hide(c, 'onb-register', 17.6, { duration: 0.2 })
+  show(c, 'onb-registered', 17.8, { duration: 0.3 })
+  rise(c, 'r-event', 17.9)
+  hide(c, 'r-status-none', 18.0, { duration: 0.2 })
+  show(c, 'r-status-active', 18.15, { duration: 0.3 })
 }
 
 function registered(c: BuildCtx): void {
-  hide(c, 'cursor', 18.0)
-  turn(c, 5, 18.3)
-  show(c, 'onb-resolves', 19.7, { duration: 0.35 })
-  rise(c, 'r-resolve', 19.8)
-  c.tl.to(c.el('onb-step-6'), { '--on': 0, '--done': 1, duration: 0.3 }, c.t0 + 20.2)
-  handOff(c, 22.2)
+  hide(c, 'cursor', 19.0)
+  turn(c, 6, 19.3)
+  show(c, 'onb-resolves', 20.7, { duration: 0.35 })
+  rise(c, 'r-resolve', 20.8)
+  c.tl.to(c.el('onb-step-7'), { '--on': 0, '--done': 1, duration: 0.3 }, c.t0 + 21.2)
+  handOff(c, 24.2)
 }
 
 /**
@@ -103,17 +108,18 @@ function handOff(c: BuildCtx, at: number): void {
 export const chapter0: ChapterDef = {
   id: 'join',
   title: 'Company joins',
-  duration: 24,
+  duration: 26,
   captions: [
     { at: 0, text: 'Register once: a company binds its registry number to one payout.' },
-    { at: 4.6, text: 'One key controls the record; a separate wallet only receives.' },
-    { at: 8.9, text: 'Real companies also prove their domain and enroll World ID officers; this demo company is labelled.' },
-    { at: 14.8, text: `One registration on Sepolia, and ${ONBOARD.ens} resolves to that payout.` },
+    { at: 4.6, text: 'A business key approves changes; one address receives every payment.' },
+    { at: 8.6, text: 'Real companies also prove their domain and enroll World ID officers; this demo company is labelled.' },
+    { at: 10.9, text: 'Proving the signer represents the company comes in production; each step says what’s proven today.' },
+    { at: 15.8, text: `One registration on Sepolia, and ${ONBOARD.ens} resolves to that payout.` },
   ],
   build(c) {
     company(c)
     wallets(c)
-    domainAndOfficer(c)
+    passedSteps(c)
     register(c)
     registered(c)
   },

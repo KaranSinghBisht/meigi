@@ -1,13 +1,7 @@
 import { HankoMark } from '../../../../ui/brand/HankoMark'
 import { ONBOARD_SKIPPED, ONBOARD_STEPS } from '../../content/onboard'
-import {
-  CompanyScreen,
-  DomainScreen,
-  OfficersScreen,
-  RegisteredScreen,
-  ReviewScreen,
-  WalletsScreen,
-} from './OnboardScreens'
+import { OfficersScreen, RegisteredScreen, ReviewScreen } from './OnboardFinish'
+import { CompanyScreen, DomainScreen, RepresentationScreen, WalletsScreen } from './OnboardScreens'
 import './onboard.css'
 
 function Rail() {
@@ -54,6 +48,7 @@ export function OnboardPage() {
           <CompanyScreen />
           <WalletsScreen />
           <DomainScreen />
+          <RepresentationScreen />
           <OfficersScreen />
           <ReviewScreen />
           <RegisteredScreen />

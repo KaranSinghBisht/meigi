@@ -39,15 +39,65 @@ export const ONBOARD = {
   appHost: 'meigi.karanbishttt.workers.dev',
 } as const
 
-/** Steps this fictional fixture couldn't really do (no domain, a placeholder officer): the rail marks them "–". */
-export const ONBOARD_SKIPPED: readonly number[] = [3, 4]
+/**
+ * Steps passed but not done, which the rail marks "–" as /register does: representation (not built for anyone
+ * yet), and for this fictional fixture its domain and its placeholder officer. 1-based.
+ */
+export const ONBOARD_SKIPPED: readonly number[] = [3, 4, 5]
 
-/** The wizard's six screens, as the real progress rail names them. */
+/** The wizard's seven screens, as the real progress rail names them (register/flow/steps.ts). */
 export const ONBOARD_STEPS = [
   'Your company',
   'Your wallets',
   'Prove your domain',
+  'Prove representation',
   'Your officers',
   'Review and register',
   'Registered',
+] as const
+
+/** Each screen's question and lede, verbatim from /register (register/flow/copy.ts), so the replica never drifts. */
+export const ONBOARD_COPY = {
+  company: {
+    title: 'Which company is joining?',
+    lede: 'Enter its T-number, the qualified invoice number, or paste its LEI. Meigi fills in the rest from the National Tax Agency registry.',
+  },
+  wallets: {
+    title: 'Which wallets will it use?',
+    lede: 'A business key that approves changes, and the one address every payment goes to.',
+  },
+  domain: {
+    title: 'No domain to prove',
+    lede: 'A fictional company has no real domain, so Meigi skips this step and records it as fictional.',
+  },
+  representative: {
+    title: 'Prove you represent the company',
+    lede: 'Controlling a domain doesn’t make someone the company. Its registered representative will sign for it.',
+  },
+  officers: {
+    title: 'Who approves changes?',
+    lede: 'Real companies enroll officers with World ID. This demo company has a placeholder officer no one can prove, so no one can change its payout.',
+  },
+  review: {
+    title: 'Check everything, then register',
+    lede: 'Meigi’s attester writes this registration to the public registry on Sepolia. A number that’s already claimed is frozen as disputed, never overwritten.',
+  },
+  registered: {
+    title: 'You’re registered.',
+    lede: `Payers who check ${ONBOARD.ens} will only ever pay the address below. Changing it takes your business key, your officers and 72 hours in public.`,
+  },
+} as const
+
+/** How a registrant will prove they act for the company: not built for anyone yet, so both are shown disabled. */
+export const REPRESENTATION_METHODS = [
+  {
+    id: 'certificate',
+    title: 'Sign with 商業登記電子証明書',
+    body: 'The Legal Affairs Bureau’s corporate e-certificate for the registered representative, signed remotely through gBizID.',
+  },
+  {
+    id: 'mail',
+    title: 'Mail a code to the registered head office',
+    body: 'A one-time code by registered mail to the head office the NTA lists, entered here on arrival.',
+  },
 ] as const
