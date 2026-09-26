@@ -45,7 +45,9 @@ function revertMessage(errorName: string, args: readonly unknown[]): string {
     const [tNumber, expected, registered] = args
     return `The chain refused: T${String(tNumber)} pays ${shortAddress(String(registered))}, not ${shortAddress(String(expected))}.`
   }
-  return REVERT_MESSAGES[errorName] ?? `The contract reverted with ${errorName}.`
+  // Own keys only: the name can be a revert's reason string, and "constructor" must not find Object's.
+  const known = Object.hasOwn(REVERT_MESSAGES, errorName) ? REVERT_MESSAGES[errorName] : undefined
+  return known ?? `The contract reverted with ${errorName}.`
 }
 
 export function describeChainError(error: unknown): ChainFailure {

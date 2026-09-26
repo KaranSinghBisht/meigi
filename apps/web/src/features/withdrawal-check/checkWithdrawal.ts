@@ -85,7 +85,14 @@ export async function checkWithdrawal(target: ParsedTNumber, destination: Destin
   if (snapshot.payoutChangeLandsAt) return { kind: 'pending', target, legalName, landsAt: snapshot.payoutChangeLandsAt }
   const payout = snapshot.payout ?? ZERO
   if (!asked) {
-    const issued = destination.kind === 'name' ? await resolveIssued(env.rpcUrl, destination.name) : null
+    // Only a better "why": if the issued-name read fails, the verdict stays "doesn't resolve", never an error.
+    const issued =
+      destination.kind === 'name'
+        ? await resolveIssued(env.rpcUrl, destination.name).catch((error: unknown) => {
+            reportError(error)
+            return null
+          })
+        : null
     const unresolved = { kind: 'mismatch', target, legalName, payout, asked: null, reason: 'unresolved' } as const
     return issued ? { ...unresolved, issued } : unresolved
   }
