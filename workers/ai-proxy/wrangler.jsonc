@@ -4,5 +4,8 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-09-01",
   "ai": { "binding": "AI" },
+  // The daily budget (src/budget.ts): one SQLite-backed Durable Object counts today's calls and neurons.
+  "durable_objects": { "bindings": [{ "name": "BUDGET", "class_name": "ProxyBudget" }] },
+  "migrations": [{ "tag": "budget-v1", "new_sqlite_classes": ["ProxyBudget"] }],
   "observability": { "enabled": true }
 }

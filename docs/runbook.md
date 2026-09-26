@@ -103,7 +103,11 @@ all of this, so demos repeat.
   `release <publicId>`, `reject <publicId>`).
 
 The AI proxy (Workers AI chat + Jev) is deployed at `https://meigi-ai-proxy.karanbishttt.workers.dev`
-(`workers/ai-proxy`) and needs `AI_PROXY_TOKEN`.
+(`workers/ai-proxy`) and needs `AI_PROXY_TOKEN`. It keeps a hard daily budget, so the account's paid plan never bills:
+- at most 200 calls and 6,000 neurons per UTC day, inside the free 10,000; after that it answers 429;
+- `GET /v1/budget`, with the token, shows today's spend.
+
+The AP agent doesn't need the proxy: triage (Kev) and the LLM (Ollama) run on this machine.
 
 ## Re-seeding
 
