@@ -63,7 +63,7 @@ contract CompanyNamespaceTest is MeigiFixture {
 
         assertEq(gate.namespaceOf(VENDOR), address(ns));
         assertEq(ns.rootRoles(address(gate)), ROLE_REGISTRAR | ROLE_RENEW | ROLE_UNREGISTER | ROLE_SET_PARENT);
-        assertEq(ns.rootRoles(brake), ROLE_UNREGISTER | ROLE_SET_RESOLVER);
+        assertEq(ns.rootRoles(brake), ROLE_UNREGISTER, "Meigi can take a name down, never redirect it");
         assertEq(ns.rootRoles(controller), 0, "the company acts only through the gate");
         assertEq(ns.parent(), address(claims));
         assertEq(ns.parentLabel(), CLAIM);
@@ -331,16 +331,16 @@ contract CompanyNamespaceTest is MeigiFixture {
         _issue("zeirishi", accounts);
     }
 
-    function test_MeigiBrakeCanUnregisterOrClearAName() public {
+    function test_MeigiBrakeCanUnregisterButNeverRedirect() public {
         MockNamespaceRegistry ns = _open();
         _issue("ap", agent);
         _issue("keiri", accounts);
 
-        vm.startPrank(brake);
-        ns.setResolver(_id("ap"), address(0));
+        vm.prank(brake);
+        vm.expectRevert(abi.encodeWithSelector(Unauthorized.selector, 0, ROLE_SET_RESOLVER, brake));
+        ns.setResolver(_id("ap"), stranger);
+        vm.prank(brake);
         ns.unregister(_id("keiri"));
-        vm.stopPrank();
-        assertEq(ns.getResolver("ap"), address(0));
         assertEq(ns.getOwner(_id("keiri")), address(0));
 
         // The company's key can't touch the registry directly.

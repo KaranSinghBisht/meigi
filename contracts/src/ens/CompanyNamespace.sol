@@ -16,7 +16,7 @@ import {EnsV2Grant, IEnsV2Factory, IEnsV2Registry, IEnsV2Resolver} from "./IEnsV
 ///         - can't carry a 13-digit number or be punycode, so it can't pose as another company's payee name;
 ///         - is non-transferable (issued with no token roles) and expires, at the latest with the company's claim;
 ///         - is an identity, never a payee: money goes only to the registry payout of `t<T-number>.<parent>`.
-///         Meigi (`brake`) keeps two roles on every namespace, to unregister a name or clear its resolver, and can
+///         Meigi (`brake`) keeps one role on every namespace, to unregister any name, and can
 ///         detach a whole namespace from the company's claimed name.
 contract CompanyNamespace {
     using Strings for uint256;
@@ -38,7 +38,6 @@ contract CompanyNamespace {
     uint256 private constant ROLE_SET_PARENT = 1 << 8;
     uint256 private constant ROLE_UNREGISTER = 1 << 12;
     uint256 private constant ROLE_RENEW = 1 << 16;
-    uint256 private constant ROLE_SET_RESOLVER = 1 << 24;
     /// @dev ENSv2 PermissionedResolverLib: text records and the admin role that grants them.
     uint256 private constant ROLE_SET_TEXT = 1 << 4;
     uint256 private constant ROLE_SET_TEXT_ADMIN = ROLE_SET_TEXT << 128;
@@ -123,7 +122,7 @@ contract CompanyNamespace {
             account: address(this),
             roleBitmap: ROLE_REGISTRAR | ROLE_RENEW | ROLE_UNREGISTER | ROLE_SET_PARENT
         });
-        grants[1] = EnsV2Grant({account: brake, roleBitmap: ROLE_UNREGISTER | ROLE_SET_RESOLVER});
+        grants[1] = EnsV2Grant({account: brake, roleBitmap: ROLE_UNREGISTER});
         bytes memory init = abi.encodeCall(IEnsV2Registry.initialize, (grants));
         namespace = factory.deployProxy(registryImplementation, uint256(tNumber), init);
         namespaceOf[tNumber] = namespace;
@@ -143,6 +142,7 @@ contract CompanyNamespace {
         _checkExpiry(tNumber, name.expiry);
         if (name.keys.length != name.values.length) revert TextsMismatch();
 
+        _list(tNumber, name.label);
         bytes memory dnsName = _dnsName(tNumber, name.label);
         resolver = _deployResolver(dnsName, name);
         for (uint256 i; i < name.holderKeys.length; ++i) {
@@ -153,7 +153,6 @@ contract CompanyNamespace {
                 );
         }
         namespace.register(name.label, name.holder, address(0), resolver, 0, name.expiry);
-        _list(tNumber, name.label);
         emit NameIssued(tNumber, name.label, name.holder, resolver, name.expiry);
     }
 
