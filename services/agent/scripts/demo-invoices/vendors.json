@@ -1,5 +1,5 @@
 {
-  "note": "Fictional companies and people. Every T-number carries a valid 法人番号 check digit and is absent from the nationwide NTA data (5,787,472 corporations); Bayside's uses registry office 9999, which doesn't exist, so no real company can hold it. No corporation nationwide has any of these company names, even as a substring. Meigi Shoji's payout and the BEC wallet are the team's Sepolia demo wallets (DEMO_VENDOR_PAYOUT, DEMO_SCAMMER); the lookalike and Bayside's payout were generated for the demo and their keys discarded. Domains use the reserved .example TLD.",
+  "note": "Fictional companies and people. Every T-number carries a valid 法人番号 check digit and is absent from the nationwide NTA data (5,787,472 corporations); Bayside's uses registry office 9999, which doesn't exist, so no real company can hold it. No corporation nationwide has any of these company names, even as a substring. Meigi Shoji's payout and the BEC wallet are the team's Sepolia demo wallets (DEMO_VENDOR_PAYOUT, DEMO_SCAMMER); the lookalike and Bayside's payout were generated for the demo and their keys discarded. Domains use the reserved .example TLD. Example 08's wallet is not ours: it is the Ronin bridge exploiter's public address, used because address screening (Intercepta) flags it.",
   "buyer": {
     "legalName": "株式会社ハルカ製作所",
     "enName": "Haruka Seisakusho Co., Ltd."
@@ -22,7 +22,8 @@
   ],
   "attackers": [
     { "label": "BEC wallet in the bank-change email and the x402 payTo", "address": "0xdCa52b5FA181a3307eCa852935BD40e3E0096d5b" },
-    { "label": "Lookalike of Meigi Shoji's payout (same first 4 and last 2 hex digits)", "address": "0x9b4f84BB6eaC150c81C1CaED162cE0Eb872356e4" }
+    { "label": "Lookalike of Meigi Shoji's payout (same first 4 and last 2 hex digits)", "address": "0x9b4f84BB6eaC150c81C1CaED162cE0Eb872356e4" },
+    { "label": "Ronin bridge exploiter, a real and publicly flagged address (Intercepta: known_scammer, toxic score 100), in example 08", "address": "0x098B716B8Aaf21512996dC57EB0615e2383E2f96" }
   ],
   "invoices": [
     {
@@ -59,6 +60,11 @@
       "file": "07-urgent-invoice.ja.txt",
       "title": "Genuine but urgent invoice (至急)",
       "expect": { "verdict": "hold", "humanApprovable": true, "note": "Meigi Shoji's real payout and a consistent bill, but it pushes for speed (pressure_hold). A verified human approves it with World ID, then the agent pays; deny it or let it expire and nothing is paid. Force is refused (force_needs_human)." }
+    },
+    {
+      "file": "08-bank-change-flagged-wallet.ja.txt",
+      "title": "Bank-change email to a flagged wallet",
+      "expect": { "verdict": "hold", "forcedRevert": null, "note": "Asks to pay 0x098B…2f96, the Ronin bridge exploiter. The kernel's PayeeMismatch (not Meigi Shoji's registered payout) and Intercepta's known_scammer flag (toxic score 100) both hold it. Force is refused: a screening hit is never simulated, and no person can approve it." }
     }
   ]
 }
