@@ -6,6 +6,11 @@ import { INTENTS, KINDS, MAX_LIST, type Payee } from './ask-intent'
 
 export const MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast'
 export const MAX_QUESTION = 300
+const MAX_TOKENS = 120 // a reading is at most about 60 tokens of JSON
+// The model's published rates, in neurons per token in and out (26,668 and 204,805 per million).
+const NEURONS_IN = 26_668 / 1_000_000
+const NEURONS_OUT = 204_805 / 1_000_000
+const TEMPLATE_TOKENS = 64 // the chat template's own tokens, generously
 
 const SYSTEM = [
   'You read one question about a table of payments ("settlements") and turn it into a query. You never answer it.',
@@ -66,9 +71,21 @@ export function modelInput(payees: readonly Payee[], question: string, today: st
       { role: 'user', content: user },
     ],
     temperature: 0,
-    max_tokens: 120,
+    max_tokens: MAX_TOKENS,
     response_format: { type: 'json_schema', json_schema: schemaFor(payees) },
   }
+}
+
+export type ModelInput = ReturnType<typeof modelInput>
+
+/**
+ * The most one call can cost, reserved before it is made: every byte of the prompt and schema counted as a token
+ * (the tokenizer never makes more tokens than bytes), plus max_tokens out.
+ */
+export function worstNeurons(input: ModelInput): number {
+  const text = input.messages.map((message) => message.content).join('') + JSON.stringify(input.response_format)
+  const tokensIn = new TextEncoder().encode(text).length + TEMPLATE_TOKENS
+  return Math.ceil(tokensIn * NEURONS_IN + input.max_tokens * NEURONS_OUT)
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {

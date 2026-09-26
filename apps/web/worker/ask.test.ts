@@ -4,8 +4,10 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { REFUSAL, SUGGESTED } from './ask-answer'
-import { modelInput, modelReply } from './ask-prompt'
+import { payeesOf } from './ask-intent'
+import { modelInput, modelReply, worstNeurons } from './ask-prompt'
 import { AskQuota, type QuotaNamespace } from './ask-quota'
+import { jstDay } from './ask-scope'
 import { createAsk } from './ask'
 import type { Env } from './env'
 import type { Settlement, SettlementsApi, SettlementsBody } from './settlements'
@@ -343,6 +345,29 @@ describe('abuse', () => {
     assert.equal((await askResponse(post('q'), e, () => api)).status, 200)
     assert.equal((await askResponse(post('q', '192.0.2.9'), e, () => api)).status, 429)
     assert.equal(quotaCalls(), 2 * 2 + 1 + 1) // take and refund twice, one take, one refused take
+  })
+
+  it('stops a failing model at the day’s neuron budget, though each failed question is given back', async () => {
+    const now = Date.UTC(2026, 8, 26, 3)
+    const per = worstNeurons(modelInput(payeesOf(BODY.settlements), 'q', jstDay(now)))
+    assert.ok(per > 20 && per < 200, `a question reserves ${per} neurons`)
+    let runs = 0
+    const run = async () => {
+      runs++
+      throw new Error('model timeout')
+    }
+    const always = { limit: async () => ({ success: true }) }
+    const { env: e } = env({
+      AI: { run },
+      ASK_LIMITER: always,
+      ASK_DAILY_CAP: '30',
+      ASK_DAILY_NEURONS: String(per * 3),
+    })
+    const statuses = []
+    for (let i = 0; i < 6; i++)
+      statuses.push((await askResponse(post('q', `198.51.100.${i}`), e, () => api, now)).status)
+    assert.deepEqual(statuses, [503, 503, 503, 429, 429, 429])
+    assert.equal(runs, 3)
   })
 
   it('takes no quota when there are no settlements to answer from', async () => {

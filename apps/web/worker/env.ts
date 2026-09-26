@@ -26,7 +26,7 @@ export interface Env {
   readonly X402_BUYER?: string
   /**
    * "Ask the ledger": on only when "true"; the model, 3 questions a minute per asker, and the daily caps for everyone
-   * (default 30) and per asker, an IPv4 address or IPv6 /64 (default 5).
+   * (default 30), per asker, an IPv4 address or IPv6 /64 (default 5), and Workers AI neurons (default 3,000).
    */
   readonly ASK_ENABLED?: string
   readonly AI?: AiBinding
@@ -34,4 +34,5 @@ export interface Env {
   readonly ASK_QUOTA?: QuotaNamespace
   readonly ASK_DAILY_CAP?: string
   readonly ASK_IP_DAILY_CAP?: string
+  readonly ASK_DAILY_NEURONS?: string
 }

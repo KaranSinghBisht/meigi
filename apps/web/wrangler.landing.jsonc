@@ -26,11 +26,12 @@
     // Required, like SETTLEMENT_TOKEN.
     "X402_BUYER": "0x708106dcdee19be75ffcd5df20cbb1b6b3089882",
     // "Ask the ledger": off until its live smoke test passes (then "true"); questions per UTC day for everyone, and
-    // for each asker (an IPv4 address or IPv6 /64). Workers AI is shared with the AP agent's own LLM calls, so the
-    // caps stay small.
+    // for each asker (an IPv4 address or IPv6 /64); and a hard daily budget of Workers AI neurons. ai-proxy keeps
+    // 6,000 of the account's 10,000 free neurons a day and leaves the rest to this, so the paid plan never bills.
     "ASK_ENABLED": "false",
     "ASK_DAILY_CAP": "30",
-    "ASK_IP_DAILY_CAP": "5"
+    "ASK_IP_DAILY_CAP": "5",
+    "ASK_DAILY_NEURONS": "3000"
   },
   // "Ask the ledger" (POST /api/ask): Workers AI as a binding (no key), 3 questions a minute per asker, and the daily
   // caps counted by one SQLite-backed Durable Object.

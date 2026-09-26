@@ -5,11 +5,13 @@
 //
 // Nothing is counted until a question passes every check (ask-request.ts). Then: 3 a minute per asker (the rate-limit
 // binding), and per UTC day 5 per asker and 30 for everyone (a Durable Object; ASK_IP_DAILY_CAP and ASK_DAILY_CAP).
-// A question the model fails to read is given back. Errors are generic; nothing a visitor typed is logged.
+// A question the model fails to read is given back, but not its neurons: each call reserves its worst case against a
+// hard daily budget (ASK_DAILY_NEURONS, 3,000 of the 4,000 free neurons ai-proxy leaves), so Workers AI never bills.
+// Errors are generic; nothing a visitor typed is logged.
 
 import { answerFor, refusal, type Answer } from './ask-answer'
-import { payeesOf, queryOf } from './ask-intent'
-import { MAX_QUESTION, MODEL, modelInput, modelReply } from './ask-prompt'
+import { payeesOf, queryOf, type Payee } from './ask-intent'
+import { MAX_QUESTION, MODEL, modelInput, modelReply, worstNeurons, type ModelInput } from './ask-prompt'
 import { askerTag, peekQuota, refundQuota, takeQuota, utcDay, type Ask, type QuotaNamespace } from './ask-quota'
 import { clientKey, isJson, questionIn, readCapped, sameOrigin } from './ask-request'
 import { jstDay } from './ask-scope'
@@ -25,6 +27,7 @@ const MODEL_TIMEOUT_MS = 15_000
 const STATUS_TTL_MS = 10_000
 const DEFAULT_CAP = 30
 const DEFAULT_ASKER_CAP = 5
+const DEFAULT_NEURONS = 3_000
 
 const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: HEADERS })
 const refuse = (status: number, code: string, message: string) => reply({ code, message }, status)
@@ -65,11 +68,25 @@ async function checked(request: Request): Promise<Response | string> {
 }
 
 /** One model call reads the question into a query; the answer is computed from the rows. */
-async function answered(ai: AiBinding, rows: readonly Settlement[], question: string, now: number): Promise<Answer> {
-  const payees = payeesOf(rows)
-  const raw = await withTimeout(ai.run(MODEL, modelInput(payees, question, jstDay(now))), MODEL_TIMEOUT_MS)
+async function answered(
+  ai: AiBinding,
+  input: ModelInput,
+  payees: Payee[],
+  rows: readonly Settlement[],
+): Promise<Answer> {
+  const raw = await withTimeout(ai.run(MODEL, input), MODEL_TIMEOUT_MS)
   const query = queryOf(modelReply(raw), payees)
   return query ? answerFor(query, rows) : refusal()
+}
+
+/** Today's caps, from the settings. */
+function limits(env: Env, now: number) {
+  return {
+    day: utcDay(now),
+    cap: setting(env.ASK_DAILY_CAP, DEFAULT_CAP),
+    askerCap: setting(env.ASK_IP_DAILY_CAP, DEFAULT_ASKER_CAP),
+    neuronCap: setting(env.ASK_DAILY_NEURONS, DEFAULT_NEURONS),
+  }
 }
 
 interface Bound {
@@ -86,18 +103,16 @@ async function ask(request: Request, env: Env, bound: Bound, api: SettlementsApi
     return refuse(429, 'rate_limited', 'Three questions a minute: try again shortly.')
   }
   const body = await api.list(null)
-  if (body.settlements.length === 0) return reply(NO_SETTLEMENTS) // nothing to ask about, so nothing is counted
-  const day = utcDay(now)
-  const counted: Ask = {
-    day,
-    asker: await askerTag(key, day),
-    cap: setting(env.ASK_DAILY_CAP, DEFAULT_CAP),
-    askerCap: setting(env.ASK_IP_DAILY_CAP, DEFAULT_ASKER_CAP),
-  }
+  const rows = body.settlements
+  if (rows.length === 0) return reply(NO_SETTLEMENTS) // nothing to ask about, so nothing is counted
+  const payees = payeesOf(rows)
+  const input = modelInput(payees, question, jstDay(now))
+  const today = limits(env, now)
+  const counted: Ask = { ...today, asker: await askerTag(key, today.day), neurons: worstNeurons(input) }
   const taken = await takeQuota(bound.quota, counted)
   if (!taken.taken) return taken.reason === 'paused' ? paused() : askerPaused()
   try {
-    return reply({ ...(await answered(bound.ai, body.settlements, question, now)), asOf: body.asOf })
+    return reply({ ...(await answered(bound.ai, input, payees, rows)), asOf: body.asOf })
   } catch (error) {
     await refundQuota(bound.quota, counted) // no answer, so the question doesn't count
     if (allocationSpent(error)) return paused()
@@ -108,10 +123,10 @@ async function ask(request: Request, env: Env, bound: Bound, api: SettlementsApi
 /** Whether questions are open today, asked of the Durable Object at most once per STATUS_TTL_MS per isolate. */
 function statusCache() {
   let cached: { readonly key: string; readonly open: boolean; readonly until: number } | null = null
-  return async (quota: QuotaNamespace, day: string, cap: number, now: number): Promise<boolean> => {
-    const key = `${day}|${cap}`
+  return async (quota: QuotaNamespace, today: ReturnType<typeof limits>, now: number): Promise<boolean> => {
+    const key = `${today.day}|${today.cap}|${today.neuronCap}`
     if (cached?.key === key && now < cached.until) return cached.open
-    const open = await peekQuota(quota, day, cap)
+    const open = await peekQuota(quota, today)
     cached = { key, open, until: now + STATUS_TTL_MS }
     return open
   }
@@ -132,10 +147,8 @@ export function createAsk() {
         return read ? reply({ enabled: false, open: false }) : refuse(404, 'not_found', 'There is no such API.')
       }
       const { AI: ai, ASK_LIMITER: limiter, ASK_QUOTA: quota } = env
-      if (read) {
-        const cap = setting(env.ASK_DAILY_CAP, DEFAULT_CAP)
-        return reply({ enabled: true, open: ai && quota ? await openToday(quota, utcDay(now), cap, now) : false })
-      }
+      if (read)
+        return reply({ enabled: true, open: ai && quota ? await openToday(quota, limits(env, now), now) : false })
       if (request.method !== 'POST') {
         return new Response(JSON.stringify({ code: 'method_not_allowed', message: 'Use GET or POST.' }), {
           status: 405,
