@@ -1,0 +1,71 @@
+/* "Check a payee": a label, a T-number field with its button, and what ENS answered. It takes its parent's width
+   and inherits its colour, so it can sit in a glass window or straight on a section. */
+.payee-lookup {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.payee-lookup__label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-strong);
+}
+
+.payee-lookup__row {
+  display: flex;
+  gap: 8px;
+}
+
+.payee-lookup__row .input {
+  flex: 1;
+}
+
+.payee-lookup__hint,
+.payee-lookup__note {
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+
+.payee-lookup__note--error {
+  color: var(--seal-deep);
+  font-weight: var(--weight-strong);
+}
+
+.payee-lookup__result:empty {
+  display: none;
+}
+
+.payee-lookup__card {
+  display: grid;
+  gap: 4px;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  background: var(--lg-cell);
+  box-shadow: var(--lg-highlight);
+}
+
+.payee-lookup__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-strong);
+}
+
+.payee-lookup__name .jp {
+  word-break: auto-phrase;
+}
+
+.payee-lookup__pays {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+@media (max-width: 420px) {
+  .payee-lookup__row {
+    flex-direction: column;
+  }
+}
