@@ -111,6 +111,24 @@ library EnsV2Lib {
         return VM.envExists(name) ? VM.envAddress(name) : address(0);
     }
 
+    /// @notice Starts a broadcast as `<keyVar>` when it is set. Otherwise it starts one as the unlocked `<addrVar>`,
+    ///         which only a local anvil fork accepts (forge `--unlocked`, anvil impersonation). Fork proofs can
+    ///         therefore act as the real owners without their keys.
+    function startBroadcast(string memory keyVar, string memory addrVar) internal returns (address account) {
+        if (VM.envExists(keyVar)) {
+            uint256 pk = VM.envUint(keyVar);
+            VM.startBroadcast(pk);
+            return VM.addr(pk);
+        }
+        account = VM.envAddress(addrVar);
+        VM.startBroadcast(account);
+    }
+
+    /// @notice The signer `startBroadcast` would use, without starting a broadcast.
+    function signer(string memory keyVar, string memory addrVar) internal view returns (address) {
+        return VM.envExists(keyVar) ? VM.addr(VM.envUint(keyVar)) : VM.envAddress(addrVar);
+    }
+
     function labelId(string memory label) internal pure returns (uint256) {
         return uint256(keccak256(bytes(label)));
     }

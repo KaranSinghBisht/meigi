@@ -19,6 +19,7 @@ DNS-encoded name (ENSIP-10), and the resolver answers from `PayeeRegistry`.
 | `AgentNamespace.s.sol`, `AgentNs.sol` | The AP agent's namespace `ap.meigi.eth`: `deploy()`, `setup()`, `setStatus()` (see below) |
 | `CheckAgent.s.sol` | Read-only proof of the namespace, the agent's one scoped role (simulated allowed and denied writes) and an unchanged `payee.eth` |
 | `agent-e2e.sh`, `check-agent-viem.mjs` | The namespace flow on an anvil fork, and stock viem resolving `ap.meigi.eth` |
+| `VaultName.s.sol`, `vault-e2e.sh`, `check-primary-viem.mjs` | The AgentVault's primary name `ap.meigi.eth` (ENSIP-19), its fork proof, and stock viem `getEnsName` |
 
 ## Which ENSv2 deployment
 
@@ -118,6 +119,26 @@ script/ens/agent-e2e.sh                             # the whole flow on a fork, 
 - A text key's scope is `keccak256(key)`. It holds on every name the resolver serves, and this one serves only
   `ap.meigi.eth`.
 - ENSIP-25 and ENSIP-26 are drafts. `agent-status` is our own key.
+
+## AgentVault primary name (ENSIP-19, Beta only)
+
+Wallets and explorers show the AgentVault as `ap.meigi.eth` instead of `0x87A7…793B`.
+
+- On the Beta, `addr.reverse` still lives on v1, and `ENSV1Resolver` mirrors it into v2.
+- The vault is a contract, so it can't claim its own reverse record. The v2 `ReverseRegistrarAdapter` accepts the
+  contract's `Ownable` owner instead. It checks that the caller is the account itself, its owner, or approved by its
+  `IContractNamer`.
+- `VaultName.s.sol`, signed by the vault owner:
+  1. claims `<vault>.addr.reverse` with the v1 default resolver;
+  2. sets the name there;
+  3. sets the ENSIP-19 default name through `DefaultReverseRegistrarAdapter`.
+- The script checks that the forward name resolves to the vault first, because a primary name must round-trip.
+
+```sh
+script/ens/ens.sh vault-name                  # simulate; only this command gets VAULT_OWNER_PRIVATE_KEY
+BROADCAST=1 script/ens/ens.sh vault-name
+script/ens/vault-e2e.sh                       # fork proof: impersonates the vault owner, so no key is read
+```
 
 ## Verified ENSv2 facts
 

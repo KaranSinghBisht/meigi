@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # payee.eth and the AP agent's namespace (ap.meigi.eth) on ENSv2 (Sepolia).
-# Usage: script/ens/ens.sh <deploy|seed|register|set-resolver|check|agent-deploy|agent-setup|agent-status|agent-check>
+# Usage: script/ens/ens.sh <deploy|seed|register|set-resolver|check|agent-deploy|agent-setup|agent-status|agent-check|
+#                           vault-name>
 # Transactions are only simulated unless BROADCAST=1. Keys and the RPC URL come from the environment or
 # meigi/.env and never appear on a command line; tool output is redacted. See README.md.
 set -euo pipefail
@@ -29,7 +30,8 @@ load_dotenv() {
     [[ $line =~ $kv ]] || continue
     key="${BASH_REMATCH[2]}"
     value="${BASH_REMATCH[3]}"
-    [[ $key =~ ^(SEPOLIA_RPC_URL|(DEPLOYER|ATTESTER|PAYEE|ENS)_[A-Z0-9_]+)$ || $key =~ $agent_vars ]] || continue
+    [[ $key =~ ^(SEPOLIA_RPC_URL|(DEPLOYER|ATTESTER|PAYEE|ENS)_[A-Z0-9_]+|VAULT_OWNER_(PRIVATE_KEY|ADDRESS))$ ||
+      $key =~ $agent_vars ]] || continue
     if [[ -n ${!key:-} ]]; then continue; fi
     if [[ $value =~ $quoted ]]; then
       value="${BASH_REMATCH[1]}"
@@ -102,18 +104,22 @@ check_rpc() {
 # Gives each command only the key it signs with.
 scope_keys() {
   case "$1" in
-    check | agent-check) unset DEPLOYER_PRIVATE_KEY ATTESTER_PRIVATE_KEY AGENT_PRIVATE_KEY ;;
+    check | agent-check) unset DEPLOYER_PRIVATE_KEY ATTESTER_PRIVATE_KEY AGENT_PRIVATE_KEY VAULT_OWNER_PRIVATE_KEY ;;
     seed)
       require_key ATTESTER_PRIVATE_KEY
-      unset DEPLOYER_PRIVATE_KEY AGENT_PRIVATE_KEY
+      unset DEPLOYER_PRIVATE_KEY AGENT_PRIVATE_KEY VAULT_OWNER_PRIVATE_KEY
       ;;
     agent-status)
       require_key AGENT_PRIVATE_KEY
-      unset DEPLOYER_PRIVATE_KEY ATTESTER_PRIVATE_KEY
+      unset DEPLOYER_PRIVATE_KEY ATTESTER_PRIVATE_KEY VAULT_OWNER_PRIVATE_KEY
+      ;;
+    vault-name)
+      require_key VAULT_OWNER_PRIVATE_KEY
+      unset DEPLOYER_PRIVATE_KEY ATTESTER_PRIVATE_KEY AGENT_PRIVATE_KEY
       ;;
     *)
       require_key DEPLOYER_PRIVATE_KEY
-      unset ATTESTER_PRIVATE_KEY AGENT_PRIVATE_KEY
+      unset ATTESTER_PRIVATE_KEY AGENT_PRIVATE_KEY VAULT_OWNER_PRIVATE_KEY
       ;;
   esac
 }
@@ -181,11 +187,13 @@ main() {
   local cmd="${1:-}"
   case "$cmd" in
     deploy | seed | register | set-resolver | check) ;;
-    agent-deploy | agent-setup | agent-status | agent-check) ;;
-    *) die "usage: ens.sh <deploy|seed|register|set-resolver|check|agent-deploy|agent-setup|agent-status|agent-check>" ;;
+    agent-deploy | agent-setup | agent-status | agent-check | vault-name) ;;
+    *) die "usage: ens.sh <deploy|seed|register|set-resolver|check|agent-deploy|agent-setup|agent-status|agent-check|vault-name>" ;;
   esac
   setup
-  if [[ $cmd == agent-* && $ENS_DEPLOYMENT != beta ]]; then die "agent-* commands target the Beta (ENS_DEPLOYMENT=beta)"; fi
+  if [[ ($cmd == agent-* || $cmd == vault-name) && $ENS_DEPLOYMENT != beta ]]; then
+    die "$cmd targets the Beta (ENS_DEPLOYMENT=beta)"
+  fi
   scope_keys "$cmd"
   check_rpc
   echo "ENS deployment: $ENS_DEPLOYMENT, $([[ $LOCAL_RPC == 1 ]] && echo "local fork" || echo "remote RPC") of chain $SEPOLIA"
@@ -203,6 +211,7 @@ main() {
     agent-setup) forge_script script/ens/AgentNamespace.s.sol --sig "setup()" ;;
     agent-status) forge_script script/ens/AgentNamespace.s.sol --sig "setStatus()" ;;
     agent-check) (cd "$CONTRACTS" && forge script script/ens/CheckAgent.s.sol) 2>&1 | redact ;;
+    vault-name) forge_script script/ens/VaultName.s.sol ;;
   esac
 }
 
