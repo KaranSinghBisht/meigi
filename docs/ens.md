@@ -112,8 +112,10 @@ DNSAliasResolver: that's a next step.
 
 A company that claimed `t<T-number>.payee.eth` can issue names under it, through
 [`CompanyNamespace`](../contracts/src/ens/CompanyNamespace.sol) at
-[`0x7ECa…660A`](https://sepolia.etherscan.io/address/0x7ECaD5Fd6892270F09D91aB296786186C5bC660A). Both companies here
-are fictional fixtures, and their texts say so. Live now:
+[`0x7ECa…660A`](https://sepolia.etherscan.io/address/0x7ECaD5Fd6892270F09D91aB296786186C5bC660A) (source: exact match on
+[Sourcify](https://repo.sourcify.dev/11155111/0x7ECaD5Fd6892270F09D91aB296786186C5bC660A) and
+[Blockscout](https://eth-sepolia.blockscout.com/address/0x7ECaD5Fd6892270F09D91aB296786186C5bC660A?tab=contract)). Both
+companies here are fictional fixtures, and their texts say so. Live now:
 
 | Name | Holder | Class (ENSIP-27) | What it says |
 |---|---|---|---|
@@ -201,8 +203,10 @@ Tests behind it:
 
 **The mandate: an ENS name the vault obeys** (live since 2026-09-26).
 [`MandateGate`](../contracts/src/payments/MandateGate.sol) at
-[`0x591d…83BF`](https://sepolia.etherscan.io/address/0x591dd2b2716b46740C665749A60209B7b22e83BF) is the AgentVault's
-agent. It passes `payInvoice` on only while `ap.t4999900000005.payee.eth` answers and the caller is its holder. In the
+[`0x591d…83BF`](https://sepolia.etherscan.io/address/0x591dd2b2716b46740C665749A60209B7b22e83BF) (source: exact match on
+[Sourcify](https://repo.sourcify.dev/11155111/0x591dd2b2716b46740C665749A60209B7b22e83BF) and
+[Blockscout](https://eth-sepolia.blockscout.com/address/0x591dd2b2716b46740C665749A60209B7b22e83BF?tab=contract)) is the
+AgentVault's agent. It passes `payInvoice` on only while `ap.t4999900000005.payee.eth` answers and the caller is its holder. In the
 rehearsal below, the buyer revoked the name, and the gate refused the agent's next payment (`MandateNotLive`) before
 anything was sent. The buyer issued the name again, and payments continued. The vault still checks every payment
 itself. The revert is in the repo's fork test,
@@ -319,6 +323,7 @@ Live on Sepolia. ENS app: [app.ens.dev](https://app.ens.dev). Explorer: [explore
 | A payout change resolves only after 72 hours, exactly when it lands | [`test_addr_switchesExactlyAtEffectiveAt`](../contracts/test/ens/PayeeResolver.t.sol), [`testFuzz_payoutChange_neverLandsEarly`](../contracts/test/registry/PayeeRegistry.t.sol); `changeDelay()` = 259200 on [PayeeRegistry](https://repo.sourcify.dev/11155111/0x205c977cF1f4Ed42e51a48759550eF40160A6396) |
 | A claimed company publishes its own profile | [app: t2011001234567.payee.eth](https://app.ens.dev/t2011001234567.payee.eth) (claim [`0xb60e…77e1`](https://sepolia.etherscan.io/tx/0xb60e778bd1355c662f2fbe18cd13a34d7b013005c8c7bb85a3472e14a9e077e1), url [`0xcbe9…3ccf`](https://sepolia.etherscan.io/tx/0xcbe90c90e03e07b0f2c4f58b13596f0904b1038db140cf1be4099c4e38b43ccf), avatar [`0x877c…0baa`](https://sepolia.etherscan.io/tx/0x877cafe13cd902dc10d400a81f34c9a8196e9633e401b160b7d7441db8dd0baa)) · [app: t8999900000001.payee.eth](https://app.ens.dev/t8999900000001.payee.eth) (claim [`0xe03d…612b`](https://sepolia.etherscan.io/tx/0xe03d70436822a74b9b69ce9b086ed9d6419ed95d15f3a23881c17e591870612b), profile [`0xcc8d…330b`](https://sepolia.etherscan.io/tx/0xcc8d1aa24780bcf540e7f50b50d13b6cae24c0ad0b76f6802daaa47c58de330b)) |
 | A claimed company issues names in its own ENSv2 subregistry | [explorer: t2011001234567.payee.eth](https://explorer.ens.dev/t2011001234567.payee.eth): permissioned registry `0x5063…9f95`, 3 subnames (`ap`, `keiri`, `zeirishi`) · [explorer: t4999900000005.payee.eth](https://explorer.ens.dev/t4999900000005.payee.eth): 1 subname, the mandate `ap` · transactions: [Companies issue names to their own agents](#companies-issue-names-to-their-own-agents-live-on-the-beta-since-2026-09-26) |
+| CompanyNamespace and MandateGate run the published source | Sourcify exact matches, creation and runtime, verified when the repo went public: [CompanyNamespace](https://repo.sourcify.dev/11155111/0x7ECaD5Fd6892270F09D91aB296786186C5bC660A), [MandateGate](https://repo.sourcify.dev/11155111/0x591dd2b2716b46740C665749A60209B7b22e83BF) · Blockscout: [CompanyNamespace](https://eth-sepolia.blockscout.com/address/0x7ECaD5Fd6892270F09D91aB296786186C5bC660A?tab=contract), [MandateGate](https://eth-sepolia.blockscout.com/address/0x591dd2b2716b46740C665749A60209B7b22e83BF?tab=contract) · [`verify-at-publication.sh`](../contracts/script/ens/verify-at-publication.sh) first checks that the local build reproduces each deployed metadata hash |
 | A claim can be revoked, and the name still resolves | `t6999900000003.payee.eth`: listed in [`0xf24f…5878`](https://sepolia.etherscan.io/tx/0xf24fa19c056654fe07f7d93d43ad5ebfc44ce5d3ecdb6814335cdcd9708d5878), revoked in [`0x0f3c…64bd`](https://sepolia.etherscan.io/tx/0x0f3c5d72bda2b2a894c97e779570eae8cfa44b11516465532754f4ea914364bd). Stock viem still returns 株式会社ミナトGPUクラウド and `0x4d6D…FD30`, through payee.eth's resolver |
 | A claim is set to expire with `payee.eth` | `ens.sh claim-check` prints and asserts it: all three live claims (t2011001234567, t8999900000001 and t4999900000005) expire at 1821898512, the same second as `payee.eth`. ENSv2 doesn't tie a child's expiry to its parent's, so Meigi renews them together |
 | A claimed name can't be transferred | `ens.sh claim-check`: the company's `unsafeTransfer` reverts `TransferDisallowed`, and its `safeTransferFrom` reverts too (ENSv2 requires `ROLE_CAN_TRANSFER_ADMIN`, and claims carry no roles) |
