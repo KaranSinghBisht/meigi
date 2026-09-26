@@ -241,6 +241,7 @@ export function fakeDeps(parts: Partial<Fakes> = {}, llm: LlmPort | null = null)
     approvals: null,
     history: { multibaas: null, rpc: new FakeHistory(), mizuhiki: null },
     audit: createAuditLog(null),
+    signer: null,
     apiToken: null,
     demoDir: DEMO_DIR,
     info: { chainId: 31337, vault: VAULT, agent: AGENT, triage: ["fake"], triageRequired: true, llm: llm ? "fake" : "none", screening: false, humanApproval: false, multibaas: false, mizuhiki: false },

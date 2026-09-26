@@ -24,7 +24,7 @@ export function createApp(deps: AppDeps) {
   );
   if (deps.apiToken) app.use("*", requireToken(deps.apiToken));
   app.notFound((c) => c.json({ code: "not_found", message: "no such endpoint" }, 404));
-  app.get("/health", (c) => c.json({ ok: true, ...deps.info }));
+  app.get("/health", async (c) => c.json({ ok: true, ...deps.info, signer: await signerStatus(deps) }));
   app.route("/invoices", invoiceRoutes(deps));
   app.route("/invoices", approvalRoutes(deps));
   app.route("/", paymentRoutes(deps));
@@ -32,4 +32,15 @@ export function createApp(deps: AppDeps) {
   app.route("/demo", demoRoutes(deps));
   app.route("/audit", auditRoutes(deps));
   return app;
+}
+
+/** Whether the signer (the one process with the agent key) answers: without it, nothing can be paid. */
+async function signerStatus(deps: AppDeps): Promise<"ok" | "unreachable" | "none"> {
+  if (!deps.signer) return "none";
+  try {
+    await deps.signer.health();
+    return "ok";
+  } catch {
+    return "unreachable"; // the reason is on the signer's side; /health only reports reachability
+  }
 }

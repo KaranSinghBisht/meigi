@@ -1,5 +1,4 @@
-import { createPublicClient, createWalletClient, http, type Chain, type Hex, type PublicClient } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
+import { createPublicClient, http, type Chain, type PublicClient } from "viem";
 import { foundry, sepolia } from "viem/chains";
 
 export function chainFor(chainId: number): Chain {
@@ -8,12 +7,10 @@ export function chainFor(chainId: number): Chain {
   throw new Error(`unsupported chain id ${chainId}`);
 }
 
-/** One JSON-RPC transport (batched, so a snapshot's reads share a round trip) and the agent's wallet. */
-export function createClients(rpcUrl: string, chainId: number, agentKey: Hex) {
+/** One JSON-RPC transport, batched so a snapshot's reads share a round trip. Read-only: the agent has no wallet. */
+export function createClients(rpcUrl: string, chainId: number) {
   const chain = chainFor(chainId);
   const transport = http(rpcUrl, { batch: true, timeout: 15_000 });
-  const account = privateKeyToAccount(agentKey);
   const publicClient = createPublicClient({ chain, transport }) as PublicClient;
-  const walletClient = createWalletClient({ chain, transport, account });
-  return { chain, account, publicClient, walletClient };
+  return { chain, publicClient };
 }

@@ -73,6 +73,8 @@ export interface PayCall {
   expectedPayout: Address;
   amount: bigint;
   invoiceRef: Hex;
+  /** A verified human's approval (World ID for Agents ID token), for the signer's own ceiling. Never logged. */
+  approval?: { idToken: string };
 }
 
 /** A revert decoded against the Meigi ABIs: the custom error's name, its inputs and argument values. */
@@ -93,9 +95,10 @@ export interface PaymentReceipt {
 export type SendOutcome =
   | { ok: true; receipt: PaymentReceipt } // mined (successfully or not)
   | { ok: false; revert: RawRevert } // the in-lock simulation reverted: nothing was sent
-  | { ok: "pending"; txHash: Hex }; // sent, but no receipt within the timeout
+  | { ok: "pending"; txHash: Hex } // sent, but no receipt within the timeout
+  | { ok: "refused"; message: string }; // the signer's own rule refused it (above its ceiling, no fresh approval)
 
-/** Write side: the only code path that can move money, and it always simulates first. */
+/** Write side: the only code path that can move money, and it always simulates first. In production it is the signer. */
 export interface PayerPort {
   simulate(call: PayCall): Promise<Simulation>;
   /** Simulates again inside a send lock, then broadcasts only if the simulation passed. `onSent` runs before waiting. */

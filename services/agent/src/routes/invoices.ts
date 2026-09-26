@@ -40,7 +40,8 @@ export function invoiceRoutes(deps: AppDeps) {
     if (paying.has(id)) throw new HttpError(409, "payment_in_progress", "this invoice is already being paid");
     paying.add(id);
     try {
-      const mode: PayMode = body.approvalId ? spendApproval(deps, stored, body.approvalId) : body.force ? "force" : "auto";
+      const approval = body.approvalId ? service(deps).consume(stored, body.approvalId) : undefined; // single use
+      const mode: PayMode = approval ? "approved" : body.force ? "force" : "auto";
       const approvalId = body.approvalId ?? null;
       // Paid and pending results are kept (never pay or send twice); anything else clears a settled pending one.
       // A sent transaction is recorded before its receipt is awaited, so the log has it even if the agent stops.
@@ -55,7 +56,7 @@ export function invoiceRoutes(deps: AppDeps) {
         audit(deps, "payment", paymentEntry(stored, mode, approvalId, result));
       };
       const before = stored.payment;
-      const result = await payAnalysis(deps, stored, mode, sent);
+      const result = await payAnalysis(deps, stored, mode, sent, approval);
       keep(result);
       const unchanged = result === before || (result.status === "pending" && result.txHash === recordedSend); // nothing new
       if (!unchanged) audit(deps, "payment", paymentEntry(stored, mode, approvalId, result));
@@ -88,8 +89,3 @@ function audit(deps: AppDeps, event: string, fields: Record<string, unknown>): v
   }
 }
 
-/** An approval pays once: any second use is a 409 (check a pending payment with a plain POST /pay). */
-function spendApproval(deps: AppDeps, stored: StoredAnalysis, approvalId: string): PayMode {
-  service(deps).consume(stored, approvalId);
-  return "approved";
-}

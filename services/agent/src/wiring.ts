@@ -1,7 +1,8 @@
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Address, Hex } from "viem";
+import { getAddress, type Address } from "viem";
 import { AnalysisStore } from "./analysis/store.js";
+import type { HoldPolicy } from "./analysis/verdict.js";
 import { createApprovals, type ApprovalService } from "./approval/approvals.js";
 import { createApproverRegistry } from "./approval/approvers.js";
 import { createIdp } from "./approval/idp.js";
@@ -12,8 +13,8 @@ import { createRpcHistory } from "./history/rpc.js";
 import { createMultiBaas } from "./multibaas/client.js";
 import { V2_START_BLOCK } from "./multibaas/labels.js";
 import { createClients } from "./chain/clients.js";
-import { createPayer } from "./chain/payer.js";
-import { createChainReader } from "./chain/reader.js";
+import { createRemotePayer, SignerUnavailable, type RemotePayer } from "./chain/remote-payer.js";
+import { ConfigMismatchError, createChainReader } from "./chain/reader.js";
 import type { Config } from "./config.js";
 import type { AppDeps } from "./deps.js";
 import { parseTNumber } from "./extract/tnumber.js";
@@ -32,13 +33,15 @@ const PACKAGE_DIR = fileURLToPath(new URL("..", import.meta.url));
 
 /** Builds every dependency from validated configuration. */
 export function buildDeps(config: Config) {
-  const { publicClient, walletClient, account } = createClients(config.SEPOLIA_RPC_URL, config.CHAIN_ID, config.AGENT_PRIVATE_KEY as Hex);
+  const { publicClient } = createClients(config.SEPOLIA_RPC_URL, config.CHAIN_ID);
   const vault = config.VAULT_ADDRESS as Address;
+  const agent = getAddress(config.AGENT_ADDRESS);
+  const signer = createRemotePayer({ url: config.SIGNER_URL, token: config.SIGNER_TOKEN });
   const chain = createChainReader({
     client: publicClient,
     chainId: config.CHAIN_ID,
     vault,
-    agent: account.address,
+    agent,
     registry: config.REGISTRY_ADDRESS as Address,
     token: config.TOKEN_ADDRESS as Address | undefined,
   });
@@ -64,7 +67,8 @@ export function buildDeps(config: Config) {
   };
   const deps: AppDeps = {
     chain,
-    payer: createPayer({ publicClient, walletClient, vault }),
+    payer: signer,
+    signer,
     triage: createTriage(triageBackends, config.TRIAGE_MIN_P_SAFE),
     llm,
     screening,
@@ -82,7 +86,7 @@ export function buildDeps(config: Config) {
     info: {
       chainId: config.CHAIN_ID,
       vault,
-      agent: account.address,
+      agent,
       triage: triageBackends.map((backend) => backend.name),
       triageRequired: config.TRIAGE_REQUIRED,
       llm: llm ? `${llm.provider}:${llm.model}` : "none",
@@ -92,7 +96,33 @@ export function buildDeps(config: Config) {
       mizuhiki: history.mizuhiki !== null,
     },
   };
-  return { deps, init: chain.init };
+  const init = async () => {
+    await chain.init();
+    await checkSigner(signer, config, deps.holds);
+  };
+  return { deps, init };
+}
+
+/**
+ * The signer must hold this vault's agent key on this chain. Its ceiling becomes the agent's auto-clear budget, so a
+ * payment it would refuse is held for a verified human here instead. Unreachable: payments wait until it's up.
+ */
+async function checkSigner(signer: RemotePayer, config: Config, holds: HoldPolicy): Promise<void> {
+  let health;
+  try {
+    health = await signer.health();
+  } catch (error) {
+    if (!(error instanceof SignerUnavailable)) throw error;
+    process.stderr.write(`[agent] the signer at ${config.SIGNER_URL} isn't reachable yet: payments wait for it\n`);
+    return;
+  }
+  if (getAddress(health.agent) !== getAddress(config.AGENT_ADDRESS)) {
+    throw new ConfigMismatchError(`the signer holds ${health.agent}'s key, but AGENT_ADDRESS is ${config.AGENT_ADDRESS}`);
+  }
+  if (getAddress(health.vault) !== getAddress(config.VAULT_ADDRESS) || health.chainId !== config.CHAIN_ID) {
+    throw new ConfigMismatchError(`the signer pays from vault ${health.vault} on chain ${health.chainId}, not ${config.VAULT_ADDRESS} on ${config.CHAIN_ID}`);
+  }
+  holds.autoClearMaxYen = Math.min(holds.autoClearMaxYen ?? Number.POSITIVE_INFINITY, health.humanAboveYen);
 }
 
 /** World ID for Agents: a verified human may release a held payment. Off unless both client values are set. */

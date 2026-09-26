@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-const privateKey = z.string().regex(/^0x[0-9a-fA-F]{64}$/u, "must be a 32-byte hex key");
 const address = z.string().regex(/^0x[0-9a-fA-F]{40}$/u, "must be an address");
 /** In a dotenv file an empty value means "not set". */
 const optional = <T extends z.ZodType>(schema: T) => z.preprocess((v) => (v === "" ? undefined : v), schema.optional());
@@ -17,7 +16,10 @@ const schema = z
   .object({
     SEPOLIA_RPC_URL: z.url(),
     CHAIN_ID: z.coerce.number().int().positive().default(11155111),
-    AGENT_PRIVATE_KEY: privateKey,
+    // The agent holds no key: services/signer does, and signs payInvoice for it over localhost.
+    AGENT_ADDRESS: address, // the vault's agent, whose key only the signer holds
+    SIGNER_URL: z.url().refine(secureOrLoopback, "must be https, or http on loopback").default("http://127.0.0.1:8796"),
+    SIGNER_TOKEN: z.string().min(32), // the shared secret the signer checks on every call (.env and .env.signer)
     REGISTRY_ADDRESS: address,
     VAULT_ADDRESS: address,
     TOKEN_ADDRESS: optional(address),
@@ -111,8 +113,17 @@ const schema = z
 
 export type Config = z.infer<typeof schema>;
 
+/** The agent key must never reach this process: it lives in .env.signer, which only services/signer loads. */
+export class KeyInAgentError extends Error {
+  override readonly name = "KeyInAgentError";
+  constructor() {
+    super("AGENT_PRIVATE_KEY is in the agent's environment: move it to .env.signer, which only services/signer loads");
+  }
+}
+
 /** Reads configuration from the environment. Errors name the invalid keys but never echo their values. */
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
+  if (env.AGENT_PRIVATE_KEY !== undefined) throw new KeyInAgentError();
   const parsed = schema.safeParse(env);
   if (!parsed.success) {
     const keys = [...new Set(parsed.error.issues.map((issue) => issue.path.join(".")))].join(", ");

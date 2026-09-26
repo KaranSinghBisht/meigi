@@ -26,6 +26,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@meigi/signer": "workspace:*",
     "@types/node": "^22.19.0",
     "tsx": "^4.21.0",
     "typescript": "^7.0.2",

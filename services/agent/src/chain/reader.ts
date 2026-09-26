@@ -141,13 +141,13 @@ async function loadContracts(opts: ReaderOptions): Promise<Contracts> {
   return { registry, token: { address: tokenAddress, symbol, decimals } };
 }
 
-/** The owner may pay an invoice twice (it can top up a payment), so this service must never hold the owner key. */
+/** The owner may pay an invoice twice (it can top up a payment), so the signer must never hold the owner key. */
 function checkRoles(key: Address, agent: Address, owner: Address): void {
   if (getAddress(key) === getAddress(owner)) {
-    throw new ConfigMismatchError("AGENT_PRIVATE_KEY is the vault owner's key; use the agent key (the owner bypasses duplicate-invoice checks)");
+    throw new ConfigMismatchError("AGENT_ADDRESS is the vault owner; the signer must hold the agent key (the owner bypasses duplicate-invoice checks)");
   }
   if (getAddress(key) !== getAddress(agent)) {
-    throw new ConfigMismatchError(`AGENT_PRIVATE_KEY is ${key}, but the vault's agent is ${agent}`);
+    throw new ConfigMismatchError(`AGENT_ADDRESS is ${key}, but the vault's agent is ${agent}`);
   }
 }
 

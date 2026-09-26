@@ -27,6 +27,7 @@ export interface Attempt {
   validUntil?: number;
   approver?: Exclude<ApproverCheck, "wrong_human">;
   approverId?: string; // the first 16 hex of SHA-256(sub): who approved, for the audit log, without the sub itself
+  idToken?: string; // the validated approval, server-side only: handed to the signer once, then dropped
   consumed: boolean;
   done: Promise<void>;
 }
@@ -94,6 +95,7 @@ async function approve(ctx: PollContext, attempt: Attempt, idToken: string): Pro
     attempt.validUntil = now + APPROVAL_TTL_SECONDS;
     attempt.approver = check;
     attempt.approverId = createHash("sha256").update(sub).digest("hex").slice(0, 16);
+    attempt.idToken = idToken;
     finish(attempt, "approved");
   } catch (error) {
     if (error instanceof TokenRejected) return finish(attempt, "denied", `invalid token: ${error.message}`);

@@ -78,7 +78,7 @@ describe("local LLM provider (OpenAI-compatible, e.g. Ollama)", () => {
   });
 
   it("is the default provider, and allows http only on loopback", () => {
-    const env = { SEPOLIA_RPC_URL: "http://127.0.0.1:8547", AGENT_PRIVATE_KEY: `0x${"11".repeat(32)}`, REGISTRY_ADDRESS: `0x${"22".repeat(20)}`, VAULT_ADDRESS: `0x${"33".repeat(20)}` };
+    const env = { SEPOLIA_RPC_URL: "http://127.0.0.1:8547", AGENT_ADDRESS: `0x${"11".repeat(20)}`, SIGNER_TOKEN: "s".repeat(64), REGISTRY_ADDRESS: `0x${"22".repeat(20)}`, VAULT_ADDRESS: `0x${"33".repeat(20)}` };
     expect(loadConfig(env)).toMatchObject({ LLM_PROVIDER: "local", LOCAL_LLM_URL: "http://127.0.0.1:11434/v1", LOCAL_LLM_MODEL: "llama3.1:8b" });
     expect(loadConfig({ ...env, LOCAL_LLM_URL: "https://llm.example.com/v1/" }).LOCAL_LLM_URL).toBe("https://llm.example.com/v1");
     expect(() => loadConfig({ ...env, LOCAL_LLM_URL: "http://192.168.1.20:11434/v1" })).toThrow("LOCAL_LLM_URL");

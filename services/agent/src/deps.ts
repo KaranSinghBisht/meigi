@@ -3,6 +3,7 @@ import type { HoldPolicy } from "./analysis/verdict.js";
 import type { ApprovalService } from "./approval/approvals.js";
 import type { AuditLog } from "./audit/log.js";
 import type { HistorySources } from "./history/read.js";
+import type { SignerHealth } from "./chain/remote-payer.js";
 import type { ChainPort, PayerPort } from "./chain/types.js";
 import type { LlmPort } from "./llm/types.js";
 import type { ScreeningPort } from "./screening/intercepta.js";
@@ -25,7 +26,8 @@ export interface HealthInfo {
 /** Everything the routes need, injected so tests can swap in fakes. */
 export interface AppDeps {
   chain: ChainPort;
-  payer: PayerPort;
+  payer: PayerPort; // in production the signer (services/signer), which alone holds the agent key
+  signer: { health(): Promise<SignerHealth> } | null; // null: a test's in-memory payer
   triage: TriagePort;
   llm: LlmPort | null;
   screening: ScreeningPort;

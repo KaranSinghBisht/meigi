@@ -1,12 +1,15 @@
 import { mkdtempSync, rmSync } from "node:fs";
+import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { agentVaultAbi, mockJPYCAbi } from "@meigi/abi";
 import { createPublicClient, http, parseEventLogs, type Address, type Hex, type PublicClient } from "viem";
 import { foundry } from "viem/chains";
+import { serve, type ServerType } from "@hono/node-server";
+import { loadConfig as loadSignerConfig, startSigner } from "@meigi/signer";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { hasFoundry } from "../../scripts/stack/anvil.js";
-import { agentEnv, startLocalStack, type LocalStack } from "../../scripts/stack/stack.js";
+import { agentEnv, signerEnv, startLocalStack, type LocalStack } from "../../scripts/stack/stack.js";
 import { createApp } from "../../src/app.js";
 import { loadConfig } from "../../src/config.js";
 import { invoiceRefOf } from "../../src/kernel/intent.js";
@@ -17,7 +20,8 @@ import { approvalHarness, approvedWith, denied, type Harness } from "../mock-idp
 /**
  * The whole path on real contracts: forge deploys Deploy.s.sol to a fresh anvil, the attester registers the
  * demo vendors, the vault owner approves Meigi Shoji, MockJPYC funds the vault. Then the HTTP API pays a
- * routine invoice for real and turns every attack into a decoded revert without broadcasting it.
+ * routine invoice for real and turns every attack into a decoded revert without broadcasting it. The agent holds
+ * no key: the signer (services/signer, in-process here) holds anvil's agent key and signs over localhost.
  * System-1 triage is a separate model service, so it is canned here; everything else is the production code.
  */
 describe.skipIf(!hasFoundry())("agent against the real contracts on anvil", () => {
@@ -26,13 +30,24 @@ describe.skipIf(!hasFoundry())("agent against the real contracts on anvil", () =
   let reader: PublicClient;
   let cacheDir: string;
   let human: Harness; // World ID for Agents, against a mock IdP
+  let signer: ServerType;
+  let signerUrl: string;
+  const SIGNER_TOKEN = "t".repeat(64);
+  const CEILING_YEN = 200_000; // above the demo invoices, so the routine one pays on its own; tested below
 
   beforeAll(async () => {
     stack = await startLocalStack({ port: Number(process.env.ANVIL_PORT ?? 8547) });
     if (stack.anvil.note) process.stderr.write(`[integration] ${stack.anvil.note}\n`);
     cacheDir = mkdtempSync(join(tmpdir(), "meigi-agent-it-"));
+    human = await approvalHarness();
+    const signerConfig = loadSignerConfig(signerEnv(stack, { port: 8799, token: SIGNER_TOKEN, humanAboveYen: CEILING_YEN }));
+    const started = await startSigner(signerConfig, () => human.idp.clock.now); // the mock IdP's clock dates its proofs
+    signer = await new Promise<ServerType>((resolve) => {
+      const server = serve({ fetch: started.app.fetch, port: 0, hostname: "127.0.0.1" }, () => resolve(server));
+    });
+    signerUrl = `http://127.0.0.1:${(signer.address() as AddressInfo).port}`;
     const config = loadConfig({
-      ...agentEnv(stack),
+      ...agentEnv(stack, { url: signerUrl, token: SIGNER_TOKEN }),
       LLM_PROVIDER: "none",
       TRIAGE_BACKENDS: "systemone",
       INTERCEPTA_CACHE_PATH: join(cacheDir, "intercepta.json"),
@@ -40,12 +55,12 @@ describe.skipIf(!hasFoundry())("agent against the real contracts on anvil", () =
     });
     const { deps, init } = buildDeps(config);
     await init();
-    human = await approvalHarness();
     app = createApp({ ...deps, triage: new FakeTriage(routineTriage()), approvals: human.approvals });
     reader = createPublicClient({ chain: foundry, transport: http(stack.anvil.url) }) as PublicClient;
   });
 
   afterAll(() => {
+    signer?.close();
     stack?.anvil.stop();
     if (cacheDir) rmSync(cacheDir, { recursive: true, force: true });
   });
@@ -177,6 +192,23 @@ describe.skipIf(!hasFoundry())("agent against the real contracts on anvil", () =
     const receipt = await reader.getTransactionReceipt({ hash: paid.txHash as Hex });
     const [event] = parseEventLogs({ abi: agentVaultAbi, eventName: "InvoicePaid", logs: receipt.logs });
     expect(event?.args).toMatchObject({ payout: MEIGI_PAYOUT, amount: yen(55_000), invoiceRef: invoiceRefOf("2011001234567", "MS-2026-0926") });
+  });
+
+  it("the signer's own ceiling: above it, nothing is signed without a fresh human approval", async () => {
+    const before = await agentNonce();
+    const pay = async (body: Record<string, unknown>) => {
+      const res = await fetch(`${signerUrl}/pay`, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${SIGNER_TOKEN}` }, body: JSON.stringify(body) });
+      return { status: res.status, body: (await res.json()) as Record<string, any> };
+    };
+    const over = { tNumber: "2011001234567", payout: SCAMMER, amount: yen(250_000).toString(), invoiceRef: invoiceRefOf("2011001234567", "MS-2026-9999") };
+    expect(await pay(over)).toMatchObject({ status: 403, body: { code: "human_approval_required" } });
+    // With a fresh Orb-level approval the ceiling lifts, and the chain has the last word: this payout is wrong.
+    const idToken = await human.idp.sign({ auth_time: human.idp.clock.now });
+    const approved = await pay({ ...over, approval: { idToken } });
+    expect(approved).toMatchObject({ status: 200, body: { ok: false, revert: { data: expect.stringMatching(/^0x/u) } } });
+    expect(await agentNonce()).toBe(before); // nothing was sent either time
+    const unauthorized = await fetch(`${signerUrl}/pay`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(over) });
+    expect(unauthorized.status).toBe(401);
   });
 
   it("GET /vault reads the live vault", async () => {

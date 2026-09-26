@@ -19,13 +19,20 @@ export type PayResult =
 export type PayMode = "auto" | "force" | "approved";
 
 /**
- * Pays an analysed invoice from the agent key. In "auto" mode only a "pay" verdict is sent. "force" is
- * simulate-only: it shows the chain's decoded refusal of a held payment and never sends anything, so it can never
- * stand in for a verified human (override.ts). "approved" (the caller has spent a verified human's approval)
- * releases the approvable holds only. Every payment is simulated first and pays the printed amount to the
- * registered payee of the printed T-number. `record` sees a sent transaction before its receipt.
+ * Pays an analysed invoice through the signer, which holds the agent key. In "auto" mode only a "pay" verdict is
+ * sent. "force" is simulate-only: it shows the chain's decoded refusal of a held payment and never sends anything,
+ * so it can never stand in for a verified human (override.ts). "approved" (the caller has spent a verified human's
+ * approval, `approval`) releases the approvable holds only, and the approval goes to the signer, whose own ceiling
+ * needs it. Every payment is simulated first and pays the printed amount to the registered payee of the printed
+ * T-number. `record` sees a sent transaction before its receipt.
  */
-export async function payAnalysis(deps: AppDeps, stored: StoredAnalysis, mode: PayMode, record: (r: PayResult) => void): Promise<PayResult> {
+export async function payAnalysis(
+  deps: AppDeps,
+  stored: StoredAnalysis,
+  mode: PayMode,
+  record: (r: PayResult) => void,
+  approval?: { idToken: string },
+): Promise<PayResult> {
   const previous = stored.payment;
   if (previous?.status === "paid") return previous;
   if (previous?.status === "pending") return settlePending(deps, stored, previous);
@@ -42,8 +49,9 @@ export async function payAnalysis(deps: AppDeps, stored: StoredAnalysis, mode: P
   if (!simulated.ok) return reverted(deps, stored, simulated.revert, forced);
   if (forced) return held(stored, [forcePassed(stored)]); // force never sends
   const pending = (txHash: Hex): PayResult => ({ status: "pending", txHash, forced, message: "Sent; waiting for the block. Pay again to check." });
-  const sent = await deps.payer.send(call, (txHash) => record(pending(txHash)));
+  const sent = await deps.payer.send({ ...call, ...(approval ? { approval } : {}) }, (txHash) => record(pending(txHash)));
   if (sent.ok === "pending") return pending(sent.txHash);
+  if (sent.ok === "refused") return held(stored, [signerRefusal(stored, sent.message)]);
   if (!sent.ok) return reverted(deps, stored, sent.revert, forced);
   return mined(deps, stored, sent.receipt, forced, simulated.payout);
 }
@@ -94,6 +102,19 @@ async function reverted(deps: AppDeps, stored: StoredAnalysis, raw: RawRevert, f
 
 function held(stored: StoredAnalysis, reasons: Reason[]): PayResult {
   return { status: "held", reasons, explanation: stored.view.explanation };
+}
+
+/** The signer applied its own rule (a ceiling only a fresh human approval lifts) and sent nothing. */
+function signerRefusal(stored: StoredAnalysis, message: string): Reason {
+  const payee = stored.view.kernel.payee;
+  return {
+    code: "signer_refused",
+    severity: "block",
+    layer: "kernel",
+    tNumber: payee?.tNumber ?? stored.view.extracted.tNumber,
+    legalName: payee?.legalName ?? null,
+    message,
+  };
 }
 
 function notPayable(stored: StoredAnalysis, intent: PaymentIntent): Reason[] {

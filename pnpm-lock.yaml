@@ -226,6 +226,9 @@ importers:
         specifier: ^4.6.5
         version: 4.6.5
     devDependencies:
+      '@meigi/signer':
+        specifier: workspace:*
+        version: link:../signer
       '@types/node':
         specifier: ^22.19.0
         version: 22.20.4

@@ -37,8 +37,11 @@ export interface ApprovalService {
    */
   start(stored: StoredAnalysis): Promise<ApprovalStart>;
   status(invoiceId: string): ApprovalState | null;
-  /** Spends an approval on one pay attempt, or throws (404 unknown, 409 not approved / used / void). */
-  consume(stored: StoredAnalysis, attemptId: string): void;
+  /**
+   * Spends an approval on one pay attempt, or throws (404 unknown, 409 not approved / used / void). Returns the
+   * approving ID token for the signer, once: it is dropped from memory as it is handed over.
+   */
+  consume(stored: StoredAnalysis, attemptId: string): { idToken: string };
   /** Resolves when the attempt's poller has stopped (tests). */
   settled(attemptId: string): Promise<void>;
 }
@@ -105,14 +108,18 @@ class Approvals implements ApprovalService {
     return attempt ? stateView(attempt, this.ctx.now()) : null;
   }
 
-  consume(stored: StoredAnalysis, attemptId: string): void {
+  consume(stored: StoredAnalysis, attemptId: string): { idToken: string } {
     const attempt = this.attempts.get(attemptId);
     if (!attempt || attempt.invoiceId !== stored.view.id) throw new HttpError(404, "approval_not_found", "no such approval for this invoice");
     if (attempt.consumed) throw new HttpError(409, "approval_used", "this approval was already used");
     const status = liveStatus(attempt, this.ctx.now());
     if (status !== "approved") throw new HttpError(409, "approval_not_approved", `the approval is ${status}: nothing was paid`);
     attempt.consumed = true; // single use, whatever happens next
+    const idToken = attempt.idToken;
+    delete attempt.idToken;
     if (attempt.binding !== bindingOf(stored)) throw new HttpError(409, "approval_void", "the invoice changed after it was approved: nothing was paid");
+    if (!idToken) throw new HttpError(409, "approval_not_approved", "the approval has no proof to show the signer: nothing was paid");
+    return { idToken };
   }
 
   async settled(attemptId: string): Promise<void> {

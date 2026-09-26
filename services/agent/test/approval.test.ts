@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { analyzeDocument } from "../src/analysis/analyze.js";
 import type { StoredAnalysis } from "../src/analysis/store.js";
-import { loadConfig } from "../src/config.js";
+import { KeyInAgentError, loadConfig } from "../src/config.js";
 import { packagePath } from "../src/wiring.js";
 import { HttpError } from "../src/http.js";
 import { demo, fakeDeps } from "./fakes.js";
@@ -169,10 +169,22 @@ describe("ID token validation", () => {
   });
 });
 
+describe("the agent's key", () => {
+  it("never reaches the agent: loading the configuration with AGENT_PRIVATE_KEY set fails loudly", () => {
+    const env = { SEPOLIA_RPC_URL: "http://127.0.0.1:8547", AGENT_ADDRESS: `0x${"11".repeat(20)}`, SIGNER_TOKEN: "s".repeat(64), REGISTRY_ADDRESS: `0x${"22".repeat(20)}`, VAULT_ADDRESS: `0x${"33".repeat(20)}` };
+    expect(() => loadConfig({ ...env, AGENT_PRIVATE_KEY: `0x${"44".repeat(32)}` })).toThrow(KeyInAgentError);
+    expect(() => loadConfig({ ...env, AGENT_PRIVATE_KEY: "" })).toThrow("move it to .env.signer");
+    expect(() => loadConfig({ ...env, SIGNER_TOKEN: "short" })).toThrow("SIGNER_TOKEN");
+    expect(() => loadConfig({ ...env, SIGNER_URL: "http://192.168.1.20:8796" })).toThrow("SIGNER_URL");
+    expect(loadConfig(env)).toMatchObject({ SIGNER_URL: "http://127.0.0.1:8796" });
+  });
+});
+
 describe("World ID configuration", () => {
   const base = {
     SEPOLIA_RPC_URL: "http://127.0.0.1:8547",
-    AGENT_PRIVATE_KEY: `0x${"11".repeat(32)}`,
+    AGENT_ADDRESS: `0x${"11".repeat(20)}`,
+    SIGNER_TOKEN: "s".repeat(64),
     REGISTRY_ADDRESS: `0x${"22".repeat(20)}`,
     VAULT_ADDRESS: `0x${"33".repeat(20)}`,
     LLM_PROVIDER: "none",
