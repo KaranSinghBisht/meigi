@@ -1,11 +1,12 @@
 import type { StoredAnalysis } from "../analysis/store.js";
 
 /**
- * The holds a verified human may release: judgement calls (System-1's hold, pressure, the auto-clear budget).
+ * The holds a verified human may release: judgement calls (System-1's hold, pressure, the auto-clear budget) and a
+ * configured screen that couldn't answer.
  * Never document integrity (credit notes, hidden content, markup, ambiguous totals, missing numbers, several
  * addresses) and never anything the chain would refuse anyway: those return 409.
  */
-export const APPROVABLE = new Set(["triage_hold", "triage_unavailable", "pressure_hold", "above_auto_clear_budget"]);
+export const APPROVABLE = new Set(["triage_hold", "triage_unavailable", "pressure_hold", "above_auto_clear_budget", "screening_unavailable"]);
 
 export function blockingCodes(stored: StoredAnalysis): string[] {
   return [...new Set(stored.verdict.reasons.filter((r) => r.severity === "block").map((r) => r.code))];

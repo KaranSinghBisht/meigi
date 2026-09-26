@@ -73,7 +73,8 @@ payment. It uses the World ID for Agents OIDC provider (`https://sandbox.auth.wo
 grant: the agent is the device, and the human approves in World App. It is off unless `WORLD_AGENTS_CLIENT_ID` and
 `WORLD_AGENTS_CLIENT_SECRET` are both set; then every approval route answers `503 approval_not_configured`.
 
-- **Approvable holds:** `triage_hold`, `triage_unavailable`, `pressure_hold` and `above_auto_clear_budget`. Anything
+- **Approvable holds:** `triage_hold`, `triage_unavailable`, `pressure_hold`, `above_auto_clear_budget` and
+  `screening_unavailable` (a configured screen that couldn't answer). Anything
   else on the invoice (a credit note, hidden content, markup, ambiguous totals, a missing number, several addresses, a
   screening hit, or a payee/vendor/cap reason the chain would refuse) makes `POST …/approval` answer
   `409 not_approvable`, and so does an invoice that isn't held or is already paid.
@@ -235,14 +236,19 @@ budget are 0.880 (deployed) and 0.903 (oracle). A System-1 `credit_note` answer 
 
 - **Client:** `src/screening/intercepta.ts` calls
   `GET https://api.web3antivirus.io/api/public/v2/extension/account/{address}/quick-scan` with header `X-API-KEY`.
-- **Caller:** `src/analysis/analyze.ts` screens the document's printed addresses (up to 3), plus the agent's proposed
-  `payTo` if the document never printed it.
+- **Caller:** `src/analysis/analyze.ts` screens the document's printed addresses (up to 3), the agent's proposed
+  `payTo`, and always the registered payout the vault pays, even when the document prints no address.
 - **Caching and budget:** results are cached per address in memory and in `INTERCEPTA_CACHE_PATH`
-  (`src/screening/cache.ts`), and every call counts against `INTERCEPTA_MAX_CALLS`.
+  (`src/screening/cache.ts`). A clean result is re-checked after 10 minutes; a flagged one is kept. Every call
+  counts against `INTERCEPTA_MAX_CALLS`.
 - **Flagging:** an address is flagged at `toxicScore ≥ 50`, or when it has a severe trait (`known_scammer`,
   `sanction_address`, `fake_phishing_transfer`, `mixer_transfers`, …). A flagged address blocks payment, and force
   can't override it.
-- **Without a key:** the result is "screening unavailable", never mock data.
+- **With a key:** an address that couldn't be screened (an outage, a timeout, a 5xx, a spent call budget) holds the
+  payment as `screening_unavailable`. A verified human may approve that hold, because nothing says the payee is
+  bad.
+- **Without a key:** the result is "screening not configured" (`screening_not_configured`, a warning), never mock
+  data. The demo works without a key.
 
 ## Demo documents
 

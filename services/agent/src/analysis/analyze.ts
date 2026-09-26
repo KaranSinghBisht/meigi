@@ -62,7 +62,7 @@ export async function analyzeDocument(deps: AppDeps, text: string): Promise<Stor
   ]);
   const agentProposal = proposal.status === "ok" ? proposalOf(proposal) : null;
   const kernel = await clock.async("kernelMs", () => runKernel(deps.chain, extracted, agentProposal));
-  const screening = await screenIntent(deps.screening, screened, kernel.intent, extracted.addresses);
+  const screening = await screenPayees(deps.screening, screened, [kernel.intent?.payTo, kernel.result.payee?.registeredPayout]);
   const verdict = decide({ extracted, kernel: kernel.result, triage, screening, triageRequired: deps.triageRequired, holds: deps.holds });
   const explanation = await clock.async("explanationMs", () => explainOutcome(deps.llm, kernel.result, verdict));
   const view: AnalysisView = {
@@ -114,17 +114,17 @@ function proposalOf(view: Extract<ProposalView, { status: "ok" }>): Proposal {
   return { tNumber, payTo, amount, invoiceNumber, wouldPay, reasoning };
 }
 
-/** The agent may want to pay an address the document never printed; screen that one too. */
-async function screenIntent(
-  port: ScreeningPort,
-  screened: Screening,
-  intent: PaymentIntent | null,
-  printed: Address[],
-): Promise<Screening> {
-  const extra = intent?.payTo;
-  if (!extra || printed.includes(extra) || screened.status !== "ok") return screened;
-  const more = await port.screen([extra]);
-  if (more.status !== "ok") return { ...screened, errors: [...screened.errors, { address: extra, error: more.reason }] };
+/**
+ * Screens the addresses money would actually go to that the document never printed: the agent's payTo, and the
+ * registered payout the vault pays whatever the document says.
+ */
+async function screenPayees(port: ScreeningPort, screened: Screening, payees: (Address | null | undefined)[]): Promise<Screening> {
+  if (screened.status !== "ok") return screened;
+  const seen = new Set([...screened.results, ...screened.errors].map((r) => r.address.toLowerCase()));
+  const extra = [...new Set(payees.filter((a): a is Address => Boolean(a)))].filter((a) => !seen.has(a.toLowerCase()));
+  if (extra.length === 0) return screened;
+  const more = await port.screen(extra);
+  if (more.status !== "ok") return { ...screened, errors: [...screened.errors, ...extra.map((address) => ({ address, error: more.reason }))] };
   return { ...more, results: [...screened.results, ...more.results], errors: [...screened.errors, ...more.errors] };
 }
 

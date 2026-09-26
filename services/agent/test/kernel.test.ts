@@ -192,16 +192,20 @@ describe("verdict", () => {
     expect(optional.warnings.map((w) => w.code)).toContain("triage_unavailable");
   });
 
-  it("holds when Intercepta flags an address, and warns when screening is unavailable", () => {
+  it("holds when Intercepta flags an address, only warns without a key, and holds (approvably) when a configured screen fails", () => {
     const flagged: Screening = {
       ...clean,
       results: [{ address: MEIGI_PAYOUT, toxicScore: 87, traits: [], checkedAt: "", flagged: true, cached: false }],
     };
     expect(verdictFor(routine, { screening: flagged }).reasons.map((r) => r.code)).toEqual(["screening_flagged"]);
-    const off: Screening = { status: "unavailable", message: "screening unavailable", reason: "no key" };
+    const off: Screening = { status: "not_configured", message: "screening not configured", reason: "no INTERCEPTA_API_KEY is configured" };
     const v = verdictFor(routine, { screening: off });
     expect(v.decision).toBe("pay");
-    expect(v.warnings.map((w) => w.code)).toContain("screening_unavailable");
+    expect(v.warnings.map((w) => w.code)).toContain("screening_not_configured");
+    const down: Screening = { status: "unavailable", message: "screening unavailable", reason: "Intercepta answered 503" };
+    expect(verdictFor(routine, { screening: down }).reasons).toEqual([expect.objectContaining({ code: "screening_unavailable", severity: "block" })]);
+    const partial: Screening = { ...clean, errors: [{ address: MEIGI_PAYOUT, error: "Intercepta did not answer in time" }] };
+    expect(verdictFor(routine, { screening: partial }).reasons.map((r) => r.code)).toEqual(["screening_unavailable"]);
   });
 
   it("holds a tampered document even when the chain would accept it", () => {

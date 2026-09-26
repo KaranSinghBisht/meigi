@@ -23,9 +23,21 @@ describe("Intercepta screening", () => {
   const dirs: string[] = [];
   afterEach(() => dirs.splice(0).forEach((dir) => rmSync(dir, { recursive: true, force: true })));
 
-  it("says 'screening unavailable' without a key and never invents a result", async () => {
+  it("says 'screening not configured' without a key and never invents a result", async () => {
     const port = createIntercepta({ apiKey: undefined, cache: createScanCache(null), maxCalls: 900 });
-    expect(await port.screen([SCAMMER])).toEqual({ status: "unavailable", message: "screening unavailable", reason: "no INTERCEPTA_API_KEY is configured" });
+    expect(await port.screen([SCAMMER])).toEqual({ status: "not_configured", message: "screening not configured", reason: "no INTERCEPTA_API_KEY is configured" });
+  });
+
+  it("re-checks a clean result after 10 minutes, and keeps a flagged one", async () => {
+    const { fetchImpl, calls } = fakeApi({ [SCAMMER]: scammer });
+    let now = Date.parse("2026-09-26T03:00:00Z");
+    const port = createIntercepta({ apiKey: "k", cache: createScanCache(null), maxCalls: 900, fetch: fetchImpl, now: () => now });
+    await port.screen([MEIGI_PAYOUT, SCAMMER]);
+    now += 9 * 60 * 1000;
+    expect(await port.screen([MEIGI_PAYOUT])).toMatchObject({ results: [{ cached: true }] });
+    now += 2 * 60 * 1000;
+    expect(await port.screen([MEIGI_PAYOUT, SCAMMER])).toMatchObject({ results: [{ cached: false, flagged: false }, { cached: true, flagged: true }] });
+    expect(calls.map((c) => c.url.includes(MEIGI_PAYOUT))).toEqual([true, false, true]);
   });
 
   it("flags scam traits, sends the key header and caches by address", async () => {

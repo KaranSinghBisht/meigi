@@ -184,7 +184,7 @@ export class FakeLlm implements LlmPort {
 
 export class FakeScreening implements ScreeningPort {
   enabled = false;
-  constructor(public result: Screening = { status: "unavailable", message: "screening unavailable", reason: "no INTERCEPTA_API_KEY is configured" }) {}
+  constructor(public result: Screening = { status: "not_configured", message: "screening not configured", reason: "no INTERCEPTA_API_KEY is configured" }) {}
   async screen() {
     return this.result;
   }

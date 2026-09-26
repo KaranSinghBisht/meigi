@@ -4,8 +4,10 @@ import type { CachedScan, ScanCache, Trait } from "./cache.js";
 
 /**
  * Intercepta (Web3 Antivirus) address screening: `GET /api/public/v2/extension/account/{address}/quick-scan`
- * returns a toxic score and risk traits. It is advisory: a flagged address holds the payment, but a clean
- * one never overrides the registry. With no key or no budget left it reports "screening unavailable".
+ * returns a toxic score and risk traits. A flagged address holds the payment; a clean one never overrides the
+ * registry. Without a key it reports "screening not configured"; with one, an outage, a timeout or a spent budget
+ * is "screening unavailable", which the verdict holds on. Clean results are reused for 10 minutes; flagged ones
+ * are kept.
  */
 
 const API = "https://api.web3antivirus.io/api/public/v2/extension/account";
@@ -14,6 +16,8 @@ const API = "https://api.web3antivirus.io/api/public/v2/extension/account";
  * (70, score only) on purpose: a false hold costs a human glance, a missed one costs the payment.
  */
 const DEFAULT_TOXIC_THRESHOLD = 50;
+/** An address can turn bad: a clean result is re-checked after this long. */
+const CLEAN_TTL_MS = 10 * 60 * 1000;
 const SEVERE_TRAITS = new Set([
   "known_scammer",
   "initiator_scam_transactions",
@@ -52,7 +56,8 @@ export interface ScanResult extends CachedScan {
 
 export type Screening =
   | { status: "ok"; results: ScanResult[]; errors: { address: Address; error: string }[]; callsUsed: number; callBudget: number }
-  | { status: "unavailable"; message: "screening unavailable"; reason: string };
+  | { status: "unavailable"; message: "screening unavailable"; reason: string }
+  | { status: "not_configured"; message: "screening not configured"; reason: string };
 
 export interface ScreeningPort {
   enabled: boolean;
@@ -67,13 +72,15 @@ export interface InterceptaOptions {
   toxicThreshold?: number;
   fetch?: typeof fetch;
   timeoutMs?: number;
+  now?: () => number; // ms
+  cleanTtlMs?: number;
 }
 
 export function createIntercepta(opts: InterceptaOptions): ScreeningPort {
   return {
     enabled: Boolean(opts.apiKey),
     async screen(addresses) {
-      if (!opts.apiKey) return unavailable("no INTERCEPTA_API_KEY is configured");
+      if (!opts.apiKey) return { status: "not_configured", message: "screening not configured", reason: "no INTERCEPTA_API_KEY is configured" };
       const unique = [...new Set(addresses)];
       const limit = opts.maxPerRequest ?? 3;
       const distinct = unique.slice(0, limit);
@@ -93,7 +100,11 @@ export function createIntercepta(opts: InterceptaOptions): ScreeningPort {
 async function scanOne(opts: InterceptaOptions, apiKey: string, address: Address): Promise<ScanResult | { error: string }> {
   const cached = opts.cache.get(address);
   const threshold = opts.toxicThreshold ?? DEFAULT_TOXIC_THRESHOLD;
-  if (cached) return result(address, cached, true, threshold);
+  if (cached) {
+    const hit = result(address, cached, true, threshold);
+    const age = (opts.now ?? Date.now)() - Date.parse(cached.checkedAt);
+    if (hit.flagged || age < (opts.cleanTtlMs ?? CLEAN_TTL_MS)) return hit;
+  }
   if (opts.cache.calls() >= opts.maxCalls) return { error: `the ${opts.maxCalls}-call screening budget is used up` };
   opts.cache.recordCall();
   let response: Response;
@@ -112,7 +123,7 @@ async function scanOne(opts: InterceptaOptions, apiKey: string, address: Address
   const scan: CachedScan = {
     toxicScore: parsed.data.toxicScore,
     traits: (parsed.data.traits ?? []).map(toTrait),
-    checkedAt: new Date().toISOString(),
+    checkedAt: new Date((opts.now ?? Date.now)()).toISOString(),
   };
   opts.cache.set(address, scan);
   return result(address, scan, false, threshold);

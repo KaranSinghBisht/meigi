@@ -102,9 +102,16 @@ function judgementHolds({ extracted, kernel, triage, holds }: VerdictInput): Unt
   return out;
 }
 
+/**
+ * Screening is advisory only when it isn't configured. Once a key is set, an address that couldn't be screened
+ * (an outage, a timeout, a spent budget) holds the payment: approvable, since nothing says the payee is bad.
+ */
 function screeningReasons(screening: Screening): Untagged[] {
+  if (screening.status === "not_configured") {
+    return [{ code: "screening_not_configured", severity: "warn", layer: "screening", message: `Screening not configured: ${screening.reason}.` }];
+  }
   if (screening.status === "unavailable") {
-    return [{ code: "screening_unavailable", severity: "warn", layer: "screening", message: `Screening unavailable: ${screening.reason}.` }];
+    return [{ code: "screening_unavailable", severity: "block", layer: "screening", message: `Screening is unavailable (${screening.reason}), so nothing is auto-cleared.` }];
   }
   const flagged: Untagged[] = screening.results
     .filter((r) => r.flagged)
@@ -115,10 +122,10 @@ function screeningReasons(screening: Screening): Untagged[] {
       message: `Intercepta flags ${r.address} (toxic score ${r.toxicScore}${r.traits.length ? `; ${r.traits.map((t) => t.name).join(", ")}` : ""}).`,
     }));
   const failed: Untagged[] = screening.errors.map((e) => ({
-    code: "screening_error",
-    severity: "warn",
+    code: "screening_unavailable",
+    severity: "block",
     layer: "screening",
-    message: `${e.address} was not screened: ${e.error}.`,
+    message: `${e.address} was not screened (${e.error}), so nothing is auto-cleared.`,
   }));
   return [...flagged, ...failed];
 }
