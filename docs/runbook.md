@@ -190,8 +190,10 @@ a trusted single-user machine; the ENS scripts and forge scripts read keys from 
    they're down; this agent check covers both.
 3. Warm up a few minutes before the slot: run one Analyze on any invoice (the first local-model call after idle is
    markedly slower), and run one withdrawal check on `/business` (about 5 s cold, 2 s warm).
-4. `curl localhost:8790/demo/compromised`: refused before signing (`payto_mismatch`). With an Intercepta key,
-   `/demo/unverified-flagged` is refused as `screened`.
+4. `curl -X POST localhost:8790/scenario/research-agent`: about a minute, and it spends about ¥60 of test mJPYC.
+   The compromised GPU mirror is refused before signing, because its `payTo` isn't Minato's registered payout. With
+   an Intercepta key, the flagged undeclared scrape is refused as `screened`. The registered purchases settle.
+   (The old `/demo/*` routes are gone: they answer 404.)
 5. In the AP console, load the bank-change email:
    - The agent's LLM proposes paying `0xdCa5…6d5b`, and the kernel holds.
    - "Let the agent pay anyway" reverts `PayeeMismatch` in simulation, names 株式会社メイギ商事, and broadcasts
