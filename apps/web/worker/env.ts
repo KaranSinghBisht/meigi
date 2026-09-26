@@ -24,7 +24,8 @@ export interface Env {
   readonly SETTLEMENT_TOKEN?: string
   /** The x402 research agent's wallet: only its mJPYC transfers count as x402 purchases (mJPYC is mintable). */
   readonly X402_BUYER?: string
-  /** "Ask the ledger": the model, 3 questions a minute per IP, and the daily cap for everyone (default 50). */
+  /** "Ask the ledger": on only when "true"; the model, 3 questions a minute per IP, and the daily cap (default 30). */
+  readonly ASK_ENABLED?: string
   readonly AI?: AiBinding
   readonly ASK_LIMITER?: RateLimiter
   readonly ASK_QUOTA?: QuotaNamespace

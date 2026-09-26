@@ -60,7 +60,7 @@ function Suggested({ disabled, onPick }: { readonly disabled: boolean; readonly 
 export function AskLedger() {
   const id = useId()
   const [question, setQuestion] = useState('')
-  const { state, paused, ask } = useAskLedger()
+  const { state, shown, paused, ask } = useAskLedger()
   const busy = state.kind === 'asking'
   const send = (text: string) => {
     const trimmed = text.trim()
@@ -74,6 +74,7 @@ export function AskLedger() {
     setQuestion(text)
     send(text)
   }
+  if (!shown) return null
   return (
     <form className={paused ? 'ask ask--paused' : 'ask'} onSubmit={submit} aria-labelledby={id}>
       <h3 id={id} className="ask__title">

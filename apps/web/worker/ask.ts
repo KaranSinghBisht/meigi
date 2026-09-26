@@ -1,7 +1,8 @@
 // "Ask the ledger": POST /api/ask { question } answers a question about the settlements GET /api/settlements serves,
-// from those rows only, as { answer, citedTx }. GET /api/ask says whether questions are open today. Read-only, no
-// tools. Limits: 300 characters, 3 a minute per IP (the rate-limit binding) and a daily cap for everyone (a Durable
-// Object). Errors are generic; nothing a visitor typed is logged.
+// from those rows only, as { answer, citedTx }. GET /api/ask says whether it is on and whether questions are open
+// today. Read-only, no tools. Off unless ASK_ENABLED is "true". Limits: 300 characters, 3 a minute per IP (the
+// rate-limit binding) and a daily cap for everyone (a Durable Object, 30 unless ASK_DAILY_CAP says otherwise).
+// Errors are generic; nothing a visitor typed is logged.
 
 import { allowedIn, factsOf } from './ask-facts'
 import { guardAnswer } from './ask-guard'
@@ -17,7 +18,7 @@ const HEADERS = {
 }
 const MAX_BODY = 2048
 const MODEL_TIMEOUT_MS = 25_000
-const DEFAULT_CAP = 50
+const DEFAULT_CAP = 30
 
 const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: HEADERS })
 const refuse = (status: number, code: string, message: string) => reply({ code, message }, status)
@@ -88,7 +89,10 @@ async function ask(request: Request, env: Env, api: SettlementsApi, now: number)
   return answer(env, api, question)
 }
 
-/** GET /api/ask (are questions open today?) and POST /api/ask (a question). */
+/** Off unless ASK_ENABLED is "true": then the panel shows no box at all, and a direct request finds no API. */
+const enabled = (env: Env) => env.ASK_ENABLED === 'true'
+
+/** GET /api/ask (is it on, and are questions open today?) and POST /api/ask (a question). */
 export async function askResponse(
   request: Request,
   env: Env,
@@ -96,9 +100,13 @@ export async function askResponse(
   now = Date.now(),
 ): Promise<Response> {
   try {
-    if (request.method === 'GET' || request.method === 'HEAD') {
+    const read = request.method === 'GET' || request.method === 'HEAD'
+    if (!enabled(env)) {
+      return read ? reply({ enabled: false, open: false }) : refuse(404, 'not_found', 'There is no such API.')
+    }
+    if (read) {
       const open = env.AI && env.ASK_QUOTA ? await peekQuota(env.ASK_QUOTA, utcDay(now), dailyCap(env)) : false
-      return reply({ open })
+      return reply({ enabled: true, open })
     }
     if (request.method !== 'POST') {
       return new Response(JSON.stringify({ code: 'method_not_allowed', message: 'Use GET or POST.' }), {

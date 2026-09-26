@@ -1,5 +1,6 @@
 // "Ask the ledger": the site Worker's POST /api/ask answers a question from the settlements it serves, and GET
-// /api/ask says whether questions are open today. Same origin on the hosted site; in dev, Vite proxies /api.
+// /api/ask says whether it is on and whether questions are open today. Same origin on the hosted site; in dev, Vite
+// proxies /api.
 
 import { ApiError, requestJson } from './http'
 import { isRecord } from './parse'
@@ -34,8 +35,14 @@ export async function askLedger(question: string, signal?: AbortSignal): Promise
   }
 }
 
-/** Whether questions are open today; false when the Worker can't say (ask anyway, and it answers why). */
-export async function askOpen(signal?: AbortSignal): Promise<boolean> {
+export interface AskStatus {
+  /** The feature is switched on (ASK_ENABLED). Off, the panel shows no box at all. */
+  readonly enabled: boolean
+  /** Questions are open today (under the daily cap). */
+  readonly open: boolean
+}
+
+export async function askStatus(signal?: AbortSignal): Promise<AskStatus> {
   const body = await requestJson('/api/ask', { timeoutMs: 10_000, signal })
-  return isRecord(body) && body.open === true
+  return { enabled: isRecord(body) && body.enabled === true, open: isRecord(body) && body.open === true }
 }

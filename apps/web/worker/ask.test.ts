@@ -140,6 +140,7 @@ function env(
     },
     ASK_QUOTA: memoryQuota(),
     ASK_DAILY_CAP: '2',
+    ASK_ENABLED: 'true',
     ...overrides,
   }
   return { env: base, calls }
@@ -198,14 +199,37 @@ describe('POST /api/ask', () => {
   it('answers GET with whether questions are open, and fails closed without its bindings', async () => {
     const { env: e } = env({ ASK_DAILY_CAP: '0' })
     assert.deepEqual(await (await askResponse(new Request('https://meigi.test/api/ask'), e, () => api)).json(), {
+      enabled: true,
       open: false,
     })
     const { env: open } = env()
     assert.deepEqual(await (await askResponse(new Request('https://meigi.test/api/ask'), open, () => api)).json(), {
+      enabled: true,
       open: true,
     })
     const { env: bare } = env({ AI: undefined })
     assert.equal((await askResponse(post('q'), bare, () => api)).status, 503)
+  })
+
+  it('is off unless ASK_ENABLED is "true": no box, and a question finds no API or model', async () => {
+    for (const flag of [undefined, 'false', 'TRUE', '1']) {
+      const { env: e, calls } = env({ ASK_ENABLED: flag })
+      const get = await askResponse(new Request('https://meigi.test/api/ask'), e, () => api)
+      assert.deepEqual(await get.json(), { enabled: false, open: false })
+      assert.equal((await askResponse(post('q'), e, () => api)).status, 404)
+      assert.equal(calls.length, 0)
+    }
+  })
+
+  it('caps the day at 30 when ASK_DAILY_CAP is missing or malformed', async () => {
+    for (const cap of [undefined, 'lots']) {
+      const { env: e, calls } = env({ ASK_DAILY_CAP: cap, ASK_LIMITER: { limit: async () => ({ success: true }) } })
+      const statuses = []
+      for (let i = 0; i < 31; i++) statuses.push((await askResponse(post('q', `ip${i}`), e, () => api)).status)
+      assert.equal(statuses.filter((status) => status === 200).length, 30)
+      assert.equal(statuses.at(-1), 429)
+      assert.equal(calls.length, 30)
+    }
   })
 
   it('pauses calmly when Workers AI has spent its daily free allocation', async () => {

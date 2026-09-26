@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { askFailure, askLedger, askOpen, type AskFailure, type LedgerAnswer } from '../../lib/api/ask'
+import { askFailure, askLedger, askStatus, type AskFailure, type LedgerAnswer } from '../../lib/api/ask'
 
 export type AskState =
   | { readonly kind: 'idle' }
@@ -8,20 +8,25 @@ export type AskState =
   | { readonly kind: 'failed'; readonly question: string; readonly failure: AskFailure }
 
 /**
- * One question at a time to "Ask the ledger". `paused` starts from GET /api/ask and turns on when the daily cap is
- * hit mid-session, so the box greys out instead of failing each time.
+ * One question at a time to "Ask the ledger". `shown` waits for GET /api/ask to say the feature is on (off or
+ * unknown, there is no box). `paused` starts from the same answer and turns on when the daily cap is hit
+ * mid-session, so the box greys out instead of failing each time.
  */
 export function useAskLedger() {
   const [state, setState] = useState<AskState>({ kind: 'idle' })
+  const [shown, setShown] = useState(false)
   const [paused, setPaused] = useState(false)
   const inflight = useRef<AbortController | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
-    askOpen(controller.signal).then(
-      (open) => setPaused(!open),
-      // Unknown: leave the box open; a question then says why it got no answer.
-      () => undefined,
+    askStatus(controller.signal).then(
+      (status) => {
+        setShown(status.enabled)
+        setPaused(!status.open)
+      },
+      // Unknown: no box. The settlements above still show.
+      () => setShown(false),
     )
     return () => {
       controller.abort()
@@ -45,5 +50,5 @@ export function useAskLedger() {
     }
   }, [])
 
-  return { state, paused, ask }
+  return { state, shown, paused, ask }
 }
