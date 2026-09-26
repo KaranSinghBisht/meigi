@@ -47,6 +47,12 @@
   font-size: var(--text-sm);
 }
 
+/* The live check, a cell across the whole window below the two columns. */
+.biz-exchange__check {
+  padding: 24px;
+  box-shadow: 0 -1px 0 var(--lg-hairline);
+}
+
 @media (max-width: 899px) {
   .biz-exchange__body {
     grid-template-columns: minmax(0, 1fr);

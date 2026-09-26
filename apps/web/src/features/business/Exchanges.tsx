@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { WithdrawalCheck } from '../withdrawal-check/WithdrawalCheck'
 import './exchanges.css'
 
 /** The FSA and NPA request to crypto-asset exchanges of 6 August 2026 (measure ④): pre-registered destinations. */
@@ -46,6 +47,9 @@ export function Exchanges() {
             it doesn&apos;t replace the exchange&apos;s own collection, screening or risk assessment.
           </p>
         </div>
+      </div>
+      <div className="biz-exchange__check">
+        <WithdrawalCheck />
       </div>
     </section>
   )

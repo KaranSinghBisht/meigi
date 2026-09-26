@@ -1,0 +1,138 @@
+/* The withdrawal check, a cell of the exchanges window: the two fields and the button in a row, example chips, and
+   the verdict as one status chip, a sentence and its facts. No strokes; it takes the window's glass. */
+.withdrawal {
+  display: grid;
+  gap: 16px;
+}
+
+.withdrawal__head {
+  display: grid;
+  gap: 4px;
+}
+
+.withdrawal__title {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-strong);
+}
+
+.withdrawal__lede,
+.withdrawal__note {
+  color: var(--ink-soft);
+  font-size: var(--text-md);
+}
+
+.withdrawal__note--error {
+  color: var(--seal-deep);
+  font-weight: var(--weight-strong);
+}
+
+/* Destination (wider: it holds a full address), T-number, and the button on the fields' line. */
+.withdrawal__fields {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 4fr) auto;
+  align-items: start;
+  gap: 16px;
+}
+
+/* The button sits level with the inputs, below their labels. */
+.withdrawal__fields > .btn {
+  margin-top: 31px;
+}
+
+.withdrawal__examples {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.withdrawal__examples-label {
+  margin-right: 4px;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-strong);
+}
+
+.withdrawal__example {
+  height: var(--control-chip);
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--lg-cell-strong);
+  box-shadow: var(--lg-shadow-control);
+  color: var(--ink);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-strong);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.2s var(--ease-out);
+}
+
+.withdrawal__example:hover {
+  background: var(--lg-sheen-lift), var(--lg-cell-strong);
+}
+
+.withdrawal__result:empty {
+  display: none;
+}
+
+.withdrawal__verdict {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border-radius: var(--radius-md);
+  background: var(--lg-cell);
+  box-shadow: var(--lg-highlight);
+}
+
+.withdrawal__lead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-strong);
+}
+
+.withdrawal__facts {
+  display: grid;
+  gap: 10px;
+}
+
+.withdrawal__row {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 4px 16px;
+  align-items: baseline;
+}
+
+.withdrawal__row dt {
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-strong);
+}
+
+.withdrawal__row dd {
+  min-width: 0;
+  color: var(--ink);
+  font-size: var(--text-md);
+}
+
+@media (max-width: 760px) {
+  .withdrawal__fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .withdrawal__fields > .btn {
+    margin-top: 0;
+    justify-self: start;
+  }
+
+  .withdrawal__row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .withdrawal__verdict {
+    padding: 16px;
+  }
+}
