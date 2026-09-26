@@ -82,6 +82,20 @@ export const APPROVAL = {
   approverId: '92c520d9a85b4ec1',
 } as const
 
+/**
+ * The first request, refused: #78 approval.started, then #79 approval.settled with status "wrong_human". A second
+ * sandbox identity proved, not the approver on file, and the agent sent nothing (no signer event before #80's new
+ * request).
+ */
+export const REFUSED = {
+  /** The user code World's page showed for this request: not in the audit log, recorded in the run's write-up. */
+  code: 'GC8TN-9SZCR',
+  approvalId: '07c5141f-3862-477b-9429-ce2d4817d2d6',
+  status: 'wrong_human',
+  /** #79's time: 22:15:00 JST. */
+  settledAt: new Date('2026-09-26T13:15:00.645Z'),
+} as const
+
 const TX = '0xf7507446d11c2c5cab94ff4b7ca83db36180b3aa8d80085f9556aaeabcea5a03'
 const PAYOUT = '0x9B4fc8994FcF2d5FE08a82A9454B61AA14D647e4'
 const GATE = '0x591dd2b2716b46740C665749A60209B7b22e83BF'

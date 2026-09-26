@@ -2,7 +2,7 @@ import { HankoMark } from '../../../../ui/brand/HankoMark'
 import { Spinner } from '../../../../ui/components/Spinner'
 import { useQr } from '../../../../ui/world/useQr'
 import { keepTokens } from '../../content/tokens'
-import { APPROVAL, jstSeconds, PAID, URGENT } from '../../content/urgent'
+import { APPROVAL, jstSeconds, PAID, REFUSED, URGENT } from '../../content/urgent'
 import { checkLabel, layerLabel, percent } from './checks'
 import { Bar, Card, Chip, Field } from './parts'
 
@@ -127,28 +127,52 @@ function WorldIdCard() {
           <p className="mono pworld__link">{APPROVAL.link}</p>
           <p className="pworld__code">
             <span className="pcard__note">Code</span>
-            <span className="pworld__code-value">{APPROVAL.code}</span>
+            <span className="pworld__codes">
+              <span className="pworld__code-value" data-d="u-world-code-refused">
+                {REFUSED.code}
+              </span>
+              <span className="pworld__code-value" data-d="u-world-code" data-enter="">
+                {APPROVAL.code}
+              </span>
+            </span>
           </p>
         </div>
       </div>
-      <div className="pworld__status">
-        <p className="pcard__row pworld__wait" data-d="u-world-wait">
-          <Spinner />
-          <span>Waiting for a human to approve this payment with World ID</span>
-        </p>
-        <p className="pcard__row pworld__ok" data-d="u-world-ok" data-enter="">
-          <HankoMark glyphs="承認" tone="jade" size={36} />
-          <span>
-            <b>Approved by the enrolled approver</b>
-            <span className="pcard__note">
-              Audit #81: approved {jstSeconds(APPROVAL.approvedAt)}, approver matched (
-              <span className="mono">{APPROVAL.approverId}</span>). #83: the signer verified it again, then sent the
-              payment.
-            </span>
-          </span>
-        </p>
-      </div>
+      <WorldStatus />
     </Card>
+  )
+}
+
+/** The first request is refused (#78, #79); the second, with a new code (#80), is approved (#81, #83). */
+function WorldStatus() {
+  return (
+    <div className="pworld__status">
+      <p className="pcard__row pworld__wait" data-d="u-world-wait">
+        <Spinner />
+        <span>Waiting for a human to approve this payment with World ID</span>
+      </p>
+      <p className="pcard__row pworld__refused" data-d="u-world-refused" data-enter="">
+        <Chip tone="bad">Refused</Chip>
+        <span>
+          <b>A different World ID identity is refused</b>
+          <span className="pcard__note">
+            Audit #79: <span className="mono">{REFUSED.status}</span> at {jstSeconds(REFUSED.settledAt)}. Nothing
+            paid.
+          </span>
+        </span>
+      </p>
+      <p className="pcard__row pworld__ok" data-d="u-world-ok" data-enter="">
+        <HankoMark glyphs="承認" tone="jade" size={36} />
+        <span>
+          <b>Approved by the enrolled approver</b>
+          <span className="pcard__note">
+            Audit #81: approved {jstSeconds(APPROVAL.approvedAt)}, approver matched (
+            <span className="mono">{APPROVAL.approverId}</span>). #83: the signer verified it again, then sent the
+            payment.
+          </span>
+        </span>
+      </p>
+    </div>
   )
 }
 

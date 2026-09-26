@@ -1,4 +1,4 @@
-// Chapter 5 (1:22 on): a research agent buys compute and data over x402; the guard checks each payee before the
+// Chapter 5 (1:53 on): a research agent buys compute and data over x402; the guard checks each payee before the
 // agent signs. The pacing follows the run itself: each purchase takes as long as its log lines take to type.
 
 import { X402_RUN, type X402Purchase, type X402Run } from '../content/x402'

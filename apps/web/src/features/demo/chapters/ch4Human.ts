@@ -1,5 +1,5 @@
-// Chapter 4 (0:58–1:22): a genuine but urgent invoice is held for a person; a human approves it through
-// World ID for Agents, and only then does the vault pay.
+// Chapter 4 (1:22–1:53): a genuine but urgent invoice is held for a person. A different World ID identity is refused
+// first; then the approver on file approves through World ID for Agents, and only then does the vault pay.
 
 import type { BuildCtx, ChapterDef } from '../engine/types'
 import {
@@ -65,54 +65,70 @@ function triage(c: BuildCtx): void {
   status(c, 'reading', 'hold', 8.0)
 }
 
-function approve(c: BuildCtx): void {
+/** The first request (#78, #79): a different World ID identity proves, is refused, and nothing is paid. */
+function refuse(c: BuildCtx): void {
   step(c, 'urgent', 5, 9.4)
   card(c, 'urgent', 'u-card-world', 9.5)
   status(c, 'hold', 'human', 9.6)
-  show(c, 'phone', 10.6, { x: 0, duration: 0.7 })
-  cursorTo(c, 'phone-approve', 11.0, { duration: 1.0, fx: 0.5, fy: 0.6 })
-  click(c, 12.1)
-  hide(c, 'phone-request', 12.4, { duration: 0.25 })
-  show(c, 'phone-face', 12.55, { duration: 0.25 })
-  c.tl.to(c.el('phone-ring'), { rotation: 360, duration: 1.6, ease: 'none' }, c.t0 + 12.6)
-  hide(c, 'phone-face', 14.2, { duration: 0.2 })
-  show(c, 'phone-done', 14.3, { scale: 1, duration: 0.35 })
-  hide(c, 'u-world-wait', 14.5, { duration: 0.2 })
-  rise(c, 'u-world-ok', 14.6)
-  status(c, 'human', 'approved', 14.6)
-  stepDone(c, 'urgent', 5, 14.6)
+  hide(c, 'u-world-wait', 12.4, { duration: 0.2 })
+  rise(c, 'u-world-refused', 12.5)
+  status(c, 'human', 'wrong', 12.5)
+  hide(c, 'u-world-refused', 15.9, { duration: 0.25 })
+  hide(c, 'u-world-code-refused', 15.9, { duration: 0.25 })
+  show(c, 'u-world-code', 16.15)
+  show(c, 'u-world-wait', 16.15)
+  status(c, 'wrong', 'human', 16.15)
+}
+
+/** The second request (#80, #81): a new code, and the approver on file approves. */
+function approve(c: BuildCtx): void {
+  show(c, 'phone', 17.6, { x: 0, duration: 0.7 })
+  cursorTo(c, 'phone-approve', 18.0, { duration: 1.0, fx: 0.5, fy: 0.6 })
+  click(c, 19.1)
+  hide(c, 'phone-request', 19.4, { duration: 0.25 })
+  show(c, 'phone-face', 19.55, { duration: 0.25 })
+  c.tl.to(c.el('phone-ring'), { rotation: 360, duration: 1.6, ease: 'none' }, c.t0 + 19.6)
+  hide(c, 'phone-face', 21.2, { duration: 0.2 })
+  show(c, 'phone-done', 21.3, { scale: 1, duration: 0.35 })
+  hide(c, 'u-world-wait', 21.5, { duration: 0.2 })
+  rise(c, 'u-world-ok', 21.6)
+  status(c, 'human', 'approved', 21.6)
+  stepDone(c, 'urgent', 5, 21.6)
 }
 
 function pay(c: BuildCtx): void {
-  step(c, 'urgent', 6, 16.2)
-  hide(c, 'cursor', 16.0)
-  const sent = logLine(c, 'human', 'pay', 16.4, 70)
+  step(c, 'urgent', 6, 23.2)
+  hide(c, 'cursor', 23.0)
+  const sent = logLine(c, 'human', 'pay', 23.4, 70)
   const paid = logLine(c, 'human', 'paid', sent + 0.3, 60)
   logLine(c, 'human', 'block', paid + 0.15, 70)
   card(c, 'urgent', 'u-card-paid', paid - 0.2)
   status(c, 'approved', 'paid', paid - 0.2)
   stepDone(c, 'urgent', 6, paid)
-  show(c, 'row-urgent-paid', 20.4, { scale: 1 })
-  show(c, 'msg-urgent-paid', 20.5, { scale: 1 })
-  hide(c, 'phone', 20.8, { x: 40, duration: 0.5 })
+  show(c, 'row-urgent-paid', 27.4, { scale: 1 })
+  show(c, 'msg-urgent-paid', 27.5, { scale: 1 })
+  hide(c, 'phone', 27.8, { x: 40, duration: 0.5 })
 }
 
 export const chapter4: ChapterDef = {
   id: 'human',
   title: 'Human approves',
-  duration: 24,
+  duration: 31,
   /** The 至急 mail open and its Read card in: before it, the frame is still chapter 3's reply draft and seal. */
   opening: 3.4,
   captions: [
     { at: 0, text: 'A real invoice, but it pushes for speed (至急).' },
     { at: 9.4, text: 'The agent asks a human to approve with World ID for Agents, on World’s sandbox.' },
-    { at: 12.2, text: 'One fresh World ID proof, bound to this invoice, single-use.' },
-    { at: 16.2, text: 'Only now does it pay, still through the vault’s checks.' },
+    { at: 12.4, text: 'A different World ID identity is refused, so nothing is paid.' },
+    { at: 15.9, text: 'It asks again, with a new code, for the approver on file.' },
+    { at: 19.2, text: 'One fresh World ID proof, bound to this invoice, single-use.' },
+    { at: 23.2, text: 'Only now does it pay, still through the vault’s checks.' },
   ],
   build(c) {
     arrive(c)
     read(c)
     triage(c)
+    refuse(c)
     approve(c)
     pay(c)
   },

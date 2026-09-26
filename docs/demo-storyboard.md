@@ -97,21 +97,25 @@ with no code change.
 | 1:12 | — | The chain log types out: `simulate payInvoice(T2011001234567, 0xdCa5…, ¥132,000)` → **revert `PayeeMismatch`**. A red seal: "Refused by the vault. Nothing was broadcast." | "The vault itself refuses. The address isn't the registered payout." |
 | 1:18 | A reply draft opens in Gmail (compose window slides up), written by the agent: 「新しい受取アドレスは弊社で確認できませんでした。登録済みの受取先へお支払いいたします。」, with the English beneath | "Draft reply ready for review" | "It drafts the safe reply: we'll pay the registered account." |
 
-### 4. A genuine but urgent invoice, and a human decides (1:22–1:46)
+### 4. A genuine but urgent invoice, and a human decides (1:22–1:53)
 
 One real run on 2026-09-26 (`docs/world-agents-approve-run.md`, audit entries #77–#85): the invoice text is demo 07
 as it read then (MS-2026-0931; its SHA-256 is the audit's `documentSha256`), the analysis is that run's own (id
-`874eb11f…`, recorded before the payment), and the payment is the approved one.
+`874eb11f…`, recorded before the payment), and the payment is the approved one. The run's first request was
+refused (#78, #79: a second sandbox identity proved, not the approver on file, and nothing was sent); the chapter plays
+that refusal before the approval.
 
 | t | Browser | Agent panel | Caption |
 |---|---|---|---|
 | 1:22 | A new mail: 【至急】ご請求書送付のお知らせ from the real `meigi-shoji.example`, with a PDF chip; the invoice is MS-2026-0931, the number the paid tx's invoiceRef commits to | Read → Triage (kev-latest, 59 ms: pressure 100%, p_safe 0.64 < 0.90, suspicion 0.73 / 3) → Kernel: 9 of 9 checks pass, among them "ENS mandate answers" → **Hold until a human approves with World ID** | "A real invoice, but it pushes for speed (至急)." |
-| 1:28 | — | The World ID for Agents card: QR code, link and the run's real user code `RMHB9-MFQB4`; "Waiting for a human to approve this payment with World ID" | "The agent asks a human to approve with World ID for Agents, on World's sandbox." |
-| 1:32 | A neutral approver's screen slides in beside the browser: World ID approve screen → "World ID proof: a fresh proof, from a sandbox identity" (World's sandbox uses test identities, so no face check is shown) → **Approved** | The card goes green: "Approved by the enrolled approver · Audit #81: approved 22:16:51 JST, approver matched (92c520d9a85b4ec1). #83: the signer verified it again, then sent the payment." (only what the audit log records; the user code is from the run's write-up) | "One fresh World ID proof, bound to this invoice, single-use." |
-| 1:38 | — | Pay → chain log (MandateGate `0x591d…83BF`): `payInvoice` → **Paid ¥55,000 to 0x9B4f…47e4** · tx `0xf7507446…ea5a03`, block 11,786,455, 22:17:12 JST, sent by the agent key through the ENS MandateGate under `ap.t4999900000005.payee.eth` (real Sepolia) | "Only now does it pay, still through the vault's checks." |
-| 1:43 | The mail gets a green "Paid" label | — | — |
+| 1:28 | — | The World ID for Agents card: QR code, link and the first request's real user code `GC8TN-9SZCR`; "Waiting for a human to approve this payment with World ID" | "The agent asks a human to approve with World ID for Agents, on World's sandbox." |
+| 1:34 | — | The card turns red: "Refused · A different World ID identity is refused · Audit #79: `wrong_human` at 22:15:00 JST. Nothing paid."; status "Different World ID identity refused" (never "a different human": the sandbox's identities are test identities) | "A different World ID identity is refused, so nothing is paid." |
+| 1:38 | — | A new request (#80): the code changes to the second request's real user code `RMHB9-MFQB4`; "Waiting…" again | "It asks again, with a new code, for the approver on file." |
+| 1:40 | A neutral approver's screen slides in beside the browser: World ID approve screen → "World ID proof: a fresh proof, from a sandbox identity" (World's sandbox uses test identities, so no face check is shown) → **Approved** | The card goes green: "Approved by the enrolled approver · Audit #81: approved 22:16:51 JST, approver matched (92c520d9a85b4ec1). #83: the signer verified it again, then sent the payment." (only what the audit log records; the user code is from the run's write-up) | "One fresh World ID proof, bound to this invoice, single-use." |
+| 1:45 | — | Pay → chain log (MandateGate `0x591d…83BF`): `payInvoice` → **Paid ¥55,000 to 0x9B4f…47e4** · tx `0xf7507446…ea5a03`, block 11,786,455, 22:17:12 JST, sent by the agent key through the ENS MandateGate under `ap.t4999900000005.payee.eth` (real Sepolia) | "Only now does it pay, still through the vault's checks." |
+| 1:49 | The mail gets a green "Paid" label | — | — |
 
-### 5. Agents buying compute and data (1:46–2:22)
+### 5. Agents buying compute and data (1:53–2:29)
 
 The browser switches tab to a terminal-style "research agent" log. It plays the recorded research-agent run on
 Sepolia (`content/x402-run.json`, now the re-recorded Intercepta run: 6 purchases, 4 settled, 2 refused), paced by
@@ -120,12 +124,12 @@ last second brings the end card in.
 
 | t | Screen | Caption |
 |---|---|---|
-| 1:46 | Two GPU-minutes from **Minato GPU Cloud**: `402 Payment Required` · 15 mJPYC, declaring `T6999900000003` / `t6999900000003.payee.eth` | "Agents pay each other over x402, before any human looks." |
-| 1:50 | The guard: the ENS name resolves, the registry agrees, payTo matches, Intercepta screens it clean → signed → settled; then a dataset slice from Fuji Data | "Before signing, the guard checks who it's paying." |
-| 2:03 | A cheaper-looking GPU inference mirror swaps `payTo` → **refused before signing**: "t6999900000003.payee.eth resolves to the registered payout 0x4d6D…, but payTo asks for 0xdCa5… instead" | "A hacked merchant is refused. The agent never signs." |
-| 2:09 | A web-scrape API with no Meigi record gets a small, screened allowance and settles; another one, paying an address screening flags (known scammer), is refused | "Unknown merchants get a small, screened allowance, or nothing." |
+| 1:53 | Two GPU-minutes from **Minato GPU Cloud**: `402 Payment Required` · 15 mJPYC, declaring `T6999900000003` / `t6999900000003.payee.eth` | "Agents pay each other over x402, before any human looks." |
+| 1:57 | The guard: the ENS name resolves, the registry agrees, payTo matches, Intercepta screens it clean → signed → settled; then a dataset slice from Fuji Data | "Before signing, the guard checks who it's paying." |
+| 2:10 | A cheaper-looking GPU inference mirror swaps `payTo` → **refused before signing**: "t6999900000003.payee.eth resolves to the registered payout 0x4d6D…, but payTo asks for 0xdCa5… instead" | "A hacked merchant is refused. The agent never signs." |
+| 2:16 | A web-scrape API with no Meigi record gets a small, screened allowance and settles; another one, paying an address screening flags (known scammer), is refused | "Unknown merchants get a small, screened allowance, or nothing." |
 
-### 6. End card (2:22–2:30)
+### 6. End card (2:29–2:37)
 
 The card holds until the loop cuts back to chapter 0. Every chapter opens on a fully drawn frame, so a chapter chip
 pressed while paused always shows its stage. Chapters 2, 4 and 5 spend their first moments clearing the previous

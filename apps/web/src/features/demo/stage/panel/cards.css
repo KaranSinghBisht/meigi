@@ -304,6 +304,15 @@
   white-space: nowrap;
 }
 
+/* The refused request's code, then the approved one's, in one place. */
+.pworld__codes {
+  display: grid;
+}
+
+.pworld__codes > * {
+  grid-area: 1 / 1;
+}
+
 .pworld__status {
   display: grid;
   margin-top: 10px;
@@ -328,6 +337,19 @@
 }
 
 .pworld__ok b {
+  display: block;
+  font-size: 13px;
+}
+
+.pworld__refused {
+  flex-wrap: nowrap;
+  padding: 10px;
+  border-radius: 12px;
+  background: var(--seal-tint);
+  color: var(--seal-deep);
+}
+
+.pworld__refused b {
   display: block;
   font-size: 13px;
 }
