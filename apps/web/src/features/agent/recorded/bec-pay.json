@@ -13,7 +13,7 @@
   },
   "explanation": {
     "source": "llm",
-    "text": "The payment of ¥132,000 to address 0xdCa52b5FA181a3307eCa852935BD40e3E0096d5b was refused on-chain because the registered payout address for 株式会社メイギ商事 (T2011001234567) is 0x9B4fc8994FcF2d5FE08a82A9454B61AA14D647e4, which does not match the requested address. The system also held the payment due to suspicion of a new account or wallet. Next, you should confirm the correct payment details with 株式会社メイギ商事 using their contact information on file.",
-    "model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+    "text": "The payment was refused on-chain because there is a mismatch between the registered payout for 株式会社メイギ商事 (T-number T2011001234567) at 0x9B4fc8994FcF2d5FE08a82A9454B61AA14D647e4 and the requested payment address 0xdCa52b5FA181a3307eCa852935BD40e3E0096d5b for the amount of ¥132,000. Furthermore, the system placed a triage hold due to the payee change request. Please confirm any new payment details with the supplier using contact details already on file.",
+    "model": "gemma4:e4b"
   }
 }
