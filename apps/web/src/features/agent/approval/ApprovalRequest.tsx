@@ -7,9 +7,9 @@ import { useQr } from '../../../ui/world/useQr'
 import { ApprovalHolds } from './ApprovalHolds'
 import './approval.css'
 
-/** The IdP's sandbox is approved from the World ID Sandbox app; production from World App. */
+/** The IdP's sandbox is approved from the World ID Sandbox app; production from the World ID app. */
 function appName(uri: string): string {
-  return new URL(uri).hostname.includes('sandbox') ? 'the World ID Sandbox app' : 'World App'
+  return new URL(uri).hostname.includes('sandbox') ? 'the World ID Sandbox app' : 'the World ID app'
 }
 
 interface ApprovalRequestProps {

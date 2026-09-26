@@ -1,14 +1,14 @@
 /**
  * The shape of one real `/change` approval run, captured from `docs/world-live-run.md`, for the hosted page to
  * replay. No `RECORDED_RUN` constant here yet: this stays type-only until the real production phone run with
- * Karan happens (World App, Selfie Check, T7999900000002). See `ChangeRecordedRun.tsx` for the replay itself.
+ * Karan happens (World ID, Selfie Check, T7999900000002). See `ChangeRecordedRun.tsx` for the replay itself.
  *
  * Every field here is public: officer ids are `keccak256(session_id)`, not a session token or anything personal.
  */
 
 export interface RecordedOfficer {
   readonly officerId: string
-  /** The World App session id that proved this officer, shown short (public, not a secret). */
+  /** The World ID session id that proved this officer, shown short (public, not a secret). */
   readonly sessionId: string
 }
 

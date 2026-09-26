@@ -15,7 +15,7 @@ export function ApprovalExplainer() {
           like a credit note, hidden text or two totals, can never be approved.
         </li>
         <li>
-          “Ask a verified human to approve” shows a QR code and a short code. The approver scans it with World App,
+          “Ask a verified human to approve” shows a QR code and a short code. The approver scans it with the World ID app,
           checks the code matches, and approves with a fresh World ID proof.
         </li>
         <li>

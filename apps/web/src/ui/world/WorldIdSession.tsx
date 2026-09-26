@@ -15,7 +15,7 @@ import { useQr } from './useQr'
 import './world.css'
 
 const APPS = {
-  production: 'World App',
+  production: 'World ID',
   sandbox: 'the World ID Sandbox app',
   staging: 'the World ID staging app',
 } as const
@@ -103,7 +103,7 @@ function WorldIdLinks({ uri, onCancel }: { readonly uri: string | null; readonly
     <div className="world-session__links">
       {uri ? (
         <a className="btn btn--ghost btn--sm" href={uri} target="_blank" rel="noreferrer">
-          Open in World App <span aria-hidden="true">↗</span>
+          Open in World ID <span aria-hidden="true">↗</span>
         </a>
       ) : null}
       {uri ? <CopyButton value={uri} label="Copy link" /> : null}

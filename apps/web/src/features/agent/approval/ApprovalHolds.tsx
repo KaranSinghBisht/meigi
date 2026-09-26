@@ -9,7 +9,7 @@ const LABELS: Record<string, string> = {
   above_auto_clear_budget: 'Above the auto-clear budget',
 }
 
-/** What the approver is releasing, each hold in its own words: the World App screen can't show it. */
+/** What the approver is releasing, each hold in its own words: the World ID app screen can't show it. */
 export function ApprovalHolds({ holds }: { readonly holds: readonly Reason[] }) {
   if (holds.length === 0) return null
   return (

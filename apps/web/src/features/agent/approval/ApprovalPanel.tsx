@@ -8,7 +8,7 @@ import type { Approval, ApprovalFlow, NotApprovedStatus } from './useApproval'
 import './approval.css'
 
 const WHY_NOT: Record<NotApprovedStatus, string> = {
-  denied: 'The approver denied it in World App.',
+  denied: 'The approver denied it in the World ID app.',
   expired: 'The request expired before anyone approved it.',
   wrong_human: 'The proof came from a different human than the enrolled approver.',
   unavailable: "World ID couldn't confirm it, and an unconfirmed request never counts as an approval.",

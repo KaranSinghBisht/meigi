@@ -7,7 +7,7 @@ export function RailNeeds() {
         <li>Your T-number or LEI</li>
         <li>A browser wallet</li>
         <li>Access to your domain's DNS</li>
-        <li>World App for each officer</li>
+        <li>World ID for each officer</li>
       </ul>
     </div>
   )

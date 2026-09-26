@@ -1,5 +1,5 @@
 // Which World ID credential an officer proves with, as the verifier's WORLD_OFFICER_CREDENTIALS allows. Selfie
-// Check needs only a phone, so the officer demo can run on the production World App without an Orb.
+// Check needs only a phone, so the officer demo can run on the production World ID app without an Orb.
 
 import type { ConstraintNode } from '@worldcoin/idkit'
 import { env, type OfficerCredential } from '../env/env'

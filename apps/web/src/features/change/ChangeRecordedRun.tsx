@@ -21,7 +21,7 @@ function OfficerRow({ officerId, sessionId, index }: { readonly officerId: strin
 }
 
 /**
- * `/change`, replayed from one real production run (World App, Selfie Check): the request, the officer
+ * `/change`, replayed from one real production run (World ID, Selfie Check): the request, the officer
  * quorum's World ID proofs, the queued payout change with its 72h public window, and a second human refused.
  * Nothing here is live; every id, message and tx hash is exactly what the real run produced.
  */
