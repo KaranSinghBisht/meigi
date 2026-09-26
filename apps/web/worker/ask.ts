@@ -32,8 +32,9 @@ const DEFAULT_NEURONS = 3_000
 const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: HEADERS })
 const refuse = (status: number, code: string, message: string) => reply({ code, message }, status)
 const unavailable = () => refuse(503, 'unavailable', "The ledger can't answer right now.")
-const paused = () => refuse(429, 'paused', 'Questions are paused until tomorrow (UTC).')
-const askerPaused = () => refuse(429, 'ip_limited', 'Questions from your network are paused until tomorrow (UTC).')
+const paused = () => refuse(429, 'paused', 'Questions are paused until 09:00 JST (00:00 UTC).')
+const askerPaused = () =>
+  refuse(429, 'ip_limited', 'Questions from your network are paused until 09:00 JST (00:00 UTC).')
 const invalid = () => refuse(400, 'invalid_question', `Ask a question of up to ${MAX_QUESTION} characters.`)
 const NO_SETTLEMENTS = { answer: 'There are no settlements yet.', citedTx: [], suggestions: [] }
 

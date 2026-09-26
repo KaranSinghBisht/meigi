@@ -13,8 +13,8 @@ const SUGGESTED = [
 ] as const
 
 const FAILURE: Record<AskFailure, string> = {
-  paused: 'Questions are paused until tomorrow (UTC).',
-  ip_limited: 'Questions from your network are paused until tomorrow (UTC).',
+  paused: 'Questions are paused until 09:00 JST (00:00 UTC).',
+  ip_limited: 'Questions from your network are paused until 09:00 JST (00:00 UTC).',
   rate_limited: 'Three questions a minute: try again shortly.',
   invalid_question: `Ask a question of up to ${MAX_QUESTION} characters.`,
   unavailable: "The ledger can't answer right now.",

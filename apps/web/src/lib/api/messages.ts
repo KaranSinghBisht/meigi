@@ -113,7 +113,7 @@ const CODES: Record<string, Omit<Explained, 'tone'> & { tone?: Tone }> = {
 
 /**
  * Browsers report "not running" and "CORS refused this origin" the same way, so the local hint covers both. The
- * product site names no commands: there the live service runs at our booth.
+ * public site names no commands: there the live service runs on our own machine, because it holds keys.
  */
 export function unavailable(service: Service): Explained {
   const info = SERVICES[service]
@@ -121,7 +121,7 @@ export function unavailable(service: Service): Explained {
     return {
       tone: 'offline',
       title: `The ${info.name} isn't reachable right now.`,
-      detail: 'It runs live at our booth.',
+      detail: 'It runs on our own machine, because it holds keys.',
     }
   }
   return {

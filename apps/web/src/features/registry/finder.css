@@ -18,16 +18,19 @@
 
 .finder__head {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: 8px;
+  gap: 4px 8px;
   margin-top: 8px;
 }
 
+/* The count stays whole: on a narrow window it moves under the eyebrow rather than breaking. */
 .finder__count {
   color: var(--ink-muted);
   font-size: var(--text-sm);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .finder__list {

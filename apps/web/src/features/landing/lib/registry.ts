@@ -90,30 +90,41 @@ async function collect(client: RegistryClient, config: RegistryConfig, from: big
   }
 }
 
+/** Registered payees by their status right now: Active, or frozen by a dispute. */
+export interface PayeeCounts {
+  readonly active: number
+  readonly disputed: number
+}
+
+const ACTIVE = 1 // PayeeRegistry's Status enum: 0 unregistered, 1 active, 2 disputed
+const DISPUTED = 2
+
 /**
- * How many of `tNumbers` are Active right now. A dispute freezes a payee, so
- * it no longer counts as verified. One Multicall3 round trip; any failed call
- * throws rather than under-counting.
+ * How many of `tNumbers` are Active, and how many are frozen by a dispute, right now. One Multicall3 round trip; any
+ * failed call throws rather than under-counting.
  */
-async function countActive(
+async function countStatuses(
   client: RegistryClient,
   config: RegistryConfig,
   tNumbers: readonly bigint[],
-): Promise<number> {
-  if (tNumbers.length === 0) return 0
-  const active = await client.multicall({
+): Promise<PayeeCounts> {
+  if (tNumbers.length === 0) return { active: 0, disputed: 0 }
+  const payees = await client.multicall({
     contracts: tNumbers.map(
       (tNumber) =>
-        ({ address: config.address, abi: payeeRegistryAbi, functionName: 'isActive', args: [tNumber] }) as const,
+        ({ address: config.address, abi: payeeRegistryAbi, functionName: 'payeeOf', args: [tNumber] }) as const,
     ),
     allowFailure: false,
   })
-  return active.filter(Boolean).length
+  return {
+    active: payees.filter((payee) => payee.status === ACTIVE).length,
+    disputed: payees.filter((payee) => payee.status === DISPUTED).length,
+  }
 }
 
 export interface PayeeCounter {
-  /** Registered payees whose status is Active right now. Throws instead of guessing. */
-  refresh: () => Promise<number>
+  /** Registered payees by status right now. Throws instead of guessing. */
+  refresh: () => Promise<PayeeCounts>
 }
 
 /**
@@ -133,7 +144,7 @@ export function createPayeeCounter(config: RegistryConfig): PayeeCounter {
         await collect(client, config, next, latest, seen)
         next = latest + 1n
       }
-      return countActive(client, config, [...seen])
+      return countStatuses(client, config, [...seen])
     },
   }
 }

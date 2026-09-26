@@ -1,5 +1,7 @@
-import type { ReactNode } from 'react'
-import { shortAddress } from '../../lib/chain/format'
+import { useEffect, useState, type ReactNode } from 'react'
+import { blockTimestamps, scanRegistryEvents } from '../../lib/chain/events'
+import { formatJst, shortAddress } from '../../lib/chain/format'
+import { env } from '../../lib/env/env'
 import { Badge } from '../../ui/components/Badge'
 import { Countdown } from '../../ui/components/Countdown'
 import { useEnsCheck, usePayee } from '../registry/usePayee'
@@ -8,8 +10,8 @@ import { RECORDED_BEC } from '../agent/recorded'
 
 /** The fixture payee every check starts from: 株式会社メイギ商事 (fictional). */
 export const FIXTURE = 'T2011001234567'
-/** The company Karan registers live with World ID officers. */
-export const BOOTH = 'T7999900000002'
+/** The company registered from a phone by World ID officers. */
+export const OFFICER_RUN = 'T7999900000002'
 
 function Status({ chip, children }: { readonly chip: ReactNode; readonly children?: ReactNode }) {
   return (
@@ -67,17 +69,40 @@ export function RefusalStatus() {
   )
 }
 
-/** 4. The booth company, greyed until its World ID officers are on chain; then its live state. */
-export function BoothStatus() {
-  const { state, refresh } = usePayee(BOOTH)
+/** When a T-number's registration landed, from its PayeeRegistered event: null until read, and if it can't be. */
+function useRegisteredOn(tNumber: string, enabled: boolean): Date | null {
+  const [on, setOn] = useState<Date | null>(null)
+  useEffect(() => {
+    if (!enabled) return
+    const controller = new AbortController()
+    scanRegistryEvents(env.registryFromBlock, controller.signal)
+      .then(async ({ events }) => {
+        const registered = events.find((event) => event.name === 'PayeeRegistered' && event.tNumber === tNumber)
+        if (!registered) return
+        const times = await blockTimestamps([registered.blockNumber])
+        if (!controller.signal.aborted) setOn(times.get(registered.blockNumber) ?? null)
+      })
+      .catch((error: unknown) => {
+        // The date is extra: the status still says who registered the company. Surface it for developers.
+        if (!controller.signal.aborted) reportError(error)
+      })
+    return () => controller.abort()
+  }, [tNumber, enabled])
+  return on
+}
+
+/** 4. The company its World ID officers registered from a phone: pending until they are on chain, then its state. */
+export function OfficersStatus() {
+  const { state, refresh } = usePayee(OFFICER_RUN)
   const payee = state.status === 'ready' ? state.payee : null
-  if (!payee || payee.status !== 'active' || payee.officerCount === 0) {
-    return <Status chip={<Badge tone="neutral">At our booth</Badge>}>registering live today</Status>
-  }
-  const humans = `${payee.officerCount} verified human${payee.officerCount === 1 ? '' : 's'} as officers`
+  const registered = !!payee && payee.status === 'active' && payee.officerCount > 0 && !payee.placeholderOfficer
+  const on = useRegisteredOn(OFFICER_RUN, registered)
+  if (state.status === 'error') return <Status chip={<Badge>Unreachable</Badge>} />
+  if (!payee) return <Status chip={<Checking />} />
+  if (!registered) return <Status chip={<Badge tone="neutral">Pending</Badge>}>World ID phone run</Status>
   return (
     <Status chip={<Badge tone="active">Live</Badge>}>
-      {humans}
+      Registered by its officers with World ID{on ? ` on ${formatJst(on)}` : null}
       {payee.payoutChangeLandsAt ? (
         <>
           {' · '}payout change lands in <Countdown to={payee.payoutChangeLandsAt} onElapsed={() => void refresh()} />

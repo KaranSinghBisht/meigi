@@ -13,7 +13,7 @@ interface DemoMachineProps {
   readonly children?: ReactNode
 }
 
-/** A calm note, not an error: on the product site this step runs only at our booth. */
+/** A calm note, not an error: on the public site this step can't run live, because the service holds keys. */
 export function DemoMachine({ service, title, live, children }: DemoMachineProps) {
   const info = SERVICES[service]
   return (
@@ -25,7 +25,7 @@ export function DemoMachine({ service, title, live, children }: DemoMachineProps
         </h2>
         {live ? (
           <p>
-            {live.what} needs the live {info.name}, which runs at our booth because {live.why}.
+            {live.what} needs the live {info.name}, which runs on our own machine because {live.why}.
           </p>
         ) : null}
         {env.demoVideoUrl ? (

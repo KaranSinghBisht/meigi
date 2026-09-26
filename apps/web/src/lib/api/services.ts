@@ -1,5 +1,6 @@
 // The three services the app talks to, with how a developer starts each one locally. None of them runs on the
-// product site: they hold keys (the attester, the agent, the x402 buyer), so they run live only at our booth.
+// public site: they hold keys (the attester, the agent's signer, the x402 buyer), so they run live only on our own
+// machine.
 
 import { env } from '../env/env'
 

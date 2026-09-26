@@ -11,7 +11,8 @@ import './agent.css'
 const DemoPlayer = lazy(() => import('../demo/DemoPlayer').then((module) => ({ default: module.DemoPlayer })))
 
 /**
- * The product site: the live agent runs at our booth (it holds the vault's agent key), so this replays real runs.
+ * The public site: the live agent runs on our own machine (its signer holds the vault's agent key), so this replays
+ * real runs.
  * Laid out like the live console, with the live vault beside the heading, which already says it is a replay.
  */
 export function AgentHosted() {

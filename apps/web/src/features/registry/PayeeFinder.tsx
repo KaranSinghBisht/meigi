@@ -2,6 +2,7 @@ import { useId, useMemo, useRef, useState, type FormEvent } from 'react'
 import { FIXTURE_T_NUMBER, parseTNumber, type ParsedTNumber } from '../../lib/chain/tNumber'
 import { Button } from '../../ui/components/Button'
 import '../../ui/components/field.css'
+import { payeeCountsLabel, usePayeeCounts } from '../live'
 import { useEdgeFade } from './useEdgeFade'
 import type { DirectoryPayee, RegistryFeed } from './useRegistryFeed'
 import './finder.css'
@@ -90,13 +91,14 @@ interface ListProps {
 /** Every registered payee that matches, in a list that scrolls inside itself and fades at the hidden edge. */
 function FinderList({ feed, shown, filtering, current, onOpen }: ListProps) {
   const list = useRef<HTMLUListElement>(null)
+  const counts = usePayeeCounts() // the same label as the landing pill and /start, from the chain's statuses
   useEdgeFade(list, shown.length)
   return (
     <>
       <div className="finder__head">
         <p className="eyebrow">Registered on Sepolia</p>
         <p className="finder__count" aria-live="polite">
-          {filtering ? `${shown.length} of ${feed.payees.length}` : feed.payees.length}
+          {filtering ? `${shown.length} of ${feed.payees.length}` : counts ? payeeCountsLabel(counts) : null}
         </p>
       </div>
       {shown.length > 0 ? (

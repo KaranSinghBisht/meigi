@@ -64,7 +64,7 @@ function Flow({ payee, refresh }: { readonly payee: PayeeSnapshot; readonly refr
 /** The public site: approvals need the verifier, which checks World ID and signs as the attester. */
 function ChangeHosted() {
   return (
-    <DemoMachine service="verifier" title="The live officer flow runs at our booth.">
+    <DemoMachine service="verifier" title="The live officer flow runs on our own machine.">
       <p>
         Approving a change needs the live verifier, which checks each officer's World ID session and signs the approval
         as the attester. A recording of a real run appears here after it's done.

@@ -1,6 +1,14 @@
 import type { ReactNode } from 'react'
 import type { CheckLink } from './TryCheck'
-import { BOOTH, BoothStatus, EnsStatus, FIXTURE, RefusalStatus, RegistryStatus, SettlementsStatus } from './statuses'
+import {
+  EnsStatus,
+  FIXTURE,
+  OFFICER_RUN,
+  OfficersStatus,
+  RefusalStatus,
+  RegistryStatus,
+  SettlementsStatus,
+} from './statuses'
 
 const ENS_APP = 'https://app.ens.dev'
 const AWAJI = 'https://awaji.blockscout.com/address'
@@ -45,8 +53,8 @@ export const CHECKS: readonly Check[] = [
   {
     title: 'A company registered by World ID officers',
     proves: 'Verified humans enrolled as its officers, and any payout change waits 72 hours in public before it lands.',
-    status: <BoothStatus />,
-    links: [{ label: `Open ${BOOTH}`, href: `/registry/${BOOTH}` }],
+    status: <OfficersStatus />,
+    links: [{ label: `Open ${OFFICER_RUN}`, href: `/registry/${OFFICER_RUN}` }],
   },
   {
     title: 'Check a withdrawal',

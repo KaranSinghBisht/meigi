@@ -4,7 +4,7 @@
 // (The registry itself still holds the name on-chain: this is what Meigi shows, not a privacy guarantee.)
 
 import { payeeRegistryAbi } from '@meigi/abi'
-import type { Hex } from 'viem'
+import { keccak256, stringToHex, type Hex } from 'viem'
 import { env, type HexAddress } from '../env/env'
 import { publicClient } from './client'
 import type { ParsedTNumber } from './tNumber'
@@ -24,6 +24,8 @@ export interface PayeeSnapshot {
   readonly disputeResolvesAt: Date | null
   readonly threshold: number
   readonly officerCount: number
+  /** Its only officer is the demo seed's placeholder, which no one can prove: the company can't redirect its payout. */
+  readonly placeholderOfficer: boolean
   readonly nonce: bigint
   readonly evidence: Hex
   /** The registry's public timelock for money-moving changes (72 h in production). */
@@ -32,6 +34,8 @@ export interface PayeeSnapshot {
 }
 
 const STATUS: Record<number, PayeeStatus> = { 0: 'unregistered', 1: 'active', 2: 'disputed' }
+/** The officer the demo seed enrols for its fictional companies: no World ID session proves it (seed-demo.sh). */
+const PLACEHOLDER_OFFICER = keccak256(stringToHex('meigi-demo-fixture-officer'))
 const ZERO = '0x0000000000000000000000000000000000000000'
 
 const registry = { address: env.registry, abi: payeeRegistryAbi } as const
@@ -60,6 +64,7 @@ export async function readPayee(tNumber: ParsedTNumber): Promise<PayeeSnapshot> 
     disputeResolvesAt: status === 'disputed' ? toDate(resolvesAt) : null,
     threshold: view.threshold,
     officerCount: officers.length,
+    placeholderOfficer: officers.length > 0 && officers.every((officer) => officer === PLACEHOLDER_OFFICER),
     nonce: view.nonce,
     evidence: view.evidence,
     changeDelaySeconds: Number(changeDelay),

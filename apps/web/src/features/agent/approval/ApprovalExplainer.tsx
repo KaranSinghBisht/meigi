@@ -24,7 +24,7 @@ export function ApprovalExplainer() {
         </li>
       </ol>
       <p className="muted">
-        Either way, the vault still pays only the registered payout. Approvals run live at our booth too.
+        Either way, the vault still pays only the registered payout. Approvals run live on our own machine too.
       </p>
     </Panel>
   )

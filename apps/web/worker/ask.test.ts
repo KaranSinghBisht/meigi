@@ -238,7 +238,10 @@ describe('POST /api/ask', () => {
     const { env: e } = env({ AI: { run: async () => Promise.reject(spent) } })
     const response = await askResponse(post('q'), e, () => api)
     assert.equal(response.status, 429)
-    assert.deepEqual(await response.json(), { code: 'paused', message: 'Questions are paused until tomorrow (UTC).' })
+    assert.deepEqual(await response.json(), {
+      code: 'paused',
+      message: 'Questions are paused until 09:00 JST (00:00 UTC).',
+    })
   })
 
   it('keeps errors generic when the model or the rows fail', async () => {
@@ -324,7 +327,7 @@ describe('abuse', () => {
     const limited = await askResponse(post('q', '198.51.100.7'), e, () => api)
     assert.deepEqual(await limited.json(), {
       code: 'ip_limited',
-      message: 'Questions from your network are paused until tomorrow (UTC).',
+      message: 'Questions from your network are paused until 09:00 JST (00:00 UTC).',
     })
     assert.equal((await askResponse(post('q', '198.51.100.8'), e, () => api)).status, 200)
     const { env: two } = env({ ASK_IP_DAILY_CAP: '2', ASK_LIMITER: { limit: async () => ({ success: true }) } })

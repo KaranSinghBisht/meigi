@@ -174,7 +174,9 @@ function Facts({ payee }: { readonly payee: PayeeSnapshot }) {
     <dl className="facts payee__facts">
       <dt>Officers</dt>
       <dd>
-        {payee.threshold} of {payee.officerCount} must approve a change
+        {payee.placeholderOfficer
+          ? "Demo company: its officer is a placeholder nobody can prove, so the company itself can't redirect its payout."
+          : `${payee.threshold} of ${payee.officerCount} must approve a change`}
       </dd>
       <dt>Controller</dt>
       <dd>{payee.controller ? <Address value={payee.controller} short /> : '—'}</dd>
