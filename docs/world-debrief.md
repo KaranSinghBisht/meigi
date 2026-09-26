@@ -27,6 +27,20 @@ tripping through our verifier — most of it spent on the two friction points be
   it myself, so I'm not writing a cause for it without evidence. Whoever hit it: send me the context (what
   request produced it, what fixed it) and I'll fold it in accurately.
 
+**Production route confirmed live, first-hand.** Sent five deliberately-invalid probes myself, directly to
+`POST https://developer.world.org/api/v4/verify/rp_d14a7db12e6bfc65` (our real production RP id, no auth beyond
+the URL), each with an obviously-fake `responses[0]` body and nothing that could pass as a real proof. Every one
+came back a structured `HTTP 400 {"code":"validation_error","detail":"...","attribute":"..."}` — never a
+connection failure, a 5xx, or an unstructured response — confirming the route and RP id are live in production.
+Each response revealed one more layer of the real schema (a genuine, if slow, way to learn it): `protocol_version`
+must be the string `"4.0"`; `responses[0]` needs `issuer_schema_id` (a **number** matching a known credential type,
+not our placeholder `0`), `expires_at_min`, and `proof` as an **array of exactly 5 elements** (ours was a string,
+then the wrong-length array). I stopped once I'd confirmed liveness and structured validation rather than keep
+guessing a real proof's shape — I did not reach the specific `integrity_verification_failed` code team-lead saw
+earlier the same day (their probe was evidently well-formed enough to pass schema validation and fail a deeper
+semantic/cryptographic check instead; mine never got past schema validation). Both are genuine, structured
+rejections from the same live production endpoint — no real phone proof has passed there yet.
+
 **Missing docs:** nothing explains that on-chain verification of World ID **4.0** proofs (`WorldIDVerifier.sol` /
 `WorldIDSatellite`) is only deployed on **World Chain and Arc** today — the contracts-3.0 legacy page (which
 lists Ethereum, Sepolia, Base, Optimism, Polygon) reads as if it still applies to 4.0 proofs, and it doesn't. We
