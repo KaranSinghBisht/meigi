@@ -5,6 +5,9 @@ const address = z.string().regex(/^0x[0-9a-fA-F]{40}$/u, "must be an address");
 
 const schema = z.object({
   SEPOLIA_RPC_URL: z.url(),
+  // Reads fall back to this RPC on a transport error (a hackathon venue shares one IP; publicnode has already
+  // 403'd this machine under that load). Optional: reads use SEPOLIA_RPC_URL alone when it's unset.
+  SEPOLIA_RPC_FALLBACK_URL: z.url().optional(),
   CHAIN_ID: z.coerce.number().int().positive().default(11155111),
   REGISTRY_ADDRESS: address,
   ATTESTER_PRIVATE_KEY: privateKey,

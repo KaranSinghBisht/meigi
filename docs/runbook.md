@@ -67,6 +67,15 @@ Selfie Check and starts a matching web server on :5190. It prints the click path
 `T7999900000002`). `--staging` puts both back and `--stop` stops them. It only stops servers it started itself,
 so replacing the hand-started verifier needs `--yes`.
 
+**RPC resilience.** A hackathon venue shares one IP address across hundreds of hackers; publicnode has already
+answered with 403s to this machine under that load. Set `SEPOLIA_RPC_FALLBACK_URL` (optional) and the verifier's
+reads (registry state, transaction receipts) retry on it whenever the primary `SEPOLIA_RPC_URL` errors. Writes -
+the attester's register/dispute/cancel/rotation transactions - don't get this automatically: the tx is signed
+locally first, so its hash is known before any network call; if the send itself fails at the transport level, the
+verifier checks whether either RPC already has that hash before reporting failure, rather than blindly re-sending
+an already-broadcast signed transaction to the other one. Code: `services/verifier/src/registry/chain.ts`
+(`readTransportFor`, `sendKnown`).
+
 **Verifier anti-squatting limits.** A T-number and its exact legal name are public, so the verifier limits how
 much one human or one client can claim. Contracts are unchanged. Fictional fixtures (office 9999) are exempt from
 all of this, so demos repeat.
