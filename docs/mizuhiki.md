@@ -31,8 +31,10 @@ Uniswap V3 (Factory, SwapRouter02, QuoterV2, Universal Router) is also predeploy
 
 Both MUSD and MJPY have their own PoW-faucet-adjacent claim contracts (a plain, callable function, not a
 browser-only flow): `0x316BEF37aadf9Ab3f0f455588dE45443C91188d6` (MUSD, 10 per claim) and
-`0xaD93649dbDe82ed1219Ee7B64C4C8FEE9dA520C0` (MJPY, 1,000 per claim), both `request(address)` at selector
-`0x837197b2`, 24h cooldown per address per token. Both are real ERC-20s, 6 decimals.
+`0xaD93649dbDe82ed1219Ee7B64C4C8FEE9dA520C0` (MJPY, 1,000 per claim), both `sendTokens(address)` at selector
+`0x837197b2` (read from their bytecode; `request(address)` would be `0x27c78c42`, which neither has), 24h cooldown
+per recipient (`lastClaim(address)`, `COOLDOWN()` = 86,400). Anyone can pay the gas for a claim. Both tokens are
+real ERC-20s, 6 decimals.
 
 ## Deploy: registry + router only, by design
 
@@ -94,3 +96,48 @@ The PoW faucet (`docs.mizuhiki.io/en/core/faucet`, the open-source
 session per IP. An earlier attempt lost its session by closing the browser before claiming (`CONCURRENCY_LIMIT`
 on the next attempt, and no way to resume a session without its id). The team ultimately funded the deployer
 directly rather than continuing to fight the faucet.
+
+## x402 on Mizuhiki's own rail: paid in MJPY, refused before signing
+
+The x402 demo (`services/x402-demo`) runs on Awaji with `X402_CHAIN=awaji`: the same merchant, facilitator and
+guarded buyer as on Sepolia, set up as Mizuhiki's x402 quickstart (`docs.mizuhiki.io/en/core/x402-quickstart`)
+describes it: network `eip155:6497`, MJPY with EIP-712 domain "Mizuhiki JPY" v2 and 6 decimals, the `exact`
+scheme. What we checked on-chain before paying anything:
+- MJPY's `name()` and `version()` read "Mizuhiki JPY" and "2". It is a FiatToken-style proxy whose implementation
+  (`0x934d8a57…0d88`) has both `transferWithAuthorization` variants, so `exact` settles by EIP-3009. Mizuhiki's
+  Permit2 proxies (`x402ExactPermit2Proxy` `0x402085c2…0001` has code) aren't needed for MJPY.
+- **Mizuhiki's hosted facilitator was down.** `https://x402-production-6134.up.railway.app`, the URL in their
+  quickstart, answered HTTP 404 `"Application not found"` on `/` and `/supported` at 06:54:57 and 07:20:24 UTC
+  (15:54 and 16:20 JST). So **our own facilitator settled**: the demo's in-process one, the same code as on Sepolia,
+  paying the gas from its own key. `AWAJI_FACILITATOR_URL` switches to theirs once it's back; that path is untested.
+- Awaji has no ENS, so the merchant declares only its T-number (`meigiPayeeDeclaration(t, { ens: false })`), and
+  the buyer's guard checks `payTo` against the Awaji registry alone.
+
+株式会社ミナトGPUクラウド (T6999900000003), the demo's GPU merchant, is registered here by
+`contracts/script/seed-awaji.sh`, with the same fixture officer and evidence as Sepolia. Its payout is a key we
+hold, in the git-ignored `.env.awaji`. Everything was rehearsed first on an anvil fork of Awaji
+(`pnpm --filter @meigi/x402-demo e2e:awaji-fork`, 14 checks), then run live once:
+
+| | Tx | Block | Checked on-chain |
+|---|---|---|---|
+| register 株式会社ミナトGPUクラウド | [`0x2c19e952…63fe30c`](https://awaji.blockscout.com/tx/0x2c19e952dbf9ab86e56a2859cfb7c4da7f0fb9645cefbccbf6de4832d63fe30c) | 2388333 | `payeeOf`: the exact name, payout `0xA3657Ad49638342a477B601E2c19417E9206776e`, fixture evidence `0xf8b96e6b…48ae`, status 1 |
+| MJPY faucet → the buyer | [`0x0dbfb2e6…97f802e9`](https://awaji.blockscout.com/tx/0x0dbfb2e6b2a7f4a8b530af3ead5863a2cc38ad60dde7dea1be52304897f802e9) | 2388337 | buyer holds 1,000 MJPY and no MIZU (it only signs) |
+| 0.01 MIZU → our facilitator | [`0xab1501ce…4c131bd0c3`](https://awaji.blockscout.com/tx/0xab1501ce142d384ad293b7955d4f4ccb16c366526fa802309583aa4c131bd0c3) | 2388339 | for settlement gas |
+| **x402: 1 GPU-minute, 15 MJPY, settled** | [`0x779c3619…0525959b`](https://awaji.blockscout.com/tx/0x779c3619797c1ef48a25aceba107f24f47cf0db4f172ebb2d8b9277b0525959b) | 2388346 | our facilitator → MJPY `transferWithAuthorization` (`0xe3ee160e`); logs `AuthorizationUsed(buyer)` and `Transfer(buyer → 0xA365…776e, 15,000,000)`; after: buyer 985, payout 15, swapped address 0 MJPY |
+| **x402: the compromised inference mirror, refused** | none | — | `payTo 0xdCa5…6d5b is not 株式会社ミナトGPUクラウド (T6999900000003)'s registered payout 0xA365…776e`: refused before signing, so nothing was signed or sent |
+
+Intercepta screened both `payTo`s during the run (toxicScore 0 each); the refusal is the registry's. The
+registration and the payment are both in MultiBaas: `meigi_payees_registered` returns Minato at block 2388333,
+and `meigi_mjpy_received` shows 15,000,000 at `0xa365…776e`. Cost: 0.0219 MIZU from the deployer for the three
+setup txs, and 0.0032 MIZU of the facilitator's for the settlement (102,322 gas at 31 gwei).
+
+## Limits, plainly
+
+- **No AgentVault on Awaji.** The AP agent's vault (owner-approved vendors, per-vendor caps) and its human-approval
+  flow run on Sepolia only. On Awaji, payments go through the registry-checked `PayRouter` or x402.
+- **No ENS on Awaji.** The `t<T-number>.payee.eth` cross-check exists only on Sepolia; here the registry is the
+  only check.
+- **Fixtures only.** Both Awaji payees are fictional (evidence on-chain says so), registered directly by our
+  attester: no NTA match, DNS proof or World ID officer enrollment happens on Awaji.
+- **Our facilitator, not Mizuhiki's.** Theirs was down (above), so settlement went through ours. The switch to
+  theirs is one setting, but untested.

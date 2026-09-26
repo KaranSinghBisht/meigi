@@ -46,7 +46,8 @@ Verified live (2026-09-26), one research-agent run: 2 GPU-minutes and a dataset 
 `0xce9c6cf82c02403711036b488c99cf80c6cab24731f4b60dcde5eea661572a34`,
 `0x48d3d33aa61cb3b9c2c2eb6e474fc99cf3260d5454505ab142f3375a0774e3d3`); the compromised GPU mirror was refused
 ("t6999900000003.payee.eth resolves to the registered payout 0x4d6D…fD30, but payTo asks for 0xdCa5…6d5b
-instead"); the undeclared scrape was refused (`no_declaration`, no Intercepta key configured).
+instead"); the undeclared scrape was refused (`no_declaration`, no Intercepta key configured). With a key set, it
+settles after a clean screen: `0x63b7af69da4c6fccd22f34e13a78351e0eb1eae781f98b7c48111fa7d6cb55ee` (10 mJPYC).
 
 ## Awaji mode: x402 on Mizuhiki's own rail
 
@@ -67,6 +68,12 @@ X402_DEMO_PORT=8792 pnpm --filter @meigi/x402-demo start:awaji
 X402_DEMO_PORT=8792 pnpm --filter @meigi/x402-demo research-agent:awaji
 ```
 
-Awaji env: `AWAJI_MINATO_PAYOUT` (Minato's registered Awaji payout), and optionally `AWAJI_RPC_URL`,
+Verified live on Awaji (2026-09-26), one run: the GPU-minute settled 15 MJPY at Minato's registered payout through
+our facilitator (tx `0x779c3619797c1ef48a25aceba107f24f47cf0db4f172ebb2d8b9277b0525959b`, block 2388346), and the
+compromised mirror was refused before signing ("payTo 0xdCa5…6d5b is not 株式会社ミナトGPUクラウド (T6999900000003)'s
+registered payout 0xA365…776e"). Evidence table: `docs/mizuhiki.md`.
+
+Awaji env: `AWAJI_MINATO_PAYOUT`, Minato's registered Awaji payout, in `.env.awaji` (git-ignored) next to its key
+`AWAJI_MINATO_PAYOUT_PRIVATE_KEY`; the `:awaji` scripts load it on top of `.env`. Optionally `AWAJI_RPC_URL`,
 `AWAJI_REGISTRY_ADDRESS`, `AWAJI_TOKEN_ADDRESS` (defaults: Mizuhiki's RPC, our registry, MJPY) and
 `AWAJI_FACILITATOR_URL`.

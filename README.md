@@ -10,6 +10,10 @@ swapped address before any money moves.
 - **Live:** [meigi.karanbishttt.workers.dev](https://meigi.karanbishttt.workers.dev) is one site: the landing,
   and "enter" glides into the app. The registry explorer, ENS check and event feed read Sepolia live. Steps that need our services show recorded real
   runs.
+- **Runs on:**
+  - **Ethereum Sepolia:** everything (registry, AgentVault, PayRouter, ENSv2 names, x402 in mJPYC).
+  - **Mizuhiki's Awaji testnet** (chain 6497): the registry and PayRouter, paid in Mizuhiki's own MJPY and MUSD,
+    and x402 settled in MJPY. Awaji has no AgentVault and no ENS. See [docs/mizuhiki.md](docs/mizuhiki.md).
 - **Team:**
   - Karan Singh Bisht, GitHub [@KaranSinghBisht](https://github.com/KaranSinghBisht);
   - Adithya Prasanna Suriya Prakash, handle: TODO (Adithya to add).
@@ -145,11 +149,13 @@ handles each:
 ### How we use Curvegrid MultiBaas
 
 Meigi on Mizuhiki, indexed and queried through MultiBaas, like Curvegrid's Matsuri sample. We run two MultiBaas
-deployments, one per chain, and each links PayeeRegistry, AgentVault, PayRouter and the JPY token:
-- **Mizuhiki Awaji** (chain 6497): Meigi's contracts there, with addresses in
-  [`contracts/deployments/6497.json`](contracts/deployments/6497.json). Events are indexed from their deploy block.
-- **Ethereum Sepolia:** the contracts the live demo uses. They were linked 100 blocks back, as far as the free
-  plan's backfill reaches (block 11783796). From there, every payment and x402 sale is indexed live.
+deployments, one per chain:
+- **Mizuhiki Awaji** (chain 6497): PayeeRegistry, PayRouter and MJPY (there is no AgentVault on Awaji), with
+  addresses in [`contracts/deployments/6497.json`](contracts/deployments/6497.json). Events are indexed from their
+  deploy block, including the x402 sale settled in MJPY ([docs/mizuhiki.md](docs/mizuhiki.md)).
+- **Ethereum Sepolia:** PayeeRegistry, AgentVault, PayRouter and mJPYC, the contracts the live demo uses. They were
+  linked 100 blocks back, as far as the free plan's backfill reaches (block 11783796). From there, every payment and
+  x402 sale is indexed live.
 
 The details:
 - **Queries.** Six saved event queries, in the format of Curvegrid's Matsuri sample:
