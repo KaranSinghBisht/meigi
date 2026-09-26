@@ -97,6 +97,11 @@ async function loadExample(page) {
   await page.waitForTimeout(300)
 }
 
+async function pauseReplay(page) {
+  await page.getByRole('button', { name: 'Pause' }).click()
+  await page.waitForTimeout(800)
+}
+
 /** Needs the verifier. Opening a request writes nothing on-chain; it only asks the officers to prove. */
 async function openIntent(page) {
   await page.getByLabel('New payout address').fill('0x1111111111111111111111111111111111111111')
@@ -175,8 +180,10 @@ const HOSTED_SHOTS = [
   { name: 'registry', path: '/registry/T2011001234567', ready: '.payee__name', after: '.feed__item' },
   { name: 'agent', path: '/agent', ready: '.vault-panel', after: '.recorded' },
   { name: 'x402', path: '/x402', ready: '.x402__grid' },
-  { name: 'register', path: '/register', ready: 'main h1' },
-  { name: 'change', path: '/change/T2011001234567', ready: '.demo-machine' },
+  // The hosted register page replays a real registration in the wizard's own window; paused, so no screen is caught
+  // mid-slide.
+  { name: 'register', path: '/register', ready: '.onboard--replay', act: pauseReplay },
+  { name: 'change', path: '/change/T2011001234567', ready: 'main h1' },
 ]
 
 function selectShots() {
