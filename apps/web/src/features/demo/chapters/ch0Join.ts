@@ -1,8 +1,8 @@
 // Chapter 0: a company joins Meigi, presented as /register's own replay presents it (content/onboardRecording).
-// Today that is 株式会社メイギ商事, which the seed script registered on Sepolia directly: no one typed, connected,
-// created or pressed Register, so there is no pointer and no click. The wizard's screens show the record, and the
-// registry panel beside them fills in with what the chain holds. When a real run through the wizard is recorded,
-// the same chapter plays it click by click (ch0Wizard), from the data alone.
+// Until a real run is recorded, that is 株式会社メイギ商事, which the seed script registered on Sepolia directly: no
+// one typed, connected, created or pressed Register, so there is no pointer and no click. The wizard's screens show
+// the record, and the registry panel beside them fills in with what the chain holds. When a real run through the
+// wizard is recorded, the same chapter plays it click by click (ch0Wizard), from the data alone.
 
 import { ONBOARD } from '../content/onboard'
 import type { BuildCtx, CaptionDef, ChapterDef } from '../engine/types'

@@ -132,7 +132,7 @@
   text-align: right;
 }
 
-/* Representation: two ways that aren't built yet, disabled, and what registration proves today. */
+/* Representation: two ways that aren't built yet, disabled, and what registration proves. */
 .onb__methods {
   display: grid;
   gap: 8px;

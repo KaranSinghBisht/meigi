@@ -96,10 +96,10 @@ export const ONBOARD_COPY = {
     ? {
         title: 'A demo company is fictional: it has no NTA record and no domain to prove.',
         detail:
-          "A real company's registration proves an exact NTA name match, domain control and World ID officers today. In production it also proves the signer represents the company.",
+          "A real company's registration proves an exact NTA name match, domain control and World ID officers. In production it also proves the signer represents the company.",
       }
     : {
-        title: 'Today, registration proves an exact NTA name match, domain control and World ID officers.',
+        title: 'Registration proves an exact NTA name match, domain control and World ID officers.',
         detail: 'In production it also proves the signer represents the company.',
       },
   officers: {
