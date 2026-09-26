@@ -13,6 +13,10 @@ area.
   preparation (pitch, presentation and Q&A) or tooling rather than project work; each is named in
   [`docs/ai/README.md`](docs/ai/README.md). Real people's names are redacted as `[redacted: name]`, and a few
   private-preparation sentences as `[redacted: private preparation]`. The specs are in `docs/`.
+- **Calls we made:** the product and engineering decisions Karan made, each with his own words and the time, are
+  in [`docs/ai/calls-we-made.md`](docs/ai/calls-we-made.md), backed by his messages in
+  [`docs/ai/prompts.md`](docs/ai/prompts.md) (a curated subset: personal details and private preparation are
+  redacted).
 - AI-assisted commits carry a `Co-Authored-By: Claude` trailer, except 32 made between 13:50 and 16:14 JST on
   Sep 26.
 - **OpenAI Codex** made one revision to the landing's garden (`packages/scene` planting and materials), run by

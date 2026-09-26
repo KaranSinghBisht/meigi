@@ -4,6 +4,8 @@ ETHGlobal asks that specs, prompts and planning artifacts be committed. This fol
 specs themselves live in `docs/` (`spec.md`, `landing-spec.md`, `world-agents-spec.md`). See `AI_USAGE.md`
 for how AI was used overall.
 
+`calls-we-made.md` lists the decisions Karan made, in his own words, and `prompts.md` has the messages behind them.
+
 `briefs/` contains the prompt the lead Claude Code session gave each parallel sub-agent, followed by every
 later instruction sent to it:
 
