@@ -145,8 +145,11 @@ primary name.
   - `renew` extends live names only, because a registry unregister followed by renew would revive the old resolver.
 - **Labels** are ENSIP-15-normal `[a-z0-9]` with single inner hyphens. A label can't contain 13 digits in a row, so
   `t8999900000001.t2011001234567.payee.eth` can't pose as another company. Holders are plain accounts.
-- **Meigi's brake** can block a label or freeze a whole namespace (both stay dark and unchangeable until lifted), and
-  reset a T-number's namespace after a dispute moves the number, so none of the old names carry over.
+- **Meigi's brake** can block a label or freeze a whole namespace. Until Meigi lifts either, the blocked name, or every
+  name in the frozen namespace, resolves to nothing, and nothing there can be issued, edited, renewed or given a new
+  `agent-status`. The one exception is the company's own revoke, which still works, so taking a name down is always
+  possible. Meigi can also reset a T-number's namespace after a dispute moves the number, so none of the old names
+  carry over.
   **To take a name down, Meigi uses `setBlocked` or `setFrozen`, never a plain unregister:** the company could
   simply issue an unregistered label again.
 
