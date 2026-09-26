@@ -108,12 +108,39 @@ the vault reverts `PayeeMismatch` and names the registered company.
     [`services/verifier/src/routes/intents.ts`](services/verifier/src/routes/intents.ts),
     [`apps/web/src/ui/world`](apps/web/src/ui/world),
     [`contracts/src/registry/OfficerQuorum.sol`](contracts/src/registry/OfficerQuorum.sol).
-- **Curvegrid MultiBaas.** Meigi on Mizuhiki, indexed and queried through MultiBaas, like Curvegrid's Matsuri
-  sample. A second deployment indexes our Sepolia contracts live. See [below](#how-we-use-curvegrid-multibaas).
+- **Curvegrid (Best AI Agent Project) and MultiBaas.** Meigi on Mizuhiki, indexed and queried through MultiBaas, like
+  Curvegrid's Matsuri sample. A second deployment indexes our Sepolia contracts live. See
+  [below](#curvegrid-best-ai-agent-project).
 - **Intercepta** (screening; not a prize target). The quick-scan runs before signing, and without a key it fails
   closed. Code: [`packages/x402-guard/src/intercepta.ts`](packages/x402-guard/src/intercepta.ts) (the call);
   `checkPayee` and `checkUndeclared` in [`check.ts`](packages/x402-guard/src/check.ts) (the decisions);
   `services/agent/src/screening` (the AP agent).
+
+### Curvegrid: Best AI Agent Project
+
+Meigi's AP agent is three of the ideas in Curvegrid's brief:
+- **Stablecoin Payment Agent.** It reads Japanese invoices, pays them in mJPYC (our JPYC stand-in on Sepolia) and
+  tracks settlement: `GET /invoices/:id/settlement` confirms each payment from MultiBaas's index.
+- **Policy-Aware Transaction Agent.** It pays only owner-approved vendors, only to the payout registered for their
+  T-number, and only within per-vendor caps, all enforced by the AgentVault. Above ¥50,000 the signer won't sign
+  without a verified human's approval.
+- **Agent-to-Agent Payments.** Before a buying agent signs an x402 payment, the x402 guard checks the merchant's
+  `payTo` against the registry and the merchant's ENS name.
+
+At the Curvegrid workshop, Jeff Wentworth named three danger zones for agents that move money. Here is where Meigi
+handles each:
+- **No private keys in the agent.**
+  - The agent holds no key, and refuses to start if one is in its environment.
+  - A separate signer ([`services/signer`](services/signer), loopback only) holds the vault's agent key and signs
+    one call, `AgentVault.payInvoice`. It builds that call from typed fields and simulates it first.
+  - [`scripts/ap-stack.sh`](scripts/ap-stack.sh) runs both.
+- **Prompts aren't policy.** The LLM only proposes and explains. A deterministic kernel decides, and the vault
+  re-checks the vendor, the payout and the caps on-chain.
+- **Human accountability.**
+  - Risky payments wait for a verified human, who approves through World ID for Agents. The signer won't sign
+    anything above ¥50,000 without that approval.
+  - A hash-chained audit log records every verdict, approval and payment, and `GET /audit?verify=1` checks the
+    chain.
 
 ### How we use Curvegrid MultiBaas
 
@@ -162,27 +189,30 @@ The details:
   [`services/agent/src/routes/payments-mizuhiki.ts`](services/agent/src/routes/payments-mizuhiki.ts),
   [`apps/web/worker`](apps/web/worker) (the site's settlements API) and
   [`apps/web/src/features/settlements`](apps/web/src/features/settlements) (the panel).
-- **Our experience with MultiBaas** (Sepolia, live since 2026-09-26):
-  - **Time to the first indexed event:** under a minute. We linked from 100 blocks back and ran one x402
-    purchase. Its three mJPYC `Transfer`s came back from the saved queries within a minute.
-  - **Went well:**
-    - the explorer lookup imported all four ABIs from their verified sources;
-    - the Matsuri sample's add/subtract query format computed net balances unchanged;
-    - the contract call API reads `decimals()` without signing anything.
-  - **Friction:** `POST /contracts/{label}` needs `bin`, although the API reference marks it optional. Without it
-    the answer is a 400: `null value in column "bytecode" of relation "contracts" violates not-null constraint`.
-    Sending `bin: ""` works; it is stored as `0x`.
-  - **Friction:** `GET /events` ignores its `tx_hash` filter: it answers `[]` for a transaction MultiBaas has
-    indexed, so our settlement lookup reads a saved query instead. Event queries also return a `bytes32` as its
-    bytes, `"[218, 200, …]"`, while `GET /events` returns hex.
-  - **Friction:** the free plan backfills 100 blocks and keeps events for 72 hours. History from before the link
-    has to come from RPC logs, which is why `GET /payments` merges the two.
-  - **Top improvement:** make `bin` optional in practice, or document it as required. And let a plan backfill a
-    contract once from its creation block.
 - **Next steps:**
   - build `payInvoice` with the contract-call API and sign locally;
   - add an `event.emitted` webhook behind a public relay;
   - move the AP agent itself to Awaji once ENS and World ID are reachable from there.
+
+### Our experience with MultiBaas
+
+On Sepolia, live since 2026-09-26:
+- **Time to the first indexed event:** under a minute. We linked from 100 blocks back and ran one x402
+  purchase. Its three mJPYC `Transfer`s came back from the saved queries within a minute.
+- **Went well:**
+  - the explorer lookup imported all four ABIs from their verified sources;
+  - the Matsuri sample's add/subtract query format computed net balances unchanged;
+  - the contract call API reads `decimals()` without signing anything.
+- **Friction:** `POST /contracts/{label}` needs `bin`, although the API reference marks it optional. Without it
+  the answer is a 400: `null value in column "bytecode" of relation "contracts" violates not-null constraint`.
+  Sending `bin: ""` works; it is stored as `0x`.
+- **Friction:** `GET /events` ignores its `tx_hash` filter: it answers `[]` for a transaction MultiBaas has
+  indexed, so our settlement lookup reads a saved query instead. Event queries also return a `bytes32` as its
+  bytes, `"[218, 200, …]"`, while `GET /events` returns hex.
+- **Friction:** the free plan backfills 100 blocks and keeps events for 72 hours. History from before the link
+  has to come from RPC logs, which is why `GET /payments` merges the two.
+- **Top improvement:** make `bin` optional in practice, or document it as required. And let a plan backfill a
+  contract once from its creation block.
 
 ## Deployed on Sepolia (all [Sourcify](https://sourcify.dev) exact matches)
 
@@ -222,6 +252,7 @@ Needs Node ≥ 22, pnpm 11 and Foundry. The bench also needs Python with uv. Sec
 ```sh
 pnpm install
 cd contracts && forge test && cd ..                    # 121 tests
+pnpm -r test                                           # unit tests (vitest): agent, verifier, x402 guard, signer
 pnpm --filter @meigi/verifier start                    # :8787 (needs the NTA index: services/verifier/scripts/build_nta_index.py)
 scripts/ap-stack.sh                                    # the signer :8796 (the only key holder), then the agent :8788
 pnpm --filter @meigi/agent multibaas:setup --awaji     # optional: index the Awaji contracts in Curvegrid MultiBaas
