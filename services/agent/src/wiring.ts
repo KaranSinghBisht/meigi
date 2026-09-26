@@ -36,7 +36,10 @@ export function buildDeps(config: Config) {
   const { publicClient } = createClients(config.SEPOLIA_RPC_URL, config.CHAIN_ID);
   const vault = config.VAULT_ADDRESS as Address;
   const agent = getAddress(config.AGENT_ADDRESS);
-  const signer = createRemotePayer({ url: config.SIGNER_URL, token: config.SIGNER_TOKEN });
+  // One file per chain: the Sepolia agent and a local-chain agent never append to the same chain of hashes.
+  const audit = createAuditLog(packagePath(config.AUDIT_LOG_PATH ?? `../../data/agent/audit-${config.CHAIN_ID}.jsonl`));
+  // Each exchange with the signer goes in the audit log too, so its chain covers the signing step.
+  const signer = createRemotePayer({ url: config.SIGNER_URL, token: config.SIGNER_TOKEN, observe: (event, fields) => audit.record(event, fields) });
   const chain = createChainReader({
     client: publicClient,
     chainId: config.CHAIN_ID,
@@ -53,8 +56,6 @@ export function buildDeps(config: Config) {
     maxCalls: config.INTERCEPTA_MAX_CALLS,
     toxicThreshold: config.INTERCEPTA_TOXIC_THRESHOLD,
   });
-  // One file per chain: the Sepolia agent and a local-chain agent never append to the same chain of hashes.
-  const audit = createAuditLog(packagePath(config.AUDIT_LOG_PATH ?? `../../data/agent/audit-${config.CHAIN_ID}.jsonl`));
   const approvals = createApprovalService(config, audit);
   const fromBlock = historyFrom(config);
   const multibaas = (url?: string, apiKey?: string) => (url && apiKey ? createMultiBaas({ url, apiKey }) : null);

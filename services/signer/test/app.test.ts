@@ -16,6 +16,7 @@ const REQUIRED_ENV = {
 const TOKEN = "t".repeat(64);
 const NOW = 1_790_000_000;
 const MEIGI = "0x9B4fc8994FcF2d5FE08a82A9454B61AA14D647e4";
+const AGENT = "0xa73b6418AadCd5C548eEfF828C31081cAe7FBA68";
 const REF = `0x${"ab".repeat(32)}`;
 const TX = `0x${"cd".repeat(32)}` as Hex;
 const units = (yen: number) => (BigInt(yen) * 10n ** 18n).toString();
@@ -33,7 +34,7 @@ class FakePayer implements SignerPayer {
   async send(call: PayCall) {
     if (this.revert) return { ok: false as const, revert: this.revert };
     this.sent.push(call);
-    return { ok: true as const, txHash: TX };
+    return { ok: true as const, txHash: TX, payout: MEIGI as Address };
   }
   async receipt() {
     return this.mined;
@@ -52,7 +53,7 @@ function setup() {
     payer,
     token: TOKEN,
     policy: { ceilingUnits: BigInt(units(CEILING_YEN)), ceilingYen: CEILING_YEN, maxAgeS: 600, now: () => NOW, issuer: "https://idp.example", clientId: "client" },
-    info: { agent: "0xa73b6418AadCd5C548eEfF828C31081cAe7FBA68", vault: "0x87A798CD92dE1340B1b761dd45196AC82bEF793B", chainId: 11155111, humanAboveYen: CEILING_YEN },
+    info: { agent: AGENT, vault: "0x87A798CD92dE1340B1b761dd45196AC82bEF793B", chainId: 11155111, humanAboveYen: CEILING_YEN },
   });
   const post = async (path: string, body: unknown, token = TOKEN) => {
     const res = await app.request(path, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
@@ -79,11 +80,12 @@ describe("the signer", () => {
     expect(payer.sent).toEqual([]);
   });
 
-  it("simulates, and signs a payment up to the ceiling on the agent's word", async () => {
+  it("simulates, and signs a payment up to the ceiling on the agent's word, naming its key and its simulation", async () => {
     const { post, payer } = setup();
-    expect((await post("/simulate", payment(33_000))).body).toEqual({ ok: true, payout: MEIGI });
-    expect((await post("/pay", payment(132_000))).body).toEqual({ ok: true, txHash: TX }); // the booth's routine invoice
-    expect((await post("/pay", payment(150_000))).body).toEqual({ ok: true, txHash: TX });
+    const signed = { ok: true, txHash: TX, signer: AGENT, simulation: { ok: true, payout: MEIGI } };
+    expect((await post("/simulate", payment(33_000))).body).toEqual({ ok: true, payout: MEIGI, signer: AGENT });
+    expect((await post("/pay", payment(132_000))).body).toEqual(signed); // the booth's routine invoice
+    expect((await post("/pay", payment(150_000))).body).toEqual(signed);
     expect(payer.sent[0]).toEqual({ tNumber: 2011001234567n, expectedPayout: MEIGI, amount: 132_000n * 10n ** 18n, invoiceRef: REF });
     expect(payer.sent).toHaveLength(2);
   });
@@ -91,21 +93,27 @@ describe("the signer", () => {
   it("refuses a payment above the ceiling without a fresh, Orb-level approval from our issuer and client", async () => {
     const { post, payer } = setup();
     const refused = async (approval?: { idToken: string }) => (await post("/pay", { ...payment(150_001), ...(approval ? { approval } : {}) })).body;
-    expect(await refused()).toMatchObject({ code: "human_approval_required", message: "The signer refused: a payment above ¥150,000 needs a verified human's approval." });
+    expect(await refused()).toEqual({ code: "human_approval_required", message: "The signer refused: a payment above ¥150,000 needs a verified human's approval.", signer: AGENT });
     expect((await refused({ idToken: "not-a-jwt" })).message).toContain("not a JWT");
     expect((await refused({ idToken: idToken({ acr: "device", auth_time: NOW }) })).message).toContain("not an Orb-verified World ID");
     expect((await refused({ idToken: idToken({ acr: ORB_ACR, auth_time: NOW - 900 }) })).message).toContain("more than 10 minutes old");
     expect((await refused({ idToken: idToken({ acr: ORB_ACR, auth_time: NOW, iss: "https://evil.example" }) })).message).toContain("another issuer");
     expect((await refused({ idToken: idToken({ acr: ORB_ACR, auth_time: NOW, aud: "other" }) })).message).toContain("another client");
     expect(payer.sent).toEqual([]);
-    expect((await post("/pay", { ...payment(150_001), approval: { idToken: idToken({ acr: ORB_ACR, auth_time: NOW - 30 }) } })).body).toEqual({ ok: true, txHash: TX });
+    expect((await post("/pay", { ...payment(150_001), approval: { idToken: idToken({ acr: ORB_ACR, auth_time: NOW - 30 }) } })).body).toMatchObject({ ok: true, txHash: TX });
+  });
+
+  it("says when it answered with the transaction already in flight, which it didn't simulate again", async () => {
+    const { post, payer } = setup();
+    payer.send = async () => ({ ok: true as const, txHash: TX, payout: null });
+    expect((await post("/pay", payment(1000))).body).toEqual({ ok: true, txHash: TX, signer: AGENT, simulation: null });
   });
 
   it("returns a revert as raw data for the agent to decode, and signs nothing", async () => {
     const { post, payer } = setup();
     payer.revert = { data: "0x12345678" };
-    expect((await post("/simulate", payment(1000))).body).toEqual({ ok: false, revert: { data: "0x12345678" } });
-    expect((await post("/pay", payment(1000))).body).toEqual({ ok: false, revert: { data: "0x12345678" } });
+    expect((await post("/simulate", payment(1000))).body).toEqual({ ok: false, revert: { data: "0x12345678" }, signer: AGENT });
+    expect((await post("/pay", payment(1000))).body).toEqual({ ok: false, revert: { data: "0x12345678" }, signer: AGENT });
     expect(payer.sent).toEqual([]);
   });
 

@@ -8,7 +8,8 @@ import { approvalRefusal, type Policy } from "./policy.js";
 
 /**
  * The signer's HTTP API, for the AP agent on localhost only. Typed fields in, never calldata: the signer builds
- * `AgentVault.payInvoice` itself. Every route but /health needs `Authorization: Bearer <SIGNER_TOKEN>`.
+ * `AgentVault.payInvoice` itself. Every route but /health needs `Authorization: Bearer <SIGNER_TOKEN>`. Each answer
+ * names the signing key (`signer`) and what the signer's own simulation returned, for the agent's audit log.
  */
 
 export interface SignerInfo {
@@ -60,16 +61,20 @@ export function createSignerApp(deps: SignerDeps) {
     const body = await parse(c, call);
     if (!body) return invalid(c);
     const simulated = await deps.payer.simulate(payCall(body));
-    return c.json(simulated.ok ? { ok: true, payout: simulated.payout } : { ok: false, revert: simulated.revert });
+    const signer = deps.info.agent;
+    return c.json(simulated.ok ? { ok: true, payout: simulated.payout, signer } : { ok: false, revert: simulated.revert, signer });
   });
 
   app.post("/pay", async (c) => {
     const body = await parse(c, pay);
     if (!body) return invalid(c);
+    const signer = deps.info.agent;
     const refusal = approvalRefusal(BigInt(body.amount), body.approval, deps.policy);
-    if (refusal) return c.json({ code: "human_approval_required", message: `The signer refused: ${refusal}.` }, 403);
+    if (refusal) return c.json({ code: "human_approval_required", message: `The signer refused: ${refusal}.`, signer }, 403);
     const sent = await deps.payer.send(payCall(body));
-    return c.json(sent.ok ? { ok: true, txHash: sent.txHash } : { ok: false, revert: sent.revert });
+    if (!sent.ok) return c.json({ ok: false, revert: sent.revert, signer }); // the in-lock simulation reverted
+    const simulation = sent.payout ? { ok: true, payout: sent.payout } : null; // null: the tx already in flight
+    return c.json({ ok: true, txHash: sent.txHash, signer, simulation });
   });
 
   app.get("/receipt/:txHash", async (c) => {

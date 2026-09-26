@@ -183,6 +183,13 @@ Every decision and every payment step is recorded in an append-only, hash-chaine
   - `payment`: the mode (auto, force, approved), the approval id, then `pending` with the tx hash as soon as it's
     sent (so a crash can't lose it), and the outcome: paid with its block, reverted (and whether anything was
     broadcast), or held with the reasons.
+  - `signer.simulate` and `signer.pay`: every exchange with the signer. Each records the key the signer named
+    (`signerId`), the payInvoice fields (T-number, invoiceRef, payout, amount) and whether a human's approval went
+    with it (never the token).
+    - `signer.simulate` also records what the signer's simulation returned: the payout, or the revert's name.
+    - `signer.pay` records `outcome` (`sent` with the tx hash, `refused` with the signer's reason, `reverted`, or
+      `unreachable`/`unanswered`, when it may or may not have signed). It also records `simulation`, the result
+      of the signer's own re-simulation inside its send lock (null when it answered with a tx already in flight).
 - **Failures.** A verdict that can't be recorded isn't returned. A payment step that can't be recorded is reported
   on stderr, but the payment's result still reaches the caller.
 - **One file per agent.** The Sepolia agent and a local-chain agent write different files, because a chain of hashes

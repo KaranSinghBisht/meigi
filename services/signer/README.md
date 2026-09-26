@@ -21,11 +21,14 @@ This small process holds the AgentVault's agent key and signs one call for it: `
 | Method | Path | Body | Returns |
 |---|---|---|---|
 | GET | `/health` | | `{ ok, agent, vault, chainId, humanAboveYen }` (no token) |
-| POST | `/simulate` | `{ tNumber, payout, amount, invoiceRef }` | `{ ok: true, payout }` or `{ ok: false, revert: { data } }` |
-| POST | `/pay` | the same, plus `approval?: { idToken }` | `{ ok: true, txHash }` as soon as it's broadcast, `{ ok: false, revert }`, or `403 human_approval_required` |
+| POST | `/simulate` | `{ tNumber, payout, amount, invoiceRef }` | `{ ok: true, payout, signer }` or `{ ok: false, revert: { data }, signer }` |
+| POST | `/pay` | the same, plus `approval?: { idToken }` | `{ ok: true, txHash, signer, simulation }` as soon as it's broadcast, `{ ok: false, revert, signer }`, or `403 human_approval_required` |
 | GET | `/receipt/:txHash` | | `{ receipt: { txHash, status, blockNumber } \| null }` |
 
 A revert comes back as raw data, which the agent decodes against the Meigi ABIs. A chain failure is a generic `502`.
+Every answer names the signing key (`signer`). `/pay`'s `simulation` is what its own re-simulation inside the nonce
+lock returned (`{ ok: true, payout }`), or null when it answered with the transaction already in flight. The agent
+writes both into its hash-chained audit log (`signer.simulate`, `signer.pay`), so the chain covers the signing step.
 
 ## Run
 

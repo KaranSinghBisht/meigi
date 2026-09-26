@@ -24,7 +24,8 @@ export interface PayCall {
 export type Revert = { data: Hex } | { reason: string } | { unknown: true };
 
 export type Simulation = { ok: true; payout: Address } | { ok: false; revert: Revert };
-export type Sent = { ok: true; txHash: Hex } | { ok: false; revert: Revert };
+/** A send, with the payout its in-lock simulation returned: null when it answered with a tx already in flight. */
+export type Sent = { ok: true; txHash: Hex; payout: Address | null } | { ok: false; revert: Revert };
 
 export interface Receipt {
   txHash: Hex;
@@ -58,12 +59,12 @@ export function createPayer(opts: PayerOptions): SignerPayer {
     send: (call) =>
       exclusive(async () => {
         const sent = inFlight.get(call.invoiceRef);
-        if (sent) return { ok: true, txHash: sent };
+        if (sent) return { ok: true, txHash: sent, payout: null };
         const outcome = await simulate(opts, call);
         if (!outcome.ok) return outcome;
         const txHash = await opts.walletClient.writeContract(outcome.request);
         inFlight.set(call.invoiceRef, txHash);
-        return { ok: true, txHash };
+        return { ok: true, txHash, payout: outcome.payout };
       }),
     async receipt(txHash) {
       const found = await receiptOf(opts, txHash);

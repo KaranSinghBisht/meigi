@@ -211,6 +211,30 @@ describe.skipIf(!hasFoundry())("agent against the real contracts on anvil", () =
     expect(unauthorized.status).toBe(401);
   });
 
+  it("the audit chain covers the signing step: which key signed, and what its simulation returned", async () => {
+    const res = await app.request("/audit?limit=200&verify=1");
+    const { entries, chain } = (await res.json()) as { entries: Record<string, any>[]; chain: { ok: boolean } };
+    expect(chain.ok).toBe(true);
+    const oldestFirst = [...entries].reverse();
+    const routineRef = invoiceRefOf("2011001234567", "MS-2026-0917");
+    const signing = oldestFirst.filter((e) => e.event.startsWith("signer.") && e.invoiceRef === routineRef);
+    // Paid once; the later forced second attempt stops at the signer's simulation.
+    expect(signing.map((e) => [e.event, e.outcome ?? e.simulation.revert ?? null])).toEqual([
+      ["signer.simulate", null],
+      ["signer.pay", "sent"],
+      ["signer.simulate", "InvoiceAlreadyPaid"],
+    ]);
+    expect(signing[1]).toMatchObject({ signerId: stack.accounts.agent.address, approval: false, simulation: { ok: true, payout: MEIGI_PAYOUT } });
+    const paid = oldestFirst.find((e) => e.event === "payment" && e.status === "paid" && e.invoiceRef === routineRef);
+    expect(paid?.txHash).toBe(signing[1]?.txHash); // the signer's answer and the mined payment are the same tx
+    expect(signing[1]!.seq).toBeLessThan(paid!.seq);
+    const approved = oldestFirst.find((e) => e.event === "signer.pay" && e.invoiceRef === invoiceRefOf("2011001234567", "MS-2026-0931"));
+    expect(approved).toMatchObject({ outcome: "sent", approval: true, signerId: stack.accounts.agent.address });
+    const forced = oldestFirst.find((e) => e.event === "signer.simulate" && e.simulation?.ok === false);
+    expect(forced?.simulation).toEqual({ ok: false, revert: "PayeeMismatch" }); // the forced bank-change attempt
+    expect(JSON.stringify(entries)).not.toMatch(/idToken|eyJ/u); // an approval token is never recorded
+  });
+
   it("GET /vault reads the live vault", async () => {
     const res = await app.request("/vault");
     const vault = (await res.json()) as Record<string, any>;
