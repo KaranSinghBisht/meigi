@@ -79,7 +79,7 @@ export function wizardCaptions(): CaptionDef[] {
     {
       at: 13.6,
       text: ONBOARD.placeholder
-        ? 'With a placeholder officer, the company itself can’t change its payout.'
+        ? 'Its placeholder officer means the company itself can’t change its payout.'
         : 'Officers enroll with World ID: a verified human approves every change the company asks for.',
     },
     { at: 15.8, text: `One registration on Sepolia, and ${ONBOARD.ens} resolves to that payout.` },

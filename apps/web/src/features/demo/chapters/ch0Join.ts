@@ -21,7 +21,7 @@ function seedCaptions(): CaptionDef[] {
     { at: TURNS[0], text: 'Register once: a company binds its registry number to one payout.' },
     { at: TURNS[1], text: 'Real companies also prove their domain and enroll World ID officers; this demo company is labelled.' },
     { at: TURNS[2], text: 'Proving the signer represents the company comes in production.' },
-    { at: TURNS[3], text: 'With a placeholder officer, the company itself can’t change its payout.' },
+    { at: TURNS[3], text: 'Its placeholder officer means the company itself can’t change its payout.' },
     { at: TURNS[4], text: `One registration on Sepolia, and ${ONBOARD.ens} resolves to that payout.` },
   ]
 }
