@@ -10,7 +10,8 @@ area.
   benchmark and fine-tuning, the AP agent service and the web app.
 - Every sub-agent's brief and every later instruction is committed verbatim in [`docs/ai/briefs`](docs/ai/briefs).
   The specs are in `docs/`.
-- AI-assisted commits carry a `Co-Authored-By: Claude` trailer.
+- AI-assisted commits carry a `Co-Authored-By: Claude` trailer, except 32 made between 13:50 and 16:14 JST on
+  Sep 26.
 - **OpenAI Codex** made one revision to the landing's garden (`packages/scene` planting and materials), run by
   Karan. The `landing` sub-agent reviewed it, fixed three regressions and committed it.
 
@@ -37,7 +38,7 @@ section).
   and security and coding rules for all code.
 - **Handled** accounts, keys and funds: the World Developer Portal, Cloudflare, Sepolia ETH and the Intercepta
   key request.
-- **Tested** the demos and recorded the video.
+- **Tested** the demos; Karan records the demo video.
 
 ## Reviews
 
@@ -46,6 +47,9 @@ Every review was done by a separate AI reviewer, not by the author agent.
 - **Contracts:** three read-only rounds with proof-of-concept exploits. Of 16 findings, 14 are fixed. Two are
   accepted by design and documented: the fixed 30-day cap window, and trusting the attester to verify World
   ID off-chain. Round 3 mutation-tested the fixes.
+- **Contracts added later:** `CompanyNamespace` passed a review after two rounds (48 of 48 in the reviewer's fork
+  harness, no open findings), and `MandateGate` passed one (30 of 30 on a fork, in front of the live vault and against the live
+  names). See [`docs/ens.md`](docs/ens.md).
 - **AP agent:** three review rounds and a final pass. Every bypass found is now a regression test: hidden
   content, markup, refund notices, ambiguous totals and bidi controls.
 
