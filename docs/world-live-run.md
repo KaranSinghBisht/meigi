@@ -125,11 +125,10 @@ and cross-checked against the verifier's database and `officersOf` on-chain — 
   block 11,788,318, mined 04:40:24, sent by the attester (`0x3D5F…1049`), status success. Officer enrolled:
   `officerId` `0xb02c5df1…98df0` (Orb) — confirmed alone via `officersOf(7999900000002)` on-chain, exactly one
   officer, matching. Company 株式会社ソラノ精機; controller and initial payout `0x6eaFE9D8…146B57`.
-- **Step 7.1 decline.** Not confirmed as part of this take: the verifier's database shows exactly one
-  payout-change intent for this T-number, approved directly. **Ask team-lead:** whether the alternative path
-  here is instead covered by the separate "Replace a lost business key" decline they mentioned recording next
-  (no on-chain effect), or whether a decline-then-approve cycle on this same T-number's `/change` is still
-  wanted before judging.
+- **Step 7.1 decline: not recorded.** Karan's separate "Replace a lost business key" take (S4b) wasn't recorded
+  either; the verifier's database confirms no `ControllerRotation` intent exists for this T-number. The
+  payout-change intent stays approve-only, as filled in below. The alternative-path evidence for IDKit is the
+  verifier's own test, `services/verifier/test/app.test.ts:164`, `"denies a different human"` — not a live take.
 - **Step 7.3 approval + queue.** tx
   [`0x9202080ada84f8f5671e72d84b72d45e510fe748fc636a47f2179b61875c26ea`](https://sepolia.etherscan.io/tx/0x9202080ada84f8f5671e72d84b72d45e510fe748fc636a47f2179b61875c26ea),
   block 11,788,336, mined 04:44:00, sent by the controller wallet (`0x6eaFE9D8…146B57`), status success. Approved
@@ -146,5 +145,6 @@ replays a real settled run today.
 `scripts/world-live.sh --staging` returns both services to today's default (staging, `proof_of_human`), or
 `--stop` to stop them once judging is over. The payout change recorded above is the one left running through
 judging — real, public, pending on the actual registry — and only gets cancelled or let land afterward, Karan's
-call. (The original script's steps 7.1/7.2/8 — a decline, a wrong-human refusal, and a cancel-then-requeue cycle
-— aren't confirmed as part of this specific take; see the note above before assuming they're covered elsewhere.)
+call. (The original script's steps 7.1 and 8 — a decline and a cancel-then-requeue cycle — weren't recorded
+live; the decline's alternative-path evidence is a verifier test instead, see the note above. Step 7.2's
+wrong-human refusal, Adithya's deferred mini-step, is unconfirmed either way as of this restart.)
