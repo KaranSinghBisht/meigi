@@ -3,6 +3,7 @@
 export type NavIconName =
   | 'overview'
   | 'try'
+  | 'demo'
   | 'agent'
   | 'payees'
   | 'register'
@@ -15,6 +16,7 @@ export type NavIconName =
 const PATHS: Record<NavIconName, string[]> = {
   overview: ['M4 4h6.5v6.5H4z', 'M13.5 4H20v6.5h-6.5z', 'M4 13.5h6.5V20H4z', 'M13.5 13.5H20V20h-6.5z'],
   try: ['M10 6h10', 'M10 12h10', 'M10 18h10', 'M4 6l1.2 1.2L7.5 5', 'M4 12l1.2 1.2L7.5 11', 'M4 18l1.2 1.2L7.5 17'],
+  demo: ['M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z', 'M10.2 8.6v6.8l5.4-3.4z'],
   agent: [
     'M7 8h10a3 3 0 0 1 3 3v5a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-5a3 3 0 0 1 3-3z',
     'M12 4v4',
