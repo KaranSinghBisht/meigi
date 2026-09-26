@@ -1,0 +1,88 @@
+/* Settlements, live from Curvegrid MultiBaas: a window of rows, newest first. Glass and hairlines only, no strokes;
+   the status is the one chip in the header. Tokens (ENS names, T-numbers, hashes, blocks) never break. */
+.settlements {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.settlements__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 20px 24px 4px;
+}
+
+.settlements__title {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-strong);
+  letter-spacing: -0.015em;
+}
+
+.settlements__sub,
+.settlements__note {
+  padding: 0 24px 16px;
+  font-size: var(--text-sm);
+}
+
+.settlements__list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.settlement {
+  display: grid;
+  grid-template-columns: minmax(88px, max-content) minmax(0, 1fr);
+  align-items: baseline;
+  gap: 4px 20px;
+  padding: 16px 24px;
+  box-shadow: 0 -1px 0 var(--lg-hairline);
+}
+
+.settlement__amount {
+  font-size: var(--text-display-sm);
+  font-weight: var(--weight-strong);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.settlement__body {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.settlement__payee,
+.settlement__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+
+.settlement__meta {
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+}
+
+.settlement__token {
+  white-space: nowrap;
+}
+
+.settlements__more {
+  display: flex;
+  justify-content: center;
+  padding: 8px 24px 16px;
+  box-shadow: 0 -1px 0 var(--lg-hairline);
+}
+
+@media (max-width: 560px) {
+  .settlement {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

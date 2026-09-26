@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Spinner } from '../../ui/components/Spinner'
 import { DemoMachine } from '../../ui/demo/DemoMachine'
 import { RecordedRun } from '../../ui/demo/RecordedRun'
+import { SettlementsPanel } from '../settlements/SettlementsPanel'
 import { ApprovalExplainer } from './approval/ApprovalExplainer'
 import { RECORDED_BEC } from './recorded'
 import { VaultPanel } from './VaultPanel'
@@ -29,6 +30,7 @@ export function AgentHosted() {
           <VaultPanel version={0} />
         </aside>
       </div>
+      <SettlementsPanel />
       <RecordedRun title="The agent at work, replayed from real runs." recordedAt={RECORDED_BEC.recordedAt}>
         <Suspense fallback={<Spinner label="Loading the demo" />}>
           <DemoPlayer variant="embed" />

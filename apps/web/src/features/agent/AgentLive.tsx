@@ -1,5 +1,6 @@
 import { unavailable } from '../../lib/api/messages'
 import { ErrorNotice } from '../../ui/components/Notice'
+import { SettlementsPanel } from '../settlements/SettlementsPanel'
 import { Results } from './AgentResults'
 import { InvoiceInput } from './InvoiceInput'
 import { useAgentConsole } from './useAgentConsole'
@@ -29,6 +30,7 @@ export function AgentLive() {
         </aside>
       </div>
       <Results agent={agent} />
+      <SettlementsPanel />
     </>
   )
 }
