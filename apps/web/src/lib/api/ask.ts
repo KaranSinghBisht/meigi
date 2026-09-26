@@ -16,16 +16,21 @@ export interface LedgerAnswer {
   readonly suggestions: readonly string[]
 }
 
-/** Why a question got no answer: the daily cap, the per-minute limit, a question it won't take, or anything else. */
-export type AskFailure = 'paused' | 'rate_limited' | 'invalid_question' | 'unavailable'
+/**
+ * Why a question got no answer: the daily cap for everyone or for this network, the per-minute limit, a question it
+ * won't take, or anything else.
+ */
+export type AskFailure = 'paused' | 'ip_limited' | 'rate_limited' | 'invalid_question' | 'unavailable'
+/** The failures that close the box for the rest of the day. */
+export type AskClosed = Extract<AskFailure, 'paused' | 'ip_limited'>
 
 const HASH = /^0x[0-9a-fA-F]{64}$/
 
 export function askFailure(error: unknown): AskFailure {
-  if (error instanceof ApiError && ['paused', 'rate_limited', 'invalid_question'].includes(error.code)) {
+  if (error instanceof ApiError && ['paused', 'ip_limited', 'rate_limited', 'invalid_question'].includes(error.code)) {
     return error.code as AskFailure
   }
-  return 'unavailable'
+  return error instanceof ApiError && error.code === 'too_large' ? 'invalid_question' : 'unavailable'
 }
 
 export async function askLedger(question: string, signal?: AbortSignal): Promise<LedgerAnswer> {

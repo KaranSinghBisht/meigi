@@ -6,7 +6,7 @@ import { describe, it } from 'node:test'
 import { REFUSAL, SUGGESTED } from './ask-answer'
 import { modelInput, modelReply } from './ask-prompt'
 import { AskQuota, type QuotaNamespace } from './ask-quota'
-import { askResponse } from './ask'
+import { createAsk } from './ask'
 import type { Env } from './env'
 import type { Settlement, SettlementsApi, SettlementsBody } from './settlements'
 
@@ -69,8 +69,8 @@ describe('prompt', () => {
   })
 })
 
-/** A Durable Object namespace with one in-memory AskQuota, as wrangler would run it. */
-function memoryQuota(): QuotaNamespace {
+/** A Durable Object namespace with one in-memory AskQuota, as wrangler would run it, counting the calls it gets. */
+function memoryQuota(): QuotaNamespace & { readonly calls: () => number } {
   const store = new Map<string, unknown>()
   const object = new AskQuota({
     storage: {
@@ -78,31 +78,41 @@ function memoryQuota(): QuotaNamespace {
       put: async (key, value) => void store.set(key, value),
     },
   })
-  return { idFromName: (name) => name, get: () => ({ fetch: (input, init) => object.fetch(new Request(input, init)) }) }
+  let calls = 0
+  return {
+    idFromName: (name) => name,
+    get: () => ({ fetch: (input, init) => (calls++, object.fetch(new Request(input, init))) }),
+    calls: () => calls,
+  }
 }
+
+/** A fresh handler (and status cache) for each request, unless a test shares one. */
+const askResponse = (request: Request, e: Env, a: () => SettlementsApi, now?: number) => createAsk()(request, e, a, now)
 
 function env(overrides: Partial<Env> = {}, reply: unknown = { response: { intent: 'largest', params: {} } }) {
   const calls: unknown[] = []
   const hits = new Map<string, number>()
+  const quota = memoryQuota()
   const base: Env = {
     ASSETS: { fetch: async () => new Response('asset') },
     AI: { run: async (_model, input) => (calls.push(input), reply) },
     ASK_LIMITER: {
       limit: async ({ key }) => ({ success: (hits.set(key, (hits.get(key) ?? 0) + 1).get(key) ?? 0) <= 3 }),
     },
-    ASK_QUOTA: memoryQuota(),
+    ASK_QUOTA: quota,
     ASK_DAILY_CAP: '2',
     ASK_ENABLED: 'true',
     ...overrides,
   }
-  return { env: base, calls }
+  return { env: base, calls, limited: () => [...hits.values()].reduce((a, b) => a + b, 0), quotaCalls: quota.calls }
 }
 
-const post = (question: unknown, ip = '203.0.113.7') =>
+const SAME_ORIGIN = { 'content-type': 'application/json', 'sec-fetch-site': 'same-origin' }
+const post = (question: unknown, ip = '203.0.113.7', headers: Record<string, string> = SAME_ORIGIN) =>
   new Request('https://meigi.test/api/ask', {
     method: 'POST',
     body: JSON.stringify({ question }),
-    headers: { 'cf-connecting-ip': ip },
+    headers: { ...headers, 'cf-connecting-ip': ip },
   })
 
 // What a jailbroken model might say. None of it may reach the visitor: each is the fixed refusal.
@@ -236,5 +246,124 @@ describe('POST /api/ask', () => {
     assert.deepEqual(await response.json(), { code: 'unavailable', message: "The ledger can't answer right now." })
     const failing: SettlementsApi = { list: async () => Promise.reject(new Error('multibaas down')) }
     assert.equal((await askResponse(post('q'), env().env, () => failing)).status, 503)
+  })
+})
+
+/** A body that streams `total` bytes in 64 KiB chunks, counting what was pulled. */
+function streamed(total: number) {
+  let pulled = 0
+  const chunk = new Uint8Array(64 * 1024).fill(0x20)
+  const body = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      if (pulled >= total) return controller.close()
+      pulled += chunk.length
+      controller.enqueue(chunk)
+    },
+  })
+  return { body, pulled: () => pulled }
+}
+
+describe('abuse', () => {
+  it('counts nothing, and reads no more than it must, until a question passes every check', async () => {
+    const { env: e, calls, limited, quotaCalls } = env()
+    const big = streamed(8 * 1024 * 1024)
+    const requests: [number, Request][] = [
+      [403, post('q', 'a', { 'content-type': 'application/json', 'sec-fetch-site': 'cross-site' })],
+      [403, post('q', 'a', { 'content-type': 'application/json', 'sec-fetch-site': 'same-site' })],
+      [403, post('q', 'a', { 'content-type': 'application/json', origin: 'https://evil.example' })],
+      [403, post('q', 'a', { 'content-type': 'application/json' })],
+      [415, post('q', 'a', { 'content-type': 'text/plain', 'sec-fetch-site': 'same-origin' })],
+      [415, post('q', 'a', { 'sec-fetch-site': 'same-origin' })],
+      [413, post('q', 'a', { ...SAME_ORIGIN, 'content-length': '4096' })],
+      [
+        413,
+        new Request('https://meigi.test/api/ask', {
+          method: 'POST',
+          body: big.body,
+          headers: SAME_ORIGIN,
+          duplex: 'half',
+        } as RequestInit),
+      ],
+      [400, new Request('https://meigi.test/api/ask', { method: 'POST', body: '{"question":', headers: SAME_ORIGIN })],
+      [400, post('   ')],
+      [400, post('x'.repeat(301))],
+    ]
+    for (const [status, request] of requests) assert.equal((await askResponse(request, e, () => api)).status, status)
+    // One chunk read, and one the stream pulled ahead of the reader: 128 KiB of the 8 MiB, then cancelled.
+    assert.ok(big.pulled() <= 2 * 64 * 1024, `pulled ${big.pulled()} bytes of an 8 MiB body`)
+    assert.deepEqual([calls.length, limited(), quotaCalls()], [0, 0, 0])
+    const origin = post('What was the largest payment?', 'a', {
+      'content-type': 'application/json; charset=utf-8',
+      origin: 'https://meigi.test',
+    })
+    assert.equal((await askResponse(origin, e, () => api)).status, 200)
+  })
+
+  it('limits an IPv6 /64 as one asker, three a minute', async () => {
+    const { env: e } = env({ ASK_DAILY_CAP: '50' })
+    const statuses = []
+    for (const ip of [
+      '2001:db8:1:2::a',
+      '2001:db8:1:2::b',
+      '2001:db8:1:2:ffff:1:2:3',
+      '2001:0db8:0001:0002::c',
+      '2001:db8:1:3::1',
+    ]) {
+      statuses.push((await askResponse(post('q', ip), e, () => api)).status)
+    }
+    assert.deepEqual(statuses, [200, 200, 200, 429, 200])
+  })
+
+  it('caps each asker at five a day (ASK_IP_DAILY_CAP), apart from the cap for everyone', async () => {
+    const { env: e } = env({ ASK_DAILY_CAP: '30', ASK_LIMITER: { limit: async () => ({ success: true }) } })
+    const statuses = []
+    for (let i = 0; i < 6; i++) statuses.push((await askResponse(post('q', '198.51.100.7'), e, () => api)).status)
+    assert.deepEqual(statuses, [200, 200, 200, 200, 200, 429])
+    const limited = await askResponse(post('q', '198.51.100.7'), e, () => api)
+    assert.deepEqual(await limited.json(), {
+      code: 'ip_limited',
+      message: 'Questions from your network are paused until tomorrow (UTC).',
+    })
+    assert.equal((await askResponse(post('q', '198.51.100.8'), e, () => api)).status, 200)
+    const { env: two } = env({ ASK_IP_DAILY_CAP: '2', ASK_LIMITER: { limit: async () => ({ success: true }) } })
+    const capped = []
+    for (let i = 0; i < 3; i++) capped.push((await askResponse(post('q', '2001:db8::1'), two, () => api)).status)
+    assert.deepEqual(capped, [200, 200, 429])
+  })
+
+  it('gives a question back when the model fails, so failures spend no one’s day', async () => {
+    let fail = true
+    const run = async () => {
+      if (fail) throw new Error('model timeout')
+      return { response: { intent: 'largest', params: {} } }
+    }
+    const { env: e, quotaCalls } = env({ ASK_DAILY_CAP: '1', ASK_IP_DAILY_CAP: '1', AI: { run } })
+    for (let i = 0; i < 2; i++) assert.equal((await askResponse(post('q'), e, () => api)).status, 503)
+    fail = false
+    assert.equal((await askResponse(post('q'), e, () => api)).status, 200)
+    assert.equal((await askResponse(post('q', '192.0.2.9'), e, () => api)).status, 429)
+    assert.equal(quotaCalls(), 2 * 2 + 1 + 1) // take and refund twice, one take, one refused take
+  })
+
+  it('takes no quota when there are no settlements to answer from', async () => {
+    const { env: e, quotaCalls } = env()
+    const empty: SettlementsApi = { list: async () => ({ ...BODY, settlements: [] }) }
+    assert.equal((await askResponse(post('q'), e, () => empty)).status, 200)
+    assert.equal(quotaCalls(), 0)
+  })
+
+  it('asks the Durable Object whether questions are open at most once per 10 s per isolate', async () => {
+    const { env: e, quotaCalls } = env()
+    const handler = createAsk()
+    const now = Date.UTC(2026, 8, 26, 3)
+    for (let i = 0; i < 100; i++) {
+      const response = await handler(new Request('https://meigi.test/api/ask'), e, () => api, now + i * 50)
+      assert.deepEqual(await response.json(), { enabled: true, open: true })
+    }
+    assert.equal(quotaCalls(), 1)
+    await handler(new Request('https://meigi.test/api/ask'), e, () => api, now + 10_000)
+    assert.equal(quotaCalls(), 2)
+    await handler(new Request('https://meigi.test/api/ask'), e, () => api, Date.UTC(2026, 8, 27))
+    assert.equal(quotaCalls(), 3) // a new day asks again
   })
 })

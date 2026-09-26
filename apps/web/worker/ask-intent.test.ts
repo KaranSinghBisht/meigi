@@ -49,8 +49,9 @@ describe('queryOf', () => {
       't2011001234567.payee.eth',
       'T2011001234567.PAYEE.ETH',
     ]
-    for (const named of [...names, '株式会社メイギ商事'])
+    for (const named of [...names, '株式会社メイギ商事']) {
       assert.equal(read('count', { payee: named })?.payee, MEIGI, named)
+    }
     for (const unknown of ['meigi-shoji-pay.eth', 'T0000000000000', 'Meigi Shoji', '株式会社メイギ', 42]) {
       assert.equal(read('count', { payee: unknown }), null, String(unknown))
     }

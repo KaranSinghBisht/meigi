@@ -14,6 +14,7 @@ const SUGGESTED = [
 
 const FAILURE: Record<AskFailure, string> = {
   paused: 'Questions are paused until tomorrow (UTC).',
+  ip_limited: 'Questions from your network are paused until tomorrow (UTC).',
   rate_limited: 'Three questions a minute: try again shortly.',
   invalid_question: `Ask a question of up to ${MAX_QUESTION} characters.`,
   unavailable: "The ledger can't answer right now.",
@@ -23,8 +24,10 @@ const FAILURE: Record<AskFailure, string> = {
 function Reply({ state }: { readonly state: AskState }) {
   if (state.kind === 'idle') return null
   if (state.kind === 'asking') return <p className="ask__note">Reading the settlements…</p>
-  if (state.kind === 'failed')
-    return state.failure === 'paused' ? null : <p className="ask__note">{FAILURE[state.failure]}</p>
+  if (state.kind === 'failed') {
+    const closing = state.failure === 'paused' || state.failure === 'ip_limited' // the note above says it
+    return closing ? null : <p className="ask__note">{FAILURE[state.failure]}</p>
+  }
   return (
     <div className="ask__reply">
       <p className="ask__question">{state.question}</p>
@@ -62,7 +65,8 @@ function Suggested({ disabled, onPick }: { readonly disabled: boolean; readonly 
 export function AskLedger() {
   const id = useId()
   const [question, setQuestion] = useState('')
-  const { state, shown, paused, ask } = useAskLedger()
+  const { state, shown, closed, ask } = useAskLedger()
+  const paused = closed !== null
   const busy = state.kind === 'asking'
   const send = (text: string) => {
     const trimmed = text.trim()
@@ -101,7 +105,7 @@ export function AskLedger() {
           Ask
         </Button>
       </div>
-      {paused ? <p className="ask__note">{FAILURE.paused}</p> : null}
+      {closed ? <p className="ask__note">{FAILURE[closed]}</p> : null}
       <div aria-live="polite">
         <Reply state={state} />
       </div>
