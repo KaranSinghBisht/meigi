@@ -102,7 +102,10 @@ def autoclear(test, val, budget):
 
 
 def latency(preds):
-    wall = np.array([p["latency_ms"] for p in preds.values()])
+    """p50/p95 of client wall time (and server time when reported); None for answers produced without timing."""
+    wall = [p["latency_ms"] for p in preds.values() if p.get("latency_ms") is not None]
+    if not wall:
+        return None
     server = [p["server_ms"] for p in preds.values() if p.get("server_ms") is not None]
     out = {"p50": float(np.percentile(wall, 50)), "p95": float(np.percentile(wall, 95))}
     if server:

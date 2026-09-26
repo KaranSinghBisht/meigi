@@ -44,6 +44,7 @@ def summarize(test, preds, val_preds, val, budget):
             "latency_ms": metrics.latency(preds), "usd_per_1k": metrics.usd_per_1k(preds),
             "input_tokens_per_item": float(np.mean(tokens)) if tokens else None,
             "parse_errors": sum(bool(p.get("parse_error")) for p in preds.values()),
+            "cost_estimated": any(p.get("cost_estimated") for p in preds.values()),
             "by_family": breakdown(test, ok, "family"), "by_language": breakdown(test, ok, "lang"), "_ok": ok}
 
 
@@ -58,17 +59,24 @@ def _cell(q):
     return f"{q['accuracy']:.3f} / {q['macro_f1']:.3f}"
 
 
+HEADER = ["| Contender | " + " | ".join(f"{q} acc / F1" for q in QUESTION_IDS)
+          + " | Mean acc | ECE | Legit auto-cleared @1% budget: deployed (oracle) | p50 / p95 ms | $ per 1k |",
+          "|---|" + "---|" * (len(QUESTION_IDS) + 5)]
+
+
+def row(name, s):
+    """One RESULTS.md table row for a contender summary."""
+    ac = s["autoclear"]
+    deployed = f"{ac['deployed']['legit_cleared']:.0%}, {ac['deployed']['false_clears']} unsafe cleared" if "deployed" in ac else "n/a"
+    cost = "n/a" if s["usd_per_1k"] is None else f"{s['usd_per_1k']:.5f}" + (" (list-price est.)" if s.get("cost_estimated") else "")
+    lat = s["latency_ms"]
+    return (f"| {name} | " + " | ".join(_cell(s["questions"][q]) for q in QUESTION_IDS)
+            + f" | {s['mean_accuracy']:.3f} | {s['ece']:.3f} | {deployed} ({ac['oracle']['legit_cleared']:.0%})"
+            + (f" | {lat['p50']:.0f} / {lat['p95']:.0f}" if lat else " | n/a") + f" | {cost} |")
+
+
 def markdown(result):
-    head = ["| Contender | " + " | ".join(f"{q} acc / F1" for q in QUESTION_IDS) + " | Mean acc | ECE | Legit auto-cleared @1% budget: deployed (oracle) | p50 / p95 ms | $ per 1k |",
-            "|---|" + "---|" * (len(QUESTION_IDS) + 5)]
-    rows = []
-    for name, s in result["contenders"].items():
-        ac = s["autoclear"]
-        deployed = f"{ac['deployed']['legit_cleared']:.0%}, {ac['deployed']['false_clears']} unsafe cleared" if "deployed" in ac else "n/a"
-        cost = f"{s['usd_per_1k']:.5f}" if s["usd_per_1k"] is not None else "n/a"
-        rows.append(f"| {name} | " + " | ".join(_cell(s["questions"][q]) for q in QUESTION_IDS)
-                    + f" | {s['mean_accuracy']:.3f} | {s['ece']:.3f} | {deployed} ({ac['oracle']['legit_cleared']:.0%})"
-                    + f" | {s['latency_ms']['p50']:.0f} / {s['latency_ms']['p95']:.0f} | {cost} |")
+    head, rows = HEADER, [row(name, s) for name, s in result["contenders"].items()]
     lines = ["# PayeeBench-JA results", "", f"Test split, {result['n_items']} items x 4 questions. Generated {result['generated']}.", "", *head, *rows, ""]
     for name, reason in result["skipped"].items():
         lines.append(f"- **{name}**: skipped ({reason})")

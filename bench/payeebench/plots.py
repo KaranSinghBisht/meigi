@@ -148,7 +148,7 @@ def autoclear_chart(result, colors, path):
 
 def speed_cost_chart(result, colors, path):
     names = list(result["contenders"])
-    lat = {n: result["contenders"][n]["latency_ms"]["p50"] for n in names}
+    lat = {n: result["contenders"][n]["latency_ms"]["p50"] for n in names if result["contenders"][n]["latency_ms"]}
     cost = {n: result["contenders"][n]["usd_per_1k"] for n in names if result["contenders"][n]["usd_per_1k"]}
     refs = {"Jev list price (est.)": result.get("jev_list_price_per_1k"), "Kev-0.8B on cloud L4 (est.)": result.get("l4_cloud_usd_per_1k")}
     cost.update({k: v for k, v in refs.items() if v})
