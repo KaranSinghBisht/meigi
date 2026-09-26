@@ -48,6 +48,7 @@ interface IPermissionedRegistry {
     function getExpiry(uint256 anyId) external view returns (uint64);
     function hasRoles(uint256 anyId, uint256 roleBitmap, address account) external view returns (bool);
     function setResolver(uint256 anyId, address resolver) external;
+    function setSubregistry(uint256 anyId, address registry) external;
 }
 
 interface IUniversalResolver {

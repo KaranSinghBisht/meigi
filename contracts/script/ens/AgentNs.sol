@@ -4,9 +4,10 @@ pragma solidity ^0.8.24;
 import {Vm} from "forge-std/Vm.sol";
 import {EnsV2Lib} from "./EnsV2.sol";
 
-// The ENSv2 contracts behind the AP agent's namespace. Signatures match the source verified on Sepolia
-// Blockscout for the Beta (contracts-v2 deployments/sepolia at 71a3b733): lib/verifiable-factory
-// VerifiableFactory.sol, src/registry/UserRegistry.sol and src/resolver/PermissionedResolver.sol.
+// The ENSv2 contracts behind Meigi's namespaces (ap.meigi.eth, and claimed names under payee.eth). Signatures
+// match the source verified on Sepolia Blockscout for the Beta (contracts-v2 deployments/sepolia at
+// 71a3b733): lib/verifiable-factory VerifiableFactory.sol, src/registry/UserRegistry.sol and
+// src/resolver/PermissionedResolver.sol.
 
 /// @dev EAC grant used by both initializers: roles on the root resource for `account`.
 struct Grant {
@@ -38,6 +39,8 @@ interface IUserRegistry {
     function getSubregistry(string calldata label) external view returns (address);
     function getOwner(uint256 anyId) external view returns (address);
     function getExpiry(uint256 anyId) external view returns (uint64);
+    function hasRoles(uint256 anyId, uint256 roleBitmap, address account) external view returns (bool);
+    function setResolver(uint256 anyId, address resolver) external;
 }
 
 /// @dev Setters take the DNS-encoded name; records are keyed by its namehash. A setter with an argument
@@ -49,6 +52,7 @@ interface IPermissionedResolver {
     function grantSetterRoles(bytes calldata setter, address account) external returns (bool);
     function revokeRoles(uint256 resource, uint256 roleBitmap, address account) external returns (bool);
     function hasRoles(uint256 resource, uint256 roleBitmap, address account) external view returns (bool);
+    function hasAssignees(uint256 resource, uint256 roleBitmap) external view returns (bool);
     function roles(uint256 resource, address account) external view returns (uint256);
     function resolve(bytes calldata name, bytes calldata data) external view returns (bytes memory);
 }
@@ -60,6 +64,9 @@ library AgentNsLib {
     /// @dev PermissionedResolverLib roles.
     uint256 internal constant ROLE_SET_ADDRESS = 1 << 0;
     uint256 internal constant ROLE_SET_TEXT = 1 << 4;
+    uint256 internal constant ROLE_SET_ADDRESS_ADMIN = ROLE_SET_ADDRESS << 128;
+    /// @dev RegistryRolesLib.ROLE_SET_RESOLVER on a registry token.
+    uint256 internal constant REGISTRY_ROLE_SET_RESOLVER = 1 << 24;
 
     /// @dev RegistryRolesLib token roles the subname owner receives, as the ETHRegistrar grants a .eth owner:
     ///      set subregistry and set resolver (each with its admin role) and can-transfer admin.

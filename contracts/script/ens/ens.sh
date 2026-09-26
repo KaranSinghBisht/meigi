@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # payee.eth and the AP agent's namespace (ap.meigi.eth) on ENSv2 (Sepolia).
-# Usage: script/ens/ens.sh <deploy|seed|register|set-resolver|check|agent-deploy|agent-setup|agent-status|agent-check|
-#                           vault-name>
+# Usage: script/ens/ens.sh <command>
+#   payee.eth:     deploy | seed | register | set-resolver | check
+#   ap.meigi.eth:  agent-deploy | agent-setup | agent-status | agent-check | vault-name
+#   claimed names: claim-deploy | claim-attach | claim | claim-profile | claim-check | claim-detach (rollback)
 # Transactions are only simulated unless BROADCAST=1. Keys and the RPC URL come from the environment or
 # meigi/.env and never appear on a command line; tool output is redacted. See README.md.
 set -euo pipefail
@@ -31,6 +33,7 @@ load_dotenv() {
     key="${BASH_REMATCH[2]}"
     value="${BASH_REMATCH[3]}"
     [[ $key =~ ^(SEPOLIA_RPC_URL|(DEPLOYER|ATTESTER|PAYEE|ENS)_[A-Z0-9_]+|VAULT_OWNER_(PRIVATE_KEY|ADDRESS))$ ||
+      $key == DEMO_VENDOR_CONTROLLER_PRIVATE_KEY ||
       $key =~ $agent_vars ]] || continue
     if [[ -n ${!key:-} ]]; then continue; fi
     if [[ $value =~ $quoted ]]; then
@@ -104,7 +107,17 @@ check_rpc() {
 # Gives each command only the key it signs with.
 scope_keys() {
   case "$1" in
-    check | agent-check) unset DEPLOYER_PRIVATE_KEY ATTESTER_PRIVATE_KEY AGENT_PRIVATE_KEY VAULT_OWNER_PRIVATE_KEY ;;
+    check | agent-check | claim-check)
+      unset DEPLOYER_PRIVATE_KEY ATTESTER_PRIVATE_KEY AGENT_PRIVATE_KEY VAULT_OWNER_PRIVATE_KEY
+      ;;
+    claim-profile)
+      # The demo company's key is its registry controller (DEMO_VENDOR_CONTROLLER in .env).
+      if [[ -z ${COMPANY_PRIVATE_KEY:-} && -n ${DEMO_VENDOR_CONTROLLER_PRIVATE_KEY:-} ]]; then
+        export COMPANY_PRIVATE_KEY="$DEMO_VENDOR_CONTROLLER_PRIVATE_KEY"
+      fi
+      require_key COMPANY_PRIVATE_KEY
+      unset DEPLOYER_PRIVATE_KEY ATTESTER_PRIVATE_KEY AGENT_PRIVATE_KEY VAULT_OWNER_PRIVATE_KEY
+      ;;
     seed)
       require_key ATTESTER_PRIVATE_KEY
       unset DEPLOYER_PRIVATE_KEY AGENT_PRIVATE_KEY VAULT_OWNER_PRIVATE_KEY
@@ -119,9 +132,11 @@ scope_keys() {
       ;;
     *)
       require_key DEPLOYER_PRIVATE_KEY
-      unset ATTESTER_PRIVATE_KEY AGENT_PRIVATE_KEY VAULT_OWNER_PRIVATE_KEY
+      unset ATTESTER_PRIVATE_KEY AGENT_PRIVATE_KEY VAULT_OWNER_PRIVATE_KEY COMPANY_PRIVATE_KEY
       ;;
   esac
+  if [[ $1 != claim-profile ]]; then unset COMPANY_PRIVATE_KEY; fi
+  unset DEMO_VENDOR_CONTROLLER_PRIVATE_KEY
 }
 
 # Runs a forge script from contracts/, adding --broadcast only when BROADCAST=1.
@@ -188,10 +203,11 @@ main() {
   case "$cmd" in
     deploy | seed | register | set-resolver | check) ;;
     agent-deploy | agent-setup | agent-status | agent-check | vault-name) ;;
-    *) die "usage: ens.sh <deploy|seed|register|set-resolver|check|agent-deploy|agent-setup|agent-status|agent-check|vault-name>" ;;
+    claim-deploy | claim-attach | claim-detach | claim | claim-profile | claim-check) ;;
+    *) die "usage: ens.sh <command>; see the header of this file" ;;
   esac
   setup
-  if [[ ($cmd == agent-* || $cmd == vault-name) && $ENS_DEPLOYMENT != beta ]]; then
+  if [[ ($cmd == agent-* || $cmd == vault-name || $cmd == claim*) && $ENS_DEPLOYMENT != beta ]]; then
     die "$cmd targets the Beta (ENS_DEPLOYMENT=beta)"
   fi
   scope_keys "$cmd"
@@ -212,6 +228,12 @@ main() {
     agent-status) forge_script script/ens/AgentNamespace.s.sol --sig "setStatus()" ;;
     agent-check) (cd "$CONTRACTS" && forge script script/ens/CheckAgent.s.sol) 2>&1 | redact ;;
     vault-name) forge_script script/ens/VaultName.s.sol ;;
+    claim-deploy) forge_script script/ens/ClaimName.s.sol --sig "deploy()" ;;
+    claim-attach) forge_script script/ens/ClaimName.s.sol --sig "attach()" ;;
+    claim-detach) forge_script script/ens/ClaimName.s.sol --sig "detach()" ;;
+    claim) forge_script script/ens/ClaimName.s.sol --sig "claim()" ;;
+    claim-profile) forge_script script/ens/ClaimName.s.sol --sig "profile()" ;;
+    claim-check) (cd "$CONTRACTS" && forge script script/ens/CheckClaim.s.sol) 2>&1 | redact ;;
   esac
 }
 

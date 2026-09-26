@@ -3,11 +3,13 @@
 These scripts register `payee.eth` on ENSv2 with our `PayeeResolver` as its resolver and **no subregistry**, which
 ENS calls the "pure data" setup. The UniversalResolver walks root → `eth` → `payee`, finds no deeper registry, and
 hands every `t<13 digits>.payee.eth` lookup to that one resolver. It calls `resolve(dnsName, data)` with the full
-DNS-encoded name (ENSIP-10), and the resolver answers from `PayeeRegistry`.
+DNS-encoded name (ENSIP-10), and the resolver answers from `PayeeRegistry`. A verified company can also claim its
+name as a token in a claims registry under `payee.eth` (see [Claimed payee names](#claimed-payee-names-beta-only)).
+Its money records still come only from `PayeeResolver`.
 
 | File | Purpose |
 |---|---|
-| `ens.sh` | Entry point: `deploy`, `seed`, `register`, `set-resolver`, `check`, and `agent-deploy`, `agent-setup`, `agent-status`, `agent-check`. It only simulates unless `BROADCAST=1`. |
+| `ens.sh` | Entry point: `deploy`, `seed`, `register`, `set-resolver`, `check`, plus the `agent-*`, `vault-name` and `claim-*` commands below. It only simulates unless `BROADCAST=1`. |
 | `fork-e2e.sh` | Full proof on an anvil fork of Sepolia, against both ENSv2 deployments. Sends nothing to a real network. |
 | `RegisterName.s.sol` | `commit()`, `register()`, `dryRun()` (full flow with pranks and a time warp), `setResolver()` |
 | `CheckName.s.sol` | Read-only. Resolves through the UniversalResolver, compares with the registry, and checks that other names fail closed |
@@ -20,6 +22,7 @@ DNS-encoded name (ENSIP-10), and the resolver answers from `PayeeRegistry`.
 | `CheckAgent.s.sol` | Read-only proof of the namespace, the agent's one scoped role (simulated allowed and denied writes) and an unchanged `payee.eth` |
 | `agent-e2e.sh`, `check-agent-viem.mjs` | The namespace flow on an anvil fork, and stock viem resolving `ap.meigi.eth` |
 | `VaultName.s.sol`, `vault-e2e.sh`, `check-primary-viem.mjs` | The AgentVault's primary name `ap.meigi.eth` (ENSIP-19), its fork proof, and stock viem `getEnsName` |
+| `ClaimName.s.sol`, `CheckClaim.s.sol`, `claim-e2e.sh` | Claimed payee names: `deploy()`, `attach()`, `claim()`, `profile()`, `detach()`, the read-only proof, and the fork proof |
 
 ## Which ENSv2 deployment
 
@@ -139,6 +142,44 @@ script/ens/ens.sh vault-name                  # simulate; only this command gets
 BROADCAST=1 script/ens/ens.sh vault-name
 script/ens/vault-e2e.sh                       # fork proof: impersonates the vault owner, so no key is read
 ```
+
+## Claimed payee names (Beta only)
+
+A verified company can hold `t<T-number>.payee.eth` as a real ENSv2 token and publish its own profile (url,
+description, avatar), while every record a payment depends on stays bound to `PayeeRegistry`. This follows ENS's
+subname guidance: tokenize when owners differ, and a pure-data name can move to tokens later without breaking its
+records.
+
+| Piece | Setup |
+|---|---|
+| Claims registry | A `UserRegistry` proxy from `VerifiableFactory`, managed by Meigi: the deployer holds the root roles. `claim-attach` makes it `payee.eth`'s subregistry, and its canonical parent is `payee.eth`. |
+| `ClaimedPayeeResolver` | In `src/ens/`; the resolver of every claimed name. `addr` (every coin type), `name` and `meigi.*` come from `payee.eth`'s `PayeeResolver`, and read as zero or empty if it reverts. Other text keys come from the company's profile, and only while the registry lists the payee as active. |
+| A claim | `t<T>` is minted in the claims registry to the payee's registry controller, with no roles, so the company can't re-point the name or give it a subregistry. Only an active payee can claim. |
+| Profile resolver | One `PermissionedResolver` per company, since a resolver's scoped grants cover every name it serves. The company holds `ROLE_SET_TEXT`. The deployer holds the other roles except `ROLE_SET_ADDRESS` and its admin, which no account holds. |
+| Unclaimed names | They are not in the claims registry, so the UniversalResolver falls back to `payee.eth`'s resolver as before. |
+
+```sh
+BROADCAST=1 script/ens/ens.sh claim-deploy     # prints CLAIMS_REGISTRY=… and CLAIMS_RESOLVER=…
+export CLAIMS_REGISTRY=0x… CLAIMS_RESOLVER=0x…
+BROADCAST=1 script/ens/ens.sh claim-attach     # payee.eth's subregistry = CLAIMS_REGISTRY
+COMPANY_FUND_WEI=5000000000000000 BROADCAST=1 script/ens/ens.sh claim    # T_NUMBER defaults to 2011001234567
+PROFILE_URL=https://shoji.example PROFILE_DESCRIPTION="…" BROADCAST=1 script/ens/ens.sh claim-profile
+script/ens/ens.sh claim-check                  # read-only
+BROADCAST=1 script/ens/ens.sh claim-detach     # rollback: payee.eth back to no subregistry, in one transaction
+script/ens/claim-e2e.sh                        # fork proof: impersonates payee.eth's owner and the company
+```
+
+- `claim-profile` is signed by the company: `COMPANY_PRIVATE_KEY`, or the demo vendor's controller key
+  (`DEMO_VENDOR_CONTROLLER_PRIVATE_KEY` in `.env`). No other command sees either key.
+- `claim-check` simulates, from the company's address, setting an address, re-pointing the name and overriding
+  `name` or `meigi.status`. Each is refused or has no effect. It then compares every reference name with the
+  registry through the UniversalResolver.
+- `check` accepts no subregistry on `payee.eth`, or exactly `CLAIMS_REGISTRY`. A claimed name must be answered by a
+  `ClaimedPayeeResolver` that forwards to `payee.eth`'s resolver.
+- The fork proof resolves four reference names with stock viem after every step (two active payees, a disputed
+  one and an unknown T-number), and the output must stay byte-identical to the baseline.
+- `claim-detach` leaves the registry, tokens and profiles deployed but unreachable, and `claim-attach` restores
+  them. Meigi, not the company, can re-point or revoke a claim, and `setProfile(t, 0)` hides a profile.
 
 ## Verified ENSv2 facts
 

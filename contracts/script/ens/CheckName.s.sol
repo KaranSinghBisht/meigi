@@ -3,8 +3,9 @@ pragma solidity ^0.8.24;
 
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {Script, console} from "forge-std/Script.sol";
+import {ClaimedPayeeResolver} from "../../src/ens/ClaimedPayeeResolver.sol";
 import {IPayeeRegistry} from "../../src/registry/IPayeeRegistry.sol";
-import {EnsV2, EnsV2Lib} from "./EnsV2.sol";
+import {EnsV2, EnsV2Lib, IPermissionedRegistry} from "./EnsV2.sol";
 
 interface IPayeeResolverView {
     function registry() external view returns (IPayeeRegistry);
@@ -15,8 +16,8 @@ interface IPayeeResolverView {
 ///         Reverts on any mismatch.
 /// @dev Env: optional ENS_LABEL (payee), T_NUMBER (2011001234567), EXPECT_ADDR (pins the answer, e.g. zero
 ///      once the payee is disputed), PAYEE_RESOLVER / PAYEE_REGISTRY (pin the name's resolver and its
-///      registry) and UNKNOWN_T_NUMBER (9999999999999; must be unregistered, and on the live Sepolia
-///      registry T8999900000001 is the x402 demo merchant).
+///      registry), CLAIMS_REGISTRY (the only subregistry the name may have) and UNKNOWN_T_NUMBER (9999999999999;
+///      must be unregistered, and on the live Sepolia registry T8999900000001 is the x402 demo merchant).
 contract CheckName is Script {
     bytes4 private constant ADDR = 0x3b3b57de; // addr(bytes32)
     bytes4 private constant ADDR_COIN = 0xf1cb7e06; // addr(bytes32,uint256)
@@ -27,10 +28,12 @@ contract CheckName is Script {
         string memory label = vm.envOr("ENS_LABEL", string("payee"));
         address resolver = ens.ethRegistry.getResolver(label);
         require(resolver != address(0), string.concat(label, ".eth has no resolver on this deployment"));
-        // A subregistry could give `t<T>` its own resolver and override the wildcard, so a payee name has none.
+        // A subregistry could give `t<T>` its own resolver and override the wildcard. So a payee name has none, or only
+        // the Meigi-managed claims registry (CLAIMS_REGISTRY), whose names forward money records to this resolver.
+        address claims = ens.ethRegistry.getSubregistry(label);
         require(
-            ens.ethRegistry.getSubregistry(label) == address(0),
-            string.concat(label, ".eth has a subregistry")
+            claims == address(0) || claims == EnsV2Lib.envAddressOrZero("CLAIMS_REGISTRY"),
+            string.concat(label, ".eth has an unexpected subregistry")
         );
         if (vm.envExists("PAYEE_RESOLVER")) {
             require(resolver == vm.envAddress("PAYEE_RESOLVER"), "the name's resolver is not PAYEE_RESOLVER");
@@ -44,7 +47,7 @@ contract CheckName is Script {
         uint64 tNumber = SafeCast.toUint64(vm.envOr("T_NUMBER", uint256(2011001234567)));
         string memory parent = string.concat(label, ".eth");
         console.log("UniversalResolver %s, resolver %s", address(ens.universalResolver), resolver);
-        _checkPayee(ens, resolver, registry, tNumber, parent);
+        _checkPayee(ens, _answeringResolver(resolver, claims, tNumber), registry, tNumber, parent);
         _checkFailsClosed(ens, registry, tNumber, parent);
     }
 
@@ -74,6 +77,24 @@ contract CheckName is Script {
         console.log("  addr(60)      %s (registry payoutOf: %s)", resolved, expected);
         console.log("  text(name)    %s", _checkLegalName(ens, name, registry, tNumber));
         console.log("  meigi.status  %s", _text(ens, name, "meigi.status"));
+    }
+
+    /// @dev A name claimed in the claims registry is answered by its ClaimedPayeeResolver, which must forward money
+    ///      records to the payee resolver. Any other name falls through to the payee resolver's wildcard.
+    function _answeringResolver(address payees, address claims, uint64 tNumber)
+        private
+        view
+        returns (address)
+    {
+        if (claims == address(0)) return payees;
+        address claimed =
+            IPermissionedRegistry(claims).getResolver(string.concat("t", vm.toString(uint256(tNumber))));
+        if (claimed == address(0)) return payees;
+        require(
+            address(ClaimedPayeeResolver(claimed).payees()) == payees,
+            "the claimed name's resolver forwards elsewhere"
+        );
+        return claimed;
     }
 
     /// @dev The resolver publishes the legal name of an active payee only; a disputed one shows just its status.
