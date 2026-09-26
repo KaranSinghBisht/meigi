@@ -1,4 +1,4 @@
-import { useEffect, useRef, type RefObject } from 'react'
+import { useEffect, useRef, type MouseEvent, type RefObject } from 'react'
 import { Link } from 'react-router'
 import { Button } from '../../../ui/components/Button'
 import { useScrollFade } from '../../../ui/components/useScrollFade'
@@ -47,6 +47,16 @@ function useCurrentChipInView(list: RefObject<HTMLOListElement | null>, chapter:
     const centred = row.scrollLeft + (chipBox.left - rowBox.left) - (rowBox.width - chipBox.width) / 2
     row.scrollTo({ left: Math.max(0, centred) })
   }, [list, chapter])
+}
+
+/**
+ * A control clicked with the pointer gives its focus back, so the next key pressed (Space, C, the arrows) never draws
+ * a focus ring on it, in the recording or at the booth. A keyboard press (detail 0) keeps focus where it is.
+ */
+function dropPointerFocus(event: MouseEvent<HTMLDivElement>): void {
+  if (event.detail === 0) return
+  const control = event.target instanceof Element ? event.target.closest('button, a') : null
+  if (control instanceof HTMLElement) control.blur()
 }
 
 function firstStepOf(script: Script, chapter: number): number {
@@ -110,7 +120,7 @@ export function Controls({ clock, snap, script, reduced, variant, captionsOn, on
   useCurrentChipInView(list, snap.chapter)
   useScrollFade(list, snap.chapter)
   return (
-    <div className="dcontrols" role="group" aria-label="Demo player controls">
+    <div className="dcontrols" role="group" aria-label="Demo player controls" onClick={dropPointerFocus}>
       <Transport clock={clock} snap={snap} script={script} reduced={reduced} />
       <ol className="dchips scroll-fade" ref={list} aria-label="Chapters">
         {script.chapters.map((chapter, index) => (

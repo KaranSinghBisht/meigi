@@ -110,6 +110,16 @@
   justify-self: start;
 }
 
+/* Full screen (the player's Full screen button) shows the player alone, for the video and the booth: no way back
+   in the frame, and the player takes the whole height. */
+:root:fullscreen .demo-page__back {
+  display: none;
+}
+
+:root:fullscreen .demo-page__main {
+  grid-template-rows: minmax(0, 1fr);
+}
+
 @media (max-width: 719px) {
   .demo-page__main {
     height: auto;
