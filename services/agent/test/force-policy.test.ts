@@ -68,6 +68,15 @@ describe("force never pays (HIGH: force bypassed the approval)", () => {
     }
   });
 
+  it("sends nothing when forcing an invoice that would pay anyway (01)", async () => {
+    const deps = fakeDeps();
+    const { codes, forced } = await forceOnce(deps, demo("01-routine-invoice.ja.txt"));
+    expect(codes).toEqual([]);
+    expect(forced).toMatchObject({ status: "held", reasons: [{ code: "force_refused" }] });
+    expect(deps.payer.simulated).toHaveLength(1);
+    expect(deps.payer.sent).toEqual([]);
+  });
+
   it("doesn't even simulate a hold force may never touch (a credit note)", async () => {
     const deps = fakeDeps();
     const { forced } = await forceOnce(deps, demo("05-credit-note.ja.txt"));

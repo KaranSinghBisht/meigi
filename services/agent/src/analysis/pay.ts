@@ -32,8 +32,8 @@ export async function payAnalysis(deps: AppDeps, stored: StoredAnalysis, mode: P
   const { intent, verdict } = stored;
   const isHeld = verdict.decision !== "pay";
   if (isHeld && mode === "auto") return held(stored, verdict.reasons);
-  const forced = isHeld && mode === "force";
-  const refused = !isHeld ? null : forced ? forceRefusal(stored) : approvedRefusal(stored);
+  const forced = mode === "force"; // simulate-only, on a held invoice or one that would pay anyway
+  const refused = forced ? forceRefusal(stored) : isHeld ? approvedRefusal(stored) : null;
   if (refused) return held(stored, [refused]);
   if (!intent) return held(stored, verdict.reasons);
   if (intent.amount <= 0n) return held(stored, notPayable(stored, intent));
