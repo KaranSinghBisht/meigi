@@ -156,6 +156,7 @@ export function registrationRoutes(deps: AppDeps, limiter: RateLimiter) {
     const id = c.req.param("id");
     loadOpen(id);
     const { result } = proofBody.parse(await c.req.json());
+    limiter.hit("officers", client(c), policy.ratePerHour.officers, nowSeconds(deps)); // calls World's real verify API next
     const session = await deps.world.verify(result, enrollmentSignal(id));
     const registration = loadOpen(id); // still open after the await; from here on nothing awaits
     const enrolled = deps.store.officersOf(id).map((o) => o.officerId);

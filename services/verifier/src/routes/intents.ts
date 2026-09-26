@@ -1,8 +1,10 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { getAddress, zeroHash, type Address, type Hex } from "viem";
 import { z } from "zod";
 import { nowSeconds, type AppDeps } from "../deps.js";
 import { HttpError } from "../http.js";
+import { policyOf } from "../limits/policy.js";
+import type { RateLimiter } from "../limits/rate.js";
 import {
   addressTarget,
   officerUpdateTarget,
@@ -46,13 +48,16 @@ function targetFor(body: z.infer<typeof createBody>): { target: Hex; payload: st
   return { target: zeroHash, payload: null };
 }
 
-export function intentRoutes(deps: AppDeps) {
+export function intentRoutes(deps: AppDeps, limiter: RateLimiter) {
   const app = new Hono();
+  const policy = policyOf(deps);
+  const client = (c: Context) => (deps.clientIp ? deps.clientIp(c) : "unknown");
 
   /** Opens an approval: which change, for which payee, at which nonce. Officers prove World ID against it. */
   app.post("/", async (c) => {
     const body = createBody.parse(await c.req.json());
     const digits = requireDigits(body.tNumber);
+    limiter.hit("intents", client(c), policy.ratePerHour.intents, nowSeconds(deps));
     const tNumber = toChainId(digits);
     const payee = await deps.chain.payee(tNumber);
     if (payee.status !== 1) throw new HttpError(409, "payee_not_active", "payee is not active");
@@ -80,6 +85,7 @@ export function intentRoutes(deps: AppDeps) {
     if (!intent) throw new HttpError(404, "intent_not_found", "unknown intent");
     if (nowSeconds(deps) > Number(intent.deadline)) throw new HttpError(410, "intent_expired", "open a new intent");
     const { result } = proofBody.parse(await c.req.json());
+    limiter.hit("intents", client(c), policy.ratePerHour.intents, nowSeconds(deps)); // calls World's real verify API next
     const session = await deps.world.verify(result, intent.signal);
     const tNumber = toChainId(intent.tNumber);
     const officers = new Set(await deps.chain.officers(tNumber));

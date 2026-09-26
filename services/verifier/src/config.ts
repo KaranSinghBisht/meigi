@@ -42,6 +42,10 @@ const schema = z.object({
   VERIFIER_RATE_PAYEES_PER_HOUR: z.coerce.number().int().min(0).default(60),
   VERIFIER_RATE_LEI_PER_HOUR: z.coerce.number().int().min(0).default(30),
   VERIFIER_RATE_RP_CONTEXT_PER_HOUR: z.coerce.number().int().min(0).default(120),
+  // Same, for officer enrollment and approval intents - both generous enough for a live demo, since each also
+  // calls World's real verify API (officers always; an intent only once it's approved).
+  VERIFIER_RATE_OFFICERS_PER_HOUR: z.coerce.number().int().min(0).default(20),
+  VERIFIER_RATE_INTENTS_PER_HOUR: z.coerce.number().int().min(0).default(20),
   // "1" only behind a reverse proxy you run: the client IP then comes from CF-Connecting-IP or X-Forwarded-For.
   VERIFIER_TRUST_PROXY: z.enum(["0", "1"]).default("0"),
 });

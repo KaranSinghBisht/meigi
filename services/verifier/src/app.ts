@@ -21,6 +21,6 @@ export function createApp(deps: AppDeps) {
   app.route("/", leiRoutes(deps, limiter));
   app.route("/registrations", pendingRoutes(deps, limiter)); // before /:id, so /registrations/pending matches here
   app.route("/registrations", registrationRoutes(deps, limiter));
-  app.route("/intents", intentRoutes(deps));
+  app.route("/intents", intentRoutes(deps, limiter));
   return app;
 }

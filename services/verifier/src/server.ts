@@ -48,6 +48,8 @@ const deps: AppDeps = {
       payees: config.VERIFIER_RATE_PAYEES_PER_HOUR,
       lei: config.VERIFIER_RATE_LEI_PER_HOUR,
       rpContext: config.VERIFIER_RATE_RP_CONTEXT_PER_HOUR,
+      officers: config.VERIFIER_RATE_OFFICERS_PER_HOUR,
+      intents: config.VERIFIER_RATE_INTENTS_PER_HOUR,
     },
   },
   clientIp: (c) => clientIpOf(c, config.VERIFIER_TRUST_PROXY === "1"),

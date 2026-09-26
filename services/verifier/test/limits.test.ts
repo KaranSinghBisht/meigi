@@ -304,3 +304,41 @@ describe("rate limits on the domain re-check and the public lookups", () => {
     expect((await get(`/payees/${tNumber}`, "198.51.100.9")).status).toBe(200); // a different route, its own budget
   });
 });
+
+describe("rate limits on officer enrollment and approval intents", () => {
+  it("limits POST /registrations/:id/officers per IP: it calls World's real verify API on every attempt", async () => {
+    setup({ policy: { ratePerHour: { officers: 2 } } });
+    const id = await company(0);
+    expect((await enroll(id, "a")).status).toBe(200);
+    expect((await enroll(id, "b")).status).toBe(200);
+    const limited = await enroll(id, "c");
+    expect(limited).toMatchObject({ status: 429, body: { code: "rate_limited" } });
+  });
+
+  it("limits POST /intents (open) and /intents/:id/approve per IP, sharing one budget", async () => {
+    setup({ policy: { ratePerHour: { intents: 2 } } });
+    const officerSession = sessionId("officer-x");
+    const officerId = officerIdFor(officerSession);
+    await chain.register({
+      tNumber: BigInt(COMPANIES[0]!.number),
+      legalName: COMPANIES[0]!.name,
+      controller: CONTROLLER,
+      payout: PAYOUT,
+      officers: [officerId],
+      threshold: 1,
+      evidence: "0x00",
+    });
+    deps.store.addOfficer("reg-x", COMPANIES[0]!.number, { officerId, sessionId: officerSession });
+
+    const openIntent = () => post("/intents", { tNumber: `T${COMPANIES[0]!.number}`, action: "CancelPayoutChange" });
+    const first = await openIntent(); // 1st hit against the shared budget
+    expect(first.status).toBe(201);
+    const approved = await post(`/intents/${first.body.intentId}/approve`, {
+      result: proof(officerSession, "0x30", first.body.signal),
+    });
+    expect(approved.body).toMatchObject({ status: "executed" }); // 2nd hit - budget now exhausted
+
+    const limited = await openIntent();
+    expect(limited).toMatchObject({ status: 429, body: { code: "rate_limited" } });
+  });
+});

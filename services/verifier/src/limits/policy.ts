@@ -23,6 +23,10 @@ export interface Policy {
     /** GET /lei/:lei: proxies GLEIF, a third party we don't want to hammer on a caller's behalf either. */
     lei: number;
     rpContext: number;
+    /** POST /registrations/:id/officers: calls World's real verify API. */
+    officers: number;
+    /** POST /intents (open) and /intents/:id/approve: the latter also calls World's real verify API. */
+    intents: number;
   };
 }
 
@@ -39,6 +43,8 @@ export const DEFAULT_POLICY: Policy = {
     payees: 60,
     lei: 30,
     rpContext: 120,
+    officers: 20,
+    intents: 20,
   },
 };
 
