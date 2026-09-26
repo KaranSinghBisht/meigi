@@ -1,0 +1,79 @@
+/* Try it: one window of numbered checks divided by hairlines (.cells). Each check has its proof, a live chip
+   where the chain can answer, and its links. */
+.try {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.try-list {
+  grid-template-columns: minmax(0, 1fr);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.try-check {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 16px;
+  padding: 24px;
+}
+
+.try-check__step {
+  display: inline-grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--lg-ink);
+  color: #fff;
+  font-size: var(--text-md);
+  font-weight: var(--weight-strong);
+}
+
+.try-check__body {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.try-check__title {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-strong);
+  letter-spacing: -0.015em;
+}
+
+.try-check__proves {
+  max-width: 760px;
+  color: var(--ink-soft);
+}
+
+.try-check__status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: var(--text-sm);
+}
+
+.try-check__fact {
+  color: var(--ink-soft);
+}
+
+.try-check__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 24px;
+}
+
+.try-check__link {
+  font-weight: var(--weight-strong);
+}
+
+@media (max-width: 520px) {
+  .try-check {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    padding: 20px;
+  }
+}

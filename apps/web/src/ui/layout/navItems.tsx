@@ -11,6 +11,7 @@ interface NavItem {
 
 export const NAV_ITEMS: readonly NavItem[] = [
   { to: '/start', label: 'Overview', icon: 'overview' },
+  { to: '/try', label: 'Try it', icon: 'try' },
   { to: '/agent', label: 'AP agent', icon: 'agent' },
   { to: '/registry', label: 'Payees', icon: 'payees' },
   { to: '/register', label: 'Register', icon: 'register' },

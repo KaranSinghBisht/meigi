@@ -14,6 +14,7 @@ const RegisterPage = lazy(() => import('./features/register/RegisterPage'))
 const ChangePage = lazy(() => import('./features/change/ChangePage'))
 const X402Page = lazy(() => import('./features/x402/X402Page'))
 const BusinessPage = lazy(() => import('./features/business/BusinessPage'))
+const TryPage = lazy(() => import('./features/try/TryPage'))
 const DemoPage = lazy(() => import('./features/demo/DemoPage'))
 
 const router = createBrowserRouter([
@@ -31,6 +32,7 @@ const router = createBrowserRouter([
       { path: 'change/:tNumber', element: <ChangePage /> },
       { path: 'x402', element: <X402Page /> },
       { path: 'business', element: <BusinessPage /> },
+      { path: 'try', element: <TryPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },
