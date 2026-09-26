@@ -237,9 +237,12 @@ On Sepolia, live since 2026-09-26:
 | PayRouter | [`0xbA95BA5D4a2244cce46a76920f411B225116850C`](https://repo.sourcify.dev/11155111/0xbA95BA5D4a2244cce46a76920f411B225116850C) |
 | MockJPYC (`mJPYC`) | [`0xEcA2B093682a46B14b143474d188A120bA2d0EC2`](https://repo.sourcify.dev/11155111/0xEcA2B093682a46B14b143474d188A120bA2d0EC2) |
 
-Also on Sepolia, deployed after these: `CompanyNamespace` at `0x7ECaD5Fd6892270F09D91aB296786186C5bC660A`. It runs the
-names companies issue under their payee names ([`docs/ens.md`](docs/ens.md)). Its source is verified on Sourcify at
-publication, with [`verify-at-publication.sh`](contracts/script/ens/verify-at-publication.sh).
+Also on Sepolia, deployed after these, with sources verified on Sourcify at publication
+([`verify-at-publication.sh`](contracts/script/ens/verify-at-publication.sh)):
+- `CompanyNamespace` at `0x7ECaD5Fd6892270F09D91aB296786186C5bC660A`, which runs the names companies issue under their
+  payee names;
+- `MandateGate` at `0x591dd2b2716b46740C665749A60209B7b22e83BF`, the vault's agent: it pays only while the buyer's
+  `ap.t4999900000005.payee.eth` answers ([`docs/ens.md`](docs/ens.md)).
 
 Demo payees are fictional companies, marked as fictional in their on-chain evidence:
 - `T2011001234567` 株式会社メイギ商事, the AP agent's supplier;

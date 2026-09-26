@@ -183,12 +183,30 @@ Tests behind it:
 - contracts-review passed it (48/48 on a Sepolia fork, no open findings) after two rounds whose findings shaped this
   design.
 
-**The mandate: an ENS name the vault obeys** (built and fork-proven; wired after review).
-[`MandateGate`](../contracts/src/payments/MandateGate.sol) becomes the AgentVault's agent and passes `payInvoice` on
-only while `ap.t4999900000005.payee.eth` answers and the caller is its holder. The buyer revokes the name, and the
-agent's next payment reverts `MandateNotLive`; it issues the name again, and payments continue. The vault still checks
-every payment itself. [`mandate-e2e.sh`](../contracts/script/ens/mandate-e2e.sh) proves the whole flow against the
-live vault on a fork. contracts-review passed MandateGate: 27 of 27 on a fork in front of the live vault.
+**The mandate: an ENS name the vault obeys** (live since 2026-09-26).
+[`MandateGate`](../contracts/src/payments/MandateGate.sol) at
+[`0x591d…83BF`](https://sepolia.etherscan.io/address/0x591dd2b2716b46740C665749A60209B7b22e83BF) is the AgentVault's
+agent. It passes `payInvoice` on only while `ap.t4999900000005.payee.eth` answers and the caller is its holder. The
+buyer revokes the name, and the agent's next payment is refused on-chain (`MandateNotLive`); it issues the name again,
+and payments continue. The vault still checks every payment itself. contracts-review passed the gate: 30 of 30 on a
+fork in front of the live vault and against the live names.
+
+The live rehearsal (Sepolia, 2026-09-26, ¥1,100 invoices to 株式会社メイギ商事; every transaction status 1):
+
+| Step | Tx | What the chain shows |
+|---|---|---|
+| Deploy the gate; its getters are asserted before broadcast | [`0x40bb…4367`](https://sepolia.etherscan.io/tx/0x40bb83aecdd79424646aea7814ddab1c9109c4811b092eef27efde784ab94367) | vault, names, registry, principal 4999900000005, label "ap" |
+| The vault's owner makes the gate its agent | [`0x7c61…31fe`](https://sepolia.etherscan.io/tx/0x7c61fe3bfaa38cda0025241ff88ee79b9911159b79c10c386a01e582939431fe) | `vault.agent()` = the gate |
+| A. The agent pays MS-2026-7201 through the gate | [`0xd1cc…db90`](https://sepolia.etherscan.io/tx/0xd1ccd8b78d90696732c288ecca07285fec019ae29bd5551bf70d3744f35adb90) | the vault's `InvoicePaid` to `0x9B4f…47e4` |
+| B. 株式会社ハルカ製作所 revokes `ap.t4999900000005.payee.eth` | [`0x5d0b…645e`](https://sepolia.etherscan.io/tx/0x5d0b277c4550950d405b497ed73d99566e9aa93f8f2fe6090f573ecdee5c645e) | `answers()` false, `holder()` 0x0 |
+| The agent tries MS-2026-7202 and 7203 | none | refused: the signer's simulation reverts `MandateNotLive` (agent audit #50, #51), and analysis holds `mandate_not_live`; the key's nonce stays at 6 and nothing is broadcast |
+| C. The company issues `ap` to the agent's key again | [`0xfcf3…4216`](https://sepolia.etherscan.io/tx/0xfcf386a05eb2c9910fa0b841b465ec1fffc672a5db326e28f2d71268a04e4216) | `answers()` true, `holder()` the key |
+| D. The agent pays MS-2026-7204 | [`0xb49d…6a77`](https://sepolia.etherscan.io/tx/0xb49d32fe9341f062715988d66928f631bd7f5e23b8b8eb8e39a717c3a56e6a77) | the vault's `InvoicePaid` again, with no signer restart |
+
+The agent's hash-chained audit log (57 entries) verifies. The signer reports `"via": "gate"`, and the agent reports the
+mandate as live. [`mandate-e2e.sh`](../contracts/script/ens/mandate-e2e.sh) proves the same flow on a fork.
+Rollback: the vault's owner calls `setAgent` back to the key (`ens.sh mandate-unwire`), and the signer pays the vault
+directly again.
 - **Who decides.** Once the gate is the vault's agent, 株式会社ハルカ製作所's registered controller decides who may pay,
   by issuing or revoking `ap`. What gets paid stays bounded by the vault: approved vendors, their registered payouts,
   and caps.
