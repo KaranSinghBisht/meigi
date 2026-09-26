@@ -14,11 +14,31 @@ const WHY_NOT: Record<NotApprovedStatus, string> = {
   unavailable: "World ID couldn't confirm it, and an unconfirmed request never counts as an approval.",
 }
 
+const TOKEN_REJECTED = 'invalid token:'
+const MAX_DETAIL = 160
+
+/**
+ * The agent settles an approval whose token it rejected (not Orb-verified, or the wrong issuer or audience) as
+ * "denied". Say that World ID's answer failed our check, with the agent's reason, not that the approver pressed Deny.
+ */
+function rejectedToken(reason: string): string {
+  const detail = reason
+    .trim()
+    .slice(TOKEN_REJECTED.length)
+    .trim()
+    .replace(/[.!?]+$/, '')
+  if (!detail) return "World ID's answer failed our check."
+  const clipped = detail.length > MAX_DETAIL ? `${detail.slice(0, MAX_DETAIL - 1)}…` : detail
+  return `World ID's answer failed our check (${clipped}).`
+}
+
 /**
  * "Expired" covers both a request nobody approved and an approval that wasn't used in time; only the agent
- * knows which, so its sentence wins there. The other outcomes keep the console's own wording.
+ * knows which, so its sentence wins there. A "denied" that is really a rejected token says so. The other outcomes
+ * keep the console's own wording.
  */
 function whyNot(status: NotApprovedStatus, reason: string | null): string {
+  if (status === 'denied' && reason?.trim().toLowerCase().startsWith(TOKEN_REJECTED)) return rejectedToken(reason)
   if (status !== 'expired' || !reason) return WHY_NOT[status]
   const sentence = reason.charAt(0).toUpperCase() + reason.slice(1)
   return /[.!?]$/.test(sentence) ? sentence : `${sentence}.`
