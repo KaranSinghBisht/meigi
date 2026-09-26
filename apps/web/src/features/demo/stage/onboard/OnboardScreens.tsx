@@ -112,26 +112,13 @@ export function WalletsScreen() {
 
 export function DomainScreen() {
   return (
-    <Screen n={3} title="Prove you control your domain" lede="Publish one TXT record, signed by the business wallet.">
-      <p className="onb__payee">
-        <span>Domain</span>
-        <b className="mono">{ONBOARD.domain}</b>
-      </p>
-      <dl className="onb__txt">
-        <dt>TXT name</dt>
-        <dd className="mono">_meigi.{ONBOARD.domain}</dd>
-        <dt>Value</dt>
-        <dd className="mono">
-          meigi-sig=<span className="onb__blur">0x••••••••••••••••••••</span>
-        </dd>
-      </dl>
-      <p className="onb__swap">
-        <span className="btn btn--ghost btn--sm" data-d="onb-domain-action">
-          Check the record
-        </span>
-        <span className="onb__wallet-value" data-d="onb-domain" data-enter="">
-          <Chip tone="ok">Domain proven</Chip>
-        </span>
+    <Screen
+      n={3}
+      title="No domain to prove"
+      lede="A fictional company has no real domain, so Meigi skips this step and records it as fictional."
+    >
+      <p className="onb__skip">
+        <Chip tone="muted">Demo companies skip this step</Chip>
       </p>
       <Next n={3} />
     </Screen>
@@ -139,31 +126,21 @@ export function DomainScreen() {
 }
 
 export function OfficersScreen() {
-  const qr = useQr('https://world.org/verify')
   return (
-    <Screen n={4} title="Who approves changes?" lede="Each officer proves they’re a unique human with World ID.">
+    <Screen
+      n={4}
+      title="Who approves changes?"
+      lede="Real companies enroll officers with World ID. This demo company has a placeholder no one can prove, so no one can change its payout."
+    >
       <div className="onb__officer">
-        <span className="onb__qr">
-          {qr.src ? <img src={qr.src} alt="" width={104} height={104} /> : null}
-          <span className="onb__qr-ok" data-d="onb-qr-ok" data-enter="">
-            ✓
-          </span>
-        </span>
-        <div className="onb__officer-body">
-          <p className="onb__wallet-label">
-            <b>Officer 1</b>
-            <span>World ID</span>
-          </p>
-          <p className="onb__swap">
-            <span className="onb__muted" data-d="onb-officer-wait">
-              Scan with World App
-            </span>
-            <span className="onb__wallet-value" data-d="onb-officer" data-enter="">
-              <Chip tone="ok">Verified human</Chip>
-              <span className="mono">{ONBOARD.officerShort}</span>
-            </span>
-          </p>
-        </div>
+        <p className="onb__wallet-label">
+          <b>Officer 1</b>
+          <span>demo company</span>
+        </p>
+        <p className="onb__wallet-value">
+          <Chip tone="muted">Placeholder officer</Chip>
+          <span className="mono">{ONBOARD.officerShort}</span>
+        </p>
       </div>
       <Next n={4} />
     </Screen>
@@ -175,8 +152,8 @@ const REVIEW: readonly (readonly [string, string, boolean])[] = [
   ['Payee name', ONBOARD.ens, true],
   ['Business wallet', ONBOARD.controllerShort, true],
   ['Payout', ONBOARD.payoutShort, true],
-  ['Domain', `${ONBOARD.domain} · proven`, false],
-  ['Officers', `${ONBOARD.officers} · World ID`, false],
+  ['Domain', 'Not proven · fictional company', false],
+  ['Officers', `${ONBOARD.officers} · demo placeholder`, false],
 ]
 
 export function ReviewScreen() {
@@ -203,13 +180,16 @@ export function ReviewScreen() {
   )
 }
 
-export function VerifiedScreen() {
+export function RegisteredScreen() {
   const qr = useQr(ONBOARD.payeeUrl)
   return (
-    <Screen n={6} title="You’re verified." lede="Customers, and their agents, can now pay this company by name.">
+    <Screen n={6} title="You’re registered." lede="Customers, and their agents, can now pay this company by name.">
       <div className="onb__card" data-d="onb-card">
         <span className="onb__card-qr">{qr.src ? <img src={qr.src} alt="" width={112} height={112} /> : null}</span>
         <div className="onb__card-body">
+          <p>
+            <Chip tone="info">Registered payee · fictional company</Chip>
+          </p>
           <p className="onb__record-name" lang="ja">
             {ONBOARD.legalName}
           </p>

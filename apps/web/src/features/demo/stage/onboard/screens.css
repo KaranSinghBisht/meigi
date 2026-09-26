@@ -40,44 +40,16 @@
   font-size: 13px;
 }
 
-.onb__txt {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 6px 14px;
-  width: 100%;
-  margin: 0;
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: rgba(29, 27, 34, 0.86);
-  color: #f1eef7;
-  font-size: 12px;
-}
-
-.onb__txt dt {
-  color: #a9a3b8;
-}
-
-.onb__txt dd {
-  margin: 0;
-}
-
-.onb__blur {
-  filter: blur(3px);
-}
-
 .onb__officer {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 12px 14px;
-}
-
-.onb__officer-body {
   display: grid;
   gap: 8px;
+  padding: 12px 14px;
 }
 
-.onb__qr,
+.onb__skip {
+  margin-top: 4px;
+}
+
 .onb__card-qr {
   position: relative;
   display: grid;
@@ -88,25 +60,9 @@
   background: #fff;
 }
 
-.onb__qr {
-  width: 104px;
-  height: 104px;
-}
-
-.onb__qr img,
 .onb__card-qr img {
   width: 100%;
   height: 100%;
-}
-
-.onb__qr-ok {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  background: rgba(63, 157, 120, 0.9);
-  color: #fff;
-  font-size: 40px;
 }
 
 .onb__muted {
@@ -171,7 +127,7 @@
   font-weight: var(--weight-strong);
 }
 
-.dstage__design--portrait :is(.onb__record, .onb__wallet, .onb__txt, .onb__officer) {
+.dstage__design--portrait :is(.onb__record, .onb__wallet, .onb__officer) {
   padding: 8px 12px;
 }
 

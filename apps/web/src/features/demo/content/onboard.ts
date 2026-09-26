@@ -1,7 +1,10 @@
 // Chapter 0: 株式会社メイギ商事 joins Meigi. The wizard is a replica of /register; every value it lands on is the
 // company's real registration on Sepolia, read from the registry's PayeeRegistered event (registry
 // 0x205c977cF1f4Ed42e51a48759550eF40160A6396, from block 11781105) and officersOf(2011001234567).
-// The company is fictional (not in the NTA index), so the wizard labels it the way /register does.
+//
+// The company is a fictional fixture (not in the NTA index), registered by contracts/script/seed-demo.sh: no
+// domain proof, a placeholder officer keccak("meigi-demo-fixture-officer") that no one can prove, and fixture
+// evidence keccak("demo-fixture:fictional-vendor:not-an-NTA-company"). The chapter says so wherever it matters.
 
 import { shortAddress, shortHash } from '../../../lib/chain/format'
 
@@ -17,7 +20,6 @@ export const ONBOARD = {
   tNumber: T_NUMBER,
   legalName: '株式会社メイギ商事',
   ens: `${T_NUMBER.toLowerCase()}.payee.eth`,
-  domain: 'meigi-shoji.example',
   registry: REGISTRY,
   registryShort: shortAddress(REGISTRY),
   controller: CONTROLLER,
@@ -32,10 +34,13 @@ export const ONBOARD = {
   block: 11_781_118,
   /** The block's time: 2026-09-26 03:49:12 JST. */
   at: new Date('2026-09-25T18:49:12Z'),
-  /** The public payee page the verified card's QR code opens. */
+  /** The public payee page the registered payee card's QR code opens. */
   payeeUrl: `https://meigi.karanbishttt.workers.dev/registry/${T_NUMBER}`,
   appHost: 'meigi.karanbishttt.workers.dev',
 } as const
+
+/** Steps this fictional fixture couldn't really do (no domain, a placeholder officer): the rail marks them "–". */
+export const ONBOARD_SKIPPED: readonly number[] = [3, 4]
 
 /** The wizard's six screens, as the real progress rail names them. */
 export const ONBOARD_STEPS = [
@@ -44,5 +49,5 @@ export const ONBOARD_STEPS = [
   'Prove your domain',
   'Your officers',
   'Review and register',
-  'You’re verified',
+  'Registered',
 ] as const

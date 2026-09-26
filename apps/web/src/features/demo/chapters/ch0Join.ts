@@ -1,6 +1,6 @@
-// Chapter 0 (0:00–0:24): 株式会社メイギ商事 joins Meigi. Its T-number, its two wallets, its domain and an officer,
-// then one registration on Sepolia and a payee name that resolves. The registry panel beside the browser fills
-// in with what the chain will hold.
+// Chapter 0 (0:00–0:24): 株式会社メイギ商事 joins Meigi. Its T-number and its two wallets, then the two steps a
+// fictional demo company can't really do (a domain, a World ID officer) shown as the record has them, one
+// registration on Sepolia, and a payee name that resolves. The registry panel beside it fills in as it goes.
 
 import { ONBOARD } from '../content/onboard'
 import type { BuildCtx, ChapterDef } from '../engine/types'
@@ -59,16 +59,12 @@ function wallets(c: BuildCtx): void {
   rise(c, 'r-payout', 7.6)
 }
 
+/** A demo company skips the domain proof and carries a placeholder officer: both screens say so, then move on. */
 function domainAndOfficer(c: BuildCtx): void {
   advance(c, 2, 8.9)
-  press(c, 'onb-domain', 10.2)
-  rise(c, 'r-domain', 10.6)
+  rise(c, 'r-domain', 9.6)
   advance(c, 3, 11.8)
-  // The officer approves in World App on their own phone; the QR ticks when the proof arrives.
-  show(c, 'onb-qr-ok', 13.3, { duration: 0.3 })
-  hide(c, 'onb-officer-wait', 13.4, { duration: 0.2 })
-  show(c, 'onb-officer', 13.5, { duration: 0.3 })
-  rise(c, 'r-officers', 13.6)
+  rise(c, 'r-officers', 12.5)
 }
 
 function register(c: BuildCtx): void {
@@ -83,7 +79,7 @@ function register(c: BuildCtx): void {
   show(c, 'r-status-active', 17.15, { duration: 0.3 })
 }
 
-function verified(c: BuildCtx): void {
+function registered(c: BuildCtx): void {
   hide(c, 'cursor', 18.0)
   turn(c, 5, 18.3)
   show(c, 'onb-resolves', 19.7, { duration: 0.35 })
@@ -100,7 +96,7 @@ export const chapter0: ChapterDef = {
   captions: [
     { at: 0, text: 'Verify once: a company binds its registry number to one payout.' },
     { at: 4.6, text: 'One key controls the record; a separate wallet only receives.' },
-    { at: 8.9, text: 'It proves its domain, and an officer proves they’re a unique human with World ID.' },
+    { at: 8.9, text: 'Real companies also prove their domain and enroll World ID officers; this demo company is labelled.' },
     { at: 14.8, text: `One registration on Sepolia, and ${ONBOARD.ens} resolves to that payout.` },
   ],
   build(c) {
@@ -108,6 +104,6 @@ export const chapter0: ChapterDef = {
     wallets(c)
     domainAndOfficer(c)
     register(c)
-    verified(c)
+    registered(c)
   },
 }

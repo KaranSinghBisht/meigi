@@ -42,20 +42,23 @@ It autoplays, loops, and has chapter chips and pause. Reduced motion turns it in
 ### 0. A company joins Meigi (0:00–0:24)
 
 The browser shows Meigi's own `/register` (a replica of the onboarding wizard). Beside it, instead of the agent panel,
-the registry on Sepolia fills in with what the chain will hold.
+the registry on Sepolia fills in with what the chain holds. 株式会社メイギ商事 is a fictional fixture, so the chapter
+shows the two steps it couldn't really do the way the record has them.
 
 | t | Browser | Registry panel | Caption |
 |---|---|---|---|
 | 0:00 | `meigi…/register`, step 1: `T2011001234567` is typed; the legal name 株式会社メイギ商事 fills in (labelled "Fictional demo company", as the real wizard labels it) and the payee name `t2011001234567.payee.eth` appears live | T-number and ENS name rows | "Verify once: a company binds its registry number to one payout." |
-| 0:05 | Step 2: "Connect wallet" → business wallet `0xc33a…4638`; "Create a new payout wallet" → `0x9B4f…47e4` | Business wallet and payout rows | — |
-| 0:09 | Step 3: the TXT record `_meigi.meigi-shoji.example` (`meigi-sig=…`, blurred) → "Domain proven" | Domain row | — |
-| 0:12 | Step 4: an officer's World ID QR ticks → "Verified human", with the real officer id `0xe221…a3ad` | Officers row | — |
-| 0:15 | Step 5: review → "Register" → "Registered on Sepolia" · tx `0x277c2115…d2dc` | Evidence row; `PayeeRegistered` · block 11,781,118 · 26 Sep 03:49 JST; status → Active | "One registration on Sepolia, and t2011001234567.payee.eth resolves to that payout." |
-| 0:18 | Step 6, "You're verified": the payee card with a QR of the public payee page, and "✓ Resolves in any ENS client" | `t2011001234567.payee.eth → 0x9B4f…47e4` | — |
+| 0:05 | Step 2: "Connect wallet" → business wallet `0xc33a…4638`; "Create a new payout wallet" → `0x9B4f…47e4` | Business wallet and payout rows | "One key controls the record; a separate wallet only receives." |
+| 0:09 | Step 3, "No domain to prove": "Demo companies skip this step", as the real wizard does | Domain · skipped (fictional demo company) | "Real companies also prove their domain and enroll World ID officers; this demo company is labelled." |
+| 0:12 | Step 4: the record's placeholder officer `0xe221…a3ad`, which no one can prove, so no one can change the payout; real companies enroll World ID officers here | Officers · placeholder officer (demo company) | — |
+| 0:15 | Step 5: review (domain "Not proven · fictional company") → "Register" → "Registered on Sepolia" · tx `0x277c2115…d2dc` | Evidence · fixture evidence (fictional company); `PayeeRegistered` · block 11,781,118 · 26 Sep 03:49 JST; status → Active | "One registration on Sepolia, and t2011001234567.payee.eth resolves to that payout." |
+| 0:18 | Step 6, "You're registered.": the payee card ("Registered payee · fictional company") with a QR of the public payee page, and "✓ Resolves in any ENS client" | `t2011001234567.payee.eth → 0x9B4f…47e4` | — |
 
 Real data: the registry's `PayeeRegistered` event for 2011001234567 (registry
 `0x205c977cF1f4Ed42e51a48759550eF40160A6396`, read from block 11781105) and `officersOf`: the tx, block, business
-wallet, payout, legal name, evidence hash and officer id. Chapter 1 then continues on the customer's side.
+wallet, payout and legal name. The company was registered by `contracts/script/seed-demo.sh` as a fictional fixture:
+no domain proof, the officer `keccak("meigi-demo-fixture-officer")`, and the evidence
+`keccak("demo-fixture:fictional-vendor:not-an-NTA-company")`. Chapter 1 then continues on the customer's side.
 
 ### 1. A bank-change email arrives (0:24–0:42)
 

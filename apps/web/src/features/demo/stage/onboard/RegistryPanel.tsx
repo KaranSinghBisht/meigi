@@ -10,9 +10,9 @@ const ROWS: readonly { readonly id: string; readonly label: string; readonly val
     { id: 'ens', label: 'ENS name', value: ONBOARD.ens },
     { id: 'controller', label: 'Business wallet', value: ONBOARD.controllerShort, note: 'controls the record' },
     { id: 'payout', label: 'Payout', value: ONBOARD.payoutShort, note: 'the one address paid' },
-    { id: 'domain', label: 'Domain', value: ONBOARD.domain, note: 'proven' },
-    { id: 'officers', label: 'Officers', value: ONBOARD.officerShort, note: 'World ID officer id' },
-    { id: 'evidence', label: 'Evidence', value: ONBOARD.evidenceShort, note: 'hash of the verification bundle' },
+    { id: 'domain', label: 'Domain', value: 'skipped', note: 'fictional demo company' },
+    { id: 'officers', label: 'Officers', value: ONBOARD.officerShort, note: 'placeholder officer (demo company)' },
+    { id: 'evidence', label: 'Evidence', value: ONBOARD.evidenceShort, note: 'fixture evidence (fictional company)' },
   ]
 
 /** Chapter 0's side panel: what the registry on Sepolia will hold for this company, filling in step by step. */

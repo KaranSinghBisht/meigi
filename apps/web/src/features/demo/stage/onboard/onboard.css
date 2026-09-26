@@ -106,6 +106,15 @@
   grid-area: 1 / 1;
 }
 
+/* A step the fictional fixture couldn't really do ends grey with a dash, never a green tick. */
+.onb__step[data-skip] .onb__num {
+  background: color-mix(
+    in srgb,
+    rgba(42, 39, 48, 0.32) calc(var(--done) * 100%),
+    color-mix(in srgb, var(--lg-ink) calc(var(--on) * 100%), rgba(42, 39, 48, 0.08))
+  );
+}
+
 .onb__num-n {
   opacity: calc(1 - var(--done));
 }
@@ -241,7 +250,7 @@
   font-size: 12.5px;
 }
 
-.dstage__design--portrait :is(.onb__qr, .onb__card-qr) {
+.dstage__design--portrait .onb__card-qr {
   width: 80px;
   height: 80px;
 }
