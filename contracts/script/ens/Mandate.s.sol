@@ -92,11 +92,21 @@ contract Mandate is Script {
         console.log("revoked %s", _full());
     }
 
+    /// @dev Fails before broadcasting anything unless the new gate serves exactly the live vault, CompanyNamespace,
+    ///      registry, principal and label.
     function deploy() external {
+        AgentVault vault = _vault();
+        CompanyNamespace names = _names();
         EnsV2Lib.startBroadcast("DEPLOYER_PRIVATE_KEY", "DEPLOYER_ADDRESS");
         MandateGate gate =
-            new MandateGate(IAgentVault(address(_vault())), ICompanyNames(address(_names())), HARUKA, LABEL);
+            new MandateGate(IAgentVault(address(vault)), ICompanyNames(address(names)), HARUKA, LABEL);
         vm.stopBroadcast();
+        address registry = vm.parseJsonAddress(vm.readFile("deployments/11155111.json"), ".registry");
+        require(address(gate.vault()) == address(vault), "the gate serves another vault");
+        require(address(gate.names()) == address(names), "the gate reads another CompanyNamespace");
+        require(address(gate.registry()) == registry, "the gate checks another registry");
+        require(gate.principal() == HARUKA, "the gate serves another company");
+        require(keccak256(bytes(gate.label())) == keccak256(bytes(LABEL)), "the gate reads another label");
         console.log("MANDATE_GATE=%s", address(gate));
     }
 

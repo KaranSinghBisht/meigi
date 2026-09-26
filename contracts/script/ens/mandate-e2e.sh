@@ -64,7 +64,14 @@ VAULT_OWNER_ADDRESS="$(cast call "$AGENT_VAULT" "owner()(address)" --rpc-url "$R
 AGENT_ADDRESS="$(cast call "$AGENT_VAULT" "agent()(address)" --rpc-url "$RPC_URL")"
 ATTESTER_ADDRESS="${ATTESTER_ADDRESS:-0x3D5F314C30E77CC6f3677C5409FdC91e83510493}"
 SHOJI_PAYOUT="$(cast call "$REGISTRY" "payoutOf(uint64)(address)" "$SHOJI" --rpc-url "$RPC_URL")"
-NS_HARUKA_ADDRESS="$(cast wallet new --json | jq -r '.[0].address')"
+# After the live run (2026-09-26) the fixture, its namespace and its mandate already exist: then only the gate is new.
+LIVE=0
+if [[ $(cast call "$REGISTRY" "isActive(uint64)(bool)" "$HARUKA" --rpc-url "$RPC_URL") == true ]]; then LIVE=1; fi
+if [[ $LIVE == 1 ]]; then
+  NS_HARUKA_ADDRESS="$(cast call "$REGISTRY" "payeeOf(uint64)((string,address,address,address,uint64,address,uint64,uint64,uint8,uint8,bytes32))" "$HARUKA" --rpc-url "$RPC_URL" | sed -nE 's/^\("[^"]*", (0x[0-9a-fA-F]{40}),.*/\1/p')"
+else
+  NS_HARUKA_ADDRESS="$(cast wallet new --json | jq -r '.[0].address')"
+fi
 NS_HARUKA_PAYOUT_ADDRESS="$(cast wallet new --json | jq -r '.[0].address')"
 NS_AP_ADDRESS="$(cast wallet new --json | jq -r '.[0].address')" # CompanyNames.s.sol's fund() needs one
 export DEPLOYER_ADDRESS ATTESTER_ADDRESS VAULT_OWNER_ADDRESS AGENT_ADDRESS AGENT_VAULT NS_HARUKA_ADDRESS \
@@ -78,13 +85,19 @@ echo "Fork block $(cast block-number --rpc-url "$RPC_URL"); vault $AGENT_VAULT, 
 step "Before: the seven reference names"
 BEFORE="$(snapshot)" || fail "viem failed"
 
-step "The CompanyNamespace gate; the buyer registered, claimed, its namespace opened and attached"
-out="$(forge_as CompanyNames.s.sol "$DEPLOYER_ADDRESS" "deploy()")" || fail "deploy failed: $out"
-COMPANY_NAMESPACE="$(grep -oE 'COMPANY_NAMESPACE=0x[0-9a-fA-F]{40}' <<<"$out" | cut -d= -f2)"
-export COMPANY_NAMESPACE
-for pair in "Mandate.s.sol $ATTESTER_ADDRESS register()" "ClaimName.s.sol $DEPLOYER_ADDRESS claim()" \
-  "Mandate.s.sol $NS_HARUKA_ADDRESS open()" "Mandate.s.sol $DEPLOYER_ADDRESS attach()" \
-  "Mandate.s.sol $NS_HARUKA_ADDRESS issue()" "Mandate.s.sol $DEPLOYER_ADDRESS deploy()"; do
+if [[ $LIVE == 1 ]]; then
+  step "The live CompanyNamespace and mandate (post-live fork): deploy the MandateGate only"
+  steps=("Mandate.s.sol $DEPLOYER_ADDRESS deploy()")
+else
+  step "The CompanyNamespace gate; the buyer registered, claimed, its namespace opened and attached"
+  out="$(forge_as CompanyNames.s.sol "$DEPLOYER_ADDRESS" "deploy()")" || fail "deploy failed: $out"
+  COMPANY_NAMESPACE="$(grep -oE 'COMPANY_NAMESPACE=0x[0-9a-fA-F]{40}' <<<"$out" | cut -d= -f2)"
+  export COMPANY_NAMESPACE
+  steps=("Mandate.s.sol $ATTESTER_ADDRESS register()" "ClaimName.s.sol $DEPLOYER_ADDRESS claim()"
+    "Mandate.s.sol $NS_HARUKA_ADDRESS open()" "Mandate.s.sol $DEPLOYER_ADDRESS attach()"
+    "Mandate.s.sol $NS_HARUKA_ADDRESS issue()" "Mandate.s.sol $DEPLOYER_ADDRESS deploy()")
+fi
+for pair in "${steps[@]}"; do
   read -r script sender sig <<<"$pair"
   out="$(forge_as "$script" "$sender" "$sig")" || fail "$sig failed: $out"
   grep -E "registered|claimed|namespace|subregistry|issued|MANDATE_GATE" <<<"$out" | sed 's/^ *//'

@@ -41,6 +41,8 @@ contract MandateGateForkTest is Test {
     uint64 internal constant SHOJI = 2011001234567;
     address internal constant SHOJI_PAYOUT = 0x9B4fc8994FcF2d5FE08a82A9454B61AA14D647e4;
     uint64 internal constant HARUKA = 4999900000005;
+    CompanyNamespace internal constant LIVE_NAMES =
+        CompanyNamespace(0x7ECaD5Fd6892270F09D91aB296786186C5bC660A);
 
     address internal haruka = makeAddr("haruka-business-key");
     CompanyNamespace internal names;
@@ -53,6 +55,20 @@ contract MandateGateForkTest is Test {
             return;
         }
         vm.createSelectFork(rpc);
+        if (PAYEES.isActive(HARUKA)) {
+            // Since 2026-09-26 the fixture, its namespace and its mandate are live: use them as they are.
+            names = LIVE_NAMES;
+            haruka = PAYEES.payeeOf(HARUKA).controller;
+        } else {
+            _setUpBeforeTheLiveRun();
+        }
+        gate = new MandateGate(IAgentVault(address(VAULT)), ICompanyNames(address(names)), HARUKA, "ap");
+        vm.prank(VAULT_OWNER);
+        VAULT.setAgent(address(gate));
+    }
+
+    /// @dev At a fork block before the live run: record the fixture, open, attach and issue the mandate here.
+    function _setUpBeforeTheLiveRun() internal {
         _registerAndClaimHaruka();
         names = new CompanyNamespace(
             IPayeeRegistry(address(PAYEES)),
@@ -68,9 +84,6 @@ contract MandateGateForkTest is Test {
         vm.prank(MEIGI);
         IClaims(CLAIMS).setSubregistry(uint256(keccak256("t4999900000005")), namespace);
         _mandate();
-        gate = new MandateGate(IAgentVault(address(VAULT)), ICompanyNames(address(names)), HARUKA, "ap");
-        vm.prank(VAULT_OWNER);
-        VAULT.setAgent(address(gate));
     }
 
     function test_ForkTheLiveVaultPaysOnlyWhileTheMandateAnswers() public {

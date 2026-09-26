@@ -3,8 +3,9 @@ pragma solidity ^0.8.24;
 
 import {IPayeeRegistry} from "../registry/IPayeeRegistry.sol";
 
-/// @dev The AgentVault's one agent call.
+/// @dev The AgentVault's one agent call, and the registry it checks payments against.
 interface IAgentVault {
+    function registry() external view returns (IPayeeRegistry);
     function payInvoice(uint64 tNumber, address expectedPayout, uint256 amount, bytes32 invoiceRef)
         external
         returns (address payout);
@@ -38,15 +39,21 @@ contract MandateGate {
     string public label;
 
     error ZeroAddress();
+    error RegistryMismatch(address names, address vault);
     error PrincipalNotActive(uint64 principal);
     error MandateNotLive(uint64 principal, string label);
     error NotMandateHolder(address caller, address holder);
 
     constructor(IAgentVault vault_, ICompanyNames names_, uint64 principal_, string memory label_) {
         if (address(vault_) == address(0) || address(names_) == address(0)) revert ZeroAddress();
+        // The mandate and the payments it allows must answer to the same registry.
+        IPayeeRegistry namesRegistry = names_.registry();
+        if (address(namesRegistry) != address(vault_.registry())) {
+            revert RegistryMismatch(address(namesRegistry), address(vault_.registry()));
+        }
         vault = vault_;
         names = names_;
-        registry = names_.registry();
+        registry = namesRegistry;
         principal = principal_;
         label = label_;
     }

@@ -189,6 +189,17 @@ contract MandateGateTest is MeigiFixture {
     function test_ConstructorChecksItsInputs() public {
         vm.expectRevert(MandateGate.ZeroAddress.selector);
         new MandateGate(IAgentVault(address(0)), ICompanyNames(address(names)), PRINCIPAL, "ap");
+
+        // A vault that checks payments against another registry is refused.
+        PayeeRegistry otherRegistry = new PayeeRegistry(governance, CHANGE_DELAY);
+        AgentVault otherVault =
+            new AgentVault(human, makeAddr("placeholder"), jpyc, otherRegistry, VENDOR_DELAY);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                MandateGate.RegistryMismatch.selector, address(registry), address(otherRegistry)
+            )
+        );
+        new MandateGate(IAgentVault(address(otherVault)), ICompanyNames(address(names)), PRINCIPAL, "ap");
         assertEq(address(gate.registry()), address(registry));
         assertEq(gate.label(), "ap");
     }

@@ -185,7 +185,14 @@ Tests behind it:
 only while `ap.t4999900000005.payee.eth` answers and the caller is its holder. The buyer revokes the name, and the
 agent's next payment reverts `MandateNotLive`; it issues the name again, and payments continue. The vault still checks
 every payment itself. [`mandate-e2e.sh`](../contracts/script/ens/mandate-e2e.sh) proves the whole flow against the
-live vault on a fork.
+live vault on a fork. contracts-review passed MandateGate: 27 of 27 on a fork in front of the live vault.
+- **Who decides.** Once the gate is the vault's agent, 株式会社ハルカ製作所's registered controller decides who may pay,
+  by issuing or revoking `ap`. What gets paid stays bounded by the vault: approved vendors, their registered payouts,
+  and caps.
+- **Kill switches.** The vault's owner can call `setAgent` back to the key, or `pause`. Meigi can `setBlocked` the
+  name or `setFrozen` the company's namespace.
+- **Rotations.** Any controller rotation, even a legitimate one, darkens `ap` until the new key issues it again. The
+  gate refuses payments meanwhile.
 
 **Limits.**
 - Until the rotation lands, or Meigi blocks or freezes it, a stolen controller key can still issue a text-only name.
