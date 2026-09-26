@@ -58,6 +58,36 @@ contract PayeeResolverTest is MeigiFixture {
         assertEq(_text(LABEL, "meigi.changePending"), "");
     }
 
+    /// A queued payout resolves exactly at effectiveAt; one second earlier the current payout still does.
+    function test_addr_switchesExactlyAtEffectiveAt() public {
+        _queueChange(VENDOR, newPayout);
+        uint256 effectiveAt = block.timestamp + CHANGE_DELAY;
+        vm.warp(effectiveAt - 1);
+        assertEq(_addr(LABEL), payout, "one second before effectiveAt");
+        vm.warp(effectiveAt);
+        assertEq(_addr(LABEL), newPayout, "at effectiveAt");
+    }
+
+    /// A dispute drops a queued change: it never lands, not even after the incumbent wins the dispute.
+    function test_addr_aDisputeCancelsAQueuedChange() public {
+        _queueChange(VENDOR, newPayout);
+        vm.prank(attester);
+        registry.fileDispute(VENDOR, address(1), bytes32(0));
+        vm.prank(governance);
+        registry.resolveDispute(_registration(VENDOR, payout, 1));
+        vm.warp(block.timestamp + CHANGE_DELAY);
+        registry.finalizeDispute(VENDOR);
+        assertEq(_addr(LABEL), payout, "the incumbent's payout, not the dropped change");
+        assertEq(_text(LABEL, "meigi.changePending"), "");
+    }
+
+    /// TNumber accepts an uppercase "T", so `T2011001234567.payee.eth` resolves too. That is harmless: it gives the
+    /// same registry answer as the lowercase name, and normalizing clients (ENSIP-15) never send it.
+    function test_addr_uppercaseLabelGivesTheSameAnswer() public view {
+        assertEq(_addr("T2011001234567"), payout);
+        assertEq(_text("T2011001234567", "name"), VENDOR_NAME);
+    }
+
     function test_addr_failsClosed() public {
         assertEq(_addr("t8999900000001"), address(0), "unregistered");
         assertEq(_addr("not-a-t-number"), address(0), "not a T-number");
@@ -102,6 +132,11 @@ contract PayeeResolverTest is MeigiFixture {
         assertEq(_addrForCoin(0x80000000 | 137).length, 0, "another EVM chain");
     }
 
+    /// ENSIP-19's default EVM coin type (chain id 0) is not served either: an address is only published per chain.
+    function test_addrForCoin_defaultEvmCoinTypeIsEmpty() public view {
+        assertEq(_addrForCoin(0x80000000).length, 0);
+    }
+
     function test_text_exposesTheVerifiedRecord() public view {
         assertEq(_text(LABEL, "name"), VENDOR_NAME);
         assertEq(_text(LABEL, "meigi.tNumber"), "T2011001234567");
@@ -117,7 +152,8 @@ contract PayeeResolverTest is MeigiFixture {
         calls[0] = abi.encodeWithSelector(ADDR, bytes32(0));
         calls[1] = abi.encodeWithSignature("contenthash(bytes32)", bytes32(0)); // unsupported
         calls[2] = abi.encodeWithSignature("text(bytes32,string)", bytes32(0), "name");
-        bytes memory out = resolver.resolve(_name(LABEL), abi.encodeWithSignature("multicall(bytes[])", calls));
+        bytes memory out =
+            resolver.resolve(_name(LABEL), abi.encodeWithSignature("multicall(bytes[])", calls));
         bytes[] memory results = abi.decode(out, (bytes[]));
         assertEq(abi.decode(results[0], (address)), payout);
         assertEq(results[1].length, 0, "one unsupported record doesn't sink the batch");
