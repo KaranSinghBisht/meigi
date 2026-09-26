@@ -109,7 +109,10 @@ export function AskLedger() {
       <div aria-live="polite">
         <Reply state={state} />
       </div>
-      <p className="ask__disclosure">Answers come only from the settlements above, indexed by Curvegrid MultiBaas.</p>
+      <p className="ask__disclosure">
+        Answers come only from the settlements above, indexed by Curvegrid MultiBaas. An AI model only reads your
+        question.
+      </p>
     </form>
   )
 }
