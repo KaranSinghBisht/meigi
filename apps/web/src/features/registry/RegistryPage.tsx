@@ -3,6 +3,7 @@ import { parseTNumber } from '../../lib/chain/tNumber'
 import { Notice } from '../../ui/components/Notice'
 import { Panel } from '../../ui/components/Panel'
 import { Spinner } from '../../ui/components/Spinner'
+import { SettlementsPanel } from '../settlements/SettlementsPanel'
 import { EventFeed } from './EventFeed'
 import { PayeeCard } from './PayeeCard'
 import { PayeeFinder } from './PayeeFinder'
@@ -91,6 +92,11 @@ export default function RegistryPage() {
         </Panel>
         <FeedPanel feed={feed} />
       </div>
+      {current && !invalid ? (
+        <div className="registry__settlements">
+          <SettlementsPanel key={current} tNumber={current} title="Payments received · via MultiBaas" />
+        </div>
+      ) : null}
     </div>
   )
 }

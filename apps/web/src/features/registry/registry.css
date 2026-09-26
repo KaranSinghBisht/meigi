@@ -7,6 +7,11 @@
   align-items: stretch;
 }
 
+/* What the selected payee has been paid, from Curvegrid MultiBaas's index: a full-width window under the pair. */
+.registry__settlements {
+  margin-top: 24px;
+}
+
 .registry__lookup {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
