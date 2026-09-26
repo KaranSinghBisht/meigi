@@ -1,6 +1,7 @@
 import { HankoMark } from '../../../../ui/brand/HankoMark'
 import { Spinner } from '../../../../ui/components/Spinner'
 import { useQr } from '../../../../ui/world/useQr'
+import { keepTokens } from '../../content/tokens'
 import { APPROVAL, PAID, URGENT } from '../../content/urgent'
 import { layerLabel, percent } from './checks'
 import { Bar, Card, Chip, Field } from './parts'
@@ -82,7 +83,7 @@ function DecisionCard() {
       <ol className="preasons">
         {URGENT.holds.map((reason) => (
           <li key={reason.code}>
-            <b>{layerLabel(reason.layer)}</b> {reason.message}
+            <b>{layerLabel(reason.layer)}</b> {keepTokens(reason.message)}
           </li>
         ))}
       </ol>

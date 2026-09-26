@@ -1,5 +1,6 @@
 import { HankoMark } from '../../../../ui/brand/HankoMark'
 import { BEC } from '../../content/bec'
+import { keepTokens } from '../../content/tokens'
 import { checkLabel, layerLabel, modelName, percent } from './checks'
 import { Bar, Card, Chip, Field, Typed } from './parts'
 
@@ -102,7 +103,7 @@ function KernelCard() {
               <span className="pcheck__detail">
                 <span className="mono ptoken">{BEC.ens}</span> →{' '}
                 <span className="mono ptoken">{BEC.registeredShort}</span>
-                <span className="pcheck__msg">{check.message}</span>
+                <span className="pcheck__msg">{keepTokens(check.message)}</span>
               </span>
             )}
           </li>
@@ -143,7 +144,7 @@ function DecisionCard() {
       <ol className="preasons">
         {blocking.map((reason) => (
           <li key={reason.code}>
-            <b>{layerLabel(reason.layer)}</b> {reason.message}
+            <b>{layerLabel(reason.layer)}</b> {keepTokens(reason.message)}
           </li>
         ))}
       </ol>

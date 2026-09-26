@@ -243,10 +243,24 @@
   grid-template-rows: minmax(0, 1fr);
 }
 
+/* The list shows exactly one row, the newest mail, so no row is ever cut mid-way; the rows below wait under it. */
 .dstage__design--portrait .mail__main {
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: 88px minmax(0, 1fr);
+  grid-template-rows: var(--mail-row) minmax(0, 1fr);
   padding: 8px;
+}
+
+.dstage__design--portrait .mail {
+  --mail-row: 80px;
+}
+
+.dstage__design--portrait .mrow {
+  height: var(--mail-row);
+}
+
+/* The attachment and the Paid label also show in the open message, so the one-row list leaves them out. */
+.dstage__design--portrait .mrow__chips {
+  display: none;
 }
 
 .dstage__design--portrait :is(.mail__rail, .mail__top, .mail__listbar) {

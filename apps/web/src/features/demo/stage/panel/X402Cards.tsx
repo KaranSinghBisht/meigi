@@ -1,4 +1,5 @@
 import { shortHash } from '../../../../lib/chain/format'
+import { keepTokens } from '../../content/tokens'
 import { X402_RUN, type X402Purchase } from '../../content/x402'
 import { Card, Chip } from './parts'
 
@@ -10,7 +11,7 @@ function Outcome({ purchase }: { readonly purchase: X402Purchase }) {
     return (
       <div className="pcard__stack" data-d={`x-${purchase.id}-outcome`} data-enter="">
         <Chip tone="bad">Refused before signing</Chip>
-        <p className="pcard__note">{outcome.reason}</p>
+        <p className="pcard__note">{keepTokens(outcome.reason)}</p>
       </div>
     )
   }
@@ -52,7 +53,7 @@ function PurchaseCard({ purchase, index }: { readonly purchase: X402Purchase; re
               {MARK[check.state]}
             </span>
             <span className="pcheck__label">{check.label}</span>
-            <span className="pcheck__detail">{check.detail}</span>
+            <span className="pcheck__detail">{keepTokens(check.detail)}</span>
           </li>
         ))}
       </ul>

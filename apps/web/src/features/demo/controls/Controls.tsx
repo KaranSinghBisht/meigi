@@ -1,6 +1,7 @@
 import { useEffect, useRef, type RefObject } from 'react'
 import { Link } from 'react-router'
 import { Button } from '../../../ui/components/Button'
+import { useScrollFade } from '../../../ui/components/useScrollFade'
 import type { ClockSnapshot, DemoClock } from '../engine/clock'
 import type { Script } from '../engine/types'
 import './controls.css'
@@ -32,6 +33,20 @@ function useChapterFill(clock: DemoClock, script: Script, list: RefObject<HTMLOL
       }),
     [clock, script, list],
   )
+}
+
+/** When the chips scroll sideways (narrow players), the current chapter's chip is brought into view. The row
+ *  scrolls by itself: scrollIntoView could move the page too. */
+function useCurrentChipInView(list: RefObject<HTMLOListElement | null>, chapter: number) {
+  useEffect(() => {
+    const row = list.current
+    const chip = row?.querySelectorAll<HTMLElement>('.dchip-btn')[chapter]
+    if (!row || !chip || row.scrollWidth <= row.clientWidth) return
+    const rowBox = row.getBoundingClientRect()
+    const chipBox = chip.getBoundingClientRect()
+    const centred = row.scrollLeft + (chipBox.left - rowBox.left) - (rowBox.width - chipBox.width) / 2
+    row.scrollTo({ left: Math.max(0, centred) })
+  }, [list, chapter])
 }
 
 function firstStepOf(script: Script, chapter: number): number {
@@ -92,10 +107,12 @@ function Transport({ clock, snap, script, reduced }: Pick<ControlsProps, 'clock'
 export function Controls({ clock, snap, script, reduced, variant, captionsOn, onCaptions }: ControlsProps) {
   const list = useRef<HTMLOListElement>(null)
   useChapterFill(clock, script, list)
+  useCurrentChipInView(list, snap.chapter)
+  useScrollFade(list, snap.chapter)
   return (
     <div className="dcontrols" role="group" aria-label="Demo player controls">
       <Transport clock={clock} snap={snap} script={script} reduced={reduced} />
-      <ol className="dchips" ref={list} aria-label="Chapters">
+      <ol className="dchips scroll-fade" ref={list} aria-label="Chapters">
         {script.chapters.map((chapter, index) => (
           <li key={chapter.id}>
             <button

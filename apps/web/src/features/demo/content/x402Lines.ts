@@ -1,4 +1,5 @@
 import { shortHash } from '../../../lib/chain/format'
+import { keepTokens } from './tokens'
 import type { GuardCheck, X402Purchase, X402Run } from './x402'
 
 export type LineTone = 'cmd' | 'wire' | 'ok' | 'fail' | 'skip' | 'plain'
@@ -41,7 +42,7 @@ function purchaseLines(buyer: string, purchase: X402Purchase): TermLine[] {
     outcomeLine(purchase),
   ]
   return drafts.map((line, index) => ({
-    text: line.text,
+    text: keepTokens(line.text),
     tone: line.tone,
     check: line.check ?? null,
     id: `${purchase.id}-${index}`,

@@ -29,5 +29,5 @@ export function layerLabel(layer: string): string {
 
 export const percent = (value: number): string => `${Math.round(value * 100)}%`
 
-/** The model's short name: "@cf/meta/llama-3.3-70b-instruct-fp8-fast" → "llama-3.3-70b-instruct-fp8-fast". */
+/** The model's short name, without a provider path: "@cf/org/some-model" → "some-model"; "gemma4:e4b" stays. */
 export const modelName = (model: string | null): string => (model ? (model.split('/').pop() ?? model) : 'model')

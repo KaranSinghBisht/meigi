@@ -4,6 +4,7 @@
 
 import { shortAddress, shortHash } from '../../../lib/chain/format'
 import { BEC } from './bec'
+import { keepTokens } from './tokens'
 import { PAID, URGENT } from './urgent'
 import { X402_RUN } from './x402'
 
@@ -68,4 +69,9 @@ const agents: LogGroup = {
   ],
 }
 
-export const LOG_GROUPS: readonly LogGroup[] = [refuse, human, agents]
+const joined = (group: LogGroup): LogGroup => ({
+  ...group,
+  lines: group.lines.map((line) => ({ ...line, text: keepTokens(line.text) })),
+})
+
+export const LOG_GROUPS: readonly LogGroup[] = [refuse, human, agents].map(joined)

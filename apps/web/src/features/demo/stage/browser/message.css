@@ -139,8 +139,8 @@
 .msg__scan {
   position: absolute;
   top: 0;
-  right: -12px;
-  left: -12px;
+  right: 0;
+  left: 0;
   height: 64px;
   border-radius: 12px;
   background: linear-gradient(180deg, transparent, rgba(125, 110, 214, 0.16) 50%, transparent);

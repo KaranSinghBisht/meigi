@@ -3,6 +3,7 @@
   --demo-font: 'Inter Tight', 'Noto Sans JP', 'Hiragino Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
     sans-serif;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr) auto;
   gap: 12px;
   min-width: 0;
@@ -42,6 +43,7 @@
 
 .dplayer__footer {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
 }
 
