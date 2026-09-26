@@ -2,9 +2,9 @@
 
 **Confirmation of Payee for stablecoins and AI agents. Pay companies, not addresses.**
 
-**In one sentence:** Meigi binds a Japanese company's government-issued invoice number (T-number) to one on-chain
-payout that can change only after 72 hours in public, so AI agents, wallets and exchanges paying in stablecoins can
-refuse a swapped address before any money moves.
+**In one sentence:** Meigi binds a Japanese company's government-issued invoice registration number (T-number) to one
+on-chain payout that can change only after 72 hours in public, so AI agents, wallets and exchanges paying in
+stablecoins can refuse a swapped address before any money moves.
 
 To register, the number and exact name are matched to the NTA corporate registry (法人番号), the registrant proves
 control of a domain, and World ID officers enroll.
@@ -17,9 +17,9 @@ control of a domain, and World ID officers enroll.
   - **Mizuhiki's Awaji testnet** (chain 6497): the registry and PayRouter, paid in Mizuhiki's own MJPY and MUSD,
     and x402 settled in MJPY. Awaji has no AgentVault and no ENS. See [docs/mizuhiki.md](docs/mizuhiki.md).
 - **Team:**
-  - **Karan Singh Bisht**: `<TODO: Karan>`. GitHub [@KaranSinghBisht](https://github.com/KaranSinghBisht) · X
-    `<TODO: Karan>`
-  - **Adithya Prasanna Suriya Prakash**: `<TODO: Karan>`. GitHub `<TODO: Karan>` · X `<TODO: Karan>`
+  - **Karan Singh Bisht**: GitHub [@KaranSinghBisht](https://github.com/KaranSinghBisht) · X
+    [@karan_Bisht09](https://x.com/karan_Bisht09)
+  - **Adithya Prasanna Suriya Prakash**: X [@apsp2k5](https://x.com/apsp2k5)
 - **Event:** ETHGlobal Tokyo 2026, From Scratch track.
 
 A stablecoin payment goes to an address, and nothing checks that the address belongs to the company you mean
