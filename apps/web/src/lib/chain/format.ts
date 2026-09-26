@@ -18,6 +18,10 @@ export function addressUrl(address: string): string {
   return `${ETHERSCAN}/address/${address}`
 }
 
+export function blockUrl(block: bigint): string {
+  return `${ETHERSCAN}/block/${block}`
+}
+
 function pad2(value: number): string {
   return String(value).padStart(2, '0')
 }

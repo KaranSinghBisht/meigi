@@ -4,6 +4,7 @@ import { RecordedRun } from '../../ui/demo/RecordedRun'
 import { SettlementsPanel } from '../settlements/SettlementsPanel'
 import { ApprovalExplainer } from './approval/ApprovalExplainer'
 import { RECORDED_BEC } from './recorded'
+import { LiveRefusalPanel } from './refusal/LiveRefusal'
 import { VaultPanel } from './VaultPanel'
 import './agent.css'
 
@@ -23,6 +24,7 @@ export function AgentHosted() {
           <VaultPanel version={0} />
         </aside>
       </div>
+      <LiveRefusalPanel />
       <SettlementsPanel />
       <RecordedRun title="The agent at work, replayed from real runs." recordedAt={RECORDED_BEC.recordedAt}>
         <Suspense fallback={<Spinner label="Loading the demo" />}>

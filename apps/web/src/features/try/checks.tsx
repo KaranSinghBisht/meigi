@@ -46,7 +46,7 @@ export const CHECKS: readonly Check[] = [
   {
     title: 'Watch the vault refuse a swapped address',
     proves:
-      'An AI agent believed a bank-change email and tried to pay a new wallet. The AgentVault refused: it only pays the registered payout.',
+      'An AI agent believed a bank-change email and tried to pay a new wallet. Ask the AgentVault yourself: it refuses, because it only pays the registered payout.',
     status: <RefusalStatus />,
     links: [{ label: 'See the run in the AP agent', href: '/agent' }],
   },

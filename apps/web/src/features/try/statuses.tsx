@@ -6,7 +6,7 @@ import { Badge } from '../../ui/components/Badge'
 import { Countdown } from '../../ui/components/Countdown'
 import { useEnsCheck, usePayee } from '../registry/usePayee'
 import { useSettlements } from '../settlements/useSettlements'
-import { RECORDED_BEC } from '../agent/recorded'
+import { LiveRefusalInline } from '../agent/refusal/LiveRefusal'
 
 /** The fixture payee every check starts from: 株式会社メイギ商事 (fictional). */
 export const FIXTURE = 'T2011001234567'
@@ -59,14 +59,9 @@ export function EnsStatus() {
   )
 }
 
-/** 3. The recorded bank-change run: what the vault answered. */
+/** 3. The vault refusing the bank-change scam's address, live on Sepolia when asked (the recorded run otherwise). */
 export function RefusalStatus() {
-  const name = RECORDED_BEC.outcome.error.name
-  return (
-    <Status chip={<Badge tone="neutral">Recorded run</Badge>}>
-      the vault reverted <span className="mono">{name}</span>, and nothing moved
-    </Status>
-  )
+  return <LiveRefusalInline />
 }
 
 /** When a T-number's registration landed, from its PayeeRegistered event: null until read, and if it can't be. */

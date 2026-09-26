@@ -1,0 +1,22 @@
+/* The vault's refusal, live: a button and one line of answer. In /try it sits in the check's status line; on the
+   public /agent it is a panel of its own, beside the vault it asks. */
+.live-refusal__lede {
+  color: var(--ink-soft);
+}
+
+.live-refusal__run {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  margin-top: 16px;
+}
+
+.live-refusal__result {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
