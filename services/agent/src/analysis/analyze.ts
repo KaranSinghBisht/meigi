@@ -11,6 +11,7 @@ import { LlmError, type LlmPort, type Proposal } from "../llm/types.js";
 import type { Screening, ScreeningPort } from "../screening/intercepta.js";
 import { buildTriageState } from "../triage/state.js";
 import type { TriageResult } from "../triage/triage.js";
+import { paidLookalike as findPaidLookalike } from "./duplicates.js";
 import { explainOutcome, type Explanation } from "./explain.js";
 import type { StoredAnalysis } from "./store.js";
 import { decide, type Verdict } from "./verdict.js";
@@ -63,7 +64,8 @@ export async function analyzeDocument(deps: AppDeps, text: string): Promise<Stor
   const agentProposal = proposal.status === "ok" ? proposalOf(proposal) : null;
   const kernel = await clock.async("kernelMs", () => runKernel(deps.chain, extracted, agentProposal));
   const screening = await screenPayees(deps.screening, screened, [kernel.intent?.payTo, kernel.result.payee?.registeredPayout]);
-  const verdict = decide({ extracted, kernel: kernel.result, triage, screening, triageRequired: deps.triageRequired, holds: deps.holds });
+  const paidLookalike = findPaidLookalike(deps.store, kernel.intent);
+  const verdict = decide({ extracted, kernel: kernel.result, triage, screening, triageRequired: deps.triageRequired, holds: deps.holds, paidLookalike });
   const explanation = await clock.async("explanationMs", () => explainOutcome(deps.llm, kernel.result, verdict));
   const view: AnalysisView = {
     id: randomUUID(),

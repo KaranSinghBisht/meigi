@@ -62,6 +62,10 @@ upper-cased.
 - **What force doesn't even simulate** (`force_refused`): credit notes, hidden content, markup, bidirectional
   controls, ambiguous or conflicting totals, missing invoice numbers or T-numbers, several addresses, and screening
   hits.
+- **Possible duplicates:** the vault refuses a second payment for the same `invoiceRef`. On top of that, the agent
+  holds an invoice (`possible_duplicate`, approvable) when it already paid one from the same payee, for the same
+  amount, whose number differs only in separators (`MS/2026/0917` after `MS-2026-0917`). The `invoiceRef` hashing
+  itself never changes, because already-paid refs could otherwise pay again.
 - **Where values come from:** the T-number and amount always come from the document. Only the destination may come
   from the agent's proposal, and the vault rejects any address that isn't the registered one.
 - **Explanations:** the explaining LLM sees kernel facts only, never document text. Document quotes travel in
@@ -74,8 +78,8 @@ payment. It uses the World ID for Agents OIDC provider (`https://sandbox.auth.wo
 grant: the agent is the device, and the human approves in World App. It is off unless `WORLD_AGENTS_CLIENT_ID` and
 `WORLD_AGENTS_CLIENT_SECRET` are both set; then every approval route answers `503 approval_not_configured`.
 
-- **Approvable holds:** `triage_hold`, `triage_unavailable`, `pressure_hold`, `above_auto_clear_budget` and
-  `screening_unavailable` (a configured screen that couldn't answer). Anything
+- **Approvable holds:** `triage_hold`, `triage_unavailable`, `pressure_hold`, `above_auto_clear_budget`,
+  `screening_unavailable` (a configured screen that couldn't answer) and `possible_duplicate`. Anything
   else on the invoice (a credit note, hidden content, markup, ambiguous totals, a missing number, several addresses, a
   screening hit, or a payee/vendor/cap reason the chain would refuse) makes `POST …/approval` answer
   `409 not_approvable`, and so does an invoice that isn't held or is already paid.

@@ -25,6 +25,7 @@ export interface VerdictInput {
   screening: Screening;
   triageRequired: boolean;
   holds: HoldPolicy;
+  paidLookalike?: string | null; // an already-paid invoice number matching this one apart from separators
 }
 
 /**
@@ -40,6 +41,7 @@ export function decide(input: VerdictInput): Verdict {
     ...input.kernel.reasons,
     ...triageReasons(input.triage, input.triageRequired).map(tag),
     ...judgementHolds(input).map(tag),
+    ...duplicateHolds(input.paidLookalike ?? null).map(tag),
     ...screeningReasons(input.screening).map(tag),
   ];
   const reasons = all.filter((r) => r.severity === "block");
@@ -100,6 +102,13 @@ function judgementHolds({ extracted, kernel, triage, holds }: VerdictInput): Unt
     out.push({ code: "above_auto_clear_budget", severity: "block", layer: "kernel", message });
   }
   return out;
+}
+
+/** Same payee, same amount and the same number apart from separators as an invoice already paid here. */
+function duplicateHolds(paidNumber: string | null): Untagged[] {
+  if (!paidNumber) return [];
+  const message = "An invoice from this payee for the same amount, numbered the same apart from separators, was already paid here: it may be the same bill.";
+  return [{ code: "possible_duplicate", severity: "block", layer: "kernel", message, evidence: `already paid: ${paidNumber}` }];
 }
 
 /**
