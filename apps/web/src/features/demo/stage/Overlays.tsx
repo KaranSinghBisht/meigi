@@ -1,6 +1,7 @@
 // Things that float over the stage: the pointer, the chips that fly from the email into the panel, and the end
 // card. All start hidden; the timeline moves and shows them.
 
+import { env } from '../../../lib/env/env'
 import { HankoMark } from '../../../ui/brand/HankoMark'
 import { BEC } from '../content/bec'
 
@@ -43,8 +44,8 @@ export function Flights() {
 }
 
 const LIVE_APP = 'https://meigi.karanbishttt.workers.dev'
-const GITHUB = 'https://github.com/KaranSinghBisht/meigi'
 
+/** The last frame: the line, and where to go next. GitHub shows only once the deploy names a public repo. */
 export function EndCard() {
   return (
     <div className="dend" data-d="end" data-enter="">
@@ -62,9 +63,11 @@ export function EndCard() {
           <a className="btn btn--ghost btn--md mono" href={`/registry/${BEC.tNumber}`}>
             {BEC.ens}
           </a>
-          <a className="btn btn--ghost btn--md" href={GITHUB} target="_blank" rel="noreferrer">
-            GitHub
-          </a>
+          {env.githubUrl ? (
+            <a className="btn btn--ghost btn--md" href={env.githubUrl} target="_blank" rel="noreferrer">
+              GitHub
+            </a>
+          ) : null}
         </p>
       </section>
     </div>
