@@ -2,10 +2,16 @@
 
 **Confirmation of Payee for stablecoins and AI agents. Pay companies, not addresses.**
 
+**In one sentence:** Meigi binds a Japanese company's invoice registration number (T-number) to one on-chain
+payout, verified against the National Tax Agency and by World ID officers, so that people, wallets and AI agents
+paying in stablecoins can refuse a swapped address before any money moves.
+
 - **Live:** [meigi.karanbishttt.workers.dev](https://meigi.karanbishttt.workers.dev) is one site: the landing,
   and "enter" glides into the app. The registry explorer, ENS check and event feed read Sepolia live. Steps that need our services show recorded real
   runs.
-- **Team:** Karan Singh Bisht & Adithya Prasanna Suriya Prakash.
+- **Team:**
+  - Karan Singh Bisht, GitHub [@KaranSinghBisht](https://github.com/KaranSinghBisht);
+  - Adithya Prasanna Suriya Prakash, handle: TODO (Adithya to add).
 - **Event:** ETHGlobal Tokyo 2026, From Scratch track.
 
 A stablecoin payment goes to an address, and nothing checks that the address belongs to the company you mean
@@ -89,10 +95,42 @@ the vault reverts `PayeeMismatch` and names the real company.
     [`services/verifier/src/routes/intents.ts`](services/verifier/src/routes/intents.ts),
     [`apps/web/src/ui/world`](apps/web/src/ui/world),
     [`contracts/src/registry/OfficerQuorum.sol`](contracts/src/registry/OfficerQuorum.sol).
-- **Intercepta.** The quick-scan runs before signing.
-  - Code: [`packages/x402-guard/src/intercepta.ts`](packages/x402-guard/src/intercepta.ts) (the call);
-    `checkPayee` and `checkUndeclared` in [`check.ts`](packages/x402-guard/src/check.ts) (the decisions);
-    `services/agent/src/screening` (the AP agent).
+- **Curvegrid MultiBaas.** Settlement history for the AP agent and the dashboards comes from MultiBaas's event
+  index on Ethereum Sepolia (see [below](#how-we-use-curvegrid-multibaas)).
+- **Intercepta** (screening; not a prize target). The quick-scan runs before signing, and without a key it fails
+  closed. Code: [`packages/x402-guard/src/intercepta.ts`](packages/x402-guard/src/intercepta.ts) (the call);
+  `checkPayee` and `checkUndeclared` in [`check.ts`](packages/x402-guard/src/check.ts) (the decisions);
+  `services/agent/src/screening` (the AP agent).
+
+### How we use Curvegrid MultiBaas
+
+- **What it indexes.** Our deployment (Ethereum Sepolia) links PayeeRegistry, AgentVault and MockJPYC, with
+  event indexing from the v2 block (11781105).
+- **Queries.** Three event queries, in the format of Curvegrid's Matsuri sample:
+  - every `InvoicePaid` the vault emitted;
+  - `InvoicePaid` summed per T-number;
+  - mJPYC `Transfer` summed per recipient: what each company received, vault payments and x402 sales alike.
+- **What reads it.**
+  - The AP agent's `GET /payments` feeds the dashboards (what was paid, what each payee received, what the agent
+    refused).
+  - `GET /invoices/:id/settlement` confirms each payment from its indexed `InvoicePaid`.
+  - Without MultiBaas, the same facts come from RPC logs, and each answer says which source it used.
+- **Setup:**
+  1. Put `MULTIBAAS_URL` and `MULTIBAAS_API_KEY` in `.env`.
+  2. Run `pnpm --filter @meigi/agent multibaas:setup`. It is idempotent: it imports the ABIs through MultiBaas's
+     explorer lookup, aliases and links the contracts, and saves the queries.
+  3. Restart the agent; `/health` shows `"multibaas": true`.
+- **Tests:** `pnpm --filter @meigi/agent test` runs them against a stub MultiBaas, and
+  `pnpm --filter @meigi/agent test:integration` runs the RPC fallback on anvil.
+- **Code:** [`services/agent/src/multibaas`](services/agent/src/multibaas),
+  [`services/agent/src/history`](services/agent/src/history),
+  [`services/agent/src/routes/payments.ts`](services/agent/src/routes/payments.ts).
+- **Our experience with MultiBaas:** PENDING, filled in after the live run (time to the first indexed event,
+  what went well, friction, one improvement).
+- **Next steps:**
+  - build `payInvoice` with the contract-call API and sign locally;
+  - add an `event.emitted` webhook behind a public relay;
+  - deploy to MIZUHIKI's Awaji testnet, as in the Matsuri sample.
 
 ## Deployed on Sepolia (all [Sourcify](https://sourcify.dev) exact matches)
 
@@ -130,6 +168,7 @@ pnpm install
 cd contracts && forge test && cd ..                    # 95 tests
 pnpm --filter @meigi/verifier start                    # :8787 (needs the NTA index: services/verifier/scripts/build_nta_index.py)
 pnpm --filter @meigi/agent start                       # :8788
+pnpm --filter @meigi/agent multibaas:setup             # optional: index the contracts in Curvegrid MultiBaas
 pnpm --filter @meigi/x402-demo start                   # :8790
 pnpm --filter @meigi/web dev                           # :5173
 pnpm dev:landing
