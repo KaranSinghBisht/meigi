@@ -22,6 +22,25 @@ tripping through our verifier — most of it spent on the two friction points be
   read (`RpContextWire` accepts either) rather than betting on one name staying stable.
 - **The WASM loader needs a fetch shim under Node.** IDKit's verifier-side WASM module assumes a browser-style
   `fetch` for `file:` URLs; our server needed a small shim before proof verification would even load.
+- **Self Check enrollment failed in-app, twice, for a real officer in Tokyo; Orb used instead.** Scanning our
+  enrollment QR (constraint `{any: [{type: "selfie", ...}, {type: "proof_of_human", ...}]}`) walked him into Self
+  Check as documented, but the World ID app itself failed both attempts with a generic "Something went wrong.
+  There was a temporary issue verifying you." Our verifier never received a request either time — whatever failed
+  happened entirely inside World's own app/backend, before a proof was ever produced. We checked our side against
+  World's own docs rather than assume it was our bug: no documented regional restriction on Self Check (Japan or
+  otherwise), no documented app-version or device prerequisite, and no Developer Portal gate for Self Check the
+  way "Identity Check" is explicitly gated as preview-only — we found nothing pointing at our configuration. One
+  genuine gap we can point to: World's own docs mention the `any()`/`all()`/`enumerate()` constraint builders
+  exactly once, only for mutually-exclusive NFC credentials (passport/eID/MNC); we found no documented example of
+  `any()` combining Self Check with Proof of Human, so we can't independently confirm this exact shape is a
+  well-trodden path on World's side. World's status page also logged one resolved "World ID Verifications"
+  incident two days before this (2026-09-24) and a maintenance window three days before that, suggesting the
+  underlying service has had some recent instability, though nothing was showing as actively degraded at the
+  time. Net: most consistent with a transient failure in World's own Self Check pipeline, not something we could
+  reproduce a fix for from our side. We did hone our own handling either way: added the missing calm treatment
+  for every real `IDKitErrorCodes` value we weren't covering (about half were unmapped), and a "no answer from
+  World ID yet, try again or cancel" state after 2.5 minutes of silence, since World App failing without
+  relaying anything back through the bridge was itself a real gap in our own UX.
 - **PENDING:** team-lead's brief for this file mentions an `integrity_verification_failed` probe as something to
   include. I couldn't find it anywhere in the repo (code, logs, or docs) and don't have direct experience with
   it myself, so I'm not writing a cause for it without evidence. Whoever hit it: send me the context (what
