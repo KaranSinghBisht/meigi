@@ -21,8 +21,12 @@ const CHAIN_CHECKED = new Set([
   'not_agent',
 ])
 
-/** "Let the agent pay anyway" is offered only when at least one blocking hold is one the chain enforces. */
+/**
+ * "Let the agent pay anyway" is offered only when at least one blocking hold is one the chain enforces, and never on
+ * an invoice a verified human could approve: the agent decides that (`approval.approvable`), and forcing one of
+ * those only ever answers force_needs_human.
+ */
 export function attackDemoFits(analysis: Analysis): boolean {
-  if (analysis.verdict.decision !== 'hold') return false
+  if (analysis.verdict.decision !== 'hold' || analysis.approval.approvable) return false
   return analysis.verdict.reasons.some((reason) => reason.severity === 'block' && CHAIN_CHECKED.has(reason.code))
 }

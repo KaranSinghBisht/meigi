@@ -135,6 +135,7 @@ function kernel(v: unknown): Kernel {
 
 function screening(v: unknown): Screening {
   const s = obj(v)
+  if (s.status === 'not_configured') return { status: 'not_configured', reason: text(s.reason) ?? 'no screening key' }
   if (s.status !== 'ok') return { status: 'unavailable', reason: text(s.reason) ?? 'screening unavailable' }
   return {
     status: 'ok',

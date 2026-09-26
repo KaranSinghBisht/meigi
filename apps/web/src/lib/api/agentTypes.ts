@@ -102,6 +102,7 @@ export interface ScreenedAddress {
 export type Screening =
   | { readonly status: 'ok'; readonly results: readonly ScreenedAddress[]; readonly errors: readonly string[] }
   | { readonly status: 'unavailable'; readonly reason: string }
+  | { readonly status: 'not_configured'; readonly reason: string }
 
 export interface Explanation {
   readonly source: string

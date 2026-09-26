@@ -3,12 +3,24 @@ import { shortAddress } from '../../../lib/chain/format'
 import { Badge } from '../../../ui/components/Badge'
 import { Column } from './Column'
 
+/**
+ * Without a key, screening is advisory and simply off. With one, an address that couldn't be screened holds the
+ * payment (a verified human may release it), so "unavailable" reads as a hold, not a shrug.
+ */
 export function ScreeningColumn({ screening }: { readonly screening: Screening }) {
-  if (screening.status === 'unavailable') {
+  if (screening.status === 'not_configured') {
     return (
       <Column step={4} title="Screening" tag="Intercepta" tone="muted">
-        <p className="col__unavailable">Screening unavailable.</p>
+        <p className="col__unavailable">Screening not configured.</p>
         <p className="col__note">{screening.reason}</p>
+      </Column>
+    )
+  }
+  if (screening.status === 'unavailable') {
+    return (
+      <Column step={4} title="Screening" tag="Intercepta" tone="hold" status={<Badge tone="disputed">Hold</Badge>}>
+        <p className="col__unavailable">Screening unavailable.</p>
+        <p className="col__note">{screening.reason}. Nothing is auto-cleared until it answers.</p>
       </Column>
     )
   }
