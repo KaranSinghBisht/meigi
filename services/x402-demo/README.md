@@ -47,3 +47,26 @@ Verified live (2026-09-26), one research-agent run: 2 GPU-minutes and a dataset 
 `0x48d3d33aa61cb3b9c2c2eb6e474fc99cf3260d5454505ab142f3375a0774e3d3`); the compromised GPU mirror was refused
 ("t6999900000003.payee.eth resolves to the registered payout 0x4d6D…fD30, but payTo asks for 0xdCa5…6d5b
 instead"); the undeclared scrape was refused (`no_declaration`, no Intercepta key configured).
+
+## Awaji mode: x402 on Mizuhiki's own rail
+
+`X402_CHAIN=awaji` runs the same code on Mizuhiki's Awaji testnet (chain 6497), following Mizuhiki's x402 quickstart
+(docs.mizuhiki.io/en/core/x402-quickstart): network `eip155:6497`, their MJPY (`0x78f5…4B04`, 6 decimals, EIP-712
+domain "Mizuhiki JPY" v2) and the `exact` scheme, settled by EIP-3009 `transferWithAuthorization`.
+- **The registry is the only check.** ENS isn't on Awaji, so Minato declares only its T-number, and the guard
+  compares `payTo` with Meigi's Awaji registry (`contracts/deployments/6497.json`).
+- **Only Minato GPU Cloud is served,** the one merchant registered there (`contracts/script/seed-awaji.sh`). The
+  research agent buys one GPU-minute (15 MJPY) and tries the compromised inference mirror.
+- **Settlement.** `AWAJI_FACILITATOR_URL` points the merchant at Mizuhiki's hosted facilitator. It was down on
+  2026-09-26 (HTTP 404 "Application not found"), so unset it: the in-process facilitator settles on Awaji with
+  `FACILITATOR_PRIVATE_KEY`, which needs a little MIZU for gas. The buyer needs none: it only signs.
+
+```sh
+pnpm --filter @meigi/x402-demo e2e:awaji-fork               # the whole flow on an anvil fork of Awaji: spends nothing
+X402_DEMO_PORT=8792 pnpm --filter @meigi/x402-demo start:awaji
+X402_DEMO_PORT=8792 pnpm --filter @meigi/x402-demo research-agent:awaji
+```
+
+Awaji env: `AWAJI_MINATO_PAYOUT` (Minato's registered Awaji payout), and optionally `AWAJI_RPC_URL`,
+`AWAJI_REGISTRY_ADDRESS`, `AWAJI_TOKEN_ADDRESS` (defaults: Mizuhiki's RPC, our registry, MJPY) and
+`AWAJI_FACILITATOR_URL`.

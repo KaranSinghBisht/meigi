@@ -1,9 +1,9 @@
 import { ensResolver, parseDeclaration, registryReader, type MeigiPayeeDeclaration } from "@meigi/x402-guard";
 import { decodePaymentRequiredHeader } from "@x402/core/http";
-import { createPublicClient, http, type Address } from "viem";
-import { sepolia } from "viem/chains";
+import { createPublicClient, http } from "viem";
 import { guardedBuyer } from "./buyer.js";
 import type { Config } from "./config.js";
+import { railOf } from "./rail.js";
 
 /**
  * A research agent's shopping trip: it needs 2 GPU-minutes and a dataset slice for a job, and tries two
@@ -29,6 +29,16 @@ const JOBS: readonly Job[] = [
   },
   { label: "A public web-scrape API with no Meigi record", method: "GET", path: "/web/scrape/undeclared" },
   { label: "Another public web-scrape API, paying an address screening already flags", method: "GET", path: "/web/scrape/undeclared-flagged" },
+];
+
+/** On Awaji only Minato GPU Cloud is registered: a GPU-minute from it, then its compromised inference mirror. */
+const AWAJI_JOBS: readonly Job[] = [
+  { label: "A GPU-minute from Minato GPU Cloud", method: "POST", path: "/compute/minato/gpu-minute" },
+  {
+    label: "A cheaper-looking GPU inference mirror it also found",
+    method: "POST",
+    path: "/compute/minato/inference/compromised",
+  },
 ];
 
 export interface ScenarioStep {
@@ -69,7 +79,7 @@ async function inspect(
   self: string,
   job: Job,
   registry: ReturnType<typeof registryReader>,
-  resolveEns: ReturnType<typeof ensResolver>,
+  resolveEns: ReturnType<typeof ensResolver> | undefined,
 ): Promise<Inspection> {
   const response = await fetch(`${self}${job.path}`, { method: job.method });
   const header = response.headers.get("payment-required");
@@ -81,7 +91,7 @@ async function inspect(
   const ens = (raw as Partial<MeigiPayeeDeclaration>).ens ?? null;
   const [payee, resolvedEns] = await Promise.all([
     registry(BigInt(digits)).catch(() => null),
-    ens ? resolveEns(ens).catch(() => null) : Promise.resolve(null),
+    ens && resolveEns ? resolveEns(ens).catch(() => null) : Promise.resolve(null),
   ]);
   return {
     amountAtomic: accepts?.amount ?? null,
@@ -95,14 +105,15 @@ async function inspect(
 export async function runResearchAgent(config: Config): Promise<ScenarioResult> {
   const startedAt = new Date().toISOString();
   const self = `http://localhost:${config.X402_DEMO_PORT}`;
-  const publicClient = createPublicClient({ chain: sepolia, transport: http(config.SEPOLIA_RPC_URL) });
-  const registry = registryReader(publicClient, config.REGISTRY_ADDRESS as Address);
-  const resolveEns = ensResolver(publicClient);
+  const rail = railOf(config);
+  const publicClient = createPublicClient({ chain: rail.chain, transport: http(rail.rpcUrl) });
+  const registry = registryReader(publicClient, rail.registry);
+  const resolveEns = rail.ens ? ensResolver(publicClient) : undefined;
   const buy = guardedBuyer(config);
 
   const steps: ScenarioStep[] = [];
   let spent = 0n;
-  for (const job of JOBS) {
+  for (const job of rail.name === "awaji" ? AWAJI_JOBS : JOBS) {
     const seen = await inspect(self, job, registry, resolveEns);
     const purchase = await buy(`${self}${job.path}`, { method: job.method });
     const verdict = purchase.verdict;

@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { loadConfig } from "./config.js";
 import { merchantApp } from "./merchant.js";
+import { railOf } from "./rail.js";
 import { runResearchAgent } from "./scenario.js";
 
 const config = loadConfig();
@@ -17,5 +18,5 @@ app.route("/", merchantApp(config));
 app.post("/scenario/research-agent", async (c) => c.json(await runResearchAgent(config)));
 
 serve({ fetch: app.fetch, port: config.X402_DEMO_PORT, hostname: config.X402_DEMO_HOST }, (info) => {
-  process.stdout.write(`meigi x402 demo listening on http://localhost:${info.port}\n`);
+  process.stdout.write(`meigi x402 demo (${railOf(config).network}) listening on http://localhost:${info.port}\n`);
 });

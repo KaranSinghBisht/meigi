@@ -7,6 +7,9 @@
   "scripts": {
     "start": "tsx --env-file=../../.env src/server.ts",
     "research-agent": "tsx --env-file=../../.env scripts/research-agent.ts",
+    "start:awaji": "X402_CHAIN=awaji tsx --env-file=../../.env src/server.ts",
+    "research-agent:awaji": "X402_CHAIN=awaji tsx --env-file=../../.env scripts/research-agent.ts",
+    "e2e:awaji-fork": "bash scripts/awaji-fork-e2e.sh",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

@@ -16,7 +16,8 @@ function describe(step: ScenarioStep): string {
   const lines = [`- ${step.label} [${step.method} ${step.path}]`];
   if (step.declared) {
     lines.push(`    declared: ${step.declared.tNumber}${step.declared.ens ? ` / ${step.declared.ens}` : ""}`);
-    lines.push(`    ens resolves to: ${short(step.resolvedEns)}; registry payout: ${short(step.registryPayout)}`);
+    const ens = step.declared.ens ? `ens resolves to: ${short(step.resolvedEns)}; ` : "";
+    lines.push(`    ${ens}registry payout: ${short(step.registryPayout)}`);
   } else {
     lines.push("    no Meigi declaration");
   }
