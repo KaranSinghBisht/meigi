@@ -10,8 +10,9 @@
 #   scripts/ap-stack.sh --pause-signer   # stop the signer and keep it down: the agent stays up, but can't pay
 #   scripts/ap-stack.sh --resume-signer  # start the signer again, and wait until it answers
 #
-# Human-approver enrolment stays off (WORLD_AGENTS_ENROLL=0). Logs: ap-signer.log and ap-agent.log at the repo root
-# (*.log is git-ignored).
+# The signer verifies approvals itself (Phase 2, SIGNER_VERIFY_APPROVAL=1) unless the launching shell says 0: the kill
+# switch is `SIGNER_VERIFY_APPROVAL=0 scripts/ap-stack.sh`. Human-approver enrolment stays off (WORLD_AGENTS_ENROLL=0).
+# Logs: ap-signer.log and ap-agent.log at the repo root (*.log is git-ignored).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -22,6 +23,7 @@ SIGNER="$STATE/ap-stack.signer"        # "<the signer loop's process group> <por
 PAUSED="$STATE/ap-stack.signer-paused" # while it exists, the signer's supervisor leaves it down
 PARKED="$STATE/ap-stack.signer-parked" # the supervisor's reply, said again every second: the signer is down, waiting
 export SIGNER_PORT="${SIGNER_PORT:-8796}" # exported, so the signer listens where this script looks
+export SIGNER_VERIFY_APPROVAL="${SIGNER_VERIFY_APPROVAL:-1}" # Phase 2 by default, so a bare restart keeps it
 
 die() {
   echo "ap-stack: $*" >&2
