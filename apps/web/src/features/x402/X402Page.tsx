@@ -39,6 +39,9 @@ client
   .onBeforePaymentCreation(screenUndeclaredPayee({ screen: interceptaScreen({ apiKey }), maxAmount: 50n * 10n ** 18n }))`}
         </pre>
         <p className="muted">
+          <code>@meigi/x402-guard</code> is a workspace package in the Meigi repo; it's not published to npm yet.
+        </p>
+        <p className="muted">
           Demo service: <code>{env.merchantUrl}</code> (<code>POST /scenario/research-agent</code>).
         </p>
       </Panel>
