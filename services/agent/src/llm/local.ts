@@ -12,7 +12,7 @@ export interface LocalLlmOptions {
 type Message = { role: "system" | "user"; content: string };
 
 /**
- * A model on this machine behind an OpenAI-compatible chat API (Ollama with llama3.1:8b by default). No key.
+ * A model on this machine behind an OpenAI-compatible chat API (Ollama with gemma4:e4b by default, as the booth runs it). No key.
  * JSON mode is requested for the proposal; a reply with a JSON object inside prose is accepted too. Thinking is
  * switched off (`reasoning_effort: "none"`): a thinking model (gemma4) otherwise spends the whole token budget
  * reasoning and returns empty content. Ollama ignores it for models that don't think.

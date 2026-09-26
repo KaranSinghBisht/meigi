@@ -53,7 +53,7 @@ const schema = z
       .refine(secureOrLoopback, "must be https, or http on loopback")
       .default("http://127.0.0.1:11434/v1")
       .transform((v) => v.replace(/\/+$/u, "")),
-    LOCAL_LLM_MODEL: z.string().min(1).default("llama3.1:8b"),
+    LOCAL_LLM_MODEL: z.string().min(1).default("gemma4:e4b"), // what the booth runs
     LOCAL_LLM_TIMEOUT_MS: z.coerce.number().int().positive().default(60_000),
     ANTHROPIC_API_KEY: optional(z.string()),
     ANTHROPIC_MODEL: z.string().default("claude-haiku-4-5"),
