@@ -1,9 +1,8 @@
-import { formatJstTime } from '../../../../lib/chain/format'
 import { HankoMark } from '../../../../ui/brand/HankoMark'
 import { Spinner } from '../../../../ui/components/Spinner'
 import { useQr } from '../../../../ui/world/useQr'
 import { keepTokens } from '../../content/tokens'
-import { APPROVAL, PAID, URGENT } from '../../content/urgent'
+import { APPROVAL, jstSeconds, PAID, URGENT } from '../../content/urgent'
 import { checkLabel, layerLabel, percent } from './checks'
 import { Bar, Card, Chip, Field } from './parts'
 
@@ -142,8 +141,9 @@ function WorldIdCard() {
           <span>
             <b>Approved by the enrolled approver</b>
             <span className="pcard__note">
-              Sandbox token: acr {APPROVAL.acr} · approved {formatJstTime(APPROVAL.approvedAt)}, checked fresh ·
-              single-use, bound to {URGENT.invoice}
+              Audit #81: approved {jstSeconds(APPROVAL.approvedAt)}, approver matched (
+              <span className="mono">{APPROVAL.approverId}</span>). #83: the signer verified it again, then sent the
+              payment.
             </span>
           </span>
         </p>
@@ -163,7 +163,7 @@ function PaidCard() {
       </p>
       <p className="pcard__note">
         tx <span className="mono">{PAID.txShort}</span> · block {PAID.block.toLocaleString('en-US')} ·{' '}
-        {formatJstTime(PAID.at)} · Sepolia
+        {jstSeconds(PAID.at)} · Sepolia
       </p>
       <p className="pcard__note">
         Sent by the agent key through the ENS MandateGate, under the mandate{' '}

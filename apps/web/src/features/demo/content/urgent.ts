@@ -15,6 +15,17 @@ import analysisJson from './urgent-analysis.json'
 import { segment } from './segments'
 import invoiceText from './urgent-invoice.ja.txt?raw'
 
+const JST_SECONDS = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Asia/Tokyo',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hour12: false,
+})
+
+/** A recorded moment to the second, as the audit log and the block have it, e.g. "22:16:51 JST". */
+export const jstSeconds = (date: Date): string => `${JST_SECONDS.format(date)} JST`
+
 const analysis = parseAnalysis(analysisJson)
 const { extracted, triage } = analysis
 
@@ -56,15 +67,19 @@ export const URGENT = {
   holds: analysis.verdict.reasons.filter((reason) => reason.severity === 'block' && reason.layer === 'triage'),
 } as const
 
-/** World ID for Agents on World's sandbox IdP: the device flow, and the approval as the audit log records it. */
+/**
+ * World ID for Agents on World's sandbox IdP: the device flow, and the approval exactly as the audit log records it
+ * (#81 approval.settled, #83 signer.pay). The log holds no ID token, so nothing is shown about the token itself.
+ */
 export const APPROVAL = {
   link: 'sandbox.auth.world.org/device',
   qrUri: 'https://sandbox.auth.world.org/device',
-  /** The user code World's page showed the approver (docs/world-agents-approve-run.md). */
+  /** The user code World's page showed the approver: not in the audit log, recorded in the run's write-up. */
   code: 'RMHB9-MFQB4',
-  acr: 'orb-v3',
-  /** approvedAt 1790428611 (audit #81): 22:16:51 JST. */
+  /** #81: status "approved", approvedAt 1790428611 (22:16:51 JST), approver "matched". */
   approvedAt: new Date(1_790_428_611 * 1000),
+  /** #81 and #83 name the same approver: the first 16 hex of SHA-256(sub). */
+  approverId: '92c520d9a85b4ec1',
 } as const
 
 const TX = '0xf7507446d11c2c5cab94ff4b7ca83db36180b3aa8d80085f9556aaeabcea5a03'

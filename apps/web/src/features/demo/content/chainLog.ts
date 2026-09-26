@@ -2,10 +2,10 @@
 // own group, so a chapter's log tells only its own story. Every value is from the recorded runs (the simulated
 // PayeeMismatch, the approved payment, the x402 settlements).
 
-import { formatJstTime, shortAddress, shortHash } from '../../../lib/chain/format'
+import { shortAddress, shortHash } from '../../../lib/chain/format'
 import { BEC } from './bec'
 import { keepTokens } from './tokens'
-import { PAID, URGENT } from './urgent'
+import { jstSeconds, PAID, URGENT } from './urgent'
 import { X402_RUN } from './x402'
 
 export type LogTone = 'cmd' | 'ok' | 'fail' | 'muted'
@@ -49,7 +49,7 @@ const human: LogGroup = {
   lines: [
     { id: 'pay', text: `› payInvoice(${URGENT.tNumber}, ${PAID.payToShort}, ${PAID.amount}) · approved`, tone: 'cmd' },
     { id: 'paid', text: `← paid ${PAID.amount} → ${PAID.payToShort} · tx ${PAID.txShort}`, tone: 'ok' },
-    { id: 'block', text: `block ${PAID.block.toLocaleString('en-US')} · ${formatJstTime(PAID.at)} · Sepolia`, tone: 'muted' },
+    { id: 'block', text: `block ${PAID.block.toLocaleString('en-US')} · ${jstSeconds(PAID.at)} · Sepolia`, tone: 'muted' },
   ],
 }
 

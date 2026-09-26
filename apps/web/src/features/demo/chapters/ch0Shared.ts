@@ -25,7 +25,7 @@ export function record(c: BuildCtx, evidenceAt: number, eventAt: number): void {
   show(c, 'r-status-active', eventAt + 0.25, { duration: 0.3 })
 }
 
-/** The registered screen: the payee card, then its name resolving in any ENS client, and the rail's last tick. */
+/** The registered screen: the payee card, then its name resolving on ENS, and the rail's last tick. */
 export function registered(c: BuildCtx, at: number): void {
   turn(c, 6, at)
   show(c, 'onb-resolves', at + 1.4, { duration: 0.35 })
