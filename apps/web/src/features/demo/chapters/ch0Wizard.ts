@@ -68,7 +68,7 @@ function register(c: BuildCtx): void {
 export function wizardCaptions(): CaptionDef[] {
   return [
     { at: 0, text: 'A company joins Meigi: a real run through the wizard, registered on Sepolia.' },
-    { at: 4.6, text: 'A business key approves changes; one address receives every payment.' },
+    { at: 4.6, text: 'A business key requests changes; one address receives every payment.' },
     {
       at: 8.6,
       text: ONBOARD.fixture
@@ -79,8 +79,8 @@ export function wizardCaptions(): CaptionDef[] {
     {
       at: 13.6,
       text: ONBOARD.placeholder
-        ? 'Its placeholder officer means no one can change its payout.'
-        : 'Officers enroll with World ID: a verified human approves every change.',
+        ? 'With a placeholder officer, the company itself can’t change its payout.'
+        : 'Officers enroll with World ID: a verified human approves every change the company asks for.',
     },
     { at: 15.8, text: `One registration on Sepolia, and ${ONBOARD.ens} resolves to that payout.` },
   ]

@@ -82,8 +82,8 @@ export const ONBOARD_COPY = {
   },
   wallets: {
     title: 'Which wallets will it use?',
-    lede: 'A business key that approves changes, and the one address every payment goes to.',
-    keyLede: 'It signs the domain proof, and every change after registration.',
+    lede: 'A business key that requests changes, and the one address every payment goes to.',
+    keyLede: 'It signs the domain proof, and every change the company asks for later.',
     payoutLede: 'The only address payers who check Meigi will send money to.',
   },
   domain: domainCopy(),
@@ -105,8 +105,8 @@ export const ONBOARD_COPY = {
   officers: {
     title: 'Who approves changes?',
     lede: placeholder
-      ? 'Real companies enroll officers with World ID. This demo company has a placeholder officer no one can prove, so no one can change its payout.'
-      : 'Every future payout change needs one of these same people.',
+      ? "Real companies enroll officers with World ID. This demo company has a placeholder officer no one can prove, so the company itself can't change its payout."
+      : 'Any payout change the company asks for needs these same people.',
   },
   review: {
     title: 'Check everything, then register',
@@ -116,8 +116,8 @@ export const ONBOARD_COPY = {
   registered: {
     title: "It's registered.",
     lede: placeholder
-      ? `Payers who check ${ens} pay only the address below. Its placeholder officer means no one can change it; a real company changes it with its business key, its officers and 72 hours in public.`
-      : `Payers who check ${ens} will only ever pay the address below. Changing it takes the company's business key, its officers and 72 hours in public.`,
+      ? `Payers who check ${ens} pay only the address below. With a placeholder officer the company can't change it; only a governance ruling on a dispute can, after a 72-hour public window.`
+      : `Payers who check ${ens} will only ever pay the address below. It changes only through a 72-hour public window: the company's business key with its officers, or a governance ruling on a dispute.`,
   },
 } as const
 

@@ -34,7 +34,7 @@ function officersRow(): Row {
 const ROWS: readonly Row[] = [
   { id: 'tnumber', label: 'T-number', value: ONBOARD.tNumber, note: ONBOARD.legalName },
   { id: 'ens', label: 'ENS name', value: ONBOARD.ens },
-  { id: 'controller', label: 'Business key', value: ONBOARD.controllerShort, note: 'approves changes' },
+  { id: 'controller', label: 'Business key', value: ONBOARD.controllerShort, note: 'requests changes' },
   { id: 'payout', label: 'Payout address', value: ONBOARD.payoutShort, note: 'the one address paid' },
   domainRow(),
   officersRow(),
