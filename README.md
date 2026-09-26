@@ -64,6 +64,10 @@ the vault reverts `PayeeMismatch` and names the registered company.
   (cd apps/landing && RPC_URL=https://ethereum-sepolia-rpc.publicnode.com node --input-type=module) < contracts/script/ens/check-viem.mjs
   # {"address":"0x9B4fc8994FcF2d5FE08a82A9454B61AA14D647e4","legalName":"株式会社メイギ商事","status":"active",…}
   ```
+  ENS's agent CLI makes the same viem calls (`ens get address t2011001234567.payee.eth --chain sepolia`,
+  `ens get name 0x87A798CD92dE1340B1b761dd45196AC82bEF793B --chain sepolia`). We haven't run it ourselves, because it
+  ships only as an unpinned preview build. The profiles show in the ENSv2 app, e.g.
+  [app.ens.dev/t2011001234567.payee.eth](https://app.ens.dev/t2011001234567.payee.eth).
 - **x402:** an honest purchase settled on Sepolia in
   [`0xf3c29896…77b0df`](https://sepolia.etherscan.io/tx/0xf3c298960b9abac5466f4aa6e59f9a9ba4b73de703df3468d72f18049077b0df).
   The same merchant with a swapped `payTo` is refused before anything is signed.
@@ -87,9 +91,10 @@ the vault reverts `PayeeMismatch` and names the registered company.
   - `payee.eth` names companies. [`PayeeResolver`](contracts/src/ens/PayeeResolver.sol) answers every
     `t<13 digits>.payee.eth` from the registry at call time (ENSIP-10), so millions of T-numbers resolve without
     minting. A company can also claim its name as an ENSv2 token for its own profile; its payout still comes from
-    the registry.
-  - `meigi.eth` names agents. `ap.meigi.eth` is the AP agent, with ENSIP-26 records. Its key can edit only
-    `agent-status` (Enhanced Access Control), and it is the AgentVault's ENSIP-19 primary name.
+    the registry. Claimed names are soulbound (no transfer role), expire with `payee.eth`, and Meigi can revoke them.
+  - `meigi.eth` names agents. `ap.meigi.eth` is the AP agent, with ENSIP-26 records. It is linked to ERC-8004 agent
+    10525 per ENSIP-25. Its key can edit only `agent-status` (Enhanced Access Control), and it is the AgentVault's
+    ENSIP-19 primary name.
   - The names survive changing keys. Payouts and business keys change behind a 72h public timelock, and
     `ens.sh agent-rotate` moves the agent to a new key without changing `ap.meigi.eth` (fork-tested).
   - Anyone can check them with stock viem and no configuration. The story and evidence: [`docs/ens.md`](docs/ens.md);
