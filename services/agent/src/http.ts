@@ -52,11 +52,24 @@ function signerTrouble(status: number | null): string {
   return status === 200 ? "The signer's answer couldn't be read" : `The signer answered ${status}`;
 }
 
-/** The agent holds no key, so without the signer it can't pay. Only a failure at /simulate proves nothing was sent. */
-function signerMessage({ status, nothingSent }: SignerUnavailable): string {
-  if (nothingSent) return `${signerTrouble(status)}, and the agent holds no key of its own: nothing was signed or sent.`;
-  const trouble = status === null ? "The signer stopped answering" : signerTrouble(status);
-  return `${trouble} during the payment, so it may have been sent. Pay again once it answers: the vault refuses a second payment of this invoice.`;
+/**
+ * The agent holds no key, so without the signer it can't pay. Only a failure at /simulate proves nothing was sent; a
+ * transaction already sent only needs its receipt read, which a plain Pay does. A verified human's approval that went
+ * with an attempt that sent nothing known is spent, so paying again needs a new one.
+ */
+function signerMessage({ status, nothingSent, sentTx, approval }: SignerUnavailable): string {
+  const stopped = status === null ? "The signer stopped answering" : signerTrouble(status);
+  if (sentTx) {
+    const again = approval === "not_needed" ? " No new approval is needed." : "";
+    return `${stopped}, but the payment was sent (tx ${sentTx}): press Pay once it answers to read its receipt.${again}`;
+  }
+  const spent = approval === "spent";
+  if (nothingSent) {
+    const renew = spent ? " The approval is used up: ask for a new one once the signer is back." : "";
+    return `${signerTrouble(status)}, and the agent holds no key of its own: nothing was signed or sent.${renew}`;
+  }
+  const again = spent ? "Once it answers, pay again with a new approval (this one is used up)" : "Pay again once it answers";
+  return `${stopped} during the payment, so it may have been sent. ${again}: the vault refuses a second payment of this invoice.`;
 }
 
 function chainMessage(error: BaseError): string {

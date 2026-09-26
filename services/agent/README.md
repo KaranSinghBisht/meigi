@@ -285,7 +285,7 @@ Run these from the repo root.
 
 ```sh
 pnpm install --filter "@meigi/agent..." --filter "@meigi/signer..."
-SIGNER_VERIFY_APPROVAL=1 scripts/ap-stack.sh   # the booth: the signer verifies approvals itself (Phase 2)
+scripts/ap-stack.sh                            # the booth: the signer verifies approvals itself (Phase 2, the default)
 scripts/ap-stack.sh --stop                     # stops both
 scripts/ap-stack.sh --pause-signer             # stops the signer alone: the agent stays up, with no key to pay
 scripts/ap-stack.sh --resume-signer            # starts the signer again
@@ -328,8 +328,10 @@ Sepolia `TOKEN_ADDRESS`, which the deploy script would otherwise reuse.
 All settings come from the environment; see `.env.example`.
 - **Required:** `SEPOLIA_RPC_URL`, `AGENT_ADDRESS`, `SIGNER_TOKEN`, `REGISTRY_ADDRESS` and `VAULT_ADDRESS`.
   `SIGNER_URL` defaults to `http://127.0.0.1:8796`.
-- **Optional second RPC:** `SEPOLIA_RPC_FALLBACK_URL`. Reads retry there when the primary fails (a timeout, a
-  connection error, an HTTP error such as a Cloudflare 403 at a crowded venue).
+- **Optional second RPC:** `SEPOLIA_RPC_FALLBACK_URL` (https, or http on loopback; empty means unset). Reads move
+  there when the primary fails (a connection error, an HTTP error such as a Cloudflare 403 at a crowded venue) or
+  hangs for 4 s, and the primary is then skipped for a minute, so a hung RPC costs one short wait, not one per read.
+  It is still tried last when the fallback fails too.
 - **`AGENT_PRIVATE_KEY` must not be set:** the agent refuses to start if it is. It lives in `.env.signer`, which only
   the signer loads.
 - **Startup checks:**

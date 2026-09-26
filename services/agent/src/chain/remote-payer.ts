@@ -20,6 +20,11 @@ export class SignerUnavailable extends Error {
   ) {
     super(message);
   }
+
+  // Set by the pay route. A transaction this invoice already sent only needs its receipt read; otherwise a verified
+  // human's approval that went with the attempt is spent, and paying again needs a new one.
+  sentTx: string | null = null;
+  approval: "none" | "spent" | "not_needed" = "none";
 }
 
 export interface SignerHealth {

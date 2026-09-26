@@ -4,6 +4,7 @@ import { createApp } from "../src/app.js";
 import { createRemotePayer } from "../src/chain/remote-payer.js";
 import type { AppDeps } from "../src/deps.js";
 import { AGENT, demo, fakeDeps, MEIGI_PAYOUT, VAULT } from "./fakes.js";
+import { approvalHarness, approvedWith, pending } from "./mock-idp.js";
 
 const TX = `0x${"cd".repeat(32)}` as Hex;
 
@@ -29,7 +30,7 @@ const failingAt = (path: string, status: number | null) =>
   }) as typeof fetch;
 
 /** The agent with its real remote payer, over a signer the test can stop and start. Counts /pay calls. */
-function agent(signerFetch: typeof fetch) {
+function agent(signerFetch: typeof fetch, extra: Partial<AppDeps> = {}) {
   const events: { event: string; fields: Record<string, unknown> }[] = [];
   const wire = { fetch: signerFetch, pays: 0 };
   const signer = createRemotePayer({
@@ -43,7 +44,7 @@ function agent(signerFetch: typeof fetch) {
     pollMs: 1,
     wait: async () => {},
   });
-  const deps: AppDeps = { ...fakeDeps(), payer: signer, signer };
+  const deps: AppDeps = { ...fakeDeps(), payer: signer, signer, ...extra };
   const app = createApp(deps);
   const call = async (method: string, path: string, body?: unknown) => {
     const init: RequestInit = { method, headers: { "content-type": "application/json" } };
@@ -117,14 +118,52 @@ describe("the agent with its signer stopped", () => {
     ]);
   });
 
+  it("says a verified human's approval is spent when the signer was down for it", async () => {
+    const h = await approvalHarness();
+    const { call } = agent(stopped, { approvals: h.approvals });
+    const analysis = (await call("POST", "/invoices/analyze", { text: demo("07-urgent-invoice.ja.txt") })).body;
+    h.idp.token = [pending, approvedWith(await h.idp.sign({ auth_time: h.idp.clock.now + 7 }))];
+    const started = await call("POST", `/invoices/${analysis.id}/approval`, {});
+    await h.approvals.settled(started.body.attemptId);
+
+    const refused = await call("POST", `/invoices/${analysis.id}/pay`, { approvalId: started.body.attemptId });
+    expect(refused.status).toBe(503);
+    expect(refused.body.message).toBe(
+      "The signer isn't answering, and the agent holds no key of its own: nothing was signed or sent. The approval is used up: ask for a new one once the signer is back.",
+    );
+    expect((await call("POST", `/invoices/${analysis.id}/pay`, { approvalId: started.body.attemptId })).body.code).toBe("approval_used");
+  });
+
   it("keeps a sent payment pending when the signer stops before its receipt, and settles it without sending again", async () => {
     const { call, analyzed, wire } = agent(failingAt("/receipt/", null));
     const analysis = await analyzed();
-    expect((await call("POST", `/invoices/${analysis.id}/pay`)).status).toBe(503);
+    const lost = await call("POST", `/invoices/${analysis.id}/pay`);
+    expect(lost.status).toBe(503);
+    expect(lost.body.message).toBe(`The signer stopped answering, but the payment was sent (tx ${TX}): press Pay once it answers to read its receipt.`);
     expect(wire.pays).toBe(1);
+    const again = await call("POST", `/invoices/${analysis.id}/pay`); // still down: the stored pending payment is kept
+    expect(again.body.message).toBe(`The signer stopped answering, but the payment was sent (tx ${TX}): press Pay once it answers to read its receipt.`);
 
     wire.fetch = answering;
     expect((await call("POST", `/invoices/${analysis.id}/pay`)).body).toMatchObject({ status: "paid", txHash: TX });
-    expect(wire.pays).toBe(1); // the second Pay only looked up the receipt
+    expect(wire.pays).toBe(1); // the later Pays only looked up the receipt
+  });
+
+  it("never asks for a new approval to read the receipt of an approved payment that was sent", async () => {
+    const h = await approvalHarness();
+    const { call, wire } = agent(failingAt("/receipt/", null), { approvals: h.approvals });
+    const analysis = (await call("POST", "/invoices/analyze", { text: demo("07-urgent-invoice.ja.txt") })).body;
+    h.idp.token = [pending, approvedWith(await h.idp.sign({ auth_time: h.idp.clock.now + 7 }))];
+    const started = await call("POST", `/invoices/${analysis.id}/approval`, {});
+    await h.approvals.settled(started.body.attemptId);
+
+    const lost = await call("POST", `/invoices/${analysis.id}/pay`, { approvalId: started.body.attemptId });
+    expect(lost.status).toBe(503);
+    expect(lost.body.message).toBe(
+      `The signer stopped answering, but the payment was sent (tx ${TX}): press Pay once it answers to read its receipt. No new approval is needed.`,
+    );
+    wire.fetch = answering;
+    expect((await call("POST", `/invoices/${analysis.id}/pay`, {})).body).toMatchObject({ status: "paid", txHash: TX }); // no approvalId
+    expect(wire.pays).toBe(1);
   });
 });

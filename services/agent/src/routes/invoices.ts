@@ -5,6 +5,7 @@ import { payAnalysis, type PayMode, type PayResult } from "../analysis/pay.js";
 import type { StoredAnalysis } from "../analysis/store.js";
 import { approvalRefusal } from "../approval/holds.js";
 import { analysisEntry, paymentEntry } from "../audit/entries.js";
+import { SignerUnavailable } from "../chain/remote-payer.js";
 import type { AppDeps } from "../deps.js";
 import { HttpError, readJson } from "../http.js";
 import { load, service } from "./lookup.js";
@@ -56,7 +57,13 @@ export function invoiceRoutes(deps: AppDeps) {
         audit(deps, "payment", paymentEntry(stored, mode, approvalId, result));
       };
       const before = stored.payment;
-      const result = await payAnalysis(deps, stored, mode, sent, approval);
+      const result = await payAnalysis(deps, stored, mode, sent, approval).catch((error: unknown) => {
+        if (error instanceof SignerUnavailable) {
+          error.sentTx = recordedSend ?? (before?.status === "pending" ? before.txHash : null);
+          if (approval) error.approval = error.sentTx ? "not_needed" : "spent"; // a plain Pay reads a pending receipt
+        }
+        throw error;
+      });
       keep(result);
       const unchanged = result === before || (result.status === "pending" && result.txHash === recordedSend); // nothing new
       if (!unchanged) audit(deps, "payment", paymentEntry(stored, mode, approvalId, result));

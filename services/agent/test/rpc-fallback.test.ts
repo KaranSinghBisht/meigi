@@ -1,7 +1,7 @@
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createClients } from "../src/chain/clients.js";
+import { createClients, PRIMARY_TIMEOUT_MS } from "../src/chain/clients.js";
 import { loadConfig } from "../src/config.js";
 
 /** A venue's shared IP gets Cloudflare 403s from a public RPC: reads must carry on through the fallback URL. */
@@ -25,15 +25,18 @@ function server(answer: (body: { method: string; id: number }) => { status: numb
 }
 
 const primary = server(() => ({ status: 403 })); // what Cloudflare answers a flagged IP
+const hung: Server = createServer(() => {}); // accepts the connection and never answers
 const backup = server(({ method, id }) => ({ status: 200, json: { jsonrpc: "2.0", id, result: method === "eth_chainId" ? "0xaa36a7" : "0x10" } }));
 const urlOf = (s: Server) => `http://127.0.0.1:${(s.address() as AddressInfo).port}`;
 
 beforeAll(async () => {
-  await Promise.all([primary.s, backup.s].map((s) => new Promise<void>((resolve) => s.listen(0, "127.0.0.1", () => resolve()))));
+  await Promise.all([primary.s, backup.s, hung].map((s) => new Promise<void>((resolve) => s.listen(0, "127.0.0.1", () => resolve()))));
 });
 afterAll(() => {
   primary.s.close();
   backup.s.close();
+  hung.closeAllConnections();
+  hung.close();
 });
 
 describe("reading Sepolia through a fallback RPC", () => {
@@ -42,6 +45,30 @@ describe("reading Sepolia through a fallback RPC", () => {
     expect(await publicClient.getBlockNumber()).toBe(16n);
     expect(primary.hits.length).toBeGreaterThan(0);
     expect(backup.hits).toContain("eth_blockNumber");
+  });
+
+  it("gives up on a hung primary after one short try, then skips it instead of waiting again", async () => {
+    const { publicClient } = createClients(urlOf(hung), 11155111, urlOf(backup.s));
+    let started = Date.now();
+    expect(await publicClient.getBlockNumber({ cacheTime: 0 })).toBe(16n);
+    expect(Date.now() - started).toBeGreaterThanOrEqual(PRIMARY_TIMEOUT_MS - 100);
+    expect(Date.now() - started).toBeLessThan(PRIMARY_TIMEOUT_MS + 2_000);
+    started = Date.now();
+    expect(await publicClient.getBlockNumber({ cacheTime: 0 })).toBe(16n);
+    expect(Date.now() - started).toBeLessThan(1_000); // benched for a minute: straight to the fallback
+  }, 15_000);
+
+  it("still reaches a benched primary last when the fallback refuses too", async () => {
+    let calls = 0;
+    const blip = server(({ method, id }) => ((calls += 1), calls === 1 ? { status: 403 } : { status: 200, json: { jsonrpc: "2.0", id, result: method === "eth_chainId" ? "0xaa36a7" : "0x20" } }));
+    await new Promise<void>((resolve) => blip.s.listen(0, "127.0.0.1", () => resolve()));
+    try {
+      const { publicClient } = createClients(urlOf(blip.s), 11155111, urlOf(primary.s)); // this "fallback" always 403s
+      expect(await publicClient.getBlockNumber({ cacheTime: 0 })).toBe(32n);
+      expect(await publicClient.getBlockNumber({ cacheTime: 0 })).toBe(32n);
+    } finally {
+      blip.s.close();
+    }
   });
 
   it("fails without one, as before", async () => {
