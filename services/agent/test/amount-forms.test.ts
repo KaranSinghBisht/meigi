@@ -18,3 +18,20 @@ describe("dash-like minus signs (review L1)", () => {
     expect(extractInvoice(invoice("保守費用 – ¥22,000")).amount?.value).toBe("22000");
   });
 });
+
+describe("decimal yen (review L2)", () => {
+  it.each(["¥132.000", "¥1,320.5", "132.000円"])("holds %s instead of reading a smaller amount", (amount) => {
+    const extracted = extractInvoice(invoice(`ご請求金額 ${amount}`));
+    expect(extracted.flags).toContainEqual(expect.objectContaining({ code: "amount_ambiguous", severity: "block", evidence: amount }));
+  });
+
+  it("accepts decimals before 万 or 億, which are ordinary Japanese", () => {
+    const extracted = extractInvoice(invoice("ご請求金額 1.5万円"));
+    expect(extracted.amount?.value).toBe("15000");
+    expect(extracted.flags.map((f) => f.code)).not.toContain("amount_ambiguous");
+  });
+
+  it("leaves whole yen alone", () => {
+    expect(extractInvoice(invoice("ご請求金額 ¥132,000")).flags.filter((f) => f.severity === "block")).toEqual([]);
+  });
+});

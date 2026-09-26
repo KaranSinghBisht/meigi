@@ -108,6 +108,11 @@ function amountFields(text: string, x402: X402Details | null, flags: Flag[]): { 
   }
   const { hits, truncated } = findAmounts(text);
   if (truncated) flags.push(block("amount_ambiguous", `The document prints more than ${MAX_HITS} amounts.`));
+  const decimals = hits.filter((hit) => hit.decimal);
+  if (decimals.length > 0) {
+    const message = "An amount is printed with a decimal part, but yen has none: it may be a typo or a European thousands separator.";
+    flags.push({ ...block("amount_ambiguous", message), evidence: decimals.map((hit) => hit.raw).join(", ") });
+  }
   const { totals, flags: totalFlags } = computeTotals(text, hits);
   flags.push(...totalFlags);
   return { amount: payableAmount(totals, hits, flags), totals };

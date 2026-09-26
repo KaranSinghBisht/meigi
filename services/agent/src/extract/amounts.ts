@@ -6,6 +6,7 @@ export interface AmountHit {
   raw: string;
   index: number;
   line: number;
+  decimal: boolean; // printed with a decimal part in its yen digits, or not a whole yen: yen has no minor unit
 }
 
 export interface AmountScan {
@@ -38,7 +39,8 @@ export function findAmounts(text: string): AmountScan {
   let scanned = 0;
   for (const match of text.matchAll(AMOUNT)) {
     const groups = match.groups ?? {};
-    const scaled = parseJapaneseNumber(groups.n1 ?? groups.n2 ?? "");
+    const digits = groups.n1 ?? groups.n2 ?? "";
+    const scaled = parseJapaneseNumber(digits);
     if (scaled === null) continue;
     if (hits.length === MAX_HITS) return { hits, truncated: true };
     const index = match.index ?? 0;
@@ -46,7 +48,7 @@ export function findAmounts(text: string): AmountScan {
     const end = index + match[0].length;
     // Accounting style "(¥22,000)" is negative too.
     const negative = Boolean(groups.neg) || (text[index - 1] === "(" && text[end] === ")");
-    hits.push({ value: fromScaled(negative ? -scaled : scaled), raw: match[0].trim(), index, line });
+    hits.push({ value: fromScaled(negative ? -scaled : scaled), raw: match[0].trim(), index, line, decimal: yenDecimals(digits, scaled) });
   }
   return { hits, truncated: false };
 }
@@ -61,6 +63,15 @@ export function parseJapaneseNumber(text: string): bigint | null {
   } catch {
     return null; // e.g. "1.2.3": not a number, so not an amount
   }
+}
+
+/**
+ * "¥132.000" or "¥1,320.5": a decimal point in the plain yen digits, or a result that isn't a whole yen. A decimal
+ * before 万 or 億 ("1.5万円" = ¥15,000) is ordinary Japanese and fine.
+ */
+function yenDecimals(digits: string, scaled: bigint): boolean {
+  const plain = COMPOUND.exec(digits)?.[4] ?? "";
+  return plain.includes(".") || scaled % 10n ** 18n !== 0n;
 }
 
 /** Parses a free-form amount such as "132000", "¥132,000", "132,000円" or "13万2000円" into decimal yen. */
