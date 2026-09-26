@@ -1,0 +1,115 @@
+/* The demo player and its full-screen page. */
+.dplayer {
+  --demo-font:
+    'Inter Tight', 'Noto Sans JP', 'Hiragino Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto auto;
+  gap: 12px;
+  min-width: 0;
+}
+
+.dplayer:focus-visible {
+  outline: 2px solid var(--vermilion);
+  outline-offset: 4px;
+  border-radius: var(--radius-lg);
+}
+
+/* Everything the story brings in later starts hidden; the timeline shows it. */
+.dplayer [data-enter] {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.dplayer--embed .dstage {
+  aspect-ratio: 16 / 9;
+}
+
+.dplayer--embed.dplayer--portrait .dstage {
+  aspect-ratio: 420 / 940;
+}
+
+.dplayer--full {
+  height: 100%;
+}
+
+.dplayer__error {
+  padding: 24px;
+  border-radius: var(--radius-lg);
+  background: var(--lg-window-dense);
+  color: var(--seal-deep);
+}
+
+/* One caption at a time, in the bar under the stage. */
+.dcaptions {
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+}
+
+.dcaptions__line {
+  max-width: min(100%, 64em);
+  padding: 10px 22px;
+  border-radius: 999px;
+  background: rgba(29, 27, 34, 0.78);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  color: #fff;
+  font-family: var(--demo-font);
+  font-size: clamp(15px, 1.2vw, 21px);
+  line-height: 1.4;
+  text-align: center;
+  animation: dcaption-in 0.35s var(--ease-out);
+}
+
+@keyframes dcaption-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.dplayer[data-reduced] .dcaptions__line {
+  animation: none;
+}
+
+/* The /demo page: the player alone over the softly blurred world. */
+.demo-page {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.demo-page__world {
+  position: fixed;
+  inset: 0;
+  filter: blur(8px) saturate(1.05);
+  transform: scale(1.04);
+}
+
+.demo-page__main {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  height: 100vh;
+  height: 100dvh;
+  padding: clamp(8px, 1.4vw, 24px);
+}
+
+@media (max-width: 719px) {
+  .demo-page__main {
+    height: auto;
+    min-height: 100dvh;
+  }
+
+  .dplayer--full {
+    height: auto;
+  }
+
+  .dplayer--full .dstage {
+    aspect-ratio: 420 / 940;
+  }
+
+  .dcaptions__line {
+    border-radius: var(--radius-md);
+  }
+}

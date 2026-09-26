@@ -1,0 +1,245 @@
+/* The Meigi agent panel: one glass window beside the mail. Pipeline steps along the top of each run, a feed of
+   cards that scrolls as they arrive, and the chain log underneath. */
+.apanel {
+  --pulse: 0;
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--lg-sheen-window), var(--lg-window-dense);
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+  box-shadow:
+    var(--lg-shadow),
+    0 0 calc(var(--pulse) * 48px) rgba(125, 110, 214, calc(var(--pulse) * 0.5));
+  color: var(--ink);
+  font-family: var(--demo-font);
+}
+
+.apanel__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 16px 16px 12px;
+}
+
+.apanel__name {
+  font-size: var(--text-md);
+  font-weight: var(--weight-strong);
+  letter-spacing: -0.01em;
+}
+
+.apanel__sub {
+  overflow: hidden;
+  color: var(--ink-muted);
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.apanel__sub.mono {
+  font-size: 11px;
+}
+
+.apanel__status {
+  display: grid;
+  justify-items: end;
+}
+
+.apanel__status-chip {
+  grid-area: 1 / 1;
+}
+
+.apanel__toast {
+  margin: 0 16px 10px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--iris-tint);
+  color: var(--iris-deep);
+  font-size: 12.5px;
+}
+
+.apanel__scenes {
+  position: relative;
+  min-height: 0;
+}
+
+.pscene {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.psteps {
+  display: flex;
+  gap: 4px;
+  padding: 0 12px 8px;
+}
+
+.pstep {
+  --on: 0;
+  --done: 0;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, calc(0.1 + var(--on) * 0.55));
+  box-shadow: 0 4px 12px -8px rgba(64, 44, 120, calc(var(--on) * 0.6));
+  color: var(--ink-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.pstep__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: color-mix(
+    in srgb,
+    var(--lg-ink) calc(var(--on) * 100%),
+    color-mix(in srgb, var(--jade) calc(var(--done) * 100%), rgba(42, 39, 48, 0.22))
+  );
+}
+
+.pfeed {
+  position: relative;
+  overflow: hidden;
+  padding: 0 12px;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 14px, #000 calc(100% - 10px), transparent);
+  mask-image: linear-gradient(180deg, transparent 0, #000 14px, #000 calc(100% - 10px), transparent);
+}
+
+.pfeed__stack {
+  position: relative;
+  display: grid;
+  gap: 10px;
+  padding: 12px 0;
+}
+
+/* The chain log. */
+.plog {
+  padding: 10px 16px 14px;
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 1px 0 var(--lg-hairline);
+}
+
+.plog__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--ink-muted);
+  font-size: 12px;
+}
+
+.plog__head .mono {
+  font-size: 11px;
+}
+
+.plog__view {
+  position: relative;
+  height: 96px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+
+.plog__idle {
+  position: absolute;
+  inset: 0 auto auto 0;
+  color: var(--ink-muted);
+  font-size: 12px;
+}
+
+.plog__lines {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  font: 11.5px/1.5 var(--font-mono);
+}
+
+.plog__line[data-enter] {
+  transform: translateY(6px);
+}
+
+.plog__line--cmd {
+  color: var(--ink);
+}
+
+.plog__line--ok {
+  color: var(--jade-deep);
+  font-weight: var(--weight-strong);
+}
+
+.plog__line--fail {
+  color: var(--seal-deep);
+  font-weight: var(--weight-strong);
+}
+
+.plog__line--muted {
+  color: var(--ink-muted);
+}
+
+/* Status chips: a dot and a label, never an outline. */
+.dchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.55);
+  font-size: 12px;
+  font-weight: var(--weight-strong);
+  white-space: nowrap;
+}
+
+.dchip i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.dchip--ink {
+  background: var(--lg-ink);
+  color: #fff;
+}
+
+.dchip--hold {
+  background: var(--amber-tint);
+  color: var(--amber-deep);
+}
+
+.dchip--ok {
+  background: var(--jade-tint);
+  color: var(--jade-deep);
+}
+
+.dchip--bad {
+  background: var(--seal-tint);
+  color: var(--seal-deep);
+}
+
+.dchip--info {
+  background: var(--iris-tint);
+  color: var(--iris-deep);
+}
+
+.dchip--muted {
+  background: rgba(42, 39, 48, 0.06);
+  color: var(--ink-muted);
+}
+
+.dstage__design--portrait .plog__view {
+  height: 72px;
+}
+
+.dstage__design--portrait .apanel__sub {
+  display: none;
+}

@@ -1,0 +1,183 @@
+/* The stage: laid out at a design size (1280 × 720, or 420 × 940 on phones) and scaled to fit its frame. Slots
+   place the browser, the agent panel and the phone; the timeline animates what is inside them. */
+.dstage {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.dstage__design {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  pointer-events: none;
+  font-family: var(--demo-font);
+  font-feature-settings: 'calt' 0;
+}
+
+.dstage__slot {
+  position: absolute;
+}
+
+.dstage__design--landscape .dstage__slot--browser {
+  top: 16px;
+  left: 16px;
+  width: 800px;
+  height: 688px;
+}
+
+.dstage__design--landscape .dstage__slot--panel {
+  top: 16px;
+  left: 836px;
+  width: 428px;
+  height: 688px;
+}
+
+.dstage__design--landscape .dstage__slot--phone {
+  top: 150px;
+  left: 548px;
+  width: 232px;
+  height: 470px;
+}
+
+.dstage__design--portrait .dstage__slot--browser {
+  top: 10px;
+  left: 10px;
+  width: 400px;
+  height: 452px;
+}
+
+.dstage__design--portrait .dstage__slot--panel {
+  top: 474px;
+  left: 10px;
+  width: 400px;
+  height: 456px;
+}
+
+.dstage__design--portrait .dstage__slot--phone {
+  top: 48px;
+  left: 176px;
+  width: 196px;
+  height: 400px;
+}
+
+/* Only the panel listens (hovering it pauses the story), and the end card's links. */
+.dstage__slot--panel,
+.dend {
+  pointer-events: auto;
+}
+
+/* The pointer: its tip sits on the point the timeline moves it to. */
+.dcursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 30;
+  width: 0;
+  height: 0;
+}
+
+.dcursor__arrow {
+  position: absolute;
+  display: block;
+  top: -2px;
+  left: -2px;
+  width: 20px;
+  height: 28px;
+  transform-origin: 2px 2px;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.28));
+}
+
+.dcursor__arrow svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.dcursor__ripple {
+  position: absolute;
+  top: -18px;
+  left: -18px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(29, 27, 34, 0.22);
+  opacity: 0;
+}
+
+/* Values flying from the email into the panel. */
+.dflights {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+}
+
+.dghost {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--lg-ink);
+  box-shadow: 0 10px 24px -10px rgba(29, 27, 34, 0.55);
+  color: #fff;
+  font: var(--weight-strong) 12px/1.7 var(--font-mono);
+  white-space: nowrap;
+}
+
+/* The end card. */
+.dend {
+  position: absolute;
+  inset: 0;
+  z-index: 25;
+  display: grid;
+  place-items: center;
+}
+
+.dend__card {
+  display: grid;
+  justify-items: start;
+  gap: 16px;
+  width: 660px;
+  padding: 40px;
+  border-radius: var(--radius-lg);
+  background: var(--lg-sheen-window), var(--lg-window-dense);
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+  box-shadow: var(--lg-shadow);
+  color: var(--ink);
+}
+
+.dend[data-enter] {
+  transform: scale(0.97);
+}
+
+.dend__title {
+  font-size: 48px;
+  font-weight: var(--weight-strong);
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+}
+
+.dend__text {
+  color: var(--ink-soft);
+  font-size: var(--text-lg);
+  line-height: 1.5;
+}
+
+.dend__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dstage__design--portrait .dend__card {
+  width: 380px;
+  padding: 28px;
+}
+
+.dstage__design--portrait .dend__title {
+  font-size: 32px;
+}

@@ -1,9 +1,9 @@
-import { lazy } from 'react'
+import { lazy, Suspense } from 'react'
 import { createBrowserRouter, RouterProvider } from 'react-router'
 import { WalletProvider } from './lib/chain/WalletContext'
 import { HomePage } from './features/home/HomePage'
 import { NotFoundPage, RouteErrorPage } from './features/home/NotFoundPage'
-import { AppShell } from './ui/layout/AppShell'
+import { AppShell, RouteFallback } from './ui/layout/AppShell'
 
 // Each flow is its own chunk; World ID (IDKit + WASM) only loads with /register and /change, and the landing
 // hero (with gsap) only with "/".
@@ -14,6 +14,7 @@ const RegisterPage = lazy(() => import('./features/register/RegisterPage'))
 const ChangePage = lazy(() => import('./features/change/ChangePage'))
 const X402Page = lazy(() => import('./features/x402/X402Page'))
 const BusinessPage = lazy(() => import('./features/business/BusinessPage'))
+const DemoPage = lazy(() => import('./features/demo/DemoPage'))
 
 const router = createBrowserRouter([
   {
@@ -32,6 +33,16 @@ const router = createBrowserRouter([
       { path: 'business', element: <BusinessPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
+  },
+  // The recorded demo player, full-bleed with no header or footer: the video and the booth screen.
+  {
+    path: 'demo',
+    errorElement: <RouteErrorPage />,
+    element: (
+      <Suspense fallback={<RouteFallback />}>
+        <DemoPage />
+      </Suspense>
+    ),
   },
 ])
 

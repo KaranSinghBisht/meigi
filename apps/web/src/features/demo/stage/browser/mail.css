@@ -1,0 +1,261 @@
+/* A familiar webmail client, drawn as a prop: the colours and layout feel known, the marks are our own. */
+.mail {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: 56px minmax(0, 1fr);
+  color: #1f1f1f;
+  font-family: var(--demo-font);
+}
+
+.mail__top {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 16px;
+}
+
+.mail__brand {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  width: 112px;
+  color: #444746;
+  font-size: 19px;
+  letter-spacing: -0.01em;
+}
+
+.mail__brand svg {
+  width: 24px;
+  height: 18px;
+}
+
+.mail__search {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  height: 38px;
+  padding: 0 18px;
+  border-radius: 999px;
+  background: #e9eef6;
+  color: #5f6368;
+  font-size: 13px;
+}
+
+.mail__avatar {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #7b5ea7;
+  color: #fff;
+  font-size: 13px;
+}
+
+.mail__main {
+  display: grid;
+  grid-template-columns: 124px 244px minmax(0, 1fr);
+  gap: 8px;
+  min-height: 0;
+  padding: 0 8px 8px 0;
+}
+
+.mail__rail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 0 0 8px;
+  font-size: 13px;
+}
+
+.mail__compose {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  height: 44px;
+  margin-bottom: 10px;
+  padding: 0 16px;
+  border-radius: 16px;
+  background: #c2e7ff;
+  font-weight: var(--weight-strong);
+}
+
+.mail__compose svg {
+  width: 16px;
+  height: 16px;
+  fill: #1f1f1f;
+}
+
+.mail__label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+}
+
+.mail__label.is-current {
+  background: #d3e3fd;
+  font-weight: var(--weight-strong);
+}
+
+.mail__count {
+  margin-left: auto;
+  font-size: 12px;
+}
+
+.mail__rail-head {
+  margin: 12px 0 2px 12px;
+  color: #5f6368;
+  font-size: 12px;
+}
+
+.mail__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+}
+
+.mail__dot--a {
+  background: #f6bf26;
+}
+
+.mail__dot--b {
+  background: #33b679;
+}
+
+.mail__list {
+  display: grid;
+  grid-template-rows: 40px minmax(0, 1fr);
+  min-height: 0;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: #fff;
+}
+
+.mail__listbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px;
+  box-shadow: inset 0 -1px 0 #eceff4;
+  color: #0b57d0;
+  font-size: 12.5px;
+  font-weight: var(--weight-strong);
+}
+
+.mail__check {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1.5px #80868b;
+}
+
+.mail__rows {
+  overflow: hidden;
+}
+
+.mrow-slot {
+  height: 0;
+  overflow: hidden;
+}
+
+.mrow {
+  display: grid;
+  gap: 2px;
+  padding: 10px 14px;
+  background: #f6f8fc;
+  box-shadow: inset 0 -1px 0 #e6e9ef;
+}
+
+.mrow.is-unread {
+  background: #fff;
+}
+
+.mrow.is-unread :is(.mrow__from, .mrow__subject, .mrow__time) {
+  font-weight: var(--weight-strong);
+}
+
+.mrow__line {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.mrow__from,
+.mrow__subject,
+.mrow__snippet {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.mrow__time {
+  flex: none;
+  color: #5f6368;
+  font-size: 12px;
+}
+
+.mrow__subject {
+  font-size: 12.5px;
+}
+
+.mrow__snippet {
+  color: #5f6368;
+  font-size: 12px;
+}
+
+.mrow__chips {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.mrow__att,
+.mrow__paid {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.mrow__att {
+  background: #fce8e6;
+  color: #a50e0e;
+}
+
+.mrow__paid {
+  background: #ceead6;
+  color: #0d652d;
+  font-weight: var(--weight-strong);
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* Phones: the list above the open message, no label rail. */
+.dstage__design--portrait .mail__main {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 150px minmax(0, 1fr);
+  padding: 0 8px 8px;
+}
+
+.dstage__design--portrait .mail__rail,
+.dstage__design--portrait .mail__search {
+  display: none;
+}
+
+.dstage__design--portrait .mail__top {
+  justify-content: space-between;
+}
+
+.dstage__design--portrait .compose {
+  right: 8px;
+  left: 8px;
+  width: auto;
+}

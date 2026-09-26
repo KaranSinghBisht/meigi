@@ -1,0 +1,122 @@
+/* The player's controls: one glass bar, controls on the 36 / 32 scale, chapter chips that fill as they play. */
+.dcontrols {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 8px;
+  border-radius: var(--radius-lg);
+  background: var(--lg-sheen-window), var(--lg-window);
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+  box-shadow: var(--lg-shadow);
+}
+
+.dcontrols__transport,
+.dcontrols__side {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+}
+
+.dcontrols__play {
+  min-width: 84px;
+}
+
+.dcontrols__count {
+  min-width: 56px;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.dchips {
+  display: flex;
+  flex: 1;
+  gap: 6px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.dchips::-webkit-scrollbar {
+  display: none;
+}
+
+.dchip-btn {
+  --p: 0;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--control-chip);
+  padding: 0 12px 0 6px;
+  overflow: hidden;
+  isolation: isolate;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.dchip-btn::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: rgba(255, 255, 255, 0.5);
+  content: '';
+  transform: scaleX(var(--p));
+  transform-origin: 0 50%;
+}
+
+.dchip-btn:hover {
+  color: var(--ink);
+}
+
+.dchip-btn[aria-current='step'] {
+  color: var(--ink);
+  font-weight: var(--weight-strong);
+}
+
+.dchip-btn__n {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(42, 39, 48, 0.08);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.dchip-btn[aria-current='step'] .dchip-btn__n {
+  background: var(--lg-ink);
+  color: #fff;
+}
+
+@media (max-width: 1180px) {
+  .dchip-btn:not([aria-current='step']) .dchip-btn__t {
+    display: none;
+  }
+
+  .dchip-btn:not([aria-current='step']) {
+    padding-right: 6px;
+  }
+}
+
+@media (max-width: 719px) {
+  .dcontrols {
+    justify-content: space-between;
+  }
+
+  .dchips {
+    order: 3;
+    flex-basis: 100%;
+  }
+}
