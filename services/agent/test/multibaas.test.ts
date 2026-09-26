@@ -135,7 +135,7 @@ describe("GET /payments", () => {
       {
         txHash: "0xbb",
         blockNumber: "11781300",
-        at: "2026-09-26T03:10:00Z",
+        at: "2026-09-26T03:10:00.000Z",
         tNumber: "T2011001234567",
         legalName: "株式会社メイギ商事",
         payout: MEIGI_PAYOUT,
@@ -206,7 +206,7 @@ describe("settlement confirmation", () => {
       source: "multibaas",
       txHash: paid.txHash,
       blockNumber: "11781400",
-      at: "2026-09-26T03:20:00Z",
+      at: "2026-09-26T03:20:00.000Z",
     });
   });
 

@@ -145,7 +145,20 @@ function rowsFor(stub: StubMultiBaas, definition: { events: { eventName: string;
   }
   return [...(event.eventName === "Paid" ? stub.routerPaid : stub.invoicesPaid)]
     .sort((a, b) => b.block - a.block)
-    .map((e) => ({ tNumber: e.inputs.tNumber, payout: e.inputs.payout, amount: e.inputs.amount, invoiceRef: e.inputs.invoiceRef, block: e.block, at: e.at, txHash: e.txHash }));
+    .map((e) => ({
+      tNumber: e.inputs.tNumber,
+      payout: e.inputs.payout.toLowerCase(),
+      amount: e.inputs.amount,
+      invoiceRef: asBytes(e.inputs.invoiceRef), // as MultiBaas's event queries return a bytes32
+      block: String(e.block),
+      at: e.at.replace("T", " ").replace(/Z$/u, "+00"), // "2026-09-26 03:10:00+00"
+      txHash: e.txHash,
+    }));
+}
+
+/** "0xdac8…" → "[218, 200, …]": how the real event queries render a bytes32. */
+function asBytes(hex: string): string {
+  return `[${(hex.slice(2).match(/../gu) ?? []).map((b) => parseInt(b, 16)).join(", ")}]`;
 }
 
 function eventsFor(stub: StubMultiBaas, params: URLSearchParams) {

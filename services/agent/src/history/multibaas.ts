@@ -1,8 +1,8 @@
 import { getAddress, isAddress, isHex, type Address, type Hex } from "viem";
 import { z } from "zod";
-import type { IndexedEvent, MultiBaas } from "../multibaas/client.js";
+import type { MultiBaas } from "../multibaas/client.js";
 import { MultiBaasUnavailable } from "../multibaas/client.js";
-import { CONTRACTS, EVENTS, MAX_QUERY_ROWS, QUERIES } from "../multibaas/labels.js";
+import { CONTRACTS, MAX_QUERY_ROWS, QUERIES } from "../multibaas/labels.js";
 import type { IndexedHistory, ReceivedTotal, RegisteredPayee, SettledPayment, TokenInfo } from "./types.js";
 
 /**
@@ -34,11 +34,13 @@ export function createMultiBaasHistory(mb: MultiBaas, chainId: number): IndexedH
       }
       return totals;
     },
+    // MultiBaas's GET /events ignores its tx_hash filter (it answers [] for a hash it has indexed), so the payment is
+    // looked up in the saved query instead: newest first, which is where a payment being confirmed is.
     async settlementOf(txHash) {
       await sameChain();
-      const events = await mb.events({ contractLabel: CONTRACTS.vault.label, eventSignature: EVENTS.invoicePaid, txHash, limit: 10 });
-      const paid = events.find((e) => e.event.name === "InvoicePaid");
-      return paid ? fromEvent(paid) : null;
+      const rows = await mb.query(QUERIES.meigi_invoices_paid, MAX_QUERY_ROWS);
+      const row = rows.find((r) => typeof r.txhash === "string" && r.txhash.toLowerCase() === txHash.toLowerCase());
+      return row ? { ...paymentRow(row), via: "vault" as const } : null;
     },
   };
 }
@@ -110,20 +112,28 @@ export async function tokenInfo(mb: MultiBaas): Promise<TokenInfo> {
 }
 
 function paymentRow(row: Record<string, unknown>): SettledPayment {
-  return payment({ txHash: row.txhash, blockNumber: row.block, at: row.at, tNumber: row.tnumber, payout: row.payout, amount: row.amount, invoiceRef: row.invoiceref });
+  return payment({ txHash: row.txhash, blockNumber: row.block, at: isoTime(row.at), tNumber: row.tnumber, payout: row.payout, amount: row.amount, invoiceRef: bytes32(row.invoiceref) });
 }
 
-function fromEvent(e: IndexedEvent): SettledPayment {
-  const input = (name: string) => e.event.inputs.find((field) => field.name === name)?.value;
-  return payment({
-    txHash: e.transaction.txHash,
-    blockNumber: e.transaction.blockNumber,
-    at: e.triggeredAt,
-    tNumber: input("tNumber"),
-    payout: input("payout"),
-    amount: input("amount"),
-    invoiceRef: input("invoiceRef"),
-  });
+/**
+ * Event queries return a bytes32 as its bytes, "[218, 200, 17, …]" (GET /events returns hex). Either becomes hex;
+ * anything else is left for payment() to reject.
+ */
+function bytes32(value: unknown): unknown {
+  if (typeof value !== "string" || !value.startsWith("[")) return value;
+  const bytes = value.slice(1, -1).split(",").map((b) => Number(b.trim()));
+  if (bytes.length !== 32 || !bytes.every((b) => Number.isInteger(b) && b >= 0 && b <= 255)) return value;
+  return `0x${bytes.map((b) => b.toString(16).padStart(2, "0")).join("")}`;
+}
+
+/** triggered_at as event queries return it ("2026-09-26 05:58:24+00") → ISO 8601, or null. */
+function isoTime(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const m = /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2}(?:\.\d+)?)(Z|[+-]\d{2}(?::?\d{2})?)?$/u.exec(value.trim());
+  if (!m) return null;
+  const zone = !m[3] || m[3] === "Z" ? "Z" : m[3].length === 3 ? `${m[3]}:00` : m[3].replace(/^([+-]\d{2})(\d{2})$/u, "$1:$2");
+  const ms = Date.parse(`${m[1]}T${m[2]}${zone}`);
+  return Number.isNaN(ms) ? null : new Date(ms).toISOString();
 }
 
 function payment(raw: Record<Exclude<keyof SettledPayment, "via">, unknown>): SettledPayment {
