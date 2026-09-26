@@ -36,6 +36,17 @@ anyone can check what it points to without trusting our app.
 - The company holds only `ROLE_SET_TEXT` on its own profile resolver, and no account holds the address role there.
 - The profile shows only while the registry lists the company as active under the key that claimed it.
 
+**A claimed name is non-transferable, expiring and revocable.** These are ENSv2 registry properties, not our code:
+- Transfers need `ROLE_CAN_TRANSFER_ADMIN` on the token, and a claim is minted with no roles, so a company can't sell or
+  move its name.
+- A claim expires with `payee.eth`'s registration. Meigi can renew it.
+- Meigi can revoke a claim (`unregister`), for a disputed or retired company or a listing the company never accepted.
+  The name keeps resolving through the wildcard, to the same payout. `t6999900000003.payee.eth` was listed and then
+  revoked this way.
+
+**No aliases.** An alias would be a second name for the same payout, and look-alike names are the attack Meigi exists
+to stop. The T-number name stays the only one.
+
 **Payout wallets carry their company's name.**
 - A payout wallet can take its payee's name as its primary name (ENSIP-19), so a wallet shows the company's name
   next to the address.
@@ -48,6 +59,13 @@ anyone can check what it points to without trusting our app.
 - It resolves to the [AgentVault](../contracts/src/payments/AgentVault.sol).
 - It carries a profile (name, description, url, avatar) and the ENSIP-26 records `agent-context`,
   `agent-endpoint[web]` and `agent-status`.
+
+**It follows the agent ENSIPs.**
+- ENSIP-26: `agent-context` (Markdown) and `agent-endpoint[web]`, a URL, follow the spec. `agent-status` is our own key.
+- ENSIP-25: the agent is registered in the ERC-8004 IdentityRegistry on Sepolia as agent 10525. Its registration file,
+  stored on-chain, names `ap.meigi.eth` as its ENS service. `ap.meigi.eth` confirms it with
+  `agent-registration[0x0001000003aa36a7148004a818bfb912233c491871b3d84c89a494bd9e][10525]` = `1`, where the bracketed
+  value is the registry as an ERC-7930 address. Each side points at the other, so either can be checked.
 
 **The agent's key is scoped with Enhanced Access Control.**
 - The key holds one role: `ROLE_SET_TEXT` on `agent-status`.
@@ -79,10 +97,12 @@ Live on Sepolia. ENS app: [app.ens.dev](https://app.ens.dev). Explorer: [explore
 | Unknown and disputed numbers resolve to nothing | [`test_addr_failsClosed`](../contracts/test/ens/PayeeResolver.t.sol), [`test_text_disputedPayeePublishesOnlyItsStatus`](../contracts/test/ens/PayeeResolver.t.sol) |
 | A payout change resolves only after 72 hours, exactly when it lands | [`test_addr_switchesExactlyAtEffectiveAt`](../contracts/test/ens/PayeeResolver.t.sol), [`testFuzz_payoutChange_neverLandsEarly`](../contracts/test/registry/PayeeRegistry.t.sol); `changeDelay()` = 259200 on [PayeeRegistry](https://repo.sourcify.dev/11155111/0x205c977cF1f4Ed42e51a48759550eF40160A6396) |
 | A claimed company publishes its own profile | [app: t2011001234567.payee.eth](https://app.ens.dev/t2011001234567.payee.eth) (claim [`0xb60e…77e1`](https://sepolia.etherscan.io/tx/0xb60e778bd1355c662f2fbe18cd13a34d7b013005c8c7bb85a3472e14a9e077e1), url [`0xcbe9…3ccf`](https://sepolia.etherscan.io/tx/0xcbe90c90e03e07b0f2c4f58b13596f0904b1038db140cf1be4099c4e38b43ccf), avatar [`0x877c…0baa`](https://sepolia.etherscan.io/tx/0x877cafe13cd902dc10d400a81f34c9a8196e9633e401b160b7d7441db8dd0baa)) · [app: t8999900000001.payee.eth](https://app.ens.dev/t8999900000001.payee.eth) (claim [`0xe03d…612b`](https://sepolia.etherscan.io/tx/0xe03d70436822a74b9b69ce9b086ed9d6419ed95d15f3a23881c17e591870612b), profile [`0xcc8d…330b`](https://sepolia.etherscan.io/tx/0xcc8d1aa24780bcf540e7f50b50d13b6cae24c0ad0b76f6802daaa47c58de330b)) |
-| A claim without a profile still shows the registry's name and address | [app: t6999900000003.payee.eth](https://app.ens.dev/t6999900000003.payee.eth) (claim [`0xf24f…8878`](https://sepolia.etherscan.io/tx/0xf24fa19c056654fe07f7d93d43ad5ebfc44ce5d3ecdb6814335cdcd9708d5878)) |
+| A claim can be revoked, and the name still resolves | `t6999900000003.payee.eth`: listed in [`0xf24f…5878`](https://sepolia.etherscan.io/tx/0xf24fa19c056654fe07f7d93d43ad5ebfc44ce5d3ecdb6814335cdcd9708d5878), revoked in [`0x0f3c…64bd`](https://sepolia.etherscan.io/tx/0x0f3c5d72bda2b2a894c97e779570eae8cfa44b11516465532754f4ea914364bd). Stock viem still returns 株式会社ミナトGPUクラウド and `0x4d6D…FD30`, through payee.eth's resolver |
+| A claimed name can't be transferred | `ens.sh claim-check`: the company's `unsafeTransfer` reverts `TransferDisallowed` (ENSv2 requires `ROLE_CAN_TRANSFER_ADMIN`, and claims carry no roles) |
 | A claim never changes the address | [ClaimedPayeeResolver](https://sepolia.etherscan.io/address/0xe4679507c08c61BE0328EDC72c91D62Bd6f03ebd) and its [22 tests](../contracts/test/ens/ClaimedPayeeResolver.t.sol). `ens.sh claim-check` simulates the company setting an address (reverts), re-pointing its name (reverts) and overriding `name` or `meigi.status` (no effect). After each claim, stock viem resolved seven reference names byte for byte as before |
 | Payout wallets carry their company's name | `getEnsName(0x9B4f…47e4)` = `t2011001234567.payee.eth` ([`0x98a1…8f1f`](https://sepolia.etherscan.io/tx/0x98a15959ee452dbd8b09d7c81e5d6ab0702d20dfb35787fed8ff512c222dfb1f)) · `getEnsName(0x0C1d…578D)` = `t8999900000001.payee.eth` ([`0x3b5e…cdc7`](https://sepolia.etherscan.io/tx/0x3b5e1fe3e08defb1ea434d40cd68f59212ef76482b04db4ee364552583afcdc7)) |
 | The agent has an ENS profile and ENSIP-26 records | [app: ap.meigi.eth](https://app.ens.dev/ap.meigi.eth) (profile [`0x64de…65d0`](https://sepolia.etherscan.io/tx/0x64def3ea137ea182ef899983b0100b6ea63de862fe7e8a51c5ed55b9a2a965d0)) · resolver [`0x047A…5716`](https://sepolia.etherscan.io/address/0x047A1B0E18fc4092706F7696ffeCF61625865716) |
+| ENSIP-25: the agent's ERC-8004 registration and its ENS name point at each other | ERC-8004 agent 10525 on [`0x8004A818…BD9e`](https://sepolia.etherscan.io/address/0x8004A818BFB912233c491871b3d84c89A494BD9e), registered in [`0x7abf…88f3`](https://sepolia.etherscan.io/tx/0x7abf01a79e3f740ebf19538bff3b6d896d05e2607253e61ba1062779860188f3) · the record on ap.meigi.eth set in [`0x0f12…c107`](https://sepolia.etherscan.io/tx/0x0f12e323e39f5256ab3b6360320eec96d48e811747717f11f552ebb97b03c107) · check: `(cd apps/landing && RPC_URL=… AGENT_ID=10525 node --input-type=module) < contracts/script/ens/check-agent-8004-viem.mjs` |
 | The agent's key can write only `agent-status` | It set that record itself: [`0x91f4…f640`](https://sepolia.etherscan.io/tx/0x91f4a833075ca25b5728fae27788fa5009a6ff829b83207a9b53978e780cf640). `ens.sh agent-check` simulates its other writes, and each reverts `EACUnauthorizedAccountRoles` |
 | The agent's key rotates without changing the name | [`agent-rotate-e2e.sh`](../contracts/script/ens/agent-rotate-e2e.sh), on a Sepolia fork of the live name and vault (not run live) |
 | The vault's primary name is `ap.meigi.eth` | `getEnsName(0x87A7…793B)` · [`0xb4a6…963a`](https://sepolia.etherscan.io/tx/0xb4a6c4b8b2da4197da0354e9ff3387e58eb2ad01c525223975ecde69b3ff963a) |
@@ -91,7 +111,9 @@ Live on Sepolia. ENS app: [app.ens.dev](https://app.ens.dev). Explorer: [explore
 ## Limits, stated plainly
 
 - **The ENS app lists only claimed names.** app.ens.dev and explorer.ens.dev show names that have a registry
-  entry. An unclaimed `t….payee.eth` resolves in viem, ethers and wallets, but those UIs say it doesn't exist.
+  entry. An unclaimed `t….payee.eth` resolves in viem, ethers and wallets, but those UIs say it doesn't exist. To
+  check one yourself:
+  `(cd apps/landing && RPC_URL=https://ethereum-sepolia-rpc.publicnode.com ENS_NAME=t6999900000003.payee.eth node --input-type=module) < contracts/script/ens/check-viem.mjs`
 - **Meigi holds the root roles.** One key owns `payee.eth` and `meigi.eth` and administers the claims registry.
   In production, those roles move to a timelocked multisig with the same 72-hour delay as payouts.
 - **Unclaimed names have no profile.** Records like description and avatar come only with a claim. Serving them for
