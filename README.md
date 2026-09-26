@@ -68,16 +68,16 @@ company it belongs to.
   `T2011001234567`.
 - **The registry explorer** shows the live payee, its ENS name and the event feed:
   https://meigi.karanbishttt.workers.dev/registry/T2011001234567.
-- **ENS, from any client.** `t2011001234567.payee.eth` resolves on Sepolia with stock viem and no
-  configuration:
+- **ENS, with no configuration.** `t2011001234567.payee.eth` resolves on Sepolia in stock viem (its default Sepolia
+  Universal Resolver) and ethers 6.17, and ENS's [app](https://app.ens.dev/t2011001234567.payee.eth) and
+  [explorer](https://explorer.ens.dev/t2011001234567.payee.eth) show it. From a clone, after `pnpm install`:
   ```sh
   (cd apps/landing && RPC_URL=https://ethereum-sepolia-rpc.publicnode.com node --input-type=module) < contracts/script/ens/check-viem.mjs
   # {"address":"0x9B4fc8994FcF2d5FE08a82A9454B61AA14D647e4","legalName":"株式会社メイギ商事","status":"active",…}
   ```
   ENS's agent CLI makes the same viem calls (`ens get address t2011001234567.payee.eth --chain sepolia`,
   `ens get name 0x87A798CD92dE1340B1b761dd45196AC82bEF793B --chain sepolia`). We haven't run it ourselves, because it
-  ships only as an unpinned preview build. The profiles show in the ENSv2 app, e.g.
-  [app.ens.dev/t2011001234567.payee.eth](https://app.ens.dev/t2011001234567.payee.eth).
+  ships only as an unpinned preview build.
 - **x402:** an honest purchase settled on Sepolia in
   [`0xf3c29896…77b0df`](https://sepolia.etherscan.io/tx/0xf3c298960b9abac5466f4aa6e59f9a9ba4b73de703df3468d72f18049077b0df).
   The same merchant with a swapped `payTo` is refused before anything is signed.
@@ -101,14 +101,21 @@ company it belongs to.
   - `payee.eth` names companies. [`PayeeResolver`](contracts/src/ens/PayeeResolver.sol) answers every
     `t<13 digits>.payee.eth` from the registry at call time (ENSIP-10), so millions of T-numbers resolve without
     minting. A company can also claim its name as an ENSv2 token for its own profile; its payout still comes from
-    the registry. Claimed names are soulbound (no transfer role), expire with `payee.eth`, and Meigi can revoke them.
+    the registry. Claimed names are soulbound (no transfer role), are set to expire with `payee.eth`, and Meigi can
+    revoke them.
+  - Companies issue names too. `CompanyNamespace` lets a claimed company open its own ENSv2 UserRegistry and issue
+    soulbound, expiring, text-only names, each with its own PermissionedResolver. The buyer 株式会社ハルカ製作所
+    issued `ap.t4999900000005.payee.eth` to our AP agent's key, and `MandateGate`, the AgentVault's agent, passes
+    `payInvoice` on only while that name answers and the caller holds it.
   - `meigi.eth` names agents. `ap.meigi.eth` is the AP agent, with ENSIP-26 records. It is linked to ERC-8004 agent
     10525 per ENSIP-25. Its key can edit only `agent-status` (Enhanced Access Control), and it is the AgentVault's
     ENSIP-19 primary name.
   - The names survive changing keys. Payouts and business keys change behind a 72h public timelock, and
     `ens.sh agent-rotate` moves the agent to a new key without changing `ap.meigi.eth` (fork-tested before the gate went live).
-  - Anyone can check them with stock viem and no configuration. The story and evidence: [`docs/ens.md`](docs/ens.md);
-    scripts: [`contracts/script/ens`](contracts/script/ens).
+  - Anyone can check them with stock viem and no configuration, or in ENS's
+    [explorer](https://explorer.ens.dev/t2011001234567.payee.eth), where `t2011001234567.payee.eth` shows its
+    permissioned subregistry and 3 subnames. The story and evidence: [`docs/ens.md`](docs/ens.md); scripts:
+    [`contracts/script/ens`](contracts/script/ens).
 - **World ID (IDKit 4.0).**
   - An officer enrolls once with an IDKit session.
   - A payout change the company requests needs `proveSession` from the same human, with a signal that binds
@@ -262,15 +269,17 @@ by separate AI reviewers, with proof-of-concept exploits:
 
 These reviews were AI-assisted, not a professional audit. Contract work after them (the ENS claim contract
 `ClaimedPayeeResolver`, and a resolver change that hides a disputed payee's name) has tests but no review round.
-`CompanyNamespace` and `MandateGate`, added last, each went through review rounds of their own, with fork PoCs
-([`docs/ens.md`](docs/ens.md)).
+`CompanyNamespace` and `MandateGate`, added last, each went through review rounds of their own; their fork tests,
+which run against the live Sepolia contracts, are in the repo ([`docs/ens.md`](docs/ens.md)).
 
 Roles, delays and the trust model are in [`contracts/README.md`](contracts/README.md). The agent is untrusted
 by design and holds no key. The signer (`services/signer`) holds it, signs only `payInvoice`, and above ¥150,000 only
 when a human approves through World ID for Agents. The worst case is overpaying an approved vendor, up to that vendor's caps.
 Governance is trusted too: a ruling on a dispute can move a payout without the company, after the same 72 hours in
-public, and only governance can dismiss a queued ruling. The threat model, audit plan
-and production roadmap are in [`docs/trust-and-compliance.md`](docs/trust-and-compliance.md).
+public, and only governance can dismiss a queued ruling. On ENS, one Meigi key holds the root roles (`payee.eth`,
+`meigi.eth` and the claims registry). Meigi also keeps text and upgrade roles on each claimed profile's resolver,
+never the address role: it could overwrite a profile, not a payout. Production gives them up with the root roles.
+The threat model, audit plan and production roadmap are in [`docs/trust-and-compliance.md`](docs/trust-and-compliance.md).
 
 ## Run it locally
 
