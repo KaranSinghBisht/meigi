@@ -61,13 +61,17 @@ separate:
   Check as **medium-assurance** ("does not provide a strict one-person-one-account guarantee") and Orb-based
   Proof of Human as **high-assurance** ("each human can only have one PoH credential").
 - Our trust moment is a **1:1 re-authentication** ("is this the same session that enrolled as an officer?"), not
-  a **1:N uniqueness** check across a large population — so a **1-of-1 quorum on a Selfie Check session** is the
-  minimum sufficient credential for this demo: the session already answers "same human," and we don't need
-  Selfie Check's weaker Sybil-resistance to also carry an anti-squatting job it isn't built for.
-- If we ever needed an **N-of-M quorum** where several independent identities must each be genuinely unique
-  humans (not just genuinely the same session-holder each time), that's exactly when Orb, or gating on
-  Selfie Check's own `sybil_score` (a real field on its response, a risk signal rather than a uniqueness
-  verdict), would earn its cost. We don't gate on `sybil_score` today.
+  a **1:N uniqueness** check across a large population. **The minimum we request is Selfie Check** — a 1-of-1
+  quorum on a Selfie Check session is enough, since the session already answers "same human," and we don't need
+  Selfie Check's weaker Sybil-resistance to also carry an anti-squatting job it isn't built for. **Orb is
+  accepted too** (`WORLD_OFFICER_CREDENTIALS=selfie,proof_of_human`): whichever an officer happens to hold
+  clears the bar, since Selfie Check is already the floor, not a ceiling. [PENDING confirmation once his run
+  reaches this step: Karan's officer used Orb.]
+- An **N-of-M quorum**, where several independent identities must each be genuinely unique humans (not just
+  genuinely the same session-holder each time), should require Orb — that's exactly the case Selfie Check's
+  weaker Sybil-resistance isn't built for. Gating on Selfie Check's own `sybil_score` (a real field on its
+  response, a risk signal rather than a uniqueness verdict) is a softer alternative worth considering there. We
+  don't gate on `sybil_score` today.
 - **Known limit, roadmap:** our officer-company cap (`officerCompanyLimit`, `services/verifier/src/limits/`) is
   keyed on the session's officer id today, not on a Sybil-resistant uniqueness nullifier for a fixed action —
   someone willing to complete Selfie Check under several distinct sessions could exceed the intended per-human
