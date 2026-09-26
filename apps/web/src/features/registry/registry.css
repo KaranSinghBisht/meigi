@@ -346,3 +346,21 @@
 .payee-slot > .notice {
   margin-bottom: 16px;
 }
+
+/* The company's own profile from its claimed ENS name: a chip naming the source, its words, its site. */
+.payee__claim {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+}
+
+.payee__claim-text {
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.payee__claim-url {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-strong);
+  overflow-wrap: anywhere;
+}

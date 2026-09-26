@@ -7,6 +7,7 @@ import { Badge } from '../../ui/components/Badge'
 import { CopyButton } from '../../ui/components/CopyButton'
 import { useSceneMood } from '../../ui/stage/useSceneMood'
 import { PendingBanner } from './PendingBanner'
+import { useClaimedProfile } from './useClaimedProfile'
 import { useEnsCheck, type EnsCheck } from './usePayee'
 import './registry.css'
 
@@ -87,6 +88,26 @@ function EnsLine({ payee }: { readonly payee: PayeeSnapshot }) {
       <span className="mono">{payee.tNumber.ens}</span>
       <span className={`payee__ens-note payee__ens-note--${note.tone}`}>{note.text}</span>
     </p>
+  )
+}
+
+/**
+ * What the company says about itself, from the ENS name it claimed. The badge makes the source plain: these are the
+ * company's own words, while the name above and the payout below still come from the registry.
+ */
+function Claimed({ payee }: { readonly payee: PayeeSnapshot }) {
+  const profile = useClaimedProfile(payee.tNumber.ens, payee.status === 'active')
+  if (!profile) return null
+  return (
+    <div className="payee__claim">
+      <Badge tone="info">Claimed by the company</Badge>
+      {profile.description ? <p className="payee__claim-text">{profile.description}</p> : null}
+      {profile.url ? (
+        <a className="payee__claim-url" href={profile.url} target="_blank" rel="noopener noreferrer">
+          {profile.url.replace(/^https:\/\//, '')} <span aria-hidden="true">↗</span>
+        </a>
+      ) : null}
+    </div>
   )
 }
 
@@ -179,6 +200,7 @@ export function PayeeCard({ payee, onElapsed, showChangeLink = true }: PayeeCard
         <Badge tone={badge.tone}>{badge.label}</Badge>
       </header>
       <Name payee={payee} />
+      <Claimed payee={payee} />
       {payee.status === 'unregistered' ? <Unregistered payee={payee} /> : null}
       {payee.status !== 'unregistered' ? (
         <>
