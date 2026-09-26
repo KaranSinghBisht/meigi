@@ -1,5 +1,7 @@
 # Meigi (名義)
 
+[![Meigi's live landing page: Mount Fuji over a lake, and "Pay companies, not addresses."](docs/landing/readme-hero.jpg)](https://meigi.karanbishttt.workers.dev)
+
 **Confirmation of Payee for stablecoins and AI agents. Pay companies, not addresses.**
 
 **In one sentence:** Meigi binds a Japanese company's government-issued invoice registration number (T-number) to one
