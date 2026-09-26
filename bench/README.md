@@ -12,55 +12,93 @@ System-1 model routes, and how honest its confidence is.
 
 Test split: 150 items (600 answers) built from test-only templates. Every local model is served the same way
 (`kev.serve`, MLX bf16 on the M5 Max, one request at a time over localhost HTTP); Llama runs on Workers AI behind our
-own Worker. Full table with macro-F1, paired statistics and a per-family breakdown:
-[`results/RESULTS.md`](results/RESULTS.md); raw numbers: `results/results.json`; every prediction: `results/predictions/`.
+own Worker; the Claude rows are Claude Code agents run on a label-free copy of the test split (see below). Full table
+with macro-F1, paired statistics and a per-family breakdown: [`results/RESULTS.md`](results/RESULTS.md); raw numbers:
+`results/results.json`; every prediction: `results/predictions/`. The six-page paper with the full analysis is
+[`paper/paper.pdf`](paper/paper.pdf).
 
-| contender | request type | new destination | pressure | suspicion | mean acc | ECE | legit auto-cleared at 1% budget (unsafe let through) | p50 latency | $ per 1k items |
-|---|---|---|---|---|---|---|---|---|---|
-| Kev-0.8B, released | 0.807 | 0.867 | 0.920 | 0.393 | 0.747 | 0.134 | 0% (0) | 38 ms | $0.00013 |
-| Kev-0.8B, released + temperature fitted on our validation split | 0.807 | 0.867 | 0.920 | 0.393 | 0.747 | 0.106 | 0% (0) | 38 ms | $0.00014 |
-| Kev-4B, released | 0.880 | 0.927 | 0.960 | 0.413 | 0.795 | 0.120 | 16% (0) | 169 ms | $0.00060 |
-| **payee-0.8b (ours)** | **0.947** | **0.967** | **0.973** | **0.787** | **0.918** | **0.024** | **45% (1)** | 39 ms | $0.00013 |
-| payee-4b (ours, 1 epoch) | 0.953 | 0.987 | 1.000 | 0.813 | 0.938 | 0.016 | 67% (1) | 165 ms | $0.00058 |
-| Llama 3.3 70B (Workers AI, JSON by prompt) | 0.833 | 0.947 | 0.920 | 0.560 | 0.815 | 0.076 | not run on validation (oracle 39%) | 2,047 ms | $0.46 |
-| Jev (through our Worker) | not run: the Worker answers 402 `insufficient_credits` (see below) | | | | | | | | est. $0.021 at list price |
+| contender | request type | new destination | pressure | suspicion | mean acc | ECE | AUROC of p_safe | safe items auto-cleared at 1% budget (held items let through) | p50 latency | $ per 1k items |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Kev-0.8B, released | 0.807 | 0.867 | 0.920 | 0.393 | 0.747 | 0.134 | 0.843 | 0% (0) | 38 ms | $0.00013 |
+| Kev-0.8B, released + temperature fitted on our validation split | 0.807 | 0.867 | 0.920 | 0.393 | 0.747 | 0.106 | 0.844 | 0% (0) | 38 ms | $0.00014 |
+| Kev-4B, released | 0.880 | 0.927 | 0.960 | 0.413 | 0.795 | 0.120 | 0.969 | 16% (0) | 169 ms | $0.00060 |
+| **payee-0.8b (ours)** | **0.947** | **0.967** | **0.973** | **0.787** | **0.918** | 0.024 | 0.944 | **45% (1)** | 39 ms | $0.00013 |
+| payee-4b (ours, 1 epoch) | 0.953 | 0.987 | 1.000 | 0.813 | 0.938 | 0.016 | 0.986 | 67% (1) | 165 ms | $0.00058 |
+| Llama 3.3 70B (Workers AI, FP8, JSON by prompt) | 0.833 | 0.947 | 0.920 | 0.560 | 0.815 | 0.092 | 0.986 | not run on validation (oracle 39%) | 2,047 ms | $0.46 |
+| Claude Haiku 4.5 (agent) | 0.887 | 0.933 | 0.947 | 0.687 | 0.863 | 0.035 | 0.932 | not run on validation (oracle 20%) | not measured | est. $1.3 |
+| Claude Sonnet 5 (agent) | 0.867 | 1.000 | 0.940 | 0.827 | 0.908 | 0.097 | 1.000 | not run on validation (oracle 100%) | not measured | est. $2.5 |
+| Claude Opus 5.5 (agent) | 0.993 | 1.000 | 0.940 | 0.880 | 0.953 | 0.067 | 1.000 | not run on validation (oracle 100%) | not measured | est. $5.1 |
+| Claude Fable 5.1 (agent) | 0.993 | 1.000 | 0.940 | 0.867 | 0.950 | 0.081 | 1.000 | not run on validation (oracle 100%) | not measured | est. $13 |
+| Jev (through our Worker) | not run: the Worker answers 402 `insufficient_credits` (see below) | | | | | | | | | est. $0.021 at list price |
+
+An item is *safe* to auto-clear when it is a routine invoice or credit note, keeps the registered destination and has
+suspicion at most 1: 51 of the 150 test items. The other 99 should be *held*: 62 attacks and 37 legitimate items that
+still need a person (notices, announced bank changes, executive requests). AUROC, the item-level sign tests, the
+family-clustered intervals and the convention analysis below come from `paper/analysis.py`
+(`paper/generated/analysis.json`); everything else from `results/results.json`.
 
 - **Fine-tuned 0.8B vs released 0.8B:** +17.2 points mean accuracy (95% CI +14.2 to +20.2, item-clustered bootstrap;
-  109 answers newly right, 6 newly wrong; McNemar p = 1e-25). Against the released **4B**, five times larger and four
-  times slower: +12.3 points (CI +9.3 to +15.5).
-- **Against an LLM:** +10.3 points over Llama 3.3 70B (CI +6.7 to +14.2), at 39 ms instead of 2,047 ms p50 (5.6 s p95)
-  and over 3,000 times less per item. Llama was weakest where an LLM reading the document is most exposed: on invoices
-  carrying a hidden instruction that redirects payment it scored 0.29 (6 items), against 0.88 for the fine-tune.
-- **Fine-tuned 4B vs fine-tuned 0.8B:** +2.0 points (CI -0.3 to +4.2, p = 0.11): not a significant gain for four times
-  the latency, so the 0.8B is the System-1 we ship. The 4B was trained for one epoch with a bf16 backbone to fit in
-  memory (see the training section).
+  +10.3 to +24.3 when families are resampled too; better on 91 items, worse on 6, sign test p = 1.3e-20). Against the
+  released **4B**, five times larger and four times slower: +12.3 points (CI +9.3 to +15.5; family-clustered +5.0 to
+  +21.0). Without the 45 answers whose label follows one of our conventions (below), the leads are +18.0 and +9.2.
+- **Against Llama, the lead is in following our labels, not in spotting fraud.** payee-0.8b is +10.3 points over
+  Llama 3.3 70B (CI +6.7 to +14.2; family-clustered +3.6 to +19.3), but +7.0 (CI +3.8 to +10.3) without the convention
+  answers, where Llama scores 0.11 and the fine-tune 0.62. On the split p_safe uses (suspicion 0-1 vs 2-3) the two are
+  tied either way it is scored: by top level Llama 0.893 vs 0.833 (-6.0 points, CI -12.7 to +0.7), by probability mass
+  0.813 vs 0.833 (+2.0, CI -6.0 to +10.0). Llama ranks safe above held items at least as well (AUROC of p_safe 0.986
+  vs 0.944; difference CI -0.078 to -0.014 over items, -0.164 to +0.007 over families). The fine-tune answers in 39 ms
+  instead of 2,047 ms p50 (5.6 s p95, which includes the network). Llama's clearest miss is invoices carrying a hidden
+  instruction that redirects payment: it flags the new destination and the suspicion level on 2 of the 6 each, against
+  6 of 6 for the fine-tune.
+- **Frontier Claude models (agents).** Haiku 4.5 is behind the fine-tune (its lead +5.5, CI +2.3 to +8.8), Sonnet 5 is
+  statistically tied (+1.0, CI -1.8 to +4.2), and Opus 5.5 and Fable 5.1 are ahead (-3.5, CI -5.8 to -1.0; -3.2, CI
+  -5.5 to -0.7), though their family-clustered intervals include zero. Sonnet 5, Opus 5.5 and Fable 5.1 rank every safe
+  test item above every held one (AUROC 1.000) and get binary suspicion right on every item. The protocol is not
+  Llama's: each agent answered many items in one context, could reason and run shell commands, and was run once
+  ([`paper/frontier-protocol.md`](paper/frontier-protocol.md)). Their latency is not measured, and their cost is the
+  list price of Llama's token counts, so probably low.
+- **Fine-tuned 4B vs fine-tuned 0.8B:** +2.0 points (CI -0.3 to +4.2, sign test p = 0.11): statistically tied for four
+  times the latency, so the 0.8B is the System-1 we ship. The 4B ranks safe vs held better (AUROC 0.986 vs 0.944;
+  difference CI -0.078 to -0.013 over items, -0.169 to +0.012 over families). It was trained for one epoch with a bf16
+  backbone to fit in memory (see the training section).
 - **Suspicion** is where zero-shot Kev fails (0.39 accuracy, mean error 1.1 levels on a 0-3 scale) and where the fine-tune
   gains most (0.79, 0.50 levels). The three other questions were already 0.8-0.96 zero-shot.
-- **Calibration:** ECE 0.024 against 0.11-0.13 for the released models. Refitting the released model's temperature on
-  our validation data lowers its ECE to 0.11 but cannot change its ranking, so it still auto-clears nothing. Llama's
-  stated probabilities reach 0.076.
-- **Auto-clear:** with the threshold fixed on validation at a 1% error budget, the fine-tuned 0.8B sends 45% of
-  legitimate items (23 of 51) straight to the payment kernel. It also let one unsafe item through: an invoice whose
-  振込先 was silently moved to another bank under the same account name (`test/0069`), the literal-comparison case
-  System-1 is weakest at and the one the kernel's exact registry match exists for. The fine-tuned 4B clears 67% and
-  also lets one through (`test/0089`, a hidden "skip the review" note on an invoice that pays the registered payee).
-  The released 0.8B clears nothing at this budget and the released 4B 16%. Validation shares templates with training,
-  so it ranks more cleanly than the new test phrasings; set the production threshold with a margin and keep the kernel
-  as the backstop.
+- **Calibration:** ECE 0.024, against 0.016 for the 4B fine-tune, 0.11-0.13 for the released models, 0.092 for Llama
+  (0.076 before a bin-edge fix on 2026-09-26: a stated 0.3, 0.6 or 0.7 used to fall into the bin below) and 0.035-0.097
+  for the Claude agents. Refitting the released model's temperature on our validation data lowers its ECE to 0.11 but
+  leaves its ranking weak (AUROC 0.84), so it still auto-clears nothing. Pooled ECE hides confident errors: 13 of the
+  fine-tune's 600 test answers are wrong at 0.9 confidence or more (0 for the released 4B, 22 for Llama), and it rates
+  4 of the 6 benign gentle reminders, all four Japanese, "very likely a scam" (0.49 to 0.93).
+- **Auto-clear:** with the threshold fixed on validation at a 1% error budget, the fine-tuned 0.8B sends 45% of the
+  safe items (23 of 51) straight to the payment kernel. It also let one held item through: an invoice whose 振込先 was
+  silently moved to another bank under the same account name (`test/0069`), the literal-comparison case the kernel's
+  exact registry match exists for. The fine-tuned 4B clears 67% and also lets one through (`test/0089`, a hidden "skip
+  the review" note on an invoice that pays the registered payee). The released 0.8B clears nothing at this budget and
+  the released 4B 16%. One or two items decide these rates: resampling test items with the threshold kept gives 31% to
+  59% for the fine-tuned 0.8B. And the comparison is not like-for-like: validation shares templates with training and
+  also fitted the temperature, so the fine-tunes rank it almost perfectly (AUROC 0.989) and their threshold is loose on
+  test, while the released 4B ranks validation worse than test (0.937 vs 0.969) and its threshold is conservative.
+  Threshold-free, at zero or one held item cleared the fine-tune clears 22 and 31 of the 51 safe items, against 17 and
+  22 for the released 4B and 20 and 20 for Llama: differences of a few items whose intervals contain zero. Set the
+  production threshold on real held-out mail, with a margin, and keep the kernel as the backstop.
 - **Speed and cost:** fine-tuning adds nothing at inference: 39 ms p50 (36 ms model time) for all four answers, the same
   as the released 0.8B. At an assumed 60 W that is $0.00013 of electricity per 1,000 items; Jev at its list price would be
-  about $0.021 per 1,000 (estimated from Kev's token counts, about 491 per item), Llama 3.3 70B costs $0.46 at Workers AI
-  list price for its measured tokens, and Kev-0.8B on a rented L4 about $0.0035.
+  about $0.021 per 1,000 (TypeSafe's $0.042 per million input tokens, estimated from Kev's token counts, about 491 per
+  item), Llama 3.3 70B costs $0.46 at Workers AI list price for its measured tokens, the Claude models an estimated $1.3
+  (Haiku 4.5) to $13 (Fable 5.1), and Kev-0.8B on a rented L4 about $0.0035. Electricity on owned hardware against a
+  list price is not a like-for-like ratio; against the rented L4, Llama costs about 129 times more.
 - **Forgetting:** on Kev's own out-of-domain development suite (`transfer-v4`, 656 answers, same served path) accuracy
-  held (0.8B: 0.651 to 0.637, inside Kev's ~2-point tolerance; 4B: 0.817 to 0.817), but calibration there broke: ECE
-  0.049 to 0.225 for the 0.8B (0.033 to 0.131 for the 4B), and wrong answers given with at least 0.9 confidence rose
-  from 0.2% to 12.8% (0.9% to 9.8% for the 4B; `results/runs/forgetting-transfer-v4.json`). The temperature we fitted
-  is for payee questions only. Serve the fine-tune for this question set and the released checkpoint for anything else.
-- **Where it still misses** (per family, `results/RESULTS.md`): silently swapped invoices (0.68; mostly missed new
-  destinations), the 0/1 suspicion boundary for reminders written in test-only phrasings, and level 2 vs 3 on polite scams.
+  held (0.8B: 0.651 to 0.637; 4B: 0.817 to 0.817), but calibration there broke: ECE 0.049 to 0.225 for the 0.8B (0.033
+  to 0.131 for the 4B), and wrong answers given with at least 0.9 confidence rose from 0.2% to 12.8% (0.9% to 9.8% for
+  the 4B; `results/runs/forgetting-transfer-v4.json`). The temperature we fitted is for payee questions only. Serve the
+  fine-tune for this question set and the released checkpoint for anything else.
+- **Where it still misses** (per family, `results/RESULTS.md`): silently swapped invoices (0.68; four of the seven swap
+  in a look-alike wallet that keeps the registered address's first six and last four hex digits), confident false
+  alarms on benign Japanese reminders written in test-only phrasings (above), and level 2 vs 3 on polite scams.
 - **Dataset revision.** These numbers are on the current dataset, whose identifiers were fixed on 2026-09-26 (see
   "Fictional entities only"). The models were trained and calibrated on the previous build, which differs only in
-  T-numbers, phone numbers and 48 company names; re-scoring moved no model by more than 0.2 points.
+  T-numbers, phone numbers and 48 company names. Re-scoring moved no model's accuracy by more than 0.2 points, but it
+  moved auto-clear: payee-4b from 73% with 3 unsafe items to 67% with 1, payee-0.8b from 43% to 45%.
 
 | accuracy | calibration |
 |---|---|
@@ -247,15 +285,22 @@ a 45 GB footprint and slowed to 70 s a step; with the MPS allocator capped at 17
 Gradient checkpointing plus a 26 GB cap trained steadily. So the 4B differs from the 0.8B in three ways (bf16 frozen
 backbone, checkpointing, one epoch instead of two); `results/runs/payee-4b.json` records all of it.
 
-No test item was used for training, calibration, threshold selection or any decision about the recipe; the test split was
-scored once per model.
+Trainer details (from `runs/<run>/training_config.json`, copied into `results/runs/*.json`): Kev at commit `f2bb629`,
+warm start from Hub snapshots `kev-0.8b@9a45d25` and `kev-4b@139fdd9`; mean cross-entropy over the four questions;
+AdamW (weight decay 0.01), OneCycle (pct_start 0.1), gradient-norm clipping at 1.0 (active on 148 of 150 steps for the
+0.8B); Kev's default augmentation of choice questions (options reshuffled every epoch; a "none of the above" option
+replaces the answer in 10% and joins as a wrong option in 12%, an irrelevant option is added in 15%).
+
+No test item was used for training, calibration or threshold selection. The test split was not read only once, though:
+every model was scored on it once per dataset build (two builds), the 4B was trained after the 0.8B's test results
+were known, and the choice to ship the 0.8B was made on the test comparison.
 
 ## Reproduce
 
 ```bash
 cd meigi/bench
 uv sync
-uv run python -m payeebench.build --out dataset       # data, stats.json, leakage.json; NTA checks when meigi/data/nta exists
+uv run python -m payeebench.build --out /tmp/pb      # rebuild elsewhere; identical to dataset/ only with meigi/data/nta present
 scripts/reproduce.sh                                                    # train, calibrate, serve, evaluate (about an hour)
 uv run python -m payeebench.evaluate --report-only                      # re-score saved predictions, redraw charts
 uv run python -m payeebench.evaluate --remote llama-worker              # optional LLM row (Workers AI, test split)
@@ -293,8 +338,8 @@ Jev on 250 items (validation + test) is about 125k input tokens, well under one 
 ## Honest caveats
 
 - **Jev is not in the table yet.** Our Worker answers 402 `insufficient_credits` until the account's AI Gateway credit
-  is topped up, and no other Jev key was available, so every "vs Jev" statement is still untested. What the numbers support today is "fine-tuned Kev vs the
-  released Kev models". Kev's own README reports Jev ahead of Kev on general tasks (0.857 vs 0.648 for Kev-0.8B on new
+  is topped up, and no other Jev key was available, so every "vs Jev" statement is still untested. What the numbers
+  support today is fine-tuned Kev against the released Kev models, Llama and the Claude agents. Kev's own README reports Jev ahead of Kev on general tasks (0.857 vs 0.648 for Kev-0.8B on new
   sources), so Jev may well beat the released Kev here too; whether it beats the fine-tune is exactly what the missing run decides.
 - **Synthetic data.** Every item comes from our generator. The test split uses different layouts, phrasings and entities,
   but the same world model: the same 17 families, the same labelling rules, the same state fields. Real mail is messier
@@ -303,8 +348,14 @@ Jev on 250 items (validation + test) is about 125k input tokens, well under one 
   known invoice counts as pressure; an overdue notice is suspicion level 1). A zero-shot model can disagree with those
   conventions and still be reasonable. For a product that is the point of fine-tuning, but it is not general skill.
 - **Thresholds move out of distribution.** Both fine-tunes separate safe from unsafe more cleanly on validation (train
-  templates) than on test (new templates), so a threshold chosen on validation is optimistic: the 4B's let three unsafe
-  items through at a 1% budget. Choose the production threshold on real, held-out mail and leave a margin.
+  templates) than on test (new templates), so a threshold chosen on validation is optimistic: the 4B's let one unsafe
+  item through at a 1% budget (three on the previous build). Choose the production threshold on real, held-out mail
+  and leave a margin.
+- **Labels are a function of the family.** In 12 of the 17 families all four labels are the same for every item, so
+  answering each test item with its family's most common training labels would score 0.973. Some red flags decide the
+  label by construction: every item with a free-mail sender or an overseas (SWIFT) account is suspicion 3 and no
+  legitimate item has either, so false alarms on legitimate overseas vendors or small businesses using free mail are
+  not measured. The benchmark measures how well a model learns our families and conventions.
 - **Small test set.** 150 items (600 answers). Accuracy intervals are a few points wide (see the paired CIs in
   `results/RESULTS.md`), and at a 1% budget the auto-clear threshold tolerates zero unsafe items, so one borderline
   item moves it.
