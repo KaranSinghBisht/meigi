@@ -88,9 +88,17 @@ describe("local LLM provider (OpenAI-compatible, e.g. Ollama)", () => {
   it("holds every model URL that can carry a token or a document to https, or http on loopback", () => {
     const env = { SEPOLIA_RPC_URL: "http://127.0.0.1:8547", AGENT_ADDRESS: `0x${"11".repeat(20)}`, SIGNER_TOKEN: "s".repeat(64), REGISTRY_ADDRESS: `0x${"22".repeat(20)}`, VAULT_ADDRESS: `0x${"33".repeat(20)}` };
     expect(loadConfig(env)).toMatchObject({ TRIAGE_BACKENDS: "systemone", SYSTEMONE_URL: "http://127.0.0.1:8102/v1/systemone" }); // local only by default
-    for (const name of ["SYSTEMONE_URL", "AI_PROXY_URL", "WORKERS_AI_URL"]) {
+    for (const name of ["SYSTEMONE_URL", "AI_PROXY_URL"]) {
       expect(() => loadConfig({ ...env, [name]: "http://proxy.example.com/v1" })).toThrow(name);
       expect(() => loadConfig({ ...env, [name]: "https://proxy.example.com" })).not.toThrow();
     }
+  });
+
+  it("refuses the paths that would call Cloudflare outside the proxy's daily budget", () => {
+    const env = { SEPOLIA_RPC_URL: "http://127.0.0.1:8547", AGENT_ADDRESS: `0x${"11".repeat(20)}`, SIGNER_TOKEN: "s".repeat(64), REGISTRY_ADDRESS: `0x${"22".repeat(20)}`, VAULT_ADDRESS: `0x${"33".repeat(20)}` };
+    expect(() => loadConfig({ ...env, LLM_PROVIDER: "workers-ai" })).toThrow("invalid or missing configuration: LLM_PROVIDER");
+    expect(() => loadConfig({ ...env, TRIAGE_BACKENDS: "systemone,cloudflare" })).toThrow("invalid or missing configuration: TRIAGE_BACKENDS");
+    const capped = { ...env, AI_PROXY_URL: "https://proxy.example.com", AI_PROXY_TOKEN: "t".repeat(40) };
+    expect(loadConfig({ ...capped, LLM_PROVIDER: "proxy", TRIAGE_BACKENDS: "systemone,proxy" })).toMatchObject({ LLM_PROVIDER: "proxy" }); // opt-in, capped
   });
 });

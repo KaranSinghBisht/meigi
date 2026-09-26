@@ -38,8 +38,6 @@ const schema = z
     SYSTEMONE_URL: z.url().refine(secureOrLoopback, "must be https, or http on loopback").default("http://127.0.0.1:8102/v1/systemone"), // the fine-tuned payee-0.8b (kev.serve)
     SYSTEMONE_API_KEY: optional(z.string()),
     SYSTEMONE_MODEL: z.string().default("kev-latest"),
-    CLOUDFLARE_ACCOUNT_ID: optional(z.string().regex(/^[0-9a-f]{32}$/u, "must be a 32-character account id")),
-    CLOUDFLARE_API_TOKEN: optional(z.string()),
     // The team's Cloudflare Worker (workers/ai-proxy): /v1/systemone (Jev) and /v1/chat (Workers AI Llama)
     AI_PROXY_URL: optional(z.url().refine(secureOrLoopback, "must be https, or http on loopback")), // carries AI_PROXY_TOKEN
     AI_PROXY_TOKEN: optional(z.string()),
@@ -56,8 +54,6 @@ const schema = z
     ANTHROPIC_API_KEY: optional(z.string()),
     ANTHROPIC_MODEL: z.string().default("claude-haiku-4-5"),
     WORKERS_AI_MODEL: z.string().default("@cf/meta/llama-3.3-70b-instruct-fp8-fast"),
-    WORKERS_AI_URL: optional(z.url().refine(secureOrLoopback, "must be https, or http on loopback")), // carries a token
-    WORKERS_AI_TOKEN: optional(z.string()),
     // Intercepta screening
     INTERCEPTA_API_KEY: optional(z.string()),
     INTERCEPTA_CACHE_PATH: z.string().default("../../data/agent/intercepta-cache.json"), // relative to services/agent
@@ -94,9 +90,10 @@ const schema = z
     require("ANTHROPIC_API_KEY", env.LLM_PROVIDER === "anthropic" && !env.ANTHROPIC_API_KEY);
     require("AI_PROXY_URL", env.LLM_PROVIDER === "proxy" && !env.AI_PROXY_URL);
     require("AI_PROXY_TOKEN", env.LLM_PROVIDER === "proxy" && !env.AI_PROXY_TOKEN);
-    const workers = env.LLM_PROVIDER === "workers-ai";
-    require("CLOUDFLARE_ACCOUNT_ID", workers && !env.WORKERS_AI_URL && !env.CLOUDFLARE_ACCOUNT_ID);
-    require("CLOUDFLARE_API_TOKEN", workers && !env.WORKERS_AI_TOKEN && !env.CLOUDFLARE_API_TOKEN);
+    // The account is on Workers Paid, and only workers/ai-proxy keeps a daily budget. So the two paths that call
+    // Cloudflare directly (Llama over the REST API, Jev over the REST API) are refused: use "proxy" instead.
+    const uncapped = "calls Cloudflare directly, outside workers/ai-proxy's daily budget, so it could bill the paid plan: use proxy";
+    require("LLM_PROVIDER", env.LLM_PROVIDER === "workers-ai", `workers-ai ${uncapped}`);
     const multibaas = "set both MULTIBAAS_URL and MULTIBAAS_API_KEY, or neither";
     require("MULTIBAAS_API_KEY", Boolean(env.MULTIBAAS_URL) && !env.MULTIBAAS_API_KEY, multibaas);
     require("MULTIBAAS_URL", Boolean(env.MULTIBAAS_API_KEY) && !env.MULTIBAAS_URL, multibaas);
@@ -107,9 +104,8 @@ const schema = z
     require("WORLD_AGENTS_CLIENT_SECRET", Boolean(env.WORLD_AGENTS_CLIENT_ID) && !env.WORLD_AGENTS_CLIENT_SECRET, together);
     require("WORLD_AGENTS_CLIENT_ID", Boolean(env.WORLD_AGENTS_CLIENT_SECRET) && !env.WORLD_AGENTS_CLIENT_ID, together);
     for (const backend of env.TRIAGE_BACKENDS.split(",").map((b) => b.trim()).filter(Boolean)) {
-      if (!["systemone", "proxy", "cloudflare"].includes(backend)) {
-        ctx.addIssue({ code: "custom", path: ["TRIAGE_BACKENDS"], message: "use systemone, proxy and/or cloudflare" });
-      }
+      if (backend === "cloudflare") ctx.addIssue({ code: "custom", path: ["TRIAGE_BACKENDS"], message: `cloudflare ${uncapped}` });
+      else if (!["systemone", "proxy"].includes(backend)) ctx.addIssue({ code: "custom", path: ["TRIAGE_BACKENDS"], message: "use systemone and/or proxy" });
     }
   });
 

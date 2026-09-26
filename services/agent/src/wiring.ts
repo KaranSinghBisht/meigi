@@ -24,7 +24,7 @@ import type { LlmPort } from "./llm/types.js";
 import { createWorkersAiLlm } from "./llm/workers-ai.js";
 import { createScanCache } from "./screening/cache.js";
 import { createIntercepta } from "./screening/intercepta.js";
-import { cloudflareJevBackend, systemOneBackend, type TriageBackend } from "./triage/backends.js";
+import { systemOneBackend, type TriageBackend } from "./triage/backends.js";
 import { createTriage } from "./triage/triage.js";
 
 const DEMO_DIR = fileURLToPath(new URL("../scripts/demo-invoices/", import.meta.url));
@@ -156,9 +156,6 @@ function createTriageBackends(config: Config): TriageBackend[] {
       const url = new URL("/v1/systemone", config.AI_PROXY_URL).toString();
       backends.push(systemOneBackend({ name: "proxy", url, apiKey: config.AI_PROXY_TOKEN, model: "jev-latest", timeoutMs: 15_000 }));
     }
-    if (name === "cloudflare" && config.CLOUDFLARE_ACCOUNT_ID && config.CLOUDFLARE_API_TOKEN) {
-      backends.push(cloudflareJevBackend({ accountId: config.CLOUDFLARE_ACCOUNT_ID, apiToken: config.CLOUDFLARE_API_TOKEN }));
-    }
   }
   return backends;
 }
@@ -174,16 +171,7 @@ function createLlm(config: Config): LlmPort | null {
     const url = new URL("/v1/chat", config.AI_PROXY_URL!).toString();
     return createWorkersAiLlm({ provider: "proxy", url, token: config.AI_PROXY_TOKEN!, model: config.WORKERS_AI_MODEL });
   }
-  if (config.LLM_PROVIDER === "workers-ai") return createWorkersAiLlm({ provider: "workers-ai", ...workersAiTarget(config) });
-  return null;
-}
-
-/** WORKERS_AI_URL if set, else the Cloudflare REST API for the account. */
-function workersAiTarget(config: Config) {
-  const model = config.WORKERS_AI_MODEL;
-  const token = (config.WORKERS_AI_TOKEN ?? config.CLOUDFLARE_API_TOKEN)!;
-  if (config.WORKERS_AI_URL) return { url: config.WORKERS_AI_URL, token, model };
-  return { url: `https://api.cloudflare.com/client/v4/accounts/${config.CLOUDFLARE_ACCOUNT_ID}/ai/run/${model}`, token, model };
+  return null; // config refuses workers-ai: it would call Cloudflare outside the proxy's daily budget
 }
 
 /** RPC log scans start at the v2 deployment on Sepolia (nothing earlier is ours), at 0 on a local chain. */

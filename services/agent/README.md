@@ -338,7 +338,7 @@ All settings come from the environment; see `.env.example`.
 | Area | Default |
 |---|---|
 | Triage | `TRIAGE_BACKENDS=systemone` (local Kev only; add `,proxy` to fall back to Jev through workers/ai-proxy, which is capped daily), `SYSTEMONE_URL=http://127.0.0.1:8102/v1/systemone`, `TRIAGE_MIN_P_SAFE=0.9`, `TRIAGE_REQUIRED=true` |
-| LLM | `LLM_PROVIDER=local` (the default for demos: a model on this machine behind an OpenAI-compatible API, `LOCAL_LLM_URL=http://127.0.0.1:11434/v1`, `LOCAL_LLM_MODEL=llama3.1:8b`, `LOCAL_LLM_TIMEOUT_MS=60000`), `proxy` (Llama 3.3 via `AI_PROXY_URL/v1/chat` with `AI_PROXY_TOKEN`), `anthropic` (`ANTHROPIC_API_KEY`, `claude-haiku-4-5`), `workers-ai` or `none` |
+| LLM | `LLM_PROVIDER=local` (the default for demos: a model on this machine behind an OpenAI-compatible API, `LOCAL_LLM_URL=http://127.0.0.1:11434/v1`, `LOCAL_LLM_MODEL=llama3.1:8b`, `LOCAL_LLM_TIMEOUT_MS=60000`), `proxy` (Llama 3.3 via `AI_PROXY_URL/v1/chat` with `AI_PROXY_TOKEN`, inside the proxy's daily budget), `anthropic` (`ANTHROPIC_API_KEY`, `claude-haiku-4-5`) or `none`. `workers-ai` (Cloudflare's REST API directly) is refused: it would bypass that budget on a paid account |
 | Screening | `INTERCEPTA_API_KEY` (optional), `INTERCEPTA_CACHE_PATH=../../data/agent/intercepta-cache.json`, `INTERCEPTA_MAX_CALLS=900`, `INTERCEPTA_TOXIC_THRESHOLD=50` |
 | Judgement holds | `TRIAGE_MAX_PRESSURE=0.5`, `AUTO_CLEAR_MAX_YEN` (unset: the signer's ceiling, ¥150,000, is the budget) |
 | Signer | `AGENT_ADDRESS`, `SIGNER_URL=http://127.0.0.1:8796`, `SIGNER_TOKEN` (the same value as in `.env.signer`) |
@@ -365,10 +365,14 @@ OpenAI-compatible API at `http://127.0.0.1:11434/v1`.
 ### Triage backend
 
 The default System-1 model is the team's fine-tuned **payee-0.8b**, served by `kev.serve` at
-`http://127.0.0.1:8102/v1/systemone`. It uses the same `/v1/systemone` contract as Jev (see `bench/`). If it doesn't
-answer, the agent tries Jev through the team's Cloudflare proxy (`AI_PROXY_URL/v1/systemone`), which returns 402
-until credits exist. If no backend answers, the analysis says "triage unavailable" and every invoice holds; set
-`TRIAGE_REQUIRED=false` to make that a warning instead.
+`http://127.0.0.1:8102/v1/systemone`. It uses the same `/v1/systemone` contract as Jev (see `bench/`), and it is the only
+backend by default.
+- **Jev fallback (opt-in):** `TRIAGE_BACKENDS=systemone,proxy` tries Jev through the team's Cloudflare proxy
+  (`AI_PROXY_URL/v1/systemone`) when Kev doesn't answer. It spends prepaid AI Gateway credits, counts towards the
+  proxy's daily call cap, and returns 402 until credits exist.
+- **Refused:** Jev over Cloudflare's REST API (`cloudflare`), because it would bypass the proxy's budget.
+- **No backend answers:** the analysis says "triage unavailable" and every invoice holds. Set
+  `TRIAGE_REQUIRED=false` to make that a warning instead.
 
 The question strings match `bench/payeebench/schema.py` byte for byte, because the fine-tune binds them;
 `test/questions.test.ts` checks this against the PayeeBench dataset. The state has the same shape as PayeeBench's,
