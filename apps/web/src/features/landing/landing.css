@@ -1,12 +1,12 @@
 /* The landing hero as the app's first screen. Its tokens (from the landing's base.css) apply only inside
    .landing, so the app's own pages keep theirs. The world behind it is the app's persistent scene layer. */
 .landing {
-  --ink-soft: rgba(42, 39, 48, 0.74);
+  --ink-soft: rgba(42, 39, 48, 0.8);
   --ink-faint: rgba(42, 39, 48, 0.5);
-  --glass: rgba(255, 255, 255, 0.56);
-  --glass-hover: rgba(255, 255, 255, 0.86);
-  --glass-edge: rgba(255, 255, 255, 0.72);
-  --shadow-soft: 0 10px 30px -16px rgba(42, 39, 48, 0.45);
+  --glass: var(--lg-sheen), var(--lg-clear);
+  --glass-hover: var(--lg-sheen), var(--lg-regular);
+  --glass-edge: var(--lg-rim);
+  --shadow-soft: var(--lg-drop);
   /* Mirrors horizonFor() in the scene's world.ts at the 'hero' station. */
   --horizon: 60%;
   --gutter: clamp(16px, 2.2vw, 30px);
@@ -19,9 +19,10 @@
   font-family: var(--font-latin);
 }
 
-/* Back from the app: the overlay waits for the camera to settle on the hero, then fades in. Backwards fill only,
-   so once it has played, the enter transition's own opacity takes over again. */
-.landing .overlay--return {
+/* Back from the app: the hero waits for the camera to settle, then fades in, piece by piece so the glass pills keep
+   their blur (the same pieces the enter transition fades out). Backwards fill only, so once it has played, the
+   enter transition's own opacity takes over again. */
+.landing .overlay--return :is(.branch, .hero__top, .hero__subtitle, .vlabel, .caption, .pill) {
   animation: landing-return 0.9s var(--ease-out) 0.6s backwards;
 }
 

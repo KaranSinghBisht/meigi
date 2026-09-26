@@ -74,9 +74,10 @@
   border: 1px solid transparent;
   border-left-width: 4px;
   border-radius: var(--radius-md);
-  background-color: rgba(255, 255, 255, 0.88);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
+  background-color: var(--lg-denser);
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+  box-shadow: var(--lg-light);
   font-size: 15px;
 }
 

@@ -97,7 +97,7 @@
   padding: 8px 14px;
   border: 1px solid var(--line-strong);
   border-radius: 999px;
-  background: #fff;
+  background: var(--lg-sheen), var(--lg-inner);
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
@@ -121,7 +121,8 @@
   padding: 16px 18px;
   border: 1px solid var(--line-strong);
   border-radius: 16px;
-  background: #fff;
+  background: var(--lg-inner);
+  box-shadow: var(--lg-shadow-inset);
   font-family: var(--font-latin);
   font-size: 17px;
   line-height: 1.6;
@@ -170,7 +171,9 @@
   border: 1px solid var(--glass-edge);
   border-left: 8px solid var(--jade);
   border-radius: 22px;
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--lg-sheen), var(--lg-denser);
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
   box-shadow: var(--shadow-panel);
 }
 
@@ -239,12 +242,11 @@
   line-height: 1.45;
 }
 
-/* Solid rather than frosted: the decision bar is already opaque, and an outline keeps it readable when disabled. */
+/* A clear lens with a visible outline, so it still reads when disabled; like every control inside glass, it
+   doesn't blur again. */
 .decision__attack .btn--ghost {
   border-color: var(--line-strong);
-  background: #fff;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
+  background: var(--lg-sheen), var(--lg-inner);
 }
 
 .decision__attack-tag {
@@ -270,7 +272,10 @@
   padding: 24px 28px;
   border: 2px solid rgba(63, 157, 120, 0.5);
   border-radius: 24px;
-  background: linear-gradient(120deg, rgba(63, 157, 120, 0.14), rgba(255, 255, 255, 0) 60%), #fff;
+  background: linear-gradient(120deg, rgba(63, 157, 120, 0.16), transparent 60%), var(--lg-sheen), var(--lg-denser);
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+  box-shadow: var(--lg-shadow);
 }
 
 .paid__kicker {

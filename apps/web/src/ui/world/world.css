@@ -18,7 +18,7 @@
   padding: 16px;
   border: 1px solid rgba(125, 110, 214, 0.35);
   border-radius: 18px;
-  background: linear-gradient(120deg, var(--iris-tint), rgba(255, 255, 255, 0.85));
+  background: linear-gradient(120deg, var(--iris-tint), transparent), var(--lg-sheen), var(--lg-inner);
 }
 
 .world-session__qr {

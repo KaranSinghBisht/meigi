@@ -11,6 +11,13 @@ export const START_PATH = '/start'
 const CROSSFADE_SECONDS = 0.35
 const OVERLAY_FADE_SECONDS = 0.55
 
+/**
+ * What fades on enter: each piece of the hero, not the overlay around them. Opacity on an ancestor would make it
+ * the backdrop root and switch the glass pills' blur off for the whole fade. (landing.css fades the same pieces
+ * back in on return.)
+ */
+const FADING = '.branch, .hero__top, .hero__subtitle, .vlabel, .caption, .pill, .resolve'
+
 interface EnterOptions {
   /** Skip the camera glide: reduced motion, or no WebGL scene on screen. */
   readonly stillOnly: boolean
@@ -60,11 +67,8 @@ export function useEnterTransition({ stillOnly, overlay }: EnterOptions) {
       // gsap ticks on requestAnimationFrame, which stops in a hidden tab: enter on a timer as well.
       fallback.current = window.setTimeout(go, (seconds + 0.8) * 1000)
       if (!stillOnly) stage.hold('gate')
-      tl.to(
-        overlay.current,
-        { opacity: 0, duration: stillOnly ? seconds : OVERLAY_FADE_SECONDS, ease: 'power2.out' },
-        0,
-      )
+      const pieces = overlay.current ? [...overlay.current.querySelectorAll(FADING)] : []
+      tl.to(pieces, { opacity: 0, duration: stillOnly ? seconds : OVERLAY_FADE_SECONDS, ease: 'power2.out' }, 0)
       tl.call(go, undefined, seconds)
     },
     [navigate, stillOnly, overlay],

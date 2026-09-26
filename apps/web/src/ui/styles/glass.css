@@ -1,0 +1,151 @@
+/* Liquid Glass. Surfaces are tinted, not white: low-alpha fills take their colour from the blurred, saturated
+   world behind them, and read as glass through light, not opacity: a bright rim, a specular top edge, a soft
+   lower inner shadow for thickness and a gentle drop shadow. Defined once here; components use these tokens.
+
+   Density follows content: controls over the world are clear; panels that carry body text are denser, so small
+   text stays AA over the darkest and reddest parts of the scene. Only surfaces that sit on the world blur it
+   (panels, plates, the header, the landing's pills); anything inside a panel is tint and light only, so a page
+   keeps few blurred layers over the live canvas. */
+:root {
+  --lg-clear: rgba(255, 255, 255, 0.16);
+  --lg-regular: rgba(250, 247, 255, 0.3);
+  --lg-dense: rgba(248, 244, 253, 0.6);
+  --lg-denser: rgba(248, 244, 253, 0.74);
+  --lg-inner: rgba(255, 255, 255, 0.34);
+  --lg-selected: rgba(255, 255, 255, 0.64);
+  /* Dark glass for primary actions, vermilion glass for the accent: white text on both is AA. */
+  --lg-ink: rgba(30, 27, 36, 0.82);
+  --lg-seal: rgba(150, 38, 26, 0.88);
+
+  --lg-blur: blur(24px) saturate(1.7) brightness(1.1);
+  --lg-rim: rgba(255, 255, 255, 0.56);
+  --lg-rim-bright: rgba(255, 255, 255, 0.95);
+  --lg-sheen: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.34),
+    rgba(255, 255, 255, 0.07) 40%,
+    rgba(255, 255, 255, 0) 62%
+  );
+  --lg-sheen-dark: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.2),
+    rgba(255, 255, 255, 0.03) 45%,
+    rgba(255, 255, 255, 0) 65%
+  );
+
+  --lg-light: inset 0 1px 0.5px rgba(255, 255, 255, 0.9), inset 0 0 0 0.5px rgba(255, 255, 255, 0.28);
+  --lg-depth: inset 0 -10px 18px -12px rgba(42, 39, 48, 0.2), inset 0 -1px 1px rgba(255, 255, 255, 0.32);
+  --lg-drop: 0 14px 34px -16px rgba(42, 39, 48, 0.32), 0 2px 6px -2px rgba(42, 39, 48, 0.1);
+  --lg-shadow: var(--lg-light), var(--lg-depth), var(--lg-drop);
+  /* Controls: the same light, a tighter drop. */
+  --lg-shadow-control: var(--lg-light), var(--lg-depth), 0 8px 20px -10px rgba(42, 39, 48, 0.3);
+  /* Pressed into the glass: inputs. */
+  --lg-shadow-inset: inset 0 1px 3px rgba(42, 39, 48, 0.14), inset 0 -1px 0 rgba(255, 255, 255, 0.5);
+}
+
+/* The glass plate: headings and short copy that sit straight on the world. */
+.page-head,
+.on-scene {
+  padding: 16px 22px 18px;
+  border: 1px solid var(--lg-rim);
+  border-radius: var(--radius-lg);
+  background: var(--lg-sheen), var(--lg-dense);
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+  box-shadow: var(--lg-shadow);
+}
+
+/* Glass inside glass doesn't blur again: the surface behind it already blurred the world (and an element with a
+   backdrop-filter is the backdrop root for its children, so a nested blur would only re-blur that surface), while
+   every extra blurred layer costs a pass over the live canvas. Every surface that blurs the world is listed here. */
+:is(
+    .panel,
+    .page-head,
+    .on-scene,
+    .topbar__inner,
+    .footer,
+    .notice,
+    .strip,
+    .flow-card,
+    .home__feature,
+    .col,
+    .invoice,
+    .vault,
+    .decision,
+    .refusal,
+    .paid,
+    .approval,
+    .demo-machine,
+    .checklist,
+    .steps__item,
+    .biz-product,
+    .biz-tier,
+    .biz-fact,
+    .biz-step,
+    .biz-cta,
+    .biz-lei,
+    .biz-roadmap__note
+  )
+  :is(
+    .panel,
+    .page-head,
+    .on-scene,
+    .notice,
+    .strip,
+    .col,
+    .decision,
+    .refusal,
+    .paid,
+    .approval,
+    .demo-machine,
+    .steps__item,
+    .biz-roadmap__note
+  ) {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* Refraction, Chromium only (html.lg-refract): the frosted world bends a little through the header capsule and the
+   enter lens. Every other browser keeps the plain blur. */
+html.lg-refract .lg-lens {
+  -webkit-backdrop-filter: var(--lg-blur) url(#lg-lens);
+  backdrop-filter: var(--lg-blur) url(#lg-lens);
+}
+
+.lg-filters {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* Asked for less transparency, or more contrast: solid fills, no blur, no refraction. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  :root {
+    --lg-clear: #f6f3fa;
+    --lg-regular: #f6f3fa;
+    --lg-dense: #fbf9fd;
+    --lg-denser: #ffffff;
+    --lg-inner: #ffffff;
+    --lg-selected: #ffffff;
+    --lg-ink: #2a2730;
+    --lg-seal: #9e2a1d;
+    --lg-blur: none;
+    --lg-sheen: linear-gradient(transparent, transparent);
+    --lg-sheen-dark: linear-gradient(transparent, transparent);
+    --lg-rim: rgba(42, 39, 48, 0.3);
+  }
+
+  html.lg-refract .lg-lens {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --lg-rim: rgba(42, 39, 48, 0.6);
+    --ink-soft: #37333f;
+    --ink-muted: #423e4a;
+  }
+}

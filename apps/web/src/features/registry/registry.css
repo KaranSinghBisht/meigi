@@ -43,7 +43,7 @@
   padding: 8px 14px;
   border: 1px solid var(--line-strong);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.75);
+  background: var(--lg-sheen), var(--lg-inner);
   cursor: pointer;
   transition:
     background-color 0.2s var(--ease-out),
@@ -51,7 +51,7 @@
 }
 
 .directory__chip:hover {
-  background: #fff;
+  background: var(--lg-sheen), var(--lg-selected);
 }
 
 .directory__chip:focus-visible {
@@ -60,7 +60,7 @@
 
 .directory__chip[aria-pressed='true'] {
   border-color: var(--seal);
-  background: #fff;
+  background: var(--lg-sheen), var(--lg-selected);
   box-shadow: inset 0 0 0 1px var(--seal);
 }
 
@@ -162,7 +162,7 @@
   padding: 16px 18px;
   border: 1px solid rgba(63, 157, 120, 0.3);
   border-radius: var(--radius-md);
-  background: linear-gradient(100deg, rgba(63, 157, 120, 0.1), rgba(255, 255, 255, 0.6));
+  background: linear-gradient(100deg, rgba(63, 157, 120, 0.12), transparent), var(--lg-sheen), var(--lg-inner);
 }
 
 .payee__payout-value {

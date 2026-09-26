@@ -25,7 +25,7 @@ export function Hero({ appUrl, onEnter, onStamp }: HeroProps) {
       </div>
       <div className="hero__bottom">
         <p className="hero__subtitle">Pay companies, not addresses.</p>
-        <a className="pill pill--enter" href={appUrl} onClick={onEnter}>
+        <a className="pill pill--enter lg-lens" href={appUrl} onClick={onEnter}>
           enter
           <ArrowDownRight />
         </a>

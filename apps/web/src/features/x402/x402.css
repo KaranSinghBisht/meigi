@@ -52,12 +52,12 @@
   padding: 14px 16px;
   border: 1px solid rgba(63, 157, 120, 0.35);
   border-radius: var(--radius-md);
-  background: linear-gradient(110deg, var(--jade-tint), rgba(255, 255, 255, 0.7));
+  background: linear-gradient(110deg, var(--jade-tint), transparent), var(--lg-sheen), var(--lg-inner);
 }
 
 .screen-card.is-flagged {
   border-color: rgba(200, 55, 45, 0.45);
-  background: linear-gradient(110deg, rgba(224, 69, 43, 0.14), rgba(255, 255, 255, 0.7));
+  background: linear-gradient(110deg, rgba(224, 69, 43, 0.14), transparent), var(--lg-sheen), var(--lg-inner);
 }
 
 .screen-card__label {

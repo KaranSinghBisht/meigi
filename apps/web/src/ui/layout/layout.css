@@ -24,21 +24,28 @@
   outline: none;
 }
 
-/* Arriving from the hero's enter glide: the app's chrome and page fade in over the world. */
-.shell--entered .topbar,
+/* Arriving from the hero's enter glide: the app's glass fades in over the world and the page rises into place.
+   Each glass surface fades itself; opacity on an ancestor would make that ancestor the backdrop root and switch
+   the blur off until the fade ended. */
+.shell--entered .topbar__inner,
 .shell--entered .shell__vlabel,
-.shell--entered .shell__main,
-.shell--entered .footer {
-  animation: shell-enter 0.8s var(--ease-out) both;
+.shell--entered .footer,
+.shell--entered .shell__main :is(.page-head, .on-scene, .panel, .home__feature, .flow-card) {
+  animation: shell-fade 0.8s var(--ease-out) both;
 }
 
 .shell--entered .shell__main {
-  animation-delay: 0.12s;
+  animation: shell-rise 0.8s var(--ease-out) 0.12s both;
 }
 
-@keyframes shell-enter {
+@keyframes shell-fade {
   from {
     opacity: 0;
+  }
+}
+
+@keyframes shell-rise {
+  from {
     transform: translateY(10px);
   }
 }
@@ -78,12 +85,12 @@
   min-height: 58px;
   margin: 0 auto;
   padding: 8px 10px 8px 16px;
-  border: 1px solid var(--glass-edge);
+  border: 1px solid var(--lg-rim);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.6);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
-  box-shadow: var(--shadow-soft);
+  background: var(--lg-sheen), var(--lg-dense);
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+  box-shadow: var(--lg-shadow-control);
   pointer-events: auto;
 }
 
@@ -139,7 +146,7 @@
 }
 
 .nav__link:hover {
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--lg-inner);
   color: var(--ink);
 }
 
@@ -148,11 +155,12 @@
 }
 
 .nav__link[aria-current='page'] {
-  background: #fff;
+  background: var(--lg-sheen), var(--lg-selected);
   color: var(--ink);
   box-shadow:
-    var(--shadow-soft),
-    inset 0 -2px 0 var(--vermilion);
+    var(--lg-light),
+    inset 0 -2px 0 var(--vermilion),
+    0 6px 14px -8px rgba(42, 39, 48, 0.35);
 }
 
 .topbar__end {
@@ -168,9 +176,10 @@
   gap: 8px;
   height: 34px;
   padding: 0 12px;
-  border: 1px solid var(--glass-edge);
+  border: 1px solid var(--lg-rim);
   border-radius: 999px;
-  background: var(--glass);
+  background: var(--lg-sheen), var(--lg-inner);
+  box-shadow: var(--lg-light);
   font-size: 13.5px;
   font-weight: 500;
   white-space: nowrap;
@@ -197,11 +206,13 @@
   color: var(--amber-deep);
 }
 
+/* Small print: denser glass. */
 .footer {
-  border-top: 1px solid rgba(255, 255, 255, 0.55);
-  background: rgba(255, 255, 255, 0.5);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
+  border-top: 1px solid var(--lg-rim);
+  background: var(--lg-sheen), var(--lg-denser);
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+  box-shadow: var(--lg-light);
 }
 
 .footer__inner {
@@ -239,18 +250,6 @@
   min-height: 40vh;
   place-items: center;
   color: var(--ink-soft);
-}
-
-/* Headings float on the world on a light glass plate: thinner than a panel, so the scene reads through, yet
-   bright enough behind small text for AA wherever the camera puts the mountain. */
-.page-head,
-.on-scene {
-  padding: 16px 22px 18px;
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, 0.6);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
 }
 
 .page-head {

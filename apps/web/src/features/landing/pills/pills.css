@@ -7,11 +7,9 @@
   border: 1px solid var(--glass-edge);
   border-radius: 999px;
   background: var(--glass);
-  -webkit-backdrop-filter: blur(14px) saturate(1.35);
-  backdrop-filter: blur(14px) saturate(1.35);
-  box-shadow:
-    var(--shadow-soft),
-    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+  box-shadow: var(--lg-shadow-control);
   color: var(--ink);
   font-size: 14px;
   font-weight: 500;
@@ -22,16 +20,19 @@
   cursor: pointer;
   transition:
     background-color 0.25s var(--ease-out),
+    border-color 0.25s var(--ease-out),
     color 0.25s var(--ease-out),
-    transform 0.25s var(--ease-out);
+    transform 0.2s var(--ease-out),
+    filter 0.25s var(--ease-out);
 }
 
 .landing .pill:hover {
+  border-color: var(--lg-rim-bright);
   background: var(--glass-hover);
 }
 
 .landing .pill:active {
-  transform: translateY(1px);
+  transform: scale(0.97);
 }
 
 .landing .pill__icon {
@@ -43,17 +44,17 @@
 .landing .pill--enter {
   height: 46px;
   padding: 0 22px 0 24px;
-  border-color: rgba(255, 255, 255, 0.9);
-  background: #fff;
+  border-color: var(--lg-rim-bright);
+  background: var(--lg-sheen), var(--lg-regular);
   font-size: 16px;
-  box-shadow: 0 14px 34px -18px rgba(42, 39, 48, 0.55);
+  box-shadow: var(--lg-shadow);
 }
 
+/* The enter lens brightens rather than turning dark. */
 .landing .pill--enter:hover,
 .landing .pill--enter:focus-visible {
-  border-color: var(--ink);
-  background: var(--ink);
-  color: #fff;
+  background: var(--lg-sheen), var(--lg-selected);
+  filter: brightness(1.04);
 }
 
 .landing .pill[aria-expanded='true'] {

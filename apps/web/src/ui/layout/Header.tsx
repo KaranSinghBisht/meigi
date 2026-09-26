@@ -15,7 +15,7 @@ const LINKS = [
 export function Header() {
   return (
     <header className="topbar">
-      <div className="topbar__inner">
+      <div className="topbar__inner lg-lens">
         <Link to="/" className="brand" aria-label="Meigi home: back to the lake">
           <HankoMark size={34} />
           <span className="brand__word" aria-hidden="true">

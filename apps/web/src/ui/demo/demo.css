@@ -14,7 +14,9 @@
   padding: clamp(18px, 2.4vw, 28px);
   border: 1px solid rgba(125, 110, 214, 0.3);
   border-radius: var(--radius-lg);
-  background: linear-gradient(120deg, var(--iris-tint), rgba(255, 255, 255, 0.82) 60%);
+  background: linear-gradient(120deg, var(--iris-tint), transparent 60%), var(--lg-sheen), var(--lg-dense);
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
   box-shadow: var(--shadow-soft);
 }
 
@@ -50,7 +52,7 @@
   padding: clamp(16px, 2vw, 22px);
   border: 1.5px dashed rgba(125, 110, 214, 0.55);
   border-radius: 24px;
-  background: rgba(255, 255, 255, 0.45);
+  background: var(--lg-clear);
 }
 
 .recorded__head {

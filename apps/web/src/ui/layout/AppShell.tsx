@@ -4,6 +4,7 @@ import { VerticalLabel } from '../brand/VerticalLabel'
 import { Spinner } from '../components/Spinner'
 import { Arrival } from '../stage/Arrival'
 import { SceneLayer } from '../stage/SceneLayer'
+import { GlassFilters } from '../styles/GlassFilters'
 import { Footer } from './Footer'
 import { Header } from './Header'
 import './layout.css'
@@ -60,6 +61,7 @@ export function AppShell() {
         Skip to content
       </a>
       <SceneLayer />
+      <GlassFilters />
       {hero ? null : <Header />}
       {hero ? null : (
         <div className="shell__vlabel" aria-hidden="true">

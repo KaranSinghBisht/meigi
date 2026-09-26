@@ -3,8 +3,8 @@
    them, so every text colour below still meets WCAG AA over the darkest part of the scene. */
 :root {
   --ink: #2a2730;
-  --ink-soft: #55515d; /* 7.6:1 on white, 5.4:1 on glass over the mountain */
-  --ink-muted: #5d5965; /* 6.6:1 on white, 4.8:1 on glass over the mountain */
+  --ink-soft: #4a4652; /* 8.9:1 on white, 5.2:1 on dense glass over the mountain */
+  --ink-muted: #56525e; /* 7.4:1 on white, 4.6:1 on dense glass over the mountain */
   --line: rgba(42, 39, 48, 0.1);
   --line-strong: rgba(42, 39, 48, 0.18);
 
@@ -13,7 +13,7 @@
   --seal-deep: #9e2a1d; /* small text on white: 7.4:1 */
   --seal-tint: rgba(224, 69, 43, 0.1);
   --jade: #3f9d78;
-  --jade-deep: #22684d; /* 6.9:1 on white */
+  --jade-deep: #1b5840; /* 8.4:1 on white, 5.4:1 on glass over the torii */
   --jade-tint: rgba(63, 157, 120, 0.13);
   --amber-deep: #7a4d00;
   --amber-tint: rgba(245, 166, 35, 0.16);
@@ -25,13 +25,14 @@
   --sky-low: #fff1e5;
   --lake: #efe6f3;
 
-  --glass: rgba(255, 255, 255, 0.62);
-  --glass-strong: rgba(255, 255, 255, 0.84);
-  --glass-dense: rgba(255, 255, 255, 0.86);
-  --glass-edge: rgba(255, 255, 255, 0.8);
-  --glass-blur: blur(22px) saturate(1.35) brightness(1.12);
-  --shadow-soft: 0 10px 30px -16px rgba(42, 39, 48, 0.4);
-  --shadow-panel: 0 24px 60px -34px rgba(42, 39, 48, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  /* The older names now resolve to Liquid Glass (ui/styles/glass.css). They are background shorthands. */
+  --glass: var(--lg-sheen), var(--lg-dense);
+  --glass-strong: var(--lg-sheen), var(--lg-denser);
+  --glass-dense: var(--lg-sheen), var(--lg-denser);
+  --glass-edge: var(--lg-rim);
+  --glass-blur: var(--lg-blur);
+  --shadow-soft: var(--lg-shadow-control);
+  --shadow-panel: var(--lg-shadow);
 
   --font-latin:
     'Inter Tight', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'Hiragino Sans', 'Noto Sans JP', 'Yu Gothic',

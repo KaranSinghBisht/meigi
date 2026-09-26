@@ -33,12 +33,12 @@
 
 .col--muted {
   border-top-color: rgba(42, 39, 48, 0.2);
-  background: rgba(255, 255, 255, 0.6);
+  background: var(--lg-sheen), var(--lg-dense);
 }
 
 .col--belief {
   border-top-color: #7d6ed6;
-  background: linear-gradient(180deg, rgba(125, 110, 214, 0.1), rgba(255, 255, 255, 0.86) 40%);
+  background: linear-gradient(180deg, rgba(125, 110, 214, 0.12), transparent 40%), var(--lg-sheen), var(--lg-denser);
 }
 
 .col__head {

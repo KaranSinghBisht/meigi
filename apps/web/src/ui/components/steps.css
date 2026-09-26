@@ -40,7 +40,7 @@
 
 .steps__item--current {
   border-color: rgba(42, 39, 48, 0.2);
-  background: #fff;
+  background: var(--lg-sheen), var(--lg-selected);
   color: var(--ink);
   font-weight: 600;
   box-shadow: var(--shadow-soft);

@@ -34,6 +34,21 @@ fixed canvas behind the shell (`src/ui/stage/SceneLayer.tsx`), with each flow at
   crossfade. A timer finishes the move if the tab is hidden mid-glide; leaving mid-glide cancels it.
 - Arriving from the old standalone landing (which ends its glide in white), the app fades in from white.
 
+## Liquid Glass
+
+Every surface is tinted glass, defined once in `src/ui/styles/glass.css`: low-alpha fills that take their colour
+from the blurred, saturated world behind them, a bright rim, a specular top edge, an inner lower shadow for
+thickness and a soft drop shadow. Components only use its tokens (`--lg-*`; the older `--glass*` names map onto
+them).
+
+- Density follows content: controls over the world are clear, and anything carrying small text sits on denser
+  glass, so text stays AA over every station (checked on real pixels, not only by axe).
+- Glass inside glass doesn't blur again (one rule in `glass.css`), which keeps blurred layers few over the canvas;
+  fades animate each surface, never an ancestor, so the blur never drops out mid-fade.
+- Chromium bends the world slightly through the header and the enter lens (`.lg-lens`, an SVG displacement map);
+  other browsers get the plain blur.
+- `prefers-reduced-transparency: reduce` and `prefers-contrast: more` get solid fills, no blur, no refraction.
+
 ## Run
 
 ```sh
