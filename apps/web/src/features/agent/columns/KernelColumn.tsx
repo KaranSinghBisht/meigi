@@ -39,9 +39,15 @@ function Registered({ kernel }: { readonly kernel: Kernel }) {
   )
 }
 
-export function KernelColumn({ kernel }: { readonly kernel: Kernel }) {
+/** "Pay" only when the whole decision is pay: under a hold from triage or pressure, the chain checks just pass. */
+function kernelWord(kernel: Kernel, overallHold: boolean): string {
+  if (!kernel.ok) return 'Hold'
+  return overallHold ? 'Chain checks pass' : 'Pay'
+}
+
+export function KernelColumn({ kernel, overallHold }: { readonly kernel: Kernel; readonly overallHold: boolean }) {
   const checked = kernel.status === 'checked'
-  const status = <Badge tone={kernel.ok ? 'active' : 'disputed'}>{kernel.ok ? 'Pay' : 'Hold'}</Badge>
+  const status = <Badge tone={kernel.ok ? 'active' : 'disputed'}>{kernelWord(kernel, overallHold)}</Badge>
   return (
     <Column
       step={3}

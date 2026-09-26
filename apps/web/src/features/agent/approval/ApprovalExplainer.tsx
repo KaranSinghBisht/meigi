@@ -15,8 +15,9 @@ export function ApprovalExplainer() {
           like a credit note, hidden text or two totals, can never be approved.
         </li>
         <li>
-          “Ask a human to approve with World ID” shows a QR code and a short code. The approver scans it with the World
-          ID app, checks the code matches, and approves with a fresh World ID proof.
+          “Ask a human to approve with World ID” opens an approval for the approver, on the device they enrolled with (a
+          phone scans its QR code). They check the short code matches and approve with a fresh World ID proof. Another
+          device signs in as a different identity, and the agent refuses it.
         </li>
         <li>
           The agent then pays that one invoice, once. If the request is denied, expires, or comes from a different human

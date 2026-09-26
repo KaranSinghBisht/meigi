@@ -189,6 +189,11 @@
   font-size: var(--text-sm);
 }
 
+/* A busy action keeps focus (so the page doesn't lose its place) but shows only its spinner: no coloured ring. */
+.decision__actions .btn[aria-busy='true']:focus-visible {
+  outline: none;
+}
+
 /* The attack demo: a quiet text button under a small label, so it never competes with the real action. */
 .decision__attack {
   display: grid;

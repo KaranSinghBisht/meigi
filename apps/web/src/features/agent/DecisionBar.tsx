@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { Analysis, PayMode } from '../../lib/api/agentTypes'
 import { Button } from '../../ui/components/Button'
 import { AgentProse } from './AgentProse'
@@ -44,10 +45,31 @@ function AttackDemo({ busy, disabled, onForce }: AttackDemoProps) {
   )
 }
 
-/** While a human is being asked (and while their approval pays), the ask button shows progress instead. */
-function asking({ approval, pay }: PayControls): boolean {
+/** While a human is being asked, the ask button shows progress. Once they answer, its busy state ends. */
+function asking({ approval }: PayControls): boolean {
   const flow = approval.flow.kind
-  return flow === 'starting' || flow === 'waiting' || (flow === 'approved' && pay.kind === 'paying')
+  return flow === 'starting' || flow === 'waiting'
+}
+
+/**
+ * After a human approved, the ask button becomes the next step: "Paying" while the approved payment is in flight,
+ * then a disabled "Paid". Null when that payment failed or wasn't paid, so asking again stays possible.
+ */
+function approvedStep({ approval, pay }: PayControls): ReactNode {
+  if (approval.flow.kind !== 'approved') return null
+  if (pay.kind === 'paying') {
+    return (
+      <Button size="lg" busy>
+        Paying
+      </Button>
+    )
+  }
+  if (pay.kind !== 'done' || pay.outcome.status !== 'paid') return null
+  return (
+    <Button size="lg" variant="ghost" disabled>
+      Paid
+    </Button>
+  )
 }
 
 function PayButtons({ analysis, ...controls }: PayControls & { readonly analysis: Analysis }) {
@@ -57,9 +79,12 @@ function PayButtons({ analysis, ...controls }: PayControls & { readonly analysis
   const locked = paying || busyAsking || (pay.kind === 'done' && pay.outcome.status === 'paid')
   const hold = analysis.verdict.decision === 'hold'
   const { enabled, approvable } = analysis.approval
+  const approved = hold && approvable && enabled ? approvedStep(controls) : null
   return (
     <div className="decision__actions">
-      {hold && approvable && enabled ? (
+      {approved ? (
+        approved
+      ) : hold && approvable && enabled ? (
         <Button size="lg" busy={busyAsking} disabled={locked && !busyAsking} onClick={() => void approval.ask()}>
           Ask a human to approve with World ID
         </Button>

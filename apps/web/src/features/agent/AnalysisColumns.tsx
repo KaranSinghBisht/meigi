@@ -13,7 +13,7 @@ export function AnalysisColumns({ analysis }: { readonly analysis: Analysis }) {
     <div className="cols cells window window--dense">
       <ExtractionColumn extracted={analysis.extracted} />
       <TriageColumn triage={analysis.triage} />
-      <KernelColumn kernel={analysis.kernel} />
+      <KernelColumn kernel={analysis.kernel} overallHold={analysis.verdict.decision === 'hold'} />
       <ScreeningColumn
         screening={analysis.screening}
         holds={analysis.verdict.reasons.some((reason) => reason.code === 'screening_unavailable')}
