@@ -8,6 +8,8 @@ export type NtaPreview =
   | { readonly status: 'loading' }
   | { readonly status: 'found'; readonly record: NtaRecord }
   | { readonly status: 'missing' }
+  /** Registry office 9999: a fictional demo company, which needs no NTA record. */
+  | { readonly status: 'fixture' }
   | { readonly status: 'offline' }
   | { readonly status: 'error'; readonly message: string }
 
@@ -26,8 +28,10 @@ export function useNtaPreview(input: string): NtaPreview {
     setPreview({ status: 'loading' })
     const timer = window.setTimeout(() => {
       fetchNta(display, controller.signal).then(
-        (record) => {
-          if (!controller.signal.aborted) setPreview(record ? { status: 'found', record } : { status: 'missing' })
+        ({ fixture, record }) => {
+          if (controller.signal.aborted) return
+          if (fixture) setPreview({ status: 'fixture' })
+          else setPreview(record ? { status: 'found', record } : { status: 'missing' })
         },
         (error: unknown) => {
           if (controller.signal.aborted) return

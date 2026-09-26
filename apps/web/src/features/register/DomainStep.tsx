@@ -70,23 +70,46 @@ function SignPrompt({ registration, controller, onSigned }: Omit<DomainStepProps
   )
 }
 
-export function DomainStep(props: DomainStepProps) {
-  const { registration, signature, onVerified } = props
+/** Asks the verifier to check the published proof (or, for a fixture, to skip it). */
+function useDomainCheck(id: string, onVerified: (method: string) => void) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<Explained | null>(null)
-
   const check = async () => {
     setBusy(true)
     setError(null)
     try {
-      onVerified((await checkDomainProof(registration.id)).method)
+      onVerified((await checkDomainProof(id)).method)
     } catch (reason) {
       setError(explainError(reason, 'verifier'))
     } finally {
       setBusy(false)
     }
   }
+  return { busy, error, check }
+}
 
+/** A fictional demo company has no domain to prove: nothing to sign, the verifier just moves on. */
+function FixtureDomain({ registration, onVerified }: Pick<DomainStepProps, 'registration' | 'onVerified'>) {
+  const { busy, error, check } = useDomainCheck(registration.id, onVerified)
+  return (
+    <div className="step">
+      <Notice tone="info" title="Fictional fixture: no domain proof needed.">
+        <p>Registry office 9999 is never issued, so this company has no real domain to prove and nothing to sign.</p>
+      </Notice>
+      {error ? <ErrorNotice error={error} /> : null}
+      <div className="form-actions">
+        <Button size="lg" busy={busy} onClick={() => void check()}>
+          Continue
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+export function DomainStep(props: DomainStepProps) {
+  const { registration, signature, onVerified } = props
+  const { busy, error, check } = useDomainCheck(registration.id, onVerified)
+  if (registration.fixture) return <FixtureDomain registration={registration} onVerified={onVerified} />
   if (!signature) return <SignPrompt {...props} />
   return (
     <div className="step">

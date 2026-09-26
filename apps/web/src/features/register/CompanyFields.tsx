@@ -1,6 +1,7 @@
 import { TextField } from '../../ui/components/Field'
 import { ControllerField } from './ControllerField'
 import { NtaHint } from './NtaHint'
+import type { NtaPreview } from './useNtaPreview'
 import type { CompanyForm } from './useRegistrationFlow'
 import './register.css'
 
@@ -9,7 +10,15 @@ export type FieldErrors = Partial<Record<keyof CompanyForm, string>>
 interface CompanyFieldsProps {
   readonly form: CompanyForm
   readonly errors: FieldErrors
+  readonly preview: NtaPreview
   readonly onChange: (form: CompanyForm) => void
+}
+
+interface IdentityProps {
+  readonly form: CompanyForm
+  readonly errors: FieldErrors
+  readonly preview: NtaPreview
+  readonly set: Setter
 }
 
 type Setter = (key: keyof CompanyForm) => (value: string) => void
@@ -17,7 +26,8 @@ type Setter = (key: keyof CompanyForm) => (value: string) => void
 const PLAIN = { autoComplete: 'off', spellCheck: false } as const
 
 /** Who the company is: T-number and the exact NTA name, with the live NTA record between them. */
-function IdentityFields({ form, errors, set }: { form: CompanyForm; errors: FieldErrors; set: Setter }) {
+function IdentityFields({ form, errors, preview, set }: IdentityProps) {
+  const fixture = preview.status === 'fixture'
   return (
     <>
       <TextField
@@ -30,7 +40,7 @@ function IdentityFields({ form, errors, set }: { form: CompanyForm; errors: Fiel
         {...PLAIN}
       />
       <TextField
-        label="Legal name (as registered with the NTA)"
+        label={fixture ? 'Legal name (fictional company)' : 'Legal name (as registered with the NTA)'}
         lang="ja"
         className="input--jp"
         value={form.legalName}
@@ -39,23 +49,27 @@ function IdentityFields({ form, errors, set }: { form: CompanyForm; errors: Fiel
         error={errors.legalName}
       />
       <div className="span-2">
-        <NtaHint tNumber={form.tNumber} legalName={form.legalName} onUseName={set('legalName')} />
+        <NtaHint preview={preview} legalName={form.legalName} onUseName={set('legalName')} />
       </div>
     </>
   )
 }
 
-export function CompanyFields({ form, errors, onChange }: CompanyFieldsProps) {
+export function CompanyFields({ form, errors, preview, onChange }: CompanyFieldsProps) {
   const set: Setter = (key) => (value) => onChange({ ...form, [key]: value })
   return (
     <div className="form-grid">
-      <IdentityFields form={form} errors={errors} set={set} />
+      <IdentityFields form={form} errors={errors} preview={preview} set={set} />
       <TextField
         label="Company domain"
         value={form.domain}
         onChange={(event) => set('domain')(event.target.value)}
         placeholder="meigi-shoji.co.jp"
-        hint="You'll prove control with a DNS TXT record signed by the controller wallet."
+        hint={
+          preview.status === 'fixture'
+            ? 'Recorded as given: a fictional company skips the domain proof.'
+            : "You'll prove control with a DNS TXT record signed by the controller wallet."
+        }
         error={errors.domain}
         {...PLAIN}
       />

@@ -9,15 +9,20 @@ import type { HexAddress } from '../../lib/env/env'
 import { Button } from '../../ui/components/Button'
 import { ErrorNotice, Notice } from '../../ui/components/Notice'
 import { CompanyFields, type FieldErrors } from './CompanyFields'
+import { useNtaPreview } from './useNtaPreview'
 import type { CompanyForm } from './useRegistrationFlow'
 import './register.css'
 
 const DOMAIN_RE = /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/
 
-function validate(form: CompanyForm): FieldErrors {
+function validate(form: CompanyForm, fixture: boolean): FieldErrors {
   const errors: FieldErrors = {}
   if (!parseTNumber(form.tNumber)) errors.tNumber = 'Use "T" followed by 13 digits.'
-  if (!form.legalName.trim()) errors.legalName = 'Enter the legal name exactly as the NTA lists it.'
+  if (!form.legalName.trim()) {
+    errors.legalName = fixture
+      ? "Enter the fictional company's name."
+      : 'Enter the legal name exactly as the NTA lists it.'
+  }
   if (!DOMAIN_RE.test(form.domain.trim().toLowerCase())) errors.domain = 'Enter a public domain, like example.co.jp.'
   if (!isAddress(form.payout.trim())) errors.payout = 'Enter a 0x address (42 characters).'
   return errors
@@ -31,7 +36,7 @@ interface Failure {
 
 type Created = (registration: Registration, tNumber: string, controller: HexAddress) => void
 
-function useCreateRegistration(form: CompanyForm, onCreated: Created) {
+function useCreateRegistration(form: CompanyForm, fixture: boolean, onCreated: Created) {
   const wallet = useWallet()
   const [errors, setErrors] = useState<FieldErrors>({})
   const [busy, setBusy] = useState(false)
@@ -39,7 +44,7 @@ function useCreateRegistration(form: CompanyForm, onCreated: Created) {
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
-    const found = validate(form)
+    const found = validate(form, fixture)
     setErrors(found)
     const tNumber = parseTNumber(form.tNumber)
     if (Object.keys(found).length > 0 || !tNumber) return
@@ -73,12 +78,14 @@ interface CompanyStepProps {
 }
 
 export function CompanyStep({ form, onFormChange, onCreated }: CompanyStepProps) {
-  const { errors, busy, failure, submit } = useCreateRegistration(form, onCreated)
+  const preview = useNtaPreview(form.tNumber)
+  const fixture = preview.status === 'fixture'
+  const { errors, busy, failure, submit } = useCreateRegistration(form, fixture, onCreated)
   const applyName = (name: string) => onFormChange({ ...form, legalName: name })
   const registered = failure?.registered ?? null
   return (
     <form className="step" onSubmit={(event) => void submit(event)} noValidate>
-      <CompanyFields form={form} errors={errors} onChange={onFormChange} />
+      <CompanyFields form={form} errors={errors} preview={preview} onChange={onFormChange} />
       {failure ? <ErrorNotice error={failure.explained} /> : null}
       {registered ? (
         <Notice
@@ -97,7 +104,7 @@ export function CompanyStep({ form, onFormChange, onCreated }: CompanyStepProps)
       ) : null}
       <div className="form-actions">
         <Button type="submit" size="lg" busy={busy}>
-          Check with the NTA
+          {fixture ? 'Continue' : 'Check with the NTA'}
         </Button>
       </div>
     </form>

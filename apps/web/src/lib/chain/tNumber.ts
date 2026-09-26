@@ -33,5 +33,13 @@ export function tNumberFromValue(value: bigint): ParsedTNumber {
   return { display: `T${digits}`, digits, value, ens: `t${digits}.payee.eth` }
 }
 
+/**
+ * Registry-office code 9999 (digits 2 to 5) is never issued, so no real company can hold such a number. Meigi's
+ * fictional demo companies use it; the verifier registers them only with its fixtures switched on.
+ */
+export function isUnassignableOffice(tNumber: ParsedTNumber): boolean {
+  return tNumber.digits.slice(1, 5) === '9999'
+}
+
 /** The fictional fixture payee registered on Sepolia, used for examples and empty states. */
 export const FIXTURE_T_NUMBER = 'T2011001234567'

@@ -40,17 +40,25 @@ export interface NtaRecord {
   readonly closed: boolean
 }
 
-/** The public NTA record for a T-number, or null when the NTA data has no such corporation. */
-export async function fetchNta(tNumber: string, signal?: AbortSignal): Promise<NtaRecord | null> {
+export interface NtaLookup {
+  /** A fictional demo company (registry office 9999, with fixtures on in the verifier): it needs no NTA record. */
+  readonly fixture: boolean
+  /** The public NTA record, or null when the NTA data has no such corporation. */
+  readonly record: NtaRecord | null
+}
+
+export async function fetchNta(tNumber: string, signal?: AbortSignal): Promise<NtaLookup> {
   const body = record(await requestJson(url(`/nta/${encodeURIComponent(tNumber)}`), { signal }), 'NTA record')
   const corporation = body.corporation
-  if (!isRecord(corporation)) return null
-  return {
-    tNumber: str(body, 'tNumber', 'NTA record'),
-    name: str(corporation, 'name', 'NTA record'),
-    address: optStr(corporation, 'address') ?? '',
-    closed: corporation.closed === true,
-  }
+  const found = isRecord(corporation)
+    ? {
+        tNumber: str(body, 'tNumber', 'NTA record'),
+        name: str(corporation, 'name', 'NTA record'),
+        address: optStr(corporation, 'address') ?? '',
+        closed: corporation.closed === true,
+      }
+    : null
+  return { fixture: body.fixture === true, record: found }
 }
 
 export interface RegistrationInput {
@@ -71,6 +79,8 @@ export interface DomainProofChallenge {
 export interface Registration {
   readonly id: string
   readonly legalName: string
+  /** A fictional demo company: the name is taken as given, and the domain step needs no proof. */
+  readonly fixture?: boolean
   readonly domainProof: DomainProofChallenge
   readonly enrollmentSignal: string
 }
@@ -82,6 +92,7 @@ export async function createRegistration(input: RegistrationInput): Promise<Regi
   return {
     id: str(body, 'id', what),
     legalName: str(body, 'legalName', what),
+    fixture: body.fixture === true,
     domainProof: {
       message: str(proof, 'message', what),
       txtName: str(proof, 'txtName', what),

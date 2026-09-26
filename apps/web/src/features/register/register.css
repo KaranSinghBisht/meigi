@@ -100,6 +100,10 @@
   font-weight: 600;
 }
 
+.register__match--fixture {
+  color: var(--iris-deep);
+}
+
 .register__nta-name {
   color: var(--ink);
   font-size: 20px;
@@ -159,6 +163,13 @@
   border-color: rgba(245, 166, 35, 0.35);
   background: var(--amber-tint);
   color: var(--amber-deep);
+}
+
+.nta-hint--fixture {
+  justify-content: flex-start;
+  border-color: rgba(125, 110, 214, 0.35);
+  background: var(--iris-tint);
+  color: var(--ink);
 }
 
 .nta-hint__label {

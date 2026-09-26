@@ -1,6 +1,7 @@
 import { Link } from 'react-router'
 import { shortHash } from '../../lib/chain/format'
 import type { PayeeSnapshot } from '../../lib/chain/registry'
+import { isUnassignableOffice } from '../../lib/chain/tNumber'
 import { Address } from '../../ui/components/Address'
 import { Badge } from '../../ui/components/Badge'
 import { CopyButton } from '../../ui/components/CopyButton'
@@ -16,16 +17,18 @@ const STATUS_BADGE = {
 } as const
 
 /**
- * Evidence hashes of the fictional demo fixtures (see contracts/script/seed-demo.sh). These companies are not in
- * the NTA data, and the UI must never claim they are.
+ * Evidence hashes of the fictional demo fixtures outside registry office 9999 (see contracts/script/seed-demo.sh).
+ * These companies are not in the NTA data, and the UI must never claim they are.
  */
 const FIXTURE_EVIDENCE = new Set([
   '0xf8b96e6b0387f0ec42ba9d83575afbfe17774918210bba7a834f3b562e3248ae', // demo-fixture:fictional-vendor
   '0x7f399c3e3d13209f8b4cbeb0a56a7e64c796adc27b00f9ae23079c0e59730021', // demo-fixture:fictional-merchant
 ])
 
-function nameProvenance(evidence: string): string {
-  return FIXTURE_EVIDENCE.has(evidence.toLowerCase())
+/** Where the name comes from. Office 9999 can't be issued, so any payee there is fictional, whatever its evidence. */
+function nameProvenance(payee: PayeeSnapshot): string {
+  if (isUnassignableOffice(payee.tNumber)) return "Fictional demo company (registry office 9999 can't be issued)"
+  return FIXTURE_EVIDENCE.has(payee.evidence.toLowerCase())
     ? 'Fictional demo company, marked as such in its on-chain evidence (not an NTA record)'
     : 'Registered name, an exact match of the NTA record'
 }
@@ -56,7 +59,7 @@ function Name({ payee }: { readonly payee: PayeeSnapshot }) {
       <h2 id="payee-name" className="payee__name jp" lang="ja">
         {payee.legalName}
       </h2>
-      <p className="payee__sub">{nameProvenance(payee.evidence)}</p>
+      <p className="payee__sub">{nameProvenance(payee)}</p>
     </>
   )
 }

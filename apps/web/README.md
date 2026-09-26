@@ -64,6 +64,14 @@ Every page degrades to a clear "not reachable" state when its service is down; t
 
 Wallet: any injected EIP-1193 wallet (`window.ethereum`: Brave Wallet, MetaMask) on Sepolia.
 
+## Fictional demo companies
+
+With the verifier started with `VERIFIER_FIXTURES=1`, a T-number in registry office 9999 (never issued, so no real
+company holds one; e.g. `T7999900000002`) registers without an NTA match or a domain proof: /register says so,
+takes the typed name, and skips signing the domain challenge. Officers still enroll with World ID, and the payee
+card marks any office-9999 payee as a fictional demo company. For the live officer demo, set
+`VITE_WORLD_ENVIRONMENT=sandbox` to match the verifier.
+
 ## Configuration
 
 See `.env.example`. Contract addresses default to `contracts/deployments/11155111.json`, so a redeploy needs no

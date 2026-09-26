@@ -82,7 +82,11 @@ function Confirmed({ flow }: { readonly flow: RegistrationFlow }) {
       <span className="jp" lang="ja">
         {flow.registration.legalName}
       </span>{' '}
-      <span className="register__match">✓ NTA exact match</span>
+      {flow.registration.fixture ? (
+        <span className="register__match register__match--fixture">Fictional demo company (no NTA record)</span>
+      ) : (
+        <span className="register__match">✓ NTA exact match</span>
+      )}
     </p>
   )
 }
@@ -102,7 +106,11 @@ function RegisterWizard() {
       <Steps steps={STEPS} current={step} label="Registration progress" />
       <div ref={layout} className="register__layout">
         <Panel
-          title={TITLES[step] ?? TITLES[0]}
+          title={
+            step === 1 && flow.registration?.fixture
+              ? 'No domain proof for a fictional company'
+              : (TITLES[step] ?? TITLES[0])
+          }
           eyebrow={`Step ${step + 1} of ${STEPS.length}`}
           className="register__panel"
           actions={startOver}

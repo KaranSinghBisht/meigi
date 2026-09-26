@@ -1,18 +1,29 @@
 import { Button } from '../../ui/components/Button'
 import { Spinner } from '../../ui/components/Spinner'
-import { useNtaPreview } from './useNtaPreview'
+import type { NtaPreview } from './useNtaPreview'
 import './register.css'
 
 interface NtaHintProps {
-  readonly tNumber: string
+  readonly preview: NtaPreview
   readonly legalName: string
   readonly onUseName: (name: string) => void
 }
 
+function FixtureHint() {
+  return (
+    <div className="nta-hint nta-hint--fixture">
+      <p>
+        <strong>Fictional demo company:</strong> registry office 9999 is never issued, so no NTA record is needed. The
+        legal name is used as you type it.
+      </p>
+    </div>
+  )
+}
+
 /** Shows the public NTA record for the typed T-number, and whether the typed name matches it exactly. */
-export function NtaHint({ tNumber, legalName, onUseName }: NtaHintProps) {
-  const preview = useNtaPreview(tNumber)
+export function NtaHint({ preview, legalName, onUseName }: NtaHintProps) {
   if (preview.status === 'idle') return null
+  if (preview.status === 'fixture') return <FixtureHint />
   if (preview.status === 'loading') {
     return (
       <p className="nta-hint nta-hint--muted">
