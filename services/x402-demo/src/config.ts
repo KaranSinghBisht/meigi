@@ -9,6 +9,8 @@ const schema = z.object({
   TOKEN_ADDRESS: address,
   DEMO_MERCHANT_T_NUMBER: z.string().regex(/^T?\d{13}$/u).default("T8999900000001"),
   DEMO_MERCHANT_PAYOUT: address,
+  DEMO_MINATO_T_NUMBER: z.string().regex(/^T?\d{13}$/u).default("T6999900000003"),
+  DEMO_MINATO_PAYOUT: address,
   DEMO_SCAMMER: address,
   // Merchants that declare no Meigi payee. The clean one defaults to DEMO_MERCHANT_PAYOUT so test funds stay
   // ours; the flagged one is the OFAC-listed Ronin bridge exploiter (Lazarus Group), known to screening APIs.
@@ -26,8 +28,15 @@ const schema = z.object({
 export type Config = z.infer<typeof schema>;
 
 export const NETWORK = "eip155:11155111" as const;
-/** 10 mJPYC per API call (18 decimals). */
+/** 10 mJPYC per call: the cheap, undeclared-merchant tier (18 decimals). */
 export const PRICE_ATOMIC = "10000000000000000000";
+/** Minato GPU Cloud: 30 mJPYC per inference call, 15 mJPYC per GPU-minute. */
+export const GPU_INFERENCE_PRICE_ATOMIC = "30000000000000000000";
+export const GPU_MINUTE_PRICE_ATOMIC = "15000000000000000000";
+/** Fuji Data: 20 mJPYC per dataset slice. */
+export const DATASET_SLICE_PRICE_ATOMIC = "20000000000000000000";
+/** The buyer's hard per-payment ceiling: at least the priciest declared route (GPU inference). */
+export const MAX_PRICE_ATOMIC = GPU_INFERENCE_PRICE_ATOMIC;
 /** The most the buyer pays a merchant that declares no Meigi payee, even after screening clears it: 50 mJPYC. */
 export const UNVERIFIED_MAX_ATOMIC = 50n * 10n ** 18n;
 

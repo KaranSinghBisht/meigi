@@ -13,7 +13,7 @@ import { decodePaymentResponseHeader, wrapFetchWithPayment } from "@x402/fetch";
 import { createPublicClient, http, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
-import { NETWORK, PRICE_ATOMIC, UNVERIFIED_MAX_ATOMIC, type Config } from "./config.js";
+import { MAX_PRICE_ATOMIC, NETWORK, UNVERIFIED_MAX_ATOMIC, type Config } from "./config.js";
 
 export interface PurchaseResult {
   verdict: GuardVerdict | null;
@@ -41,18 +41,18 @@ export function guardedBuyer(config: Config) {
     screen: config.INTERCEPTA_API_KEY ? interceptaScreen({ apiKey: config.INTERCEPTA_API_KEY }) : undefined,
   };
 
-  return async function buy(url: string): Promise<PurchaseResult> {
+  return async function buy(url: string, init?: RequestInit): Promise<PurchaseResult> {
     let verdict: GuardVerdict | null = null;
     const record = (v: GuardVerdict) => {
       verdict = v;
     };
     const client = new x402Client()
       .register(NETWORK, new ExactEvmScheme(signer))
-      .setSpendControls({ allowedAssets: [{ network: NETWORK, asset: config.TOKEN_ADDRESS, maxAmountPerPayment: PRICE_ATOMIC }] })
+      .setSpendControls({ allowedAssets: [{ network: NETWORK, asset: config.TOKEN_ADDRESS, maxAmountPerPayment: MAX_PRICE_ATOMIC }] })
       .registerExtension(meigiPayeeExtension(guardDeps, { onVerdict: record }))
       .onBeforePaymentCreation(screenUndeclaredPayee({ screen: guardDeps.screen, maxAmount: UNVERIFIED_MAX_ATOMIC }, { onVerdict: record }));
     try {
-      const response = await wrapFetchWithPayment(fetch, client)(url);
+      const response = await wrapFetchWithPayment(fetch, client)(url, init);
       const header = response.headers.get("PAYMENT-RESPONSE");
       const data: unknown = response.ok ? await response.json() : null;
       return { verdict, paid: response.ok, data, settlement: header ? decodePaymentResponseHeader(header) : null };

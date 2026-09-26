@@ -2,10 +2,11 @@
   "name": "@meigi/x402-demo",
   "version": "0.1.0",
   "private": true,
-  "description": "x402 demo: a JPYC data merchant (honest or compromised), a self-hosted facilitator, and a guarded buyer agent.",
+  "description": "x402 demo: a small JPYC marketplace (GPU compute, a dataset, both honest or compromised), a self-hosted facilitator, and a guarded buyer agent.",
   "type": "module",
   "scripts": {
     "start": "tsx --env-file=../../.env src/server.ts",
+    "research-agent": "tsx --env-file=../../.env scripts/research-agent.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
