@@ -1,5 +1,5 @@
 // Live figures and a live lookup for any page, read from Sepolia in the browser. They also work on the hosted site:
-// nothing here needs the demo machine.
+// nothing here needs a service that only runs live at our booth.
 //
 //   import { useVaultBalance, usePaidThisMonth, useRegisteredPayeeCount, useAgentStatus, PayeeLookup } from '../live'
 //

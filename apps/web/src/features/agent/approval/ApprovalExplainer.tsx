@@ -15,8 +15,8 @@ export function ApprovalExplainer() {
           like a credit note, hidden text or two totals, can never be approved.
         </li>
         <li>
-          “Ask a verified human to approve” shows a QR code and a short code. The approver scans it with the World ID app,
-          checks the code matches, and approves with a fresh World ID proof.
+          “Ask a verified human to approve” shows a QR code and a short code. The approver scans it with the World ID
+          app, checks the code matches, and approves with a fresh World ID proof.
         </li>
         <li>
           The agent then pays that one invoice, once. If the request is denied, expires, or comes from a different human
@@ -24,7 +24,7 @@ export function ApprovalExplainer() {
         </li>
       </ol>
       <p className="muted">
-        Either way, the vault still pays only the registered payout. This runs on the Meigi demo machine too.
+        Either way, the vault still pays only the registered payout. Approvals run live at our booth too.
       </p>
     </Panel>
   )

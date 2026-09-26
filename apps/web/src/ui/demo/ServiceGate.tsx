@@ -17,7 +17,7 @@ export function ServiceGate({ service, fallback, children }: ServiceGateProps) {
   if (status === 'checking') {
     return (
       <p className="gate__checking">
-        <Spinner /> Looking for the Meigi demo machine…
+        <Spinner /> Connecting…
       </p>
     )
   }

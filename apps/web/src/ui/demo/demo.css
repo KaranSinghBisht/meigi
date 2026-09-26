@@ -34,13 +34,6 @@
   letter-spacing: -0.02em;
 }
 
-.demo-machine__cmd {
-  padding: 8px 12px;
-  border-radius: 10px;
-  background: rgba(42, 39, 48, 0.07);
-  color: var(--ink);
-}
-
 .demo-machine__video {
   font-weight: var(--weight-strong);
 }

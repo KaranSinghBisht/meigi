@@ -10,7 +10,7 @@ import './business.css'
 
 function NtaLink({ record, source }: { readonly record: LeiRecord; readonly source: LeiSource }) {
   if (source === 'gleif' || record.ntaMatches === null) {
-    return <p className="muted">T-number link: needs the Meigi verifier, which only runs on the demo machine.</p>
+    return <p className="muted">T-number link: needs the live Meigi verifier, which runs at our booth.</p>
   }
   if (record.ntaMatches.length === 0) {
     const japanese = record.country === 'JP' || record.jurisdiction === 'JP'

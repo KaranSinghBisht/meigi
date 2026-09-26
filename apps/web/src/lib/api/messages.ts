@@ -2,6 +2,7 @@
 // we don't know, and only because the services promise those messages are safe to display.
 
 import { describeChainError } from '../chain/errors'
+import { env } from '../env/env'
 import { ApiError } from './http'
 import { SERVICES, type Service } from './services'
 
@@ -110,9 +111,19 @@ const CODES: Record<string, Omit<Explained, 'tone'> & { tone?: Tone }> = {
   },
 }
 
-/** Browsers report "not running" and "CORS refused this origin" the same way, so the hint covers both. */
+/**
+ * Browsers report "not running" and "CORS refused this origin" the same way, so the local hint covers both. The
+ * product site names no commands: there the live service runs at our booth.
+ */
 export function unavailable(service: Service): Explained {
   const info = SERVICES[service]
+  if (env.hosted) {
+    return {
+      tone: 'offline',
+      title: `The ${info.name} isn't reachable right now.`,
+      detail: 'It runs live at our booth.',
+    }
+  }
   return {
     tone: 'offline',
     title: `The ${info.name} isn't reachable at ${info.url}.`,

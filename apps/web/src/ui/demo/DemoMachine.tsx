@@ -8,12 +8,12 @@ interface DemoMachineProps {
   readonly service: Service
   /** What this step does, e.g. "Registering a business". */
   readonly what: string
-  /** Why it can't run here, e.g. "it signs as the attester". */
+  /** Why it runs only live, e.g. "it signs as the attester". */
   readonly why: string
   readonly children?: ReactNode
 }
 
-/** A calm explanation, not an error: this step needs a service that only runs on the demo laptop. */
+/** A calm note, not an error: on the product site this step is a replay, and the live service runs at our booth. */
 export function DemoMachine({ service, what, why, children }: DemoMachineProps) {
   const info = SERVICES[service]
   return (
@@ -21,13 +21,11 @@ export function DemoMachine({ service, what, why, children }: DemoMachineProps) 
       <HankoMark size={44} />
       <div className="demo-machine__body">
         <h2 id={`demo-${service}`} className="demo-machine__title">
-          This step runs on the Meigi demo machine.
+          This page replays a real run.
         </h2>
         <p>
-          {what} needs the {info.name}, which only runs on our demo laptop because {why}. Watch it in the demo video, or
-          run it locally:
+          {what} needs the live {info.name}, which runs at our booth because {why}.
         </p>
-        <code className="demo-machine__cmd">{info.start}</code>
         {env.demoVideoUrl ? (
           <a className="demo-machine__video" href={env.demoVideoUrl} target="_blank" rel="noreferrer">
             Watch the demo video <span aria-hidden="true">↗</span>

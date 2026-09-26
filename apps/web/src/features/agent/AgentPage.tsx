@@ -18,6 +18,7 @@ export default function AgentPage() {
               ? 'The agent may believe a scam. The vault only pays the address registered for the T-number on the invoice. Below, replayed from real Sepolia runs: a bank-change scam, a human approval, and agents paying agents.'
               : 'Drop in an invoice, a supplier email or an x402 request. The agent may believe a scam. The vault only pays the address registered for the T-number on the invoice.'}
           </p>
+          {env.hosted ? <p className="agent__note">The live agent runs at our booth.</p> : null}
         </div>
       </header>
       <ServiceGate service="agent" fallback={<AgentHosted />}>

@@ -92,6 +92,13 @@
   }
 }
 
+/* One quiet line under the hosted intro: where the live agent is. */
+.agent__note {
+  margin-top: 8px;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+
 .agent__working {
   display: flex;
   align-items: center;
