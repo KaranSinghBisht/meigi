@@ -97,15 +97,27 @@ function purchase(c: BuildCtx, beat: Beat, first: boolean): void {
   for (const index of [1, 2, 3, 4, 5, 6]) stepDone(c, 'x402', index, at + 0.1)
 }
 
+/** The last purchase has settled, then the stage clears for the end card, so chapter 6 opens on the card. */
+const OUTRO = 1.2
+const DURATION = Math.max(20, (BEATS.at(-1)?.end ?? 18) + 1.6) + OUTRO
+
+function outro(c: BuildCtx): void {
+  const at = DURATION - OUTRO
+  hide(c, 'slot-browser', at, { duration: 0.5 })
+  hide(c, 'slot-panel', at + 0.1, { duration: 0.5 })
+  show(c, 'end', at + 0.3, { scale: 1, duration: 0.8 })
+}
+
 export const chapter5: ChapterDef = {
   id: 'agents',
   title: 'Agents pay agents',
-  duration: Math.max(20, (BEATS.at(-1)?.end ?? 18) + 1.6),
+  duration: DURATION,
   captions: captions(),
   build(c) {
     switchTab(c)
     step(c, 'x402', 1, FIRST)
     BEATS.forEach((beat, index) => purchase(c, beat, index === 0))
     logLine(c, 'agents', 'refused', (BEATS.at(-1)?.end ?? 18) + 0.3, 90)
+    outro(c)
   },
 }

@@ -45,7 +45,11 @@ interface StageProps {
   readonly onPanelHover: (hovering: boolean) => void
 }
 
-/** Everything the story animates. It never re-renders while playing: the timeline owns its inline styles. */
+/**
+ * Everything the story animates. It never re-renders while playing: the timeline owns its inline styles.
+ * Every chapter's first frame is fully drawn, so a chapter chip pressed while paused never lands on an empty stage:
+ * transitions between chapters happen at the end of the chapter before, never at the start of the next.
+ */
 export const Stage = memo(function Stage({ mode, designRef, onPanelHover }: StageProps) {
   const frameRef = useRef<HTMLDivElement>(null)
   useFit(frameRef, designRef, mode)
@@ -53,7 +57,7 @@ export const Stage = memo(function Stage({ mode, designRef, onPanelHover }: Stag
   return (
     <div className="dstage" ref={frameRef}>
       <div className={`dstage__design dstage__design--${mode}`} ref={designRef} style={{ width, height }}>
-        <div className="dstage__slot dstage__slot--browser" data-d="slot-browser" data-enter="" aria-hidden="true">
+        <div className="dstage__slot dstage__slot--browser" data-d="slot-browser" aria-hidden="true">
           <BrowserWindow />
         </div>
         <div
@@ -66,7 +70,7 @@ export const Stage = memo(function Stage({ mode, designRef, onPanelHover }: Stag
         >
           <AgentPanel />
         </div>
-        <div className="dstage__slot dstage__slot--panel" data-d="slot-registry" data-enter="" aria-hidden="true">
+        <div className="dstage__slot dstage__slot--panel" data-d="slot-registry" aria-hidden="true">
           <RegistryPanel />
         </div>
         <div className="dstage__slot dstage__slot--phone" aria-hidden="true">

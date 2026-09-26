@@ -85,6 +85,10 @@
   white-space: nowrap;
 }
 
+.onb__step[data-start] {
+  --on: 1;
+}
+
 .onb__num {
   position: relative;
   display: grid;
@@ -140,6 +144,11 @@
 
 .onb__screen[data-enter] {
   transform: translateX(24px);
+}
+
+/* Nothing on a screen may be squeezed to make room: every screen is sized to fit its window instead. */
+.onb__screen > * {
+  flex-shrink: 0;
 }
 
 .onb__title {
@@ -234,7 +243,7 @@
 
 .dstage__design--portrait .onb__screen {
   gap: 6px;
-  padding: 14px 16px;
+  padding: 14px 16px 10px;
 }
 
 .dstage__design--portrait .onb__payee {
@@ -262,4 +271,19 @@
 
 .dstage__design--portrait .onb__input {
   height: 36px;
+}
+
+.dstage__design--portrait .onb__label {
+  display: none;
+}
+
+.dstage__design--portrait .onb__record-name {
+  font-size: var(--text-md);
+}
+
+.dstage__design--portrait .onb__record {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
 }

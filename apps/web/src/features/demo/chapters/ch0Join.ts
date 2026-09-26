@@ -35,9 +35,6 @@ function press(c: BuildCtx, name: string, at: number): void {
 }
 
 function company(c: BuildCtx): void {
-  show(c, 'slot-browser', 0, { duration: 0.7 })
-  show(c, 'slot-registry', 0.15, { duration: 0.7 })
-  railStep(c, 1, 0.2)
   c.tl.set(c.el('cursor'), { x: 720, y: 430 }, c.t0)
   show(c, 'cursor', 0.5)
   cursorTo(c, 'onb-input', 0.7, { duration: 0.8, fx: 0.3 })
@@ -85,8 +82,22 @@ function registered(c: BuildCtx): void {
   show(c, 'onb-resolves', 19.7, { duration: 0.35 })
   rise(c, 'r-resolve', 19.8)
   c.tl.to(c.el('onb-step-6'), { '--on': 0, '--done': 1, duration: 0.3 }, c.t0 + 20.2)
-  hide(c, 'slot-browser', 22.9, { duration: 0.6 })
-  hide(c, 'slot-registry', 23.0, { duration: 0.6 })
+  handOff(c, 22.2)
+}
+
+/**
+ * A different company's desk: the browser and the registry panel fade out, the browser swaps Meigi's /register for
+ * Haruka's inbox while it is away, and it comes back with the agent panel, all before chapter 1 starts. So the
+ * first frame of chapter 1 is fully drawn, as every chapter's is.
+ */
+function handOff(c: BuildCtx, at: number): void {
+  hide(c, 'slot-browser', at, { duration: 0.5 })
+  hide(c, 'slot-registry', at + 0.1, { duration: 0.5 })
+  const swap = c.t0 + at + 0.65
+  for (const name of ['onboard-page', 'tab-face-register', 'url-register']) c.tl.set(c.el(name), { autoAlpha: 0 }, swap)
+  for (const name of ['tab-face-mail', 'url-mail']) c.tl.set(c.el(name), { autoAlpha: 1 }, swap)
+  show(c, 'slot-browser', at + 0.8, { duration: 0.6 })
+  show(c, 'slot-panel', at + 0.95, { duration: 0.6 })
 }
 
 export const chapter0: ChapterDef = {

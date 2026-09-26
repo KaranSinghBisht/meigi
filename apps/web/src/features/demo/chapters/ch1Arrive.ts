@@ -5,16 +5,7 @@ import { card, click, cursorTo, fly, hide, light, scrollTo, show, status, step }
 
 const READ_ORDER = ['tNumber', 'amount', 'address', 'invoice'] as const
 
-/** A different company's desk: while the browser is away, it swaps Meigi's /register for Haruka's inbox. */
-function handOff(c: BuildCtx): void {
-  for (const name of ['onboard-page', 'tab-face-register', 'url-register']) c.tl.set(c.el(name), { autoAlpha: 0 }, c.t0)
-  for (const name of ['tab-face-mail', 'url-mail']) c.tl.set(c.el(name), { autoAlpha: 1 }, c.t0)
-}
-
 function arrive(c: BuildCtx): void {
-  handOff(c)
-  show(c, 'slot-browser', 0, { duration: 0.7 })
-  show(c, 'slot-panel', 0.15, { duration: 0.7 })
   c.tl.set(c.el('cursor'), { x: 560, y: 470 }, c.t0)
   show(c, 'cursor', 0.6)
   c.tl.to(c.el('slot-bec'), { height: 'auto', duration: 0.6, ease: 'power3.out' }, c.t0 + 3)

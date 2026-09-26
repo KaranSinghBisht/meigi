@@ -140,3 +140,17 @@
 .dstage__design--portrait .onb__review > div:is(:nth-child(2), :nth-child(5)) {
   display: none;
 }
+
+/* Phones: each wallet is one row (label, then its button or result), without the explanatory note. */
+.dstage__design--portrait .onb__wallet {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+}
+
+.dstage__design--portrait .onb__wallet .onb__wallet-label span {
+  display: none;
+}
+
+.dstage__design--portrait .onb__wallet .onb__swap {
+  justify-items: end;
+}

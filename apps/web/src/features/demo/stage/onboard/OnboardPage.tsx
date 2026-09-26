@@ -24,6 +24,7 @@ function Rail() {
               className="onb__step"
               data-d={`onb-step-${index + 1}`}
               data-skip={skipped ? '' : undefined}
+              data-start={index === 0 ? '' : undefined}
             >
               <span className="onb__num" aria-hidden="true">
                 <span className="onb__num-n">{index + 1}</span>
