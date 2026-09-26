@@ -12,6 +12,11 @@
  * PROBE_OUT: where the raw IDKit result is saved on success. Defaults under the repo's git-ignored `data/`
  * (never the repo itself) - this is enough for the offline `check-credential-payload.ts` check, and nothing
  * more; there's no reason to also copy it anywhere committed.
+ * PROBE_ENVIRONMENT (default "production", NOT config.WORLD_ENVIRONMENT): a real phone's regular World ID app
+ * can only open a production request - it can't open a staging or Sandbox one, those need their own separate
+ * apps. Override only for a deliberate test against another environment; doing so prints a loud warning, since
+ * defaulting to whatever the verifier's own .env happens to say (often staging, for the live server's own
+ * everyday safety) is exactly what sent a real scan nowhere once already.
  */
 import { randomBytes } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -39,6 +44,14 @@ const config = loadConfig();
 const [mode, sessionId] = process.argv.slice(2);
 const signal = `meigi:v1:probe:${randomBytes(6).toString("hex")}`;
 const windowSec = Number(process.env.PROBE_WINDOW_SEC ?? 300);
+const environment = (process.env.PROBE_ENVIRONMENT ?? "production") as WorldEnvironment;
+if (environment !== "production") {
+  const app = environment === "staging" ? "World ID staging app" : "World ID Sandbox app";
+  process.stderr.write(
+    `\n*** PROBE_ENVIRONMENT=${environment}: a real phone's regular World ID app CANNOT open this request - ` +
+      `it needs the ${app} instead. Unset PROBE_ENVIRONMENT to default to production. ***\n\n`,
+  );
+}
 
 // Signed directly (not via session.ts's createRpContext) so this throwaway script's longer window never touches
 // the ttl the live server uses - session.ts is exactly what f859ed8 changed and is still unvalidated.
@@ -46,7 +59,7 @@ const { sig, nonce, createdAt, expiresAt } = signRequest({ signingKeyHex: config
 const sessionConfig = {
   app_id: config.WORLD_APP_ID as `app_${string}`,
   rp_context: { rp_id: config.WORLD_RP_ID, nonce, created_at: createdAt, expires_at: expiresAt, signature: sig },
-  environment: config.WORLD_ENVIRONMENT as WorldEnvironment,
+  environment,
   action_description: "Meigi officer check (probe)",
 };
 
@@ -76,5 +89,5 @@ const outPath = process.env.PROBE_OUT ?? path.join(OUT_DIR, "result.json");
 writeFileSync(outPath, JSON.stringify(completion.result, null, 2));
 process.stdout.write(`SAVED ${outPath}\n`);
 requireSignal(completion.result, signal);
-const verified = await verifySessionProof(config.WORLD_RP_ID, completion.result, config.WORLD_ENVIRONMENT);
+const verified = await verifySessionProof(config.WORLD_RP_ID, completion.result, environment);
 process.stdout.write(`VERIFIED session=${verified.sessionId.slice(0, 24)}… officerId=${verified.officerId}\n`);
