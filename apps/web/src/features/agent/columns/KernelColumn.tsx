@@ -1,7 +1,8 @@
 import type { Kernel } from '../../../lib/api/agentTypes'
-import { formatJst, shortAddress } from '../../../lib/chain/format'
+import { formatJst } from '../../../lib/chain/format'
 import { Badge } from '../../../ui/components/Badge'
 import { AgentProse } from '../AgentProse'
+import { NamedAddress } from '../names/NamedAddress'
 import { Column } from './Column'
 import { FlagList } from './FlagList'
 
@@ -22,9 +23,7 @@ function Registered({ kernel }: { readonly kernel: Kernel }) {
       {payee.registeredPayout ? (
         <>
           {' pays '}
-          <span className="mono" title={payee.registeredPayout}>
-            {shortAddress(payee.registeredPayout)}
-          </span>
+          <NamedAddress address={payee.registeredPayout} />
         </>
       ) : (
         <span> is not an active payee</span>

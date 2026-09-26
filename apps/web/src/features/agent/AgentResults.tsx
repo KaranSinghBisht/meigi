@@ -4,6 +4,7 @@ import { ErrorNotice } from '../../ui/components/Notice'
 import { Spinner } from '../../ui/components/Spinner'
 import { AnalysisColumns } from './AnalysisColumns'
 import { LiveDecision } from './LiveDecision'
+import { AnalysisNames } from './names/AddressNames'
 import { TokenForm } from './TokenForm'
 import type { AgentConsole } from './useAgentConsole'
 import './agent.css'
@@ -38,9 +39,11 @@ export function Results({ agent }: { readonly agent: AgentConsole }) {
   }
   return (
     <div ref={ref} className="agent__results">
-      <LiveDecision key={analysis.analysis.id} agent={agent} analysis={analysis.analysis} />
-      <h2 className="sr-only">How each stage decided</h2>
-      <AnalysisColumns analysis={analysis.analysis} />
+      <AnalysisNames analysis={analysis.analysis}>
+        <LiveDecision key={analysis.analysis.id} agent={agent} analysis={analysis.analysis} />
+        <h2 className="sr-only">How each stage decided</h2>
+        <AnalysisColumns analysis={analysis.analysis} />
+      </AnalysisNames>
     </div>
   )
 }

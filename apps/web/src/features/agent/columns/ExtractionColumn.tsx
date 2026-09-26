@@ -1,5 +1,7 @@
 import type { Extraction } from '../../../lib/api/agentTypes'
 import { shortAddress } from '../../../lib/chain/format'
+import { useAddressNames } from '../names/AddressNames'
+import '../names/names.css'
 import { Column, Fact } from './Column'
 import { FlagList } from './FlagList'
 
@@ -8,6 +10,12 @@ const KINDS: Record<string, string> = {
   credit_note: 'Credit note',
   x402: 'x402 402-response',
   message: 'Message',
+}
+
+/** The printed hex stays as printed; its verified ENS name, when it has one, sits under it. */
+function PrintedName({ address }: { readonly address: string }) {
+  const name = useAddressNames().get(address.toLowerCase())
+  return name ? <span className="named-under mono">= {name}</span> : null
 }
 
 export function ExtractionColumn({ extracted }: { readonly extracted: Extraction }) {
@@ -31,9 +39,12 @@ export function ExtractionColumn({ extracted }: { readonly extracted: Extraction
       </Fact>
       <Fact label="Pay to (as printed)">
         {extracted.address ? (
-          <span className="mono col__big-mono" title={extracted.address}>
-            {shortAddress(extracted.address)}
-          </span>
+          <>
+            <span className="mono col__big-mono" title={extracted.address}>
+              {shortAddress(extracted.address)}
+            </span>
+            <PrintedName address={extracted.address} />
+          </>
         ) : (
           '—'
         )}

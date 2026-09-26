@@ -1,21 +1,23 @@
 import { useId, type ReactNode } from 'react'
-import { formatJst, shortAddress } from '../../lib/chain/format'
+import { addressUrl, formatJst } from '../../lib/chain/format'
 import { FIXTURE_T_NUMBER } from '../../lib/chain/tNumber'
 import type { VaultState } from '../../lib/chain/vault'
 import { env } from '../../lib/env/env'
 import { Address } from '../../ui/components/Address'
 import { Badge } from '../../ui/components/Badge'
 import { useEnsCheck, usePayee, type EnsCheck } from '../registry/usePayee'
+import { NamedAddress } from './names/NamedAddress'
+import { payeeName } from './names/primaryName'
 import { AGENT_ENS_NAME, useAgentEns } from './useAgentEns'
 import { useVault, type VaultLoad } from './useVault'
 import './vault.css'
 
 const ENS_NOTES: Record<EnsCheck, { text: string; tone: 'ok' | 'muted' | 'bad' }> = {
-  checking: { text: 'checking…', tone: 'muted' },
-  match: { text: '✓ resolves to this vault', tone: 'ok' },
-  none: { text: 'not resolving yet', tone: 'muted' },
-  other: { text: 'resolves to a different address', tone: 'bad' },
-  error: { text: 'lookup failed', tone: 'muted' },
+  checking: { text: 'checking ENS…', tone: 'muted' },
+  match: { text: `✓ ${AGENT_ENS_NAME} resolves here`, tone: 'ok' },
+  none: { text: `${AGENT_ENS_NAME} isn't resolving yet`, tone: 'muted' },
+  other: { text: `${AGENT_ENS_NAME} resolves elsewhere`, tone: 'bad' },
+  error: { text: 'ENS lookup failed', tone: 'muted' },
 }
 
 interface TileProps {
@@ -58,7 +60,14 @@ function VaultStatus({ load }: { readonly load: VaultLoad }) {
   return <Badge tone={paused ? 'disputed' : 'active'}>{paused ? 'Paused by the owner' : 'Active'}</Badge>
 }
 
-function Vendor({ vault, name }: { readonly vault: VaultState; readonly name: string | null }) {
+interface VendorProps {
+  readonly vault: VaultState
+  readonly name: string | null
+  /** The fixture's registered payout, when the registry has one: it names the vault's copy if they agree. */
+  readonly registered: string | null
+}
+
+function Vendor({ vault, name, registered }: VendorProps) {
   const { vendor } = vault
   if (!vendor.approved || !vendor.payout) {
     return <p className="vault-vendor muted">{FIXTURE_T_NUMBER} is not approved in this vault.</p>
@@ -69,12 +78,26 @@ function Vendor({ vault, name }: { readonly vault: VaultState; readonly name: st
         {name ?? FIXTURE_T_NUMBER}
       </span>
       <span className="vault-vendor__to">
-        → <span className="mono">{shortAddress(vendor.payout)}</span>
+        →{' '}
+        <NamedAddress
+          address={vendor.payout}
+          name={registered?.toLowerCase() === vendor.payout.toLowerCase() ? payeeName(FIXTURE_T_NUMBER) : null}
+        />
       </span>
       {!vendor.active && vendor.activeAt ? (
         <span className="vault-vendor__pending">payments open {formatJst(vendor.activeAt)}</span>
       ) : null}
     </p>
+  )
+}
+
+/** The vault by its ENS name once ENS confirms both ways (primary name, and the name resolving back); else hex. */
+function VaultName({ confirmed }: { readonly confirmed: boolean }) {
+  return (
+    <a className="address__value vault-panel__name" href={addressUrl(env.vault)} target="_blank" rel="noreferrer">
+      <NamedAddress address={env.vault} name={confirmed ? AGENT_ENS_NAME : null} />
+      <span className="sr-only"> (opens Etherscan)</span>
+    </a>
   )
 }
 
@@ -85,7 +108,9 @@ export function VaultPanel({ version }: { readonly version: number }) {
   const { state: payee } = usePayee(FIXTURE_T_NUMBER)
   // Empty unless the vendor is active: a disputed payee's name is withheld, so the T-number is shown instead.
   const name = payee.status === 'ready' ? payee.payee.legalName || null : null
-  const ens = ENS_NOTES[useEnsCheck(AGENT_ENS_NAME, env.vault)]
+  const registered = payee.status === 'ready' ? payee.payee.payout : null
+  const check = useEnsCheck(AGENT_ENS_NAME, env.vault)
+  const ens = ENS_NOTES[check]
   const { primary } = useAgentEns()
   return (
     <section className="vault-panel window" aria-labelledby={id} aria-live="polite">
@@ -95,7 +120,7 @@ export function VaultPanel({ version }: { readonly version: number }) {
         </h2>
         <VaultStatus load={load} />
         <span className="vault-panel__address">
-          <Address value={env.vault} short />
+          <VaultName confirmed={check === 'match' && primary === true} />
         </span>
       </header>
       {load.kind === 'loading' ? <p className="vault-panel__note muted">Reading Sepolia…</p> : null}
@@ -103,10 +128,14 @@ export function VaultPanel({ version }: { readonly version: number }) {
       {load.kind === 'ready' ? <Tiles vault={load.vault} /> : null}
       <div className="vault-panel__section">
         <p className="vault-panel__label">Approved vendor</p>
-        {load.kind === 'ready' ? <Vendor vault={load.vault} name={name} /> : <p className="muted">…</p>}
+        {load.kind === 'ready' ? (
+          <Vendor vault={load.vault} name={name} registered={registered} />
+        ) : (
+          <p className="muted">…</p>
+        )}
       </div>
       <p className="vault-panel__foot">
-        <span className="mono">{AGENT_ENS_NAME}</span>
+        <Address value={env.vault} short />
         <span className={`vault-panel__ens vault-panel__ens--${ens.tone}`}>{ens.text}</span>
         {primary ? <span className="vault-panel__ens vault-panel__ens--ok">✓ primary name</span> : null}
       </p>

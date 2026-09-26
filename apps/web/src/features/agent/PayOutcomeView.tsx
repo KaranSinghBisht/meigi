@@ -1,10 +1,11 @@
 import type { Analysis, PayOutcome } from '../../lib/api/agentTypes'
-import { shortAddress } from '../../lib/chain/format'
 import { TxLink } from '../../ui/components/Address'
 import { Button } from '../../ui/components/Button'
 import { Notice } from '../../ui/components/Notice'
 import { useSceneMood } from '../../ui/stage/useSceneMood'
+import { AgentProse } from './AgentProse'
 import { attackDemoFits } from './holds'
+import { NamedAddress } from './names/NamedAddress'
 import { Refusal } from './Refusal'
 import './agent.css'
 
@@ -39,8 +40,7 @@ function PaidView({ outcome, analysis, approved }: PaidViewProps) {
         )}
       </p>
       <p className="paid__meta">
-        at <span className="mono">{shortAddress(outcome.payTo)}</span>, its registered payout ·{' '}
-        <TxLink hash={outcome.txHash} />
+        at <NamedAddress address={outcome.payTo} />, its registered payout · <TxLink hash={outcome.txHash} />
       </p>
     </section>
   )
@@ -67,7 +67,9 @@ function HeldView({ outcome, analysis }: { readonly outcome: Held; readonly anal
       {outcome.reasons.length > 0 ? (
         <ul className="held__reasons">
           {outcome.reasons.slice(0, 4).map((reason, index) => (
-            <li key={`${reason.code}-${index}`}>{reason.message}</li>
+            <li key={`${reason.code}-${index}`}>
+              <AgentProse text={reason.message} />
+            </li>
           ))}
         </ul>
       ) : null}

@@ -1,5 +1,5 @@
 import type { Proposal } from '../../../lib/api/agentTypes'
-import { shortAddress } from '../../../lib/chain/format'
+import { NamedAddress } from '../names/NamedAddress'
 import { Column } from './Column'
 
 function yen(amount: string | null): string {
@@ -34,9 +34,7 @@ export function BeliefColumn({ proposal }: { readonly proposal: Proposal }) {
         {proposal.payTo ? (
           <>
             {' to '}
-            <span className="mono" title={proposal.payTo}>
-              {shortAddress(proposal.payTo)}
-            </span>
+            <NamedAddress address={proposal.payTo} />
           </>
         ) : null}
       </p>

@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react'
 import type { Analysis, PayOutcome } from '../../lib/api/agentTypes'
-import { shortAddress } from '../../lib/chain/format'
 import { prefersReducedMotion } from '../../lib/hooks/motion'
 import { HankoMark } from '../../ui/brand/HankoMark'
 import { TxLink } from '../../ui/components/Address'
 import { AgentProse } from './AgentProse'
+import { NamedAddress } from './names/NamedAddress'
+import { payeeName } from './names/primaryName'
 import { useSceneMood } from '../../ui/stage/useSceneMood'
 import './refusal.css'
 
@@ -25,11 +26,16 @@ function Mismatch({ outcome, analysis }: { readonly outcome: Reverted; readonly 
           </span>
         </>
       ) : null}{' '}
-      pays <span className="mono refusal__good">{registered ? shortAddress(registered) : 'its registered payout'}</span>
+      pays{' '}
+      {registered ? (
+        <NamedAddress address={registered} name={tDisplay ? payeeName(tDisplay) : null} className="refusal__good" />
+      ) : (
+        'its registered payout'
+      )}
       ;
       <br />
       this invoice asked for{' '}
-      <span className="mono refusal__bad">{expected ? shortAddress(expected) : 'another address'}</span>.
+      {expected ? <NamedAddress address={expected} className="refusal__bad" /> : 'another address'}.
     </p>
   )
 }

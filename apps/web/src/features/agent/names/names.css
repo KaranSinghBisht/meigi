@@ -1,0 +1,11 @@
+/* An address shown by its ENS name: the same mono token, never broken; the hex is in its tooltip. */
+.named {
+  white-space: nowrap;
+}
+
+/* The printed hex with its verified name under it (the extraction column's "as printed"). */
+.named-under {
+  display: block;
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+}

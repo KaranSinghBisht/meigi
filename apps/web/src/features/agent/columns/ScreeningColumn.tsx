@@ -1,5 +1,5 @@
 import type { Screening } from '../../../lib/api/agentTypes'
-import { shortAddress } from '../../../lib/chain/format'
+import { NamedAddress } from '../names/NamedAddress'
 import { Badge } from '../../../ui/components/Badge'
 import { Column } from './Column'
 
@@ -43,9 +43,7 @@ export function ScreeningColumn({ screening, holds }: ScreeningColumnProps) {
       <ul className="screen">
         {screening.results.map((result) => (
           <li key={result.address} className={result.flagged ? 'screen__item is-flagged' : 'screen__item'}>
-            <span className="mono" title={result.address}>
-              {shortAddress(result.address)}
-            </span>
+            <NamedAddress address={result.address} />
             <span className="screen__score">toxic {result.toxicScore}</span>
             {result.traits.length > 0 ? (
               <span className="screen__traits">{result.traits.slice(0, 3).join(', ')}</span>
