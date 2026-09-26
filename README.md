@@ -19,7 +19,8 @@ Banks fixed this for wires with Confirmation of Payee. Stablecoins, and the AI a
 have nothing like it.
 
 Every Japanese company that issues qualified invoices prints a public, government-issued **T-number** on
-them. Meigi binds a T-number to **one payout address**:
+them. Japan comes first, but the design is global: any official business identifier works the same way, and the
+verifier already checks the global **LEI**. Meigi binds a T-number to **one payout address**:
 - **registered** only after an exact match against the National Tax Agency's corporate registry, a DNS proof,
   and World ID officers;
 - **changed** only with the business key plus the same verified humans, after **72 hours in public**, where it
@@ -64,7 +65,7 @@ the vault reverts `PayeeMismatch` and names the real company.
 | **PayeeRegistry** | T-number → one payout. A second claim freezes the number (dispute); it is never overwritten. Payout changes need the business key **and** an officer quorum, then wait 72h in public. The controller, attester or governance can cancel them. | [`contracts/src/registry`](contracts/src/registry) |
 | **PayeeResolver** (ENS) | `t<13 digits>.payee.eth` resolves to the active payout only. Unknown or disputed numbers resolve to nothing, and a queued change never resolves early. | [`contracts/src/ens`](contracts/src/ens) |
 | **AgentVault** | The agent's key can only pay owner-approved vendors, within caps, to the payout the owner pinned, which must still be the registry's. A swapped address reverts `PayeeMismatch`; a registry change reverts `VendorPayoutChanged`. | [`contracts/src/payments`](contracts/src/payments) |
-| **Verifier** | Exact match against the NTA bulk data after NFKC normalisation. Keybase-style DNS proof. World ID 4.0 officer sessions. Approvals whose World ID signal pins the exact change. | [`services/verifier`](services/verifier) |
+| **Verifier** | Exact match against the NTA bulk data after NFKC normalisation. Keybase-style DNS proof. World ID 4.0 officer sessions. Approvals whose World ID signal pins the exact change. **Global:** `GET /lei/:lei` verifies any company's LEI against GLEIF and links Japanese ones to their T-number. For example, Sony Group's LEI links to `T5010401067252`. | [`services/verifier`](services/verifier) |
 | **AP agent** | Invoice → deterministic extraction → System-1 triage (our fine-tuned model) → deterministic kernel → Intercepta screening → pay or hold. Only the kernel can move money; the LLM only explains. | [`services/agent`](services/agent) |
 | **x402 guard** | Before an agent signs an x402 payment: a declared T-number must match `payTo`. Merchants that declare none get small amounts only, after a clean Intercepta screen. | [`packages/x402-guard`](packages/x402-guard), [`services/x402-demo`](services/x402-demo) |
 | **PayeeBench-JA** | A Japanese-first benchmark for triaging payment redirection. Kev-0.8B, fine-tuned on a MacBook, scores 0.918 accuracy. That beats the released Kev-4B (0.795) and Llama 3.3 70B (0.815), with ECE 0.024, at 39 ms. | [`bench`](bench) |
