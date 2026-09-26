@@ -1,0 +1,77 @@
+{
+  "transactions": [
+    {
+      "hash": null,
+      "transactionType": "CALL",
+      "contractName": null,
+      "contractAddress": "0x39993148caa6a20ae1f08e1b2427966e97f85aab",
+      "function": "claim(address,address)",
+      "arguments": [
+        "0x87A798CD92dE1340B1b761dd45196AC82bEF793B",
+        "0xE99638b40E4Fff0129D56f03b55b6bbC4BBE49b5"
+      ],
+      "transaction": {
+        "from": "0x936bf2352a859ab33b263fbc3d6f5f98a497d334",
+        "to": "0x39993148caa6a20ae1f08e1b2427966e97f85aab",
+        "gas": "0x33aa5",
+        "value": "0x0",
+        "input": "0x21c0b34200000000000000000000000087a798cd92de1340b1b761dd45196ac82bef793b000000000000000000000000e99638b40e4fff0129d56f03b55b6bbc4bbe49b5",
+        "nonce": "0x2",
+        "chainId": "0xaa36a7"
+      },
+      "additionalContracts": [],
+      "isFixedGasLimit": false
+    },
+    {
+      "hash": null,
+      "transactionType": "CALL",
+      "contractName": null,
+      "contractAddress": "0xe99638b40e4fff0129d56f03b55b6bbc4bbe49b5",
+      "function": "setName(bytes32,string)",
+      "arguments": [
+        "0xc68f5dc268e25f2bf95bf994f2bd78720334441b94f59352aa19692d72893ae0",
+        "ap.meigi.eth"
+      ],
+      "transaction": {
+        "from": "0x936bf2352a859ab33b263fbc3d6f5f98a497d334",
+        "to": "0xe99638b40e4fff0129d56f03b55b6bbc4bbe49b5",
+        "gas": "0x1ce7a",
+        "value": "0x0",
+        "input": "0x77372213c68f5dc268e25f2bf95bf994f2bd78720334441b94f59352aa19692d72893ae00000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000c61702e6d656967692e6574680000000000000000000000000000000000000000",
+        "nonce": "0x3",
+        "chainId": "0xaa36a7"
+      },
+      "additionalContracts": [],
+      "isFixedGasLimit": false
+    },
+    {
+      "hash": null,
+      "transactionType": "CALL",
+      "contractName": null,
+      "contractAddress": "0x4f32a1c62e202922d4d6307126f43218db9da6f5",
+      "function": "setName(address,string)",
+      "arguments": [
+        "0x87A798CD92dE1340B1b761dd45196AC82bEF793B",
+        "ap.meigi.eth"
+      ],
+      "transaction": {
+        "from": "0x936bf2352a859ab33b263fbc3d6f5f98a497d334",
+        "to": "0x4f32a1c62e202922d4d6307126f43218db9da6f5",
+        "gas": "0x1ee8c",
+        "value": "0x0",
+        "input": "0x3121db1c00000000000000000000000087a798cd92de1340b1b761dd45196ac82bef793b0000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000c61702e6d656967692e6574680000000000000000000000000000000000000000",
+        "nonce": "0x4",
+        "chainId": "0xaa36a7"
+      },
+      "additionalContracts": [],
+      "isFixedGasLimit": false
+    }
+  ],
+  "receipts": [],
+  "libraries": [],
+  "pending": [],
+  "returns": {},
+  "timestamp": 1790393517542,
+  "chain": 11155111,
+  "commit": "89dc45f"
+}
