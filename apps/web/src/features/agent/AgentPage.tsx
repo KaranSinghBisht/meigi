@@ -9,12 +9,14 @@ export default function AgentPage() {
     <div className="agent">
       <header className="agent__head">
         <div className="on-scene agent__head-text">
-          <p className="eyebrow">AP agent console</p>
-          <h1 className="agent__title">Please try to rob our AI accountant.</h1>
+          <p className="eyebrow">
+            AP agent · <span className="agent__ens">ap.meigi.eth</span>
+          </p>
+          <h1 className="agent__title">It reads every invoice. It only pays verified companies.</h1>
           <p className="agent__lede">
             {env.hosted
-              ? 'It pays our suppliers in JPYC from an AgentVault. Below is a real run: a bank-change email the agent believed, and the chain refused.'
-              : 'It pays our suppliers in JPYC from an AgentVault. Paste a fake invoice, a bank-change email or a prompt injection. The agent may believe it. The chain decides.'}
+              ? 'The agent may believe a scam. The vault only pays the address registered to the company. Below, real runs replayed from Sepolia.'
+              : 'Drop in an invoice, a supplier email or an x402 request. The agent may believe a scam. The vault only pays the address registered to the company.'}
           </p>
         </div>
       </header>

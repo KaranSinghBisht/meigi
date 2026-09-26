@@ -14,7 +14,7 @@ function ExampleChips({ agent }: { readonly agent: AgentConsole }) {
   return (
     <div className="invoice__examples" role="group" aria-labelledby={id}>
       <span id={id} className="invoice__examples-label">
-        Examples{examples.source === 'built-in' ? ' (built in)' : ''}
+        Try an example{examples.source === 'built-in' ? ' (built in)' : ''}
       </span>
       <div ref={strip} className="invoice__example-list scroll-fade">
         {examples.list.map((example) => (
@@ -55,7 +55,7 @@ export function InvoiceInput({ agent }: { readonly agent: AgentConsole }) {
         className="invoice__text"
         value={agent.text}
         onChange={(event) => agent.setText(event.target.value)}
-        placeholder="Paste an invoice, a bank-change email, or an x402 402-response. Try to make the agent pay the wrong address."
+        placeholder="Paste an invoice, a supplier email or an x402 402-response."
         spellCheck={false}
       />
       <div className="invoice__actions">

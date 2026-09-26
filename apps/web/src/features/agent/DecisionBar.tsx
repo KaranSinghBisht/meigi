@@ -38,7 +38,7 @@ function AttackDemo({ busy, disabled, onForce }: AttackDemoProps) {
         title="Pushes past the hold and asks the vault directly. Forcing only simulates; it never sends."
         onClick={onForce}
       >
-        Let the agent pay anyway <span aria-hidden="true">→</span>
+        Let the agent pay anyway (simulation)
       </Button>
     </div>
   )

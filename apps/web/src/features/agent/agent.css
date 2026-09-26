@@ -19,6 +19,13 @@
   min-width: 0;
 }
 
+/* The agent's ENS name in the eyebrow: names are lowercase, so it isn't set in capitals like the rest. */
+.agent__ens {
+  font-family: var(--font-mono);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
 .agent__title {
   font-size: var(--text-display);
   font-weight: var(--weight-strong);

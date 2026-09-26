@@ -72,7 +72,7 @@ function HeldView({ outcome, analysis }: { readonly outcome: Held; readonly anal
         </ul>
       ) : null}
       {!refused && attackDemoFits(analysis) ? (
-        <p>The attack demo, “Let the agent pay anyway”, skips the kernel and asks the chain directly.</p>
+        <p>The attack demo, “Let the agent pay anyway (simulation)”, skips the kernel and asks the chain directly.</p>
       ) : null}
     </Notice>
   )

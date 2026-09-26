@@ -58,7 +58,7 @@ function DemoCallout() {
       <div>
         <p className="eyebrow">The demo</p>
         <h2 id="home-agent" className="home__feature-title">
-          “Please try to rob our AI accountant.”
+          See it catch a bank-change scam.
         </h2>
         <p className="home__feature-body">
           {env.hosted
