@@ -20,6 +20,8 @@ export interface AppDeps {
   /** GLEIF's public LEI registry, for companies outside Japan. */
   lei: LeiRegistry;
   origins: string[];
+  /** Fictional demo companies (registry office 9999 only) may skip the NTA match and domain proof. */
+  fixtures?: boolean;
   now?: () => number; // unix seconds; injectable for tests
 }
 

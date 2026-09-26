@@ -24,6 +24,7 @@ const app = createApp({
   domain: { verify: (input) => verifyDomainProof(input) },
   lei: gleifRegistry(),
   origins: config.APP_ORIGINS.split(",").map((origin) => origin.trim()),
+  fixtures: config.VERIFIER_FIXTURES === "1",
 });
 
 serve({ fetch: app.fetch, port: config.VERIFIER_PORT, hostname: config.VERIFIER_HOST }, (info) => {

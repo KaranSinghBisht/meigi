@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import type { AppDeps } from "../deps.js";
 import { HttpError } from "../http.js";
-import { formatTNumber, hasCorporateCheckDigit, parseTNumber, toChainId } from "../tnumber.js";
+import { formatTNumber, hasCorporateCheckDigit, isUnassignableOffice, parseTNumber, toChainId } from "../tnumber.js";
 
 const STATUS = ["unregistered", "active", "disputed"] as const;
 
@@ -23,6 +23,8 @@ export function lookupRoutes(deps: AppDeps) {
     return c.json({
       tNumber: formatTNumber(digits),
       corporateCheckDigit: hasCorporateCheckDigit(digits),
+      // Registry office 9999 is never issued: with fixtures on, such a number registers as a fictional demo company.
+      fixture: deps.fixtures === true && isUnassignableOffice(digits) && hasCorporateCheckDigit(digits),
       corporation: corporation && {
         name: corporation.name,
         enName: corporation.enName,

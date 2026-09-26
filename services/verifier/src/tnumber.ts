@@ -23,6 +23,14 @@ export function hasCorporateCheckDigit(digits: string): boolean {
   return Number(digits[0]) === 9 - (sum % 9);
 }
 
+/**
+ * Registry-office code 9999 is never issued (none of the 5.79M numbers in the NTA index uses it), so a number with it
+ * can't belong to a real company: the only numbers the verifier may treat as fictional demo fixtures.
+ */
+export function isUnassignableOffice(digits: string): boolean {
+  return /^\d{13}$/.test(digits) && digits.slice(1, 5) === "9999";
+}
+
 export function formatTNumber(digits: string): string {
   return `T${digits}`;
 }

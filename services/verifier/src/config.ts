@@ -18,6 +18,8 @@ const schema = z.object({
   // The verifier holds the attester key, so it only listens locally unless told otherwise.
   VERIFIER_HOST: z.string().default("127.0.0.1"),
   APP_ORIGINS: z.string().default("http://localhost:5173,http://localhost:4173"),
+  // "1" lets fictional demo companies (registry office 9999 only) register without an NTA match or domain proof.
+  VERIFIER_FIXTURES: z.enum(["0", "1"]).default("0"),
 });
 
 export type Config = z.infer<typeof schema>;
