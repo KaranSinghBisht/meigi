@@ -41,7 +41,7 @@ not `PayeeResolver` (ENS lives on Sepolia, not Awaji), not `AgentVault` or `Mock
 Sepolia; Awaji pays in Mizuhiki's own real MJPY/MUSD instead). Script: `contracts/script/DeployAwaji.s.sol`. One
 key is both governance and attester, to keep the funded-key count at one.
 
-**Deployed and verified live:**
+**Deployed 2026-09-26, 15:31 JST, and verified live:**
 
 | | Address | Tx | Block |
 |---|---|---|---|
@@ -60,11 +60,6 @@ with fresh `cast call`s, not just trusted from the deploy script:
 `contracts/deployments/6497.json` holds these addresses plus `token: MJPY`'s real address (recorded for
 MultiBaas's linker; MJPY itself isn't deployed by this script, it's Mizuhiki's own predeployed token).
 
-**One wrinkle, for the record:** forge initially reported "max priority fee per gas higher than max fee per gas"
-on this broadcast and it looked like a clean failure (balance unchanged in an immediate check). It wasn't — all
-three transactions had actually been mined; the error appears to have come from a spurious retry of an
-already-included transaction. Caught by checking the broadcast record's receipts directly and independently
-verifying on-chain, rather than trusting the CLI's exit status alone.
 
 ## Registered and paid, real, verified
 
