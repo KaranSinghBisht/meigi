@@ -1,6 +1,7 @@
 import type { AnalysisStore } from "./analysis/store.js";
 import type { HoldPolicy } from "./analysis/verdict.js";
 import type { ApprovalService } from "./approval/approvals.js";
+import type { AuditLog } from "./audit/log.js";
 import type { HistorySources } from "./history/read.js";
 import type { ChainPort, PayerPort } from "./chain/types.js";
 import type { LlmPort } from "./llm/types.js";
@@ -36,6 +37,7 @@ export interface AppDeps {
   holds: HoldPolicy;
   approvals: ApprovalService | null; // null: World ID for Agents is not configured
   history: HistorySources; // settlement history: MultiBaas when configured, RPC logs as the fallback
+  audit: AuditLog; // append-only, hash-chained record of verdicts, approvals and payments
   apiToken: string | null; // required as a bearer token on every POST when set
   demoDir: string; // scripts/demo-invoices
   info: HealthInfo;

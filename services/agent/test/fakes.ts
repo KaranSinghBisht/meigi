@@ -9,6 +9,7 @@ import { LlmError, type ExplanationFacts, type LlmPort, type Proposal } from "..
 import type { Screening, ScreeningPort } from "../src/screening/intercepta.js";
 import type { TriageOk, TriagePort, TriageResult } from "../src/triage/triage.js";
 import type { BlockRange, PaymentHistory, ReceivedTotal, SettledPayment } from "../src/history/types.js";
+import { createAuditLog } from "../src/audit/log.js";
 
 export const DEMO_DIR = fileURLToPath(new URL("../scripts/demo-invoices/", import.meta.url));
 export const demo = (file: string) => readFileSync(`${DEMO_DIR}${file}`, "utf8");
@@ -239,6 +240,7 @@ export function fakeDeps(parts: Partial<Fakes> = {}, llm: LlmPort | null = null)
     holds: DEFAULT_HOLD_POLICY,
     approvals: null,
     history: { multibaas: null, rpc: new FakeHistory(), mizuhiki: null },
+    audit: createAuditLog(null),
     apiToken: null,
     demoDir: DEMO_DIR,
     info: { chainId: 31337, vault: VAULT, agent: AGENT, triage: ["fake"], triageRequired: true, llm: llm ? "fake" : "none", screening: false, humanApproval: false, multibaas: false, mizuhiki: false },

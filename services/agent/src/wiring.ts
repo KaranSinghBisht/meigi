@@ -5,6 +5,7 @@ import { AnalysisStore } from "./analysis/store.js";
 import { createApprovals, type ApprovalService } from "./approval/approvals.js";
 import { createApproverRegistry } from "./approval/approvers.js";
 import { createIdp } from "./approval/idp.js";
+import { createAuditLog, type AuditLog } from "./audit/log.js";
 import { createMultiBaasHistory } from "./history/multibaas.js";
 import { createIndexedNetwork } from "./history/network.js";
 import { createRpcHistory } from "./history/rpc.js";
@@ -49,7 +50,9 @@ export function buildDeps(config: Config) {
     maxCalls: config.INTERCEPTA_MAX_CALLS,
     toxicThreshold: config.INTERCEPTA_TOXIC_THRESHOLD,
   });
-  const approvals = createApprovalService(config);
+  // One file per chain: the Sepolia agent and a local-chain agent never append to the same chain of hashes.
+  const audit = createAuditLog(packagePath(config.AUDIT_LOG_PATH ?? `../../data/agent/audit-${config.CHAIN_ID}.jsonl`));
+  const approvals = createApprovalService(config, audit);
   const fromBlock = historyFrom(config);
   const multibaas = (url?: string, apiKey?: string) => (url && apiKey ? createMultiBaas({ url, apiKey }) : null);
   const sameChain = multibaas(config.MULTIBAAS_URL, config.MULTIBAAS_API_KEY);
@@ -73,6 +76,7 @@ export function buildDeps(config: Config) {
     holds: { maxPressure: config.TRIAGE_MAX_PRESSURE, autoClearMaxYen: config.AUTO_CLEAR_MAX_YEN ?? null },
     approvals,
     history,
+    audit,
     apiToken: config.AGENT_API_TOKEN ?? null,
     demoDir: DEMO_DIR,
     info: {
@@ -92,7 +96,7 @@ export function buildDeps(config: Config) {
 }
 
 /** World ID for Agents: a verified human may release a held payment. Off unless both client values are set. */
-function createApprovalService(config: Config): ApprovalService | null {
+function createApprovalService(config: Config, audit: AuditLog): ApprovalService | null {
   const clientId = config.WORLD_AGENTS_CLIENT_ID;
   const clientSecret = config.WORLD_AGENTS_CLIENT_SECRET;
   if (!clientId || !clientSecret) return null;
@@ -100,7 +104,14 @@ function createApprovalService(config: Config): ApprovalService | null {
   const allowed = config.WORLD_AGENTS_APPROVERS.split(",").map((sub) => sub.trim()).filter(Boolean);
   const path = packagePath(config.WORLD_AGENTS_APPROVERS_PATH);
   const approvers = createApproverRegistry({ allowed, path, enroll: config.WORLD_AGENTS_ENROLL });
-  return createApprovals({ idp, approvers, trace: config.WORLD_AGENTS_TRACE });
+  const record = (event: string, fields: Record<string, unknown>) => {
+    try {
+      audit.record(event, fields);
+    } catch (error) {
+      process.stderr.write(`[agent] audit log write failed for ${event}: ${error instanceof Error ? error.name : "error"}\n`);
+    }
+  };
+  return createApprovals({ idp, approvers, record, trace: config.WORLD_AGENTS_TRACE });
 }
 
 function createTriageBackends(config: Config): TriageBackend[] {

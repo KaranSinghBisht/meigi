@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type { StoredAnalysis } from "../analysis/store.js";
 import { HttpError } from "../http.js";
 import type { ApproverRegistry } from "./approvers.js";
@@ -43,9 +43,13 @@ export interface ApprovalService {
   settled(attemptId: string): Promise<void>;
 }
 
+/** Where approval steps are recorded (the audit log). Must not throw: a failed write is the recorder's to report. */
+export type ApprovalRecorder = (event: "approval.started" | "approval.settled", fields: Record<string, unknown>) => void;
+
 export interface ApprovalOptions {
   idp: Idp;
   approvers: ApproverRegistry;
+  record?: ApprovalRecorder;
   now?: () => number; // unix seconds
   wait?: (ms: number) => Promise<void>;
   limits?: { maxAttempts?: number; maxLive?: number };
@@ -66,7 +70,8 @@ export function createApprovals(opts: ApprovalOptions): ApprovalService {
   };
   const { issuer, clientId } = opts.idp;
   if (opts.trace) ctx.trace = (idToken, startedAt) => traceIdToken(idToken, { issuer, clientId, startedAt });
-  return new Approvals(ctx, { maxAttempts: opts.limits?.maxAttempts ?? MAX_ATTEMPTS, maxLive: opts.limits?.maxLive ?? MAX_LIVE_POLLERS });
+  const limits = { maxAttempts: opts.limits?.maxAttempts ?? MAX_ATTEMPTS, maxLive: opts.limits?.maxLive ?? MAX_LIVE_POLLERS };
+  return new Approvals(ctx, limits, opts.record ?? (() => {}));
 }
 
 class Approvals implements ApprovalService {
@@ -78,6 +83,7 @@ class Approvals implements ApprovalService {
   constructor(
     private readonly ctx: PollContext,
     private readonly limits: { maxAttempts: number; maxLive: number },
+    private readonly record: ApprovalRecorder,
   ) {}
 
   async start(stored: StoredAnalysis): Promise<ApprovalStart> {
@@ -134,7 +140,11 @@ class Approvals implements ApprovalService {
       this.live -= 1;
       throw error;
     }
-    void attempt.done.finally(() => (this.live -= 1));
+    this.record("approval.started", { approvalId: attempt.id, analysisId: attempt.invoiceId, bindingSha256: sha256Hex(attempt.binding), expiresAt: attempt.expiresAt });
+    void attempt.done.finally(() => {
+      this.live -= 1;
+      this.record("approval.settled", settledFields(attempt));
+    });
     this.attempts.set(attempt.id, attempt);
     this.latest.set(attempt.invoiceId, attempt.id);
     evictOldest(this.attempts, this.latest, this.limits.maxAttempts);
@@ -176,6 +186,21 @@ function evictOldest(attempts: Map<string, Attempt>, latest: Map<string, string>
   attempts.delete(oldestId);
   if (latest.get(oldest.invoiceId) === oldestId) latest.delete(oldest.invoiceId);
   abandon(oldest); // a pending one's poller stops at its next step
+}
+
+function sha256Hex(text: string): string {
+  return createHash("sha256").update(text).digest("hex");
+}
+
+/** How an attempt ended, for the audit log: never its device or user code. */
+function settledFields(attempt: Attempt): Record<string, unknown> {
+  return {
+    approvalId: attempt.id,
+    analysisId: attempt.invoiceId,
+    status: attempt.status,
+    ...(attempt.reason ? { reason: attempt.reason } : {}),
+    ...(attempt.approvedAt !== undefined ? { approvedAt: attempt.approvedAt, approver: attempt.approver, approverId: attempt.approverId } : {}),
+  };
 }
 
 /** A pending attempt past its expiry is expired; an approval unused past its validity is too. */

@@ -4,6 +4,7 @@ import { cors } from "hono/cors";
 import type { AppDeps } from "./deps.js";
 import { handleError, requireHost, requireToken } from "./http.js";
 import { approvalRoutes } from "./routes/approval.js";
+import { auditRoutes } from "./routes/audit.js";
 import { paymentRoutes } from "./routes/payments.js";
 import { demoRoutes } from "./routes/demo.js";
 import { invoiceRoutes } from "./routes/invoices.js";
@@ -29,5 +30,6 @@ export function createApp(deps: AppDeps) {
   app.route("/", paymentRoutes(deps));
   app.route("/vault", vaultRoutes(deps));
   app.route("/demo", demoRoutes(deps));
+  app.route("/audit", auditRoutes(deps));
   return app;
 }

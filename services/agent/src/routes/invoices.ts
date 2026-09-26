@@ -4,6 +4,7 @@ import { analyzeDocument } from "../analysis/analyze.js";
 import { payAnalysis, type PayMode, type PayResult } from "../analysis/pay.js";
 import type { StoredAnalysis } from "../analysis/store.js";
 import { approvalRefusal } from "../approval/holds.js";
+import { analysisEntry, paymentEntry } from "../audit/entries.js";
 import type { AppDeps } from "../deps.js";
 import { HttpError, readJson } from "../http.js";
 import { load, service } from "./lookup.js";
@@ -22,6 +23,7 @@ export function invoiceRoutes(deps: AppDeps) {
     const { text } = analyzeBody.parse(await readJson(c));
     const stored = await analyzeDocument(deps, text);
     deps.store.save(stored);
+    deps.audit.record("analysis", analysisEntry(stored, text, approvalRefusal(stored) === null)); // unrecorded: no answer
     return c.json(present(deps, stored));
   });
 
@@ -39,12 +41,24 @@ export function invoiceRoutes(deps: AppDeps) {
     paying.add(id);
     try {
       const mode: PayMode = body.approvalId ? spendApproval(deps, stored, body.approvalId) : body.force ? "force" : "auto";
+      const approvalId = body.approvalId ?? null;
       // Paid and pending results are kept (never pay or send twice); anything else clears a settled pending one.
+      // A sent transaction is recorded before its receipt is awaited, so the log has it even if the agent stops.
+      let recordedSend: string | null = null;
       const keep = (result: PayResult) => {
         stored.payment = result.status === "paid" || result.status === "pending" ? result : null;
       };
-      const result = await payAnalysis(deps, stored, mode, keep);
+      const sent = (result: PayResult) => {
+        keep(result);
+        if (result.status !== "pending") return;
+        recordedSend = result.txHash;
+        audit(deps, "payment", paymentEntry(stored, mode, approvalId, result));
+      };
+      const before = stored.payment;
+      const result = await payAnalysis(deps, stored, mode, sent);
       keep(result);
+      const unchanged = result === before || (result.status === "pending" && result.txHash === recordedSend); // nothing new
+      if (!unchanged) audit(deps, "payment", paymentEntry(stored, mode, approvalId, result));
       return c.json(result);
     } finally {
       paying.delete(id);
@@ -60,6 +74,18 @@ export function invoiceRoutes(deps: AppDeps) {
  */
 function present(deps: AppDeps, stored: StoredAnalysis) {
   return { ...stored.view, approval: { enabled: deps.approvals !== null, approvable: approvalRefusal(stored) === null } };
+}
+
+/**
+ * Records a payment step. The money has already moved (or been refused) by now, so a failed write is reported
+ * loudly but never hides the result from the caller.
+ */
+function audit(deps: AppDeps, event: string, fields: Record<string, unknown>): void {
+  try {
+    deps.audit.record(event, fields);
+  } catch (error) {
+    process.stderr.write(`[agent] audit log write failed for ${event}: ${error instanceof Error ? error.name : "error"}\n`);
+  }
 }
 
 /** An approval pays once: any second use is a 409 (check a pending payment with a plain POST /pay). */

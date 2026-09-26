@@ -57,6 +57,7 @@ const schema = z
     // Intercepta screening
     INTERCEPTA_API_KEY: optional(z.string()),
     INTERCEPTA_CACHE_PATH: z.string().default("../../data/agent/intercepta-cache.json"), // relative to services/agent
+    AUDIT_LOG_PATH: optional(z.string().min(1)), // hash-chained JSONL (default ../../data/agent/audit-<CHAIN_ID>.jsonl), relative to services/agent
     INTERCEPTA_MAX_CALLS: z.coerce.number().int().nonnegative().default(900),
     INTERCEPTA_TOXIC_THRESHOLD: z.coerce.number().min(0).max(100).default(50),
     // MultiBaas (Curvegrid): indexed settlement history. Off unless both are set; RPC logs otherwise

@@ -1,5 +1,5 @@
 import { exportJWK, generateKeyPair, SignJWT, type CryptoKey, type JWK } from "jose";
-import { createApprovals, type ApprovalService } from "../src/approval/approvals.js";
+import { createApprovals, type ApprovalRecorder, type ApprovalService } from "../src/approval/approvals.js";
 import { createApproverRegistry, type ApproverRegistry } from "../src/approval/approvers.js";
 import { createIdp, type Idp } from "../src/approval/idp.js";
 import { ORB_ACR } from "../src/approval/token.js";
@@ -118,6 +118,7 @@ export interface Harness {
 
 /** The approval service over the mock IdP. `wait` advances the mock clock instead of sleeping. */
 export interface HarnessOptions {
+  record?: ApprovalRecorder; // the audit log's hook
   allowed?: string[];
   enroll?: boolean; // default true: the first approver enrolls, as in the enrolment run
   authMethod?: "client_secret_basic" | "client_secret_post";
@@ -141,6 +142,6 @@ export async function approvalHarness(opts: HarnessOptions = {}): Promise<Harnes
     if (opts.hold) await new Promise<void>(() => {}); // never polls: the attempt stays pending
     idp.clock.now += ms / 1000;
   };
-  const approvals = createApprovals({ idp: client, approvers, now: () => idp.clock.now, wait });
+  const approvals = createApprovals({ idp: client, approvers, now: () => idp.clock.now, wait, record: opts.record });
   return { idp, client, approvals, approvers, waits };
 }

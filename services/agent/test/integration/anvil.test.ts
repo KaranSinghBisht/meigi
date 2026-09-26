@@ -36,6 +36,7 @@ describe.skipIf(!hasFoundry())("agent against the real contracts on anvil", () =
       LLM_PROVIDER: "none",
       TRIAGE_BACKENDS: "systemone",
       INTERCEPTA_CACHE_PATH: join(cacheDir, "intercepta.json"),
+      AUDIT_LOG_PATH: join(cacheDir, "audit.jsonl"),
     });
     const { deps, init } = buildDeps(config);
     await init();

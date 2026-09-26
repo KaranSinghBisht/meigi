@@ -35,6 +35,7 @@ if `AGENT_API_TOKEN` is set. It answers only requests addressed to `localhost`, 
 | GET | `/vault` | `{ agent, vaultAgent, agentAuthorized, vault, registry, owner, token, balance, paused, vendorDelaySeconds, vendors[] }` |
 | GET | `/demo/invoices` | The documents in `scripts/demo-invoices/` with the manifest |
 | GET | `/health` | `{ ok, chainId, vault, agent, triage, triageRequired, llm, screening, humanApproval, multibaas, mizuhiki }` |
+| GET | `/audit?limit=100&verify=1` | `{ entries[], chain? }`: the newest audit entries, newest first; with `verify`, `chain` is `{ ok, entries, brokenAt?, reason? }`. See [Audit log](#audit-log) |
 
 A payment returns one of:
 
@@ -162,6 +163,29 @@ grant: the agent is the device, and the human approves in World App. It is off u
   - `409 approval_void`: the analysis changed after approval.
   - `400`: `force` and `approvalId` were sent together.
 
+## Audit log
+
+Every decision and every payment step is recorded in an append-only, hash-chained JSONL file:
+`data/agent/audit-<chainId>.jsonl` (git-ignored; `AUDIT_LOG_PATH` overrides it).
+- **The chain.** Each line carries `seq`, `at`, `event`, `prev` (the previous line's `hash`; 64 zeros for the
+  first) and `hash`, the SHA-256 of the line's canonical JSON (keys sorted) without `hash`. Editing, dropping or
+  reordering any past line breaks the chain from there on. `GET /audit?verify=1` names the first line that doesn't
+  fit.
+- **What is recorded:**
+  - `analysis`: the verdict and its reasons, and the document's SHA-256 (never its text or a reason's evidence).
+    Also the T-number, invoice number, amount, the payTo and the registered payout, the triage route, the model's
+    proposal, flagged screening results, and whether a person could approve it.
+  - `approval.started` and `approval.settled`: the World ID for Agents attempt and the analysis it's bound to. On
+    approval: `auth_time`, whether the approver was on the allow-list or enrolled, and the first 16 hex of
+    SHA-256(sub). Never the sub, a device code or a token.
+  - `payment`: the mode (auto, force, approved), the approval id, then `pending` with the tx hash as soon as it's
+    sent (so a crash can't lose it), and the outcome: paid with its block, reverted (and whether anything was
+    broadcast), or held with the reasons.
+- **Failures.** A verdict that can't be recorded isn't returned. A payment step that can't be recorded is reported
+  on stderr, but the payment's result still reaches the caller.
+- **One file per agent.** The Sepolia agent and a local-chain agent write different files, because a chain of hashes
+  has one writer.
+
 ## Settlement history (Curvegrid MultiBaas)
 
 Two MultiBaas deployments, one per chain:
@@ -266,6 +290,7 @@ and token match the configuration, that the key is the vault's agent, and that i
 | LLM | `LLM_PROVIDER=local` (the default for demos: a model on this machine behind an OpenAI-compatible API, `LOCAL_LLM_URL=http://127.0.0.1:11434/v1`, `LOCAL_LLM_MODEL=llama3.1:8b`, `LOCAL_LLM_TIMEOUT_MS=60000`), `proxy` (Llama 3.3 via `AI_PROXY_URL/v1/chat` with `AI_PROXY_TOKEN`), `anthropic` (`ANTHROPIC_API_KEY`, `claude-haiku-4-5`), `workers-ai` or `none` |
 | Screening | `INTERCEPTA_API_KEY` (optional), `INTERCEPTA_CACHE_PATH=../../data/agent/intercepta-cache.json`, `INTERCEPTA_MAX_CALLS=900`, `INTERCEPTA_TOXIC_THRESHOLD=50` |
 | Judgement holds | `TRIAGE_MAX_PRESSURE=0.5`, `AUTO_CLEAR_MAX_YEN` (unset: no budget hold) |
+| Audit log | `AUDIT_LOG_PATH` (default `../../data/agent/audit-<CHAIN_ID>.jsonl`, relative to services/agent) |
 | Settlement history | `MULTIBAAS_URL` and `MULTIBAAS_API_KEY` (the agent's chain), `MULTIBAAS_AWAJI_URL` and `MULTIBAAS_AWAJI_API_KEY` (Mizuhiki Awaji); each pair both or neither, https only. `HISTORY_FROM_BLOCK` (RPC log scans; default 11781105 on Sepolia, 0 elsewhere) |
 | Human approval | `WORLD_AGENTS_CLIENT_ID` and `WORLD_AGENTS_CLIENT_SECRET` (both or neither), `WORLD_AGENTS_ISSUER=https://sandbox.auth.world.org`, `WORLD_AGENTS_AUTH_METHOD=client_secret_basic` (or `client_secret_post`), `WORLD_AGENTS_APPROVERS`, `WORLD_AGENTS_ENROLL` (off), `WORLD_AGENTS_APPROVERS_PATH=../../data/agent/approvers.json`, `WORLD_AGENTS_TRACE` (off) |
 | Server | `AGENT_PORT=8788`, `AGENT_HOST=127.0.0.1`, `AGENT_ALLOWED_HOSTS` (extra Host names for LAN use), `APP_ORIGINS=http://localhost:5173,http://localhost:4173`, `VENDOR_T_NUMBERS=2011001234567` |

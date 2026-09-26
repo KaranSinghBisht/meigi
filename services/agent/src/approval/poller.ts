@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { ApprovalStatus } from "./approvals.js";
 import type { ApproverCheck, ApproverRegistry } from "./approvers.js";
 import { pollOnce, type Poll } from "./device.js";
@@ -25,6 +26,7 @@ export interface Attempt {
   approvedAt?: number; // auth_time
   validUntil?: number;
   approver?: Exclude<ApproverCheck, "wrong_human">;
+  approverId?: string; // the first 16 hex of SHA-256(sub): who approved, for the audit log, without the sub itself
   consumed: boolean;
   done: Promise<void>;
 }
@@ -91,6 +93,7 @@ async function approve(ctx: PollContext, attempt: Attempt, idToken: string): Pro
     attempt.approvedAt = authTime;
     attempt.validUntil = now + APPROVAL_TTL_SECONDS;
     attempt.approver = check;
+    attempt.approverId = createHash("sha256").update(sub).digest("hex").slice(0, 16);
     finish(attempt, "approved");
   } catch (error) {
     if (error instanceof TokenRejected) return finish(attempt, "denied", `invalid token: ${error.message}`);
