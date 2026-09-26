@@ -6,10 +6,10 @@
   padding: 0 20px;
   border: 0;
   border-radius: 999px;
-  /* A whiter base than the windows: the flowers behind tint the pill without flooding it with colour. */
-  background: var(--lg-window-dense);
-  -webkit-backdrop-filter: var(--lg-blur);
-  backdrop-filter: var(--lg-blur);
+  /* Clear glass over the garden, lit by its sheen; the lens blur lifts the flowers enough for the ink to stay AA. */
+  background: var(--lg-sheen), var(--lg-lens);
+  -webkit-backdrop-filter: var(--lg-blur-lens);
+  backdrop-filter: var(--lg-blur-lens);
   box-shadow: var(--lg-shadow-control);
   color: var(--ink);
   font-size: var(--text-md);
@@ -28,7 +28,7 @@
 }
 
 .landing .pill:hover {
-  background: var(--lg-cell-strong);
+  background: var(--lg-sheen-lift), var(--lg-lens-strong);
 }
 
 .landing .pill:active {
@@ -41,22 +41,27 @@
   flex: none;
 }
 
-/* The enter lens: the one large control on the hero. */
+/* The enter lens: the one large control on the hero, a touch denser with a brighter sheen. */
 .landing .pill--enter {
   height: var(--control-lg);
   padding: 0 24px;
-  background: var(--lg-window);
+  background: var(--lg-sheen-bright), var(--lg-lens-strong);
   font-size: var(--text-md);
-  box-shadow: var(--lg-shadow);
+  box-shadow: var(--lg-shadow-control);
 }
 
 .landing .pill--enter:hover,
 .landing .pill--enter:focus-visible {
-  background: var(--lg-cell-strong);
+  background: var(--lg-sheen-lift), var(--lg-lens-strong);
+  transform: scale(1.02);
+}
+
+.landing .pill--enter:active {
+  transform: scale(0.98);
 }
 
 .landing .pill[aria-expanded='true'] {
-  background: var(--lg-cell-strong);
+  background: var(--lg-sheen-lift), var(--lg-lens-strong);
 }
 
 .landing .dock {

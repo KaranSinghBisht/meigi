@@ -54,19 +54,19 @@
   background: var(--lg-ink-hover);
 }
 
-/* Secondary: frosted glass. On the world it blurs; inside a window it is tint and light only. */
+/* Secondary: clear glass lit by its sheen. On the world it blurs; inside a window it is tint and light only. */
 .btn--ghost,
 .btn--accent {
-  background: var(--lg-lens);
-  -webkit-backdrop-filter: var(--lg-blur);
-  backdrop-filter: var(--lg-blur);
+  background: var(--lg-sheen), var(--lg-lens);
+  -webkit-backdrop-filter: var(--lg-blur-lens);
+  backdrop-filter: var(--lg-blur-lens);
   color: var(--ink);
   box-shadow: var(--lg-shadow-control);
 }
 
 .btn--ghost:hover:not(:disabled),
 .btn--accent:hover:not(:disabled) {
-  background: var(--lg-cell-strong);
+  background: var(--lg-sheen-lift), var(--lg-lens-strong);
 }
 
 /* Accent and danger: the same glass, with a vermilion label. */

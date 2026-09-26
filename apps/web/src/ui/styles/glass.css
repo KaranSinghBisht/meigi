@@ -1,34 +1,66 @@
-/* Liquid Glass, visionOS-style: large translucent windows over the world, lit rather than outlined. A window is a
-   tinted fill with a strong blur and saturation, an inset top highlight, a hairline rim that fades out down the
-   sides (never a uniform line), and a soft lavender shadow. There are no strokes, dashed frames or coloured edges:
-   status is a chip (a dot plus a label) or an icon. Defined once here; components use these tokens.
+/* Liquid Glass: see-through surfaces over the world, lit rather than whitened. The light is a specular sheen (bright
+   along the top, gone by mid-height, a faint catch along the bottom) and a rim that catches light only at the top
+   and bottom edges, never a uniform stroke; the body stays clear enough to see the garden and Fuji through it. There
+   are no strokes, dashed frames or coloured edges: status is a chip (a dot plus a label) or an icon. Defined once
+   here; components use these tokens.
 
-   Density follows content: controls on the world are clear, windows that carry small text are denser, so text
-   stays AA over every station. Only surfaces that sit on the world blur it; glass inside glass is tint and light
-   only, which keeps blurred layers few over the live canvas. */
+   Density follows content, measured on real pixels over every station: controls on the world (pills, secondary
+   buttons, the header capsule) are almost clear, lifted by a small brightness boost so ink stays AA over the flower
+   beds; windows that carry small text are a little denser. Only surfaces that sit on the world blur it; glass inside
+   glass is tint and light only, which keeps blurred layers few over the live canvas. */
 :root {
-  --lg-lens: rgba(255, 252, 255, 0.34);
-  --lg-window: rgba(252, 249, 255, 0.58);
-  --lg-window-dense: rgba(252, 249, 255, 0.72);
-  --lg-cell: rgba(255, 255, 255, 0.36);
-  --lg-cell-strong: rgba(255, 255, 255, 0.72);
+  /* Controls on the world. */
+  --lg-lens: rgba(255, 255, 255, 0.07);
+  --lg-lens-strong: rgba(255, 255, 255, 0.12);
+  --lg-blur-lens: blur(9px) saturate(1.6) brightness(1.14);
+  /* Windows. */
+  --lg-window: rgba(255, 255, 255, 0.38);
+  --lg-window-dense: rgba(255, 255, 255, 0.42);
+  --lg-blur: blur(16px) saturate(1.6) brightness(1.1);
+  /* Glass inside glass: tint and light only. */
+  --lg-cell: rgba(255, 255, 255, 0.2);
+  --lg-cell-strong: rgba(255, 255, 255, 0.46);
   --lg-ink: #1d1b22;
   --lg-ink-hover: #2e2b35;
 
-  --lg-blur: blur(28px) saturate(1.8) brightness(1.08);
+  --lg-sheen: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.34) 0%,
+    rgba(255, 255, 255, 0.03) 50%,
+    rgba(255, 255, 255, 0) 80%,
+    rgba(255, 255, 255, 0.08) 100%
+  );
+  --lg-sheen-bright: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.5) 0%,
+    rgba(255, 255, 255, 0.06) 50%,
+    rgba(255, 255, 255, 0.02) 80%,
+    rgba(255, 255, 255, 0.12) 100%
+  );
+  --lg-sheen-lift: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.62) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.04) 80%,
+    rgba(255, 255, 255, 0.16) 100%
+  );
+  --lg-sheen-window: linear-gradient(180deg, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.03) 40%, transparent);
   --lg-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.55);
-  --lg-drop: 0 24px 64px -28px rgba(92, 70, 160, 0.34), 0 6px 18px -10px rgba(92, 70, 160, 0.16);
-  --lg-drop-soft: 0 10px 26px -14px rgba(92, 70, 160, 0.32);
+  --lg-under-glow: inset 0 -10px 18px -14px rgba(255, 255, 255, 0.55);
+  --lg-drop: 0 28px 70px -30px rgba(64, 44, 120, 0.45), 0 8px 20px -12px rgba(64, 44, 120, 0.18);
+  --lg-drop-soft: 0 10px 28px -14px rgba(64, 44, 120, 0.42), 0 2px 6px -3px rgba(64, 44, 120, 0.16);
   --lg-shadow: var(--lg-highlight), var(--lg-drop);
-  --lg-shadow-control: var(--lg-highlight), var(--lg-drop-soft);
+  --lg-shadow-control: var(--lg-highlight), var(--lg-under-glow), var(--lg-drop-soft);
   --lg-shadow-inset: inset 0 1px 2px rgba(42, 39, 48, 0.12);
   --lg-hairline: rgba(42, 39, 48, 0.09);
-  /* The rim: bright along the top edge, gone by mid-height. */
+  /* The rim: a bright specular line along the top, clear down the sides, a faint catch along the bottom. */
   --lg-rim-gradient: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.85),
-    rgba(255, 255, 255, 0.25) 22%,
-    rgba(255, 255, 255, 0) 55%
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.35) 20%,
+    rgba(255, 255, 255, 0) 48%,
+    rgba(255, 255, 255, 0) 70%,
+    rgba(255, 255, 255, 0.4) 100%
   );
 
   /* Earlier names, kept so no page needs its own values. Strokes are gone: every rim colour is transparent. */
@@ -41,10 +73,16 @@
   --lg-seal: rgba(255, 255, 255, 0.42);
   --lg-rim: transparent;
   --lg-rim-bright: transparent;
-  --lg-sheen: linear-gradient(transparent, transparent);
   --lg-sheen-dark: linear-gradient(transparent, transparent);
   --lg-light: var(--lg-highlight);
   --lg-depth: 0 0 transparent;
+}
+
+/* The torii station fills the view with saturated vermilion right behind the page: its windows are a little denser
+   there so small text stays AA (measured on real pixels). */
+:root:has(.scene-layer[data-station='torii']) {
+  --lg-window: rgba(255, 255, 255, 0.46);
+  --lg-window-dense: rgba(255, 255, 255, 0.52);
 }
 
 /* The glass plate: headings and short copy that sit straight on the world. */
@@ -53,7 +91,7 @@
   padding: 24px;
   border: 0;
   border-radius: var(--radius-lg);
-  background: var(--lg-window);
+  background: var(--lg-sheen-window), var(--lg-window);
   -webkit-backdrop-filter: var(--lg-blur);
   backdrop-filter: var(--lg-blur);
   box-shadow: var(--lg-shadow);
@@ -123,14 +161,14 @@
 .window {
   border: 0;
   border-radius: var(--radius-lg);
-  background: var(--lg-window);
+  background: var(--lg-sheen-window), var(--lg-window);
   -webkit-backdrop-filter: var(--lg-blur);
   backdrop-filter: var(--lg-blur);
   box-shadow: var(--lg-shadow);
 }
 
 .window--dense {
-  background: var(--lg-window-dense);
+  background: var(--lg-sheen-window), var(--lg-window-dense);
 }
 
 /* Cells inside a window, divided by hairlines at any column count: each cell draws a line along its own left and
@@ -190,8 +228,8 @@
 /* Refraction, Chromium only (html.lg-refract): the frosted world bends a little through the header capsule and the
    enter lens. Every other browser keeps the plain blur. */
 html.lg-refract .lg-lens {
-  -webkit-backdrop-filter: var(--lg-blur) url(#lg-lens);
-  backdrop-filter: var(--lg-blur) url(#lg-lens);
+  -webkit-backdrop-filter: var(--lg-blur-lens) url(#lg-lens);
+  backdrop-filter: var(--lg-blur-lens) url(#lg-lens);
 }
 
 .lg-filters {
@@ -201,15 +239,24 @@ html.lg-refract .lg-lens {
   overflow: hidden;
 }
 
-/* Asked for less transparency, or more contrast: solid fills, no blur, no refraction, no rim. */
+/* Asked for less transparency, or more contrast: solid fills, no blur, no refraction, no rim (also over the torii,
+   hence the second selector: it outranks the torii's denser glass). */
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
-  :root {
+  :root,
+  :root:has(.scene-layer[data-station]) {
     --lg-lens: #f6f3fa;
+    --lg-lens-strong: #ffffff;
     --lg-window: #fbf9fd;
     --lg-window-dense: #ffffff;
     --lg-cell: #ffffff;
     --lg-cell-strong: #ffffff;
     --lg-blur: none;
+    --lg-blur-lens: none;
+    --lg-sheen: linear-gradient(transparent, transparent);
+    --lg-sheen-bright: linear-gradient(transparent, transparent);
+    --lg-sheen-lift: linear-gradient(transparent, transparent);
+    --lg-sheen-window: linear-gradient(transparent, transparent);
+    --lg-under-glow: 0 0 transparent;
     --lg-rim-gradient: linear-gradient(transparent, transparent);
     --lg-hairline: rgba(42, 39, 48, 0.16);
   }

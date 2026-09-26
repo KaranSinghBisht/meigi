@@ -51,7 +51,7 @@
 }
 
 .invoice__example:hover {
-  background: #fff;
+  background: var(--lg-sheen-lift), var(--lg-cell-strong);
 }
 
 .invoice__example:focus-visible {

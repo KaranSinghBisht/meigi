@@ -184,7 +184,7 @@
 }
 
 .biz-lei__chip:hover {
-  background: #fff;
+  background: var(--lg-sheen-lift), var(--lg-cell-strong);
 }
 
 .biz-lei__source {

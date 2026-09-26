@@ -86,9 +86,9 @@
   margin: 0 auto;
   padding: 8px 8px 8px 16px;
   border-radius: 999px;
-  background: var(--lg-window);
-  -webkit-backdrop-filter: var(--lg-blur);
-  backdrop-filter: var(--lg-blur);
+  background: var(--lg-sheen), var(--lg-lens);
+  -webkit-backdrop-filter: var(--lg-blur-lens);
+  backdrop-filter: var(--lg-blur-lens);
   box-shadow: var(--lg-shadow-control);
   pointer-events: auto;
 }
@@ -153,7 +153,7 @@
 }
 
 .nav__link[aria-current='page'] {
-  background: var(--lg-cell-strong);
+  background: var(--lg-sheen-bright), var(--lg-cell-strong);
   color: var(--ink);
   font-weight: var(--weight-strong);
   box-shadow: var(--lg-shadow-control);

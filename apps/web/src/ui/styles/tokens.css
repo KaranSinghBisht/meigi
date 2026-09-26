@@ -3,17 +3,18 @@
    them, so every text colour below still meets WCAG AA over the darkest part of the scene. */
 :root {
   --ink: #2a2730;
-  --ink-soft: #4a4652; /* 8.9:1 on white, 5.2:1 on dense glass over the mountain */
-  --ink-muted: #56525e; /* 7.4:1 on white, 4.6:1 on dense glass over the mountain */
+  /* Darker than before, so secondary text stays AA on the clearer glass over every station. */
+  --ink-soft: #3a3642; /* 11.7:1 on white */
+  --ink-muted: #45414d; /* 10.0:1 on white */
   --line: rgba(42, 39, 48, 0.1);
   --line-strong: rgba(42, 39, 48, 0.18);
 
   --vermilion: #e0452b; /* decoration, large text, rings */
   --seal: #c8372d; /* white text on it: 5.0:1 */
-  --seal-deep: #9e2a1d; /* small text on white: 7.4:1 */
+  --seal-deep: #8e2418; /* small text on white: 8.7:1, AA on the clearer glass over the torii */
   --seal-tint: rgba(224, 69, 43, 0.1);
   --jade: #3f9d78;
-  --jade-deep: #1b5840;
+  --jade-deep: #154a35;
   /* The one colour card per page: a soft single-hue lavender, with ink text (AA across the whole gradient). */
   --lavender: rgba(182, 166, 250, 0.94);
   --lavender-soft: rgba(210, 200, 253, 0.9); /* 8.4:1 on white, 5.4:1 on glass over the torii */

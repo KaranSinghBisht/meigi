@@ -76,7 +76,7 @@
 }
 
 .directory__chip:hover {
-  background: #fff;
+  background: var(--lg-sheen-lift), var(--lg-cell-strong);
 }
 
 .directory__chip:focus-visible {

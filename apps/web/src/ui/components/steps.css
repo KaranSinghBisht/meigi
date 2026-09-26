@@ -1,4 +1,4 @@
-/* The step indicator is one segmented control: a single glass capsule, the current step a solid white segment. */
+/* The step indicator is one segmented control: a single clear glass capsule, the current step a brighter segment. */
 .steps {
   display: grid;
   grid-auto-columns: minmax(0, 1fr);
@@ -6,9 +6,9 @@
   gap: 4px;
   padding: 4px;
   border-radius: 999px;
-  background: var(--lg-lens);
-  -webkit-backdrop-filter: var(--lg-blur);
-  backdrop-filter: var(--lg-blur);
+  background: var(--lg-sheen), var(--lg-lens);
+  -webkit-backdrop-filter: var(--lg-blur-lens);
+  backdrop-filter: var(--lg-blur-lens);
   box-shadow: var(--lg-shadow-control);
 }
 
@@ -44,7 +44,7 @@
 }
 
 .steps__item--current {
-  background: var(--lg-cell-strong);
+  background: var(--lg-sheen-bright), var(--lg-cell-strong);
   color: var(--ink);
   font-weight: var(--weight-strong);
   box-shadow: var(--lg-shadow-control);
