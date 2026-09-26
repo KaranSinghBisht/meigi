@@ -1,8 +1,10 @@
 # @meigi/agent: the accounts-payable agent
 
 An AI agent reads supplier documents (Japanese qualified invoices, e-mails, x402 `402` responses) and pays them from an
-on-chain `AgentVault` with its own key (`AGENT_PRIVATE_KEY`). The vault only pays approved vendors, by T-number, to
-their registered payout, so a fooled agent still can't send money anywhere else.
+on-chain `AgentVault`. **The agent holds no key.** A separate process, [`services/signer`](../signer), holds the vault's
+agent key and signs `AgentVault.payInvoice` for it, and nothing else. The agent refuses to start if the key reaches its
+environment. The vault only pays approved vendors, by T-number, to their registered payout, so a fooled agent still
+can't send money anywhere else.
 
 Every document goes through these layers. Only the kernel, and then the vault itself, can move money.
 
@@ -14,7 +16,7 @@ Every document goes through these layers. Only the kernel, and then the vault it
 | Kernel | Re-checks everything `payInvoice` checks against one chain snapshot. Every reason names the registered company. | `src/kernel/` |
 | Screening | Intercepta (Web3 Antivirus) quick-scan of the addresses involved. | `src/screening/` |
 | Human approval | A hold that is a judgement call (pressure, System-1's hold, the auto-clear budget) can be released by a verified human who proves with World App, freshly, for this one payment (World ID for Agents). | `src/approval/` |
-| Payment | Always simulates first; a simulated revert is decoded into a sentence and never broadcast. | `src/chain/payer.ts`, `src/analysis/pay.ts` |
+| Payment | Always simulates first; a simulated revert is decoded into a sentence and never broadcast. The signer signs, and applies its own ceiling: above ¥50,000 only with a verified human's approval. | `src/chain/remote-payer.ts`, `src/analysis/pay.ts`, `services/signer` |
 | Settlement | What was paid and received, from Curvegrid MultiBaas's event index (RPC logs as the fallback). | `src/multibaas/`, `src/history/`, `src/routes/payments.ts` |
 
 ## Endpoints
@@ -254,15 +256,19 @@ Two MultiBaas deployments, one per chain:
 Run these from the repo root.
 
 ```sh
-pnpm install --filter "@meigi/agent..."
-pnpm --filter @meigi/agent start          # reads meigi/.env (Sepolia)
+pnpm install --filter "@meigi/agent..." --filter "@meigi/signer..."
+scripts/ap-stack.sh                       # the signer (.env + .env.signer), then the agent (.env only), supervised
 ```
 
-For a local chain, use three terminals:
+`scripts/ap-stack.sh` is how the booth runs it. By hand, it's `pnpm --filter @meigi/signer start`, then
+`pnpm --filter @meigi/agent start`.
+
+For a local chain, use four terminals:
 
 ```sh
-pnpm --filter @meigi/agent local:chain    # anvil :8547, forge Deploy.s.sol, demo vendors, writes .env.local
-pnpm --filter @meigi/agent dev:local      # .env overlaid with .env.local
+pnpm --filter @meigi/agent local:chain    # anvil :8547, forge Deploy.s.sol, demo vendors; writes both .env.local files
+pnpm --filter @meigi/signer dev:local     # the signer on :8797 with anvil's agent key
+pnpm --filter @meigi/agent dev:local      # .env overlaid with .env.local (no key)
 pnpm --filter @meigi/agent demo --force   # analyses (and forces) every demo document; force only simulates
 ```
 
@@ -280,16 +286,25 @@ Sepolia `TOKEN_ADDRESS`, which the deploy script would otherwise reuse.
 
 ## Configuration
 
-All settings come from the environment; see `.env.example`. The required ones are `SEPOLIA_RPC_URL`,
-`AGENT_PRIVATE_KEY`, `REGISTRY_ADDRESS` and `VAULT_ADDRESS`. At startup the agent checks that the vault's registry
-and token match the configuration, that the key is the vault's agent, and that it is not the owner.
+All settings come from the environment; see `.env.example`.
+- **Required:** `SEPOLIA_RPC_URL`, `AGENT_ADDRESS`, `SIGNER_TOKEN`, `REGISTRY_ADDRESS` and `VAULT_ADDRESS`.
+  `SIGNER_URL` defaults to `http://127.0.0.1:8796`.
+- **`AGENT_PRIVATE_KEY` must not be set:** the agent refuses to start if it is. It lives in `.env.signer`, which only
+  the signer loads.
+- **Startup checks:**
+  - the vault's registry and token match the configuration;
+  - `AGENT_ADDRESS` is the vault's agent and not its owner;
+  - the signer holds that agent's key, for this vault on this chain.
+- **The signer's ceiling** becomes the agent's auto-clear budget, so a payment the signer would refuse holds here for
+  a verified human.
 
 | Area | Default |
 |---|---|
 | Triage | `TRIAGE_BACKENDS=systemone,proxy`, `SYSTEMONE_URL=http://127.0.0.1:8102/v1/systemone`, `TRIAGE_MIN_P_SAFE=0.9`, `TRIAGE_REQUIRED=true` |
 | LLM | `LLM_PROVIDER=local` (the default for demos: a model on this machine behind an OpenAI-compatible API, `LOCAL_LLM_URL=http://127.0.0.1:11434/v1`, `LOCAL_LLM_MODEL=llama3.1:8b`, `LOCAL_LLM_TIMEOUT_MS=60000`), `proxy` (Llama 3.3 via `AI_PROXY_URL/v1/chat` with `AI_PROXY_TOKEN`), `anthropic` (`ANTHROPIC_API_KEY`, `claude-haiku-4-5`), `workers-ai` or `none` |
 | Screening | `INTERCEPTA_API_KEY` (optional), `INTERCEPTA_CACHE_PATH=../../data/agent/intercepta-cache.json`, `INTERCEPTA_MAX_CALLS=900`, `INTERCEPTA_TOXIC_THRESHOLD=50` |
-| Judgement holds | `TRIAGE_MAX_PRESSURE=0.5`, `AUTO_CLEAR_MAX_YEN` (unset: no budget hold) |
+| Judgement holds | `TRIAGE_MAX_PRESSURE=0.5`, `AUTO_CLEAR_MAX_YEN` (unset: the signer's ceiling, ¥50,000, is the budget) |
+| Signer | `AGENT_ADDRESS`, `SIGNER_URL=http://127.0.0.1:8796`, `SIGNER_TOKEN` (the same value as in `.env.signer`) |
 | Audit log | `AUDIT_LOG_PATH` (default `../../data/agent/audit-<CHAIN_ID>.jsonl`, relative to services/agent) |
 | Settlement history | `MULTIBAAS_URL` and `MULTIBAAS_API_KEY` (the agent's chain), `MULTIBAAS_AWAJI_URL` and `MULTIBAAS_AWAJI_API_KEY` (Mizuhiki Awaji); each pair both or neither, https only. `HISTORY_FROM_BLOCK` (RPC log scans; default 11781105 on Sepolia, 0 elsewhere) |
 | Human approval | `WORLD_AGENTS_CLIENT_ID` and `WORLD_AGENTS_CLIENT_SECRET` (both or neither), `WORLD_AGENTS_ISSUER=https://sandbox.auth.world.org`, `WORLD_AGENTS_AUTH_METHOD=client_secret_basic` (or `client_secret_post`), `WORLD_AGENTS_APPROVERS`, `WORLD_AGENTS_ENROLL` (off), `WORLD_AGENTS_APPROVERS_PATH=../../data/agent/approvers.json`, `WORLD_AGENTS_TRACE` (off) |
