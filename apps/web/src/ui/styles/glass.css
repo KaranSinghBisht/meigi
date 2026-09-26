@@ -13,10 +13,11 @@
   --lg-lens: rgba(255, 255, 255, 0.07);
   --lg-lens-strong: rgba(255, 255, 255, 0.12);
   --lg-blur-lens: blur(9px) saturate(1.6) brightness(1.14);
-  /* Windows. */
-  --lg-window: rgba(255, 255, 255, 0.38);
-  --lg-window-dense: rgba(255, 255, 255, 0.42);
-  --lg-blur: blur(16px) saturate(1.6) brightness(1.1);
+  /* Windows: heavy frost, very little white. The blur turns the world behind into soft colour fields and lifts
+     them a little, so small ink text stays AA without a milky fill. */
+  --lg-window: rgba(255, 255, 255, 0.14);
+  --lg-window-dense: rgba(255, 255, 255, 0.2);
+  --lg-blur: blur(32px) saturate(1.8) brightness(1.24);
   /* Glass inside glass: tint and light only. */
   --lg-cell: rgba(255, 255, 255, 0.2);
   --lg-cell-strong: rgba(255, 255, 255, 0.46);
@@ -53,14 +54,15 @@
   --lg-shadow-control: var(--lg-highlight), var(--lg-under-glow), var(--lg-drop-soft);
   --lg-shadow-inset: inset 0 1px 2px rgba(42, 39, 48, 0.12);
   --lg-hairline: rgba(42, 39, 48, 0.09);
-  /* The rim: a bright specular line along the top, clear down the sides, a faint catch along the bottom. */
+  /* The rim: a faint 1 px line of light, brightest at the top-left corner, fading along both edges, with a softer
+     catch at the bottom-right. Never a uniform stroke. */
   --lg-rim-gradient: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.95) 0%,
-    rgba(255, 255, 255, 0.35) 20%,
-    rgba(255, 255, 255, 0) 48%,
-    rgba(255, 255, 255, 0) 70%,
-    rgba(255, 255, 255, 0.4) 100%
+    135deg,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(255, 255, 255, 0.3) 22%,
+    rgba(255, 255, 255, 0) 45%,
+    rgba(255, 255, 255, 0) 72%,
+    rgba(255, 255, 255, 0.32) 100%
   );
 
   /* Earlier names, kept so no page needs its own values. Strokes are gone: every rim colour is transparent. */
@@ -81,8 +83,8 @@
 /* The torii station fills the view with saturated vermilion right behind the page: its windows are a little denser
    there so small text stays AA (measured on real pixels). */
 :root:has(.scene-layer[data-station='torii']) {
-  --lg-window: rgba(255, 255, 255, 0.46);
-  --lg-window-dense: rgba(255, 255, 255, 0.52);
+  --lg-window: rgba(255, 255, 255, 0.34);
+  --lg-window-dense: rgba(255, 255, 255, 0.4);
 }
 
 /* The glass plate: headings and short copy that sit straight on the world. */
