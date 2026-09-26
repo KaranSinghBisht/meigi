@@ -6,7 +6,7 @@ import { createMultiBaasHistory } from "../src/history/multibaas.js";
 import { invoiceRefOf } from "../src/kernel/intent.js";
 import { createMultiBaas, MultiBaasUnavailable } from "../src/multibaas/client.js";
 import { V2_START_BLOCK } from "../src/multibaas/labels.js";
-import { setupMultiBaas } from "../src/multibaas/setup.js";
+import { prepareLibrary, setupMultiBaas } from "../src/multibaas/setup.js";
 import { demo, FakeHistory, fakeDeps, MEIGI_PAYOUT, SCAMMER, yen, type Fakes } from "./fakes.js";
 import { startStubMultiBaas, STUB_KEY, type StubMultiBaas } from "./stub-multibaas.js";
 
@@ -83,6 +83,30 @@ describe("setup", () => {
     const before = stub.requests.filter((r) => r.method === "POST").length;
     await setupMultiBaas(mbClient(), DEPLOYMENT, () => {});
     expect(stub.requests.filter((r) => r.method === "POST").length).toBe(before); // nothing created twice
+  });
+});
+
+describe("the saved queries that name a deployment's addresses", () => {
+  it("count only mJPYC router payments and the x402 buyer's transfers, filtered inside MultiBaas", async () => {
+    await setupMultiBaas(mbClient(), DEPLOYMENT, () => {});
+    const filterOf = (name: string) => (stub.queries.get(name) as { events: { filter: unknown }[] }).events[0]!.filter;
+    expect(filterOf("meigi_router_paid")).toEqual({
+      rule: "and",
+      children: [
+        { fieldType: "contract_address_alias", operator: "equal", value: "meigi_router" },
+        { fieldType: "input", inputIndex: 3, operator: "equal", value: DEPLOYMENT.token.toLowerCase() },
+      ],
+    });
+    expect(filterOf("meigi_mjpy_transfers")).toMatchObject({ children: [{ value: "meigi_mjpy" }, { inputIndex: 0, value: "0x708106dcdee19be75ffcd5df20cbb1b6b3089882" }] });
+  });
+
+  it("are left out of a library-only setup, before the token exists, and on a chain without the x402 buyer", async () => {
+    stub.chainId = 6497;
+    await prepareLibrary(mbClient(), 6497, () => {});
+    expect(stub.queries.has("meigi_router_paid")).toBe(false);
+    await setupMultiBaas(mbClient(), { ...DEPLOYMENT, chainId: 6497 }, () => {});
+    expect(stub.queries.has("meigi_router_paid")).toBe(true);
+    expect(stub.queries.has("meigi_mjpy_transfers")).toBe(false);
   });
 });
 

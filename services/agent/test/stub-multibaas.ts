@@ -133,9 +133,22 @@ function route(stub: StubMultiBaas, method: string, url: URL, body: any, auth: s
     return [200, ok(body)];
   }
   if (method === "POST" && path === "/queries") return [200, ok({ rows: rowsFor(stub, body) })];
+  const saved = /^\/queries\/([^/]+)\/results$/u.exec(path)?.[1];
+  if (method === "GET" && saved) {
+    const eventName = SAVED_EVENTS[saved];
+    return eventName ? [200, ok({ rows: rowsFor(stub, { events: [{ eventName, select: [] }] }) })] : [404, notFound];
+  }
   if (method === "GET" && path === "/events") return [200, ok(eventsFor(stub, url.searchParams))];
   return [404, notFound];
 }
+
+/** The event each saved query reads, for GET /queries/{name}/results. */
+const SAVED_EVENTS: Record<string, string> = {
+  meigi_invoices_paid: "InvoicePaid",
+  meigi_router_paid: "Paid",
+  meigi_payees_registered: "PayeeRegistered",
+  meigi_mjpy_received: "Transfer",
+};
 
 function rowsFor(stub: StubMultiBaas, definition: { events: { eventName: string; select: { aggregator?: string }[] }[] }) {
   const event = definition.events[0]!;

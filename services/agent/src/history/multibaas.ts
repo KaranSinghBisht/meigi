@@ -78,7 +78,7 @@ async function linkStart(mb: MultiBaas, contract: { alias: string; label: string
 
 /** Payments made through the PayRouter (pay by T-number), newest first. */
 export async function routerPaid(mb: MultiBaas, limit: number): Promise<SettledPayment[]> {
-  const rows = await mb.query(QUERIES.meigi_router_paid, Math.min(limit, MAX_QUERY_ROWS));
+  const rows = await mb.saved("meigi_router_paid", Math.min(limit, MAX_QUERY_ROWS)); // saved: it filters on the deployment's token
   return rows.map((row) => ({ ...paymentRow(row), via: "router" as const }));
 }
 

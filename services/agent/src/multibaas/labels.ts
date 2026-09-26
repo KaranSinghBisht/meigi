@@ -29,6 +29,12 @@ export const EVENTS = {
 export const REQUIRED_EVENTS = { registry: ["PayeeRegistered"], vault: ["InvoicePaid"], router: ["Paid"], token: ["Transfer"] } as const;
 
 const onContract = (alias: string) => ({ fieldType: "contract_address_alias", operator: "equal", value: alias });
+/** MultiBaas compares addresses as stored: lowercase. */
+const inputIs = (inputIndex: number, value: string) => ({ fieldType: "input", inputIndex, operator: "equal", value: value.toLowerCase() });
+const both = (...filters: object[]) => ({ rule: "and", children: filters });
+
+/** The x402 demo's research-agent wallet (public): its mJPYC pays for every x402 purchase. Sepolia only. */
+export const X402_BUYERS: Readonly<Record<number, string>> = { 11155111: "0x708106dcdee19be75ffcd5df20cbb1b6b3089882" };
 
 /**
  * Event queries, in the format of Curvegrid's own Matsuri sample app. The setup script saves them (so they show in
@@ -90,26 +96,6 @@ export const QUERIES = {
     orderBy: "block",
     order: "DESC",
   },
-  // Pay-by-T-number payments through the PayRouter: Paid(tNumber, payer, payout, token, amount, ref).
-  meigi_router_paid: {
-    events: [
-      {
-        eventName: "Paid",
-        select: [
-          { type: "input", inputIndex: 0, alias: "tnumber" },
-          { type: "input", inputIndex: 2, alias: "payout" },
-          { type: "input", inputIndex: 4, alias: "amount" },
-          { type: "input", inputIndex: 5, alias: "invoiceref" },
-          { type: "block_number", alias: "block" },
-          { type: "triggered_at", alias: "at" },
-          { type: "tx_hash", alias: "txhash" },
-        ],
-        filter: onContract(CONTRACTS.router.alias),
-      },
-    ],
-    orderBy: "block",
-    order: "DESC",
-  },
   // Net MJPY per account, as in Curvegrid's Matsuri sample: each Transfer adds to `to` and subtracts from `from`.
   // Counted from where indexing starts, so it is a balance only for a token deployed after that block.
   meigi_mjpy_balances: {
@@ -135,26 +121,6 @@ export const QUERIES = {
     orderBy: "balance",
     order: "DESC",
   },
-  // Every MJPY Transfer, newest first. The site's settlements feed (apps/web/worker) keeps those to registered
-  // payouts: x402 sales, and the transfers inside vault and router payments.
-  meigi_mjpy_transfers: {
-    events: [
-      {
-        eventName: "Transfer",
-        select: [
-          { type: "input", inputIndex: 0, alias: "sender" },
-          { type: "input", inputIndex: 1, alias: "recipient" },
-          { type: "input", inputIndex: 2, alias: "amount" },
-          { type: "block_number", alias: "block" },
-          { type: "triggered_at", alias: "at" },
-          { type: "tx_hash", alias: "txhash" },
-        ],
-        filter: onContract(CONTRACTS.token.alias),
-      },
-    ],
-    orderBy: "block",
-    order: "DESC",
-  },
   // MJPY each address has received (vault payments and x402 sales alike): the seller-side view.
   meigi_mjpy_received: {
     events: [
@@ -172,3 +138,56 @@ export const QUERIES = {
     order: "DESC",
   },
 } as const;
+
+/**
+ * The queries that depend on one deployment's addresses, filtered inside MultiBaas so its 50-row cap applies after
+ * the filter. PayRouter.pay accepts any token, so only mJPYC payments count; and mJPYC is publicly mintable, so
+ * only transfers from the x402 buyer count (no buyer on this chain: no transfers query).
+ */
+export function scopedQueries(scope: { token: string; x402Buyer?: string }) {
+  const rows = { orderBy: "block", order: "DESC" } as const;
+  return {
+    // Pay-by-T-number payments through the PayRouter, in mJPYC: Paid(tNumber, payer, payout, token, amount, ref).
+    meigi_router_paid: {
+      events: [
+        {
+          eventName: "Paid",
+          select: [
+            { type: "input", inputIndex: 0, alias: "tnumber" },
+            { type: "input", inputIndex: 2, alias: "payout" },
+            { type: "input", inputIndex: 3, alias: "token" },
+            { type: "input", inputIndex: 4, alias: "amount" },
+            { type: "input", inputIndex: 5, alias: "invoiceref" },
+            { type: "block_number", alias: "block" },
+            { type: "triggered_at", alias: "at" },
+            { type: "tx_hash", alias: "txhash" },
+          ],
+          filter: both(onContract(CONTRACTS.router.alias), inputIs(3, scope.token)),
+        },
+      ],
+      ...rows,
+    },
+    // The x402 buyer's mJPYC transfers, newest first: the site's settlements feed keeps those to registered payouts.
+    ...(scope.x402Buyer
+      ? {
+          meigi_mjpy_transfers: {
+            events: [
+              {
+                eventName: "Transfer",
+                select: [
+                  { type: "input", inputIndex: 0, alias: "sender" },
+                  { type: "input", inputIndex: 1, alias: "recipient" },
+                  { type: "input", inputIndex: 2, alias: "amount" },
+                  { type: "block_number", alias: "block" },
+                  { type: "triggered_at", alias: "at" },
+                  { type: "tx_hash", alias: "txhash" },
+                ],
+                filter: both(onContract(CONTRACTS.token.alias), inputIs(0, scope.x402Buyer)),
+              },
+            ],
+            ...rows,
+          },
+        }
+      : {}),
+  };
+}

@@ -58,6 +58,8 @@ export interface MultiBaas {
   events(filter: EventFilter): Promise<IndexedEvent[]>;
   /** POST /queries: runs an event query (the same definitions the setup script saves). Row keys are lowercase aliases. */
   query(definition: unknown, limit?: number): Promise<Record<string, unknown>[]>;
+  /** GET /queries/{name}/results: a query the setup script saved, for those whose filters name a deployment's addresses. */
+  saved(name: string, limit?: number): Promise<Record<string, unknown>[]>;
   /** Any other call (the setup script): returns the envelope's `result`. */
   call(method: "GET" | "POST" | "PUT", path: string, body?: unknown): Promise<unknown>;
   /** The chain the deployment serves: a deployment's network is fixed when it is created. */
@@ -86,10 +88,11 @@ export function createMultiBaas(opts: MultiBaasOptions): MultiBaas {
       return parsed.data;
     },
     async query(definition, limit = 100) {
-      const result = await call("POST", `/queries?offset=0&limit=${limit}`, definition);
-      const parsed = z.object({ rows: z.array(z.record(z.string(), z.unknown())) }).safeParse(result);
-      if (!parsed.success) throw new MultiBaasUnavailable("MultiBaas returned query results in an unexpected shape");
-      return parsed.data.rows.map((row) => Object.fromEntries(Object.entries(row).map(([key, value]) => [key.toLowerCase(), value])));
+      return rowsOf(await call("POST", `/queries?offset=0&limit=${limit}`, definition));
+    },
+    async saved(name, limit = 50) {
+      if (!/^[a-z0-9_]+$/u.test(name)) throw new MultiBaasUnavailable("not a saved query name");
+      return rowsOf(await call("GET", `/queries/${name}/results?limit=${limit}`));
     },
     call,
     chainId: () => servedChain(call),
@@ -98,6 +101,12 @@ export function createMultiBaas(opts: MultiBaasOptions): MultiBaas {
       if (served !== chainId) throw new MultiBaasUnavailable(`the MultiBaas deployment is on chain ${served}, not ${chainId}`);
     },
   };
+}
+
+function rowsOf(result: unknown): Record<string, unknown>[] {
+  const parsed = z.object({ rows: z.array(z.record(z.string(), z.unknown())) }).safeParse(result);
+  if (!parsed.success) throw new MultiBaasUnavailable("MultiBaas returned query results in an unexpected shape");
+  return parsed.data.rows.map((row) => Object.fromEntries(Object.entries(row).map(([key, value]) => [key.toLowerCase(), value])));
 }
 
 async function servedChain(call: (method: "GET", path: string) => Promise<unknown>): Promise<number> {

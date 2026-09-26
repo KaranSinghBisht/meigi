@@ -1,7 +1,7 @@
 import { agentVaultAbi, mockJPYCAbi, payeeRegistryAbi, payRouterAbi } from "@meigi/abi";
 import { z } from "zod";
 import { MultiBaasUnavailable, type MultiBaas } from "./client.js";
-import { CONTRACT_VERSION, CONTRACTS, QUERIES, REQUIRED_EVENTS } from "./labels.js";
+import { CONTRACT_VERSION, CONTRACTS, QUERIES, REQUIRED_EVENTS, scopedQueries, X402_BUYERS } from "./labels.js";
 
 /**
  * Makes a MultiBaas deployment index Meigi's contracts on its chain. Idempotent: every step checks first.
@@ -36,14 +36,17 @@ export async function setupMultiBaas(mb: MultiBaas, deployment: Deployment, log:
     await ensureContract(mb, key, await abiFor(mb, at, key, log), log);
     await ensureLinked(mb, key, at, deployment.startBlock, log);
   }
-  await saveQueries(mb, log);
+  await saveQueries(mb, log, { ...QUERIES, ...scopedQueries({ token: deployment.token, x402Buyer: X402_BUYERS[deployment.chainId] }) });
 }
 
-/** The half that needs no addresses (our ABIs and the saved queries), so a fresh deploy only waits for the links. */
+/**
+ * The half that needs no addresses (our ABIs and the queries that don't name the token), so a fresh deploy only
+ * waits for the links and the two token-filtered queries.
+ */
 export async function prepareLibrary(mb: MultiBaas, chainId: number, log: (line: string) => void): Promise<void> {
   await mb.requireChain(chainId);
   for (const key of KEYS) await ensureContract(mb, key, JSON.stringify(OUR_ABI[key]), log);
-  await saveQueries(mb, log);
+  await saveQueries(mb, log, QUERIES);
 }
 
 async function ensureContract(mb: MultiBaas, key: (typeof KEYS)[number], rawAbi: string, log: (line: string) => void) {
@@ -64,8 +67,8 @@ async function ensureLinked(mb: MultiBaas, key: (typeof KEYS)[number], at: strin
   if (!linked.some((c) => c.label === contract.label)) await link(mb, contract, startBlock, log);
 }
 
-async function saveQueries(mb: MultiBaas, log: (line: string) => void) {
-  for (const [name, definition] of Object.entries(QUERIES)) {
+async function saveQueries(mb: MultiBaas, log: (line: string) => void, queries: Record<string, unknown>) {
+  for (const [name, definition] of Object.entries(queries)) {
     await mb.call("PUT", `/queries/${name}`, definition);
     log(`saved event query ${name}`);
   }
