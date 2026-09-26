@@ -24,8 +24,10 @@ section).
 |---|---|
 | `contracts/` (registry, resolver, vault, router, mock JPYC, tests, deploy scripts) | AI (lead session) |
 | `contracts/script/ens/` | AI (`ens` sub-agent) |
+| `contracts/src/ens/CompanyNamespace.sol`, `contracts/src/payments/MandateGate.sol` | AI (`ens` sub-agent) |
 | `services/verifier/`, `packages/x402-guard/`, `services/x402-demo/`, `workers/ai-proxy/`, `scripts/` | AI (lead session) |
 | `services/agent/` | AI (`apagent` sub-agent) |
+| `services/signer/` | AI (`apagent` sub-agent) |
 | `apps/web/` | AI (`webapp` sub-agent) |
 | `apps/landing/` | AI (`landing` sub-agent), from our art direction: a Tokyo / Mt Fuji take inspired by, not copied from, an existing landing page |
 | `bench/` (PayeeBench-JA, fine-tuning runs) | AI (`bench` sub-agent) |
