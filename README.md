@@ -78,6 +78,9 @@ the vault reverts `PayeeMismatch` and names the real company.
   implements ENSIP-10 `resolve(name, data)` and answers from the registry at call time, so millions of
   T-numbers resolve without minting a single subname. Registration scripts:
   [`contracts/script/ens`](contracts/script/ens).
+  - The AP agent has its own namespace, `ap.meigi.eth` (ENSv2 subregistry plus a PermissionedResolver).
+  - It carries the ENSIP-26 agent records.
+  - Its key can edit only `agent-status` (Enhanced Access Control).
 - **World ID (IDKit 4.0).**
   - An officer enrolls once with an IDKit session.
   - A payout change needs `proveSession` from the same human, with a signal that binds chain, registry,
