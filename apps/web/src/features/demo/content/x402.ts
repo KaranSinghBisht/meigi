@@ -50,7 +50,7 @@ export const PLACEHOLDER_X402_RUN: X402Run = {
       request: 'POST gpu.minato.example/v1/jobs',
       price: '20 mJPYC',
       declared: { tNumber: 'T7999900000001', ens: 't7999900000001.payee.eth' },
-      payTo: '0x0C1d…578D',
+      payTo: 'the registered payout',
       checks: [
         { label: 'ENS name resolves', state: 'pass', detail: 't7999900000001.payee.eth → registered payout' },
         { label: 'Registry: active', state: 'pass', detail: 'T7999900000001 is registered and active' },
@@ -84,7 +84,7 @@ export const PLACEHOLDER_X402_RUN: X402Run = {
       request: 'GET api.undeclared.example/v1/weather',
       price: '5 mJPYC',
       declared: null,
-      payTo: '0x7a3E…91c2',
+      payTo: 'an unregistered address',
       checks: [
         { label: 'Declares a payee', state: 'skip', detail: 'no T-number: allowance only' },
         { label: 'Within allowance', state: 'pass', detail: '5 ≤ 50 mJPYC' },

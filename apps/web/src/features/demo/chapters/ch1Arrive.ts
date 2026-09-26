@@ -13,7 +13,7 @@ function arrive(c: BuildCtx): void {
   c.tl.to(c.el('slot-bec'), { height: 'auto', duration: 0.6, ease: 'power3.out' }, c.t0 + 3)
   show(c, 'inbox-count', 3.2)
   status(c, 'idle', 'new', 3.1)
-  hide(c, 'bec-idle', 3.1)
+  hide(c, 'bec-idle', 6.1)
   c.tl.to(c.el('panel'), { '--pulse': 1, duration: 0.35, yoyo: true, repeat: 3, ease: 'sine.inOut' }, c.t0 + 3.1)
 }
 
