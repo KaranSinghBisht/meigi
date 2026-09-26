@@ -15,13 +15,13 @@ export function ApprovalExplainer() {
           like a credit note, hidden text or two totals, can never be approved.
         </li>
         <li>
-          “Ask a human to approve with World ID” opens an approval for the approver, on the device they enrolled with (a
-          phone scans its QR code). They check the short code matches and approve with a fresh World ID proof. Another
-          device signs in as a different identity, and the agent refuses it.
+          “Ask a human to approve with World ID” opens an approval for the approver, who approves with the World ID they
+          enrolled with (on a phone, by scanning its QR code). They check the short code matches and approve with a
+          fresh World ID proof. A different World ID is refused, and nothing is paid.
         </li>
         <li>
-          The agent then pays that one invoice, once. If the request is denied, expires, or comes from a different human
-          than the enrolled approver, nothing is paid.
+          The agent then pays that one invoice, once. If the request is denied, expires, or comes from a different World
+          ID than the enrolled approver, nothing is paid.
         </li>
       </ol>
       <p className="muted">

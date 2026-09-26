@@ -3,7 +3,7 @@ import { CHECKS } from './checks'
 import { TryCheck } from './TryCheck'
 import './try.css'
 
-/** Try Meigi in three minutes: seven numbered live checks in one window. */
+/** Try Meigi in three minutes: eight numbered checks in one window, all live but one recorded run. */
 export default function TryPage() {
   return (
     <div className="try">
@@ -11,7 +11,8 @@ export default function TryPage() {
         <p className="eyebrow">Try it</p>
         <h1 className="page-head__title">Try Meigi in three minutes.</h1>
         <p className="page-head__lede">
-          Seven checks, each one a link. The chips read Sepolia as the page opens, and nothing here needs a wallet.
+          Eight checks, each one a link. The chips read Sepolia as the page opens (one is a recorded run, and says so),
+          and nothing here needs a wallet.
         </p>
       </header>
       <ol className="try-list window cells">

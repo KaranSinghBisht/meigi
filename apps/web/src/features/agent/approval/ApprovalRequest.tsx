@@ -15,7 +15,7 @@ interface ApprovalRequestProps {
   readonly onCancel: () => void
 }
 
-/** A phone-enrolled approver scans this instead of opening the link here. */
+/** An approver whose World ID is on a phone scans this instead of opening the link here. */
 function Scan({ uri }: { readonly uri: string }) {
   const qr = useQr(uri)
   return (
@@ -25,14 +25,14 @@ function Scan({ uri }: { readonly uri: string }) {
         {!qr.src && !qr.failed ? <Spinner /> : null}
         {qr.failed ? <p className="muted">Couldn't draw the QR code; use the link.</p> : null}
       </div>
-      <figcaption className="approval__scan-caption">or scan with the device you enrolled with</figcaption>
+      <figcaption className="approval__scan-caption">or scan it with the World ID you enrolled with</figcaption>
     </figure>
   )
 }
 
 /**
- * The open request: approve on the device you enrolled with (the link, opened here, is the primary way), the code to
- * compare, and how long it stays open. Another device signs in as someone else, and the agent refuses it.
+ * The open request: approve with the World ID you enrolled with (the link, opened here, is the primary way), the code
+ * to compare, and how long it stays open. A different World ID is refused, and nothing is paid.
  */
 export function ApprovalRequest({ attempt, holds, lostContact, onCancel }: ApprovalRequestProps) {
   return (
@@ -42,8 +42,8 @@ export function ApprovalRequest({ attempt, holds, lostContact, onCancel }: Appro
         <h3 id="approval-title" className="approval__title">
           Waiting for a human to approve this payment with World ID
         </h3>
-        <p className="approval__lede">Approve on the device you enrolled with. Nothing is paid until then.</p>
-        <p className="approval__lede">Another device signs in as a different identity, and the agent refuses it.</p>
+        <p className="approval__lede">Approve with the World ID you enrolled with. Nothing is paid until then.</p>
+        <p className="approval__lede">A different World ID is refused, and nothing is paid.</p>
         <div className="approval__links">
           <a className="btn btn--primary btn--md" href={attempt.verificationUri} target="_blank" rel="noreferrer">
             Open on this device <span aria-hidden="true">↗</span>

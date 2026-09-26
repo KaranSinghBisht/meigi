@@ -107,7 +107,24 @@ export function OfficersStatus() {
   )
 }
 
-/** 6 and 7. What Curvegrid MultiBaas has indexed: every settlement, or only the x402 purchases. */
+/**
+ * The World ID for Agents run of 26 Sept 2026 (docs/world-agents-approve-run.md), as static evidence: the approved
+ * payment through the vault's ENS mandate gate, and the refusal before it.
+ */
+export const AGENT_APPROVAL_TX = '0xf7507446d11c2c5cab94ff4b7ca83db36180b3aa8d80085f9556aaeabcea5a03'
+const AGENT_APPROVAL_BLOCK = 11_786_455
+
+/** 5. A human approved the agent's held payment with World ID for Agents: a recorded run, labelled as one. */
+export function AgentApprovalStatus() {
+  return (
+    <Status chip={<Badge tone="neutral">Recorded run</Badge>}>
+      on World&apos;s sandbox (mock identities), 26 Sept 2026: paid at block{' '}
+      {AGENT_APPROVAL_BLOCK.toLocaleString('en-US')}, after a different World ID was refused at 22:15 JST
+    </Status>
+  )
+}
+
+/** 7 and 8. What Curvegrid MultiBaas has indexed: every settlement, or only the x402 purchases. */
 export function SettlementsStatus({ only }: { readonly only?: 'x402' }) {
   const load = useSettlements()
   if (load.kind === 'loading') return <Status chip={<Checking />} />

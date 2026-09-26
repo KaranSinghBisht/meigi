@@ -1,6 +1,10 @@
 import type { ReactNode } from 'react'
+import { txUrl } from '../../lib/chain/format'
+import { env } from '../../lib/env/env'
 import type { CheckLink } from './TryCheck'
 import {
+  AGENT_APPROVAL_TX,
+  AgentApprovalStatus,
   EnsStatus,
   FIXTURE,
   OFFICER_RUN,
@@ -24,7 +28,7 @@ export interface Check {
   readonly links: readonly CheckLink[]
 }
 
-/** Seven live proofs, each with its own link, in the order a first visit makes sense of them. */
+/** Eight proofs, each with its own link, in the order a first visit makes sense of them. One is a recorded run. */
 export const CHECKS: readonly Check[] = [
   {
     title: 'Look up a payee',
@@ -55,6 +59,23 @@ export const CHECKS: readonly Check[] = [
     proves: 'Its officers enrolled with World ID, and any payout change waits 72 hours in public before it lands.',
     status: <OfficersStatus />,
     links: [{ label: `Open ${OFFICER_RUN}`, href: `/registry/${OFFICER_RUN}` }],
+  },
+  {
+    title: 'A human approves the agent with World ID',
+    proves:
+      "The AP agent held an urgent ¥55,000 invoice until a human approved it with World ID for Agents, then paid it through the vault's ENS mandate gate. A different World ID was refused, and nothing was paid.",
+    status: <AgentApprovalStatus />,
+    links: [
+      { label: 'The ¥55,000 payment on Etherscan', href: txUrl(AGENT_APPROVAL_TX) },
+      ...(env.githubUrl
+        ? [
+            {
+              label: 'How the run went',
+              href: `${env.githubUrl.replace(/\/$/, '')}/blob/main/docs/world-agents-approve-run.md`,
+            },
+          ]
+        : []),
+    ],
   },
   {
     title: 'Check a withdrawal',
