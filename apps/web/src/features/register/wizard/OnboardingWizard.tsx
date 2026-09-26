@@ -95,8 +95,8 @@ export function OnboardingWizard() {
         footer={<RailFooter onboarding={onboarding} finished={step === STEP.registered} />}
       />
       <div className="onboard__stage">
-        {/* A different registration (one picked up again) is a fresh screen: no answer from the last one lingers. */}
-        <div key={`${screen}:${state.registration?.id ?? ''}`} className={`onboard__screen onboard__screen--${direction}`}>
+        {/* A registration picked up again is a fresh screen: no answer from the last one lingers. */}
+        <div key={`${screen}:${onboarding.generation}`} className={`onboard__screen onboard__screen--${direction}`}>
           <CurrentStep onboarding={onboarding} step={step} />
         </div>
       </div>

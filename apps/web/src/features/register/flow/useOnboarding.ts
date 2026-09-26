@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import type { Hex } from 'viem'
 import type { Registration, Submission } from '../../../lib/api/verifier'
 import type { HexAddress } from '../../../lib/env/env'
@@ -161,10 +161,13 @@ interface ResetOptions {
  * screen goes aside in its place, so neither open draft is ever lost from this tab.
  */
 function useRestart(state: OnboardingState, setState: (state: OnboardingState) => void, clear: () => void) {
+  // Counts restarts and pick-ups: a new registration on screen is a fresh screen, however the step numbers fall.
+  const [generation, setGeneration] = useState(0)
   const reset = useCallback(
     ({ keepAside = true }: ResetOptions = {}) => {
       if (keepAside && openRegistration(state)) writePrevious(state)
       clear()
+      setGeneration((value) => value + 1)
     },
     [state, clear],
   )
@@ -173,8 +176,9 @@ function useRestart(state: OnboardingState, setState: (state: OnboardingState) =
     if (!previous) return
     writePrevious(openRegistration(state))
     setState(previous)
+    setGeneration((value) => value + 1)
   }, [state, setState])
-  return { reset, resume, previous: readPrevious }
+  return { reset, resume, previous: readPrevious, generation }
 }
 
 export function useOnboarding() {
