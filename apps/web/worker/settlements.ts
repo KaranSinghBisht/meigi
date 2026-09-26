@@ -8,9 +8,10 @@
 // listed as a router row: a real payment to that payee through Meigi's router, though not one Meigi's agent made.
 // MultiBaas is read into one snapshot of everything in scope: the SETTLEMENT_PAYEES and every payee the vault or
 // router paid, at most MAX_PAYEES. It is served for 3 min from when it was read, shared per data centre (Workers Cache
-// API) and kept per isolate. A refresh costs MultiBaas the three queries: the reads that rarely change are cached apart from it (payeeOf for
+// API) and kept per isolate; a copy dated in the future is never used. A refresh costs MultiBaas the three queries: the reads that rarely change are cached apart from it (payeeOf for
 // 10 min; the token alias, its decimals and the indexing start for an hour). A T-number outside the scope answers
-// empty and costs MultiBaas nothing. A missing or wrong setting answers 503, like an outage, and the log says which.
+// empty and costs MultiBaas nothing. A missing or wrong setting answers 503, like an outage, and the log says which;
+// so does a saved query that returns rows its filter should have excluded (another token, another sender).
 
 import { createMemo, type Memo } from './memo'
 import { isRecord, Upstream, type MultiBaasReader } from './multibaas'
@@ -34,6 +35,7 @@ export interface Settlement {
 export interface Snapshot {
   readonly asOf: string
   readonly indexedFrom: number // MultiBaas indexes from this block; older payments are not in it
+  readonly decimals: number // the token's, so a shared copy's amounts are displayed from their units, not its text
   readonly scope: readonly string[] // "T…"
   readonly settlements: readonly Settlement[] // newest first, uncapped
 }
@@ -130,12 +132,13 @@ export function createSettlements(reader: MultiBaasReader, options: SettlementsO
     })
     return snapshot
   }
-  // The edge copy is used only while it is younger than SNAPSHOT_EDGE_S, whatever the cache itself keeps.
+  // The edge copy is used only while 0 ≤ its age < SNAPSHOT_EDGE_S, whatever the cache itself keeps.
   const shared = async (): Promise<Snapshot | null> => {
     const copy = parseSnapshot(await options.store?.get())
-    return copy && now() - Date.parse(copy.asOf) < SNAPSHOT_EDGE_S * 1000 ? copy : null
+    const age = copy ? now() - Date.parse(copy.asOf) : -1
+    return copy && age >= 0 && age < SNAPSHOT_EDGE_S * 1000 ? copy : null
   }
-  const life = (s: Snapshot) => SNAPSHOT_ISOLATE_MS - (now() - Date.parse(s.asOf))
+  const life = (s: Snapshot) => Math.min(SNAPSHOT_ISOLATE_MS, SNAPSHOT_ISOLATE_MS - (now() - Date.parse(s.asOf)))
   const snapshot = (scope: Scope) => memo<Snapshot>('snapshot', life, async () => (await shared()) ?? fresh(scope))
 
   return {
@@ -158,7 +161,11 @@ async function readSnapshot(reader: MultiBaasReader, scope: Scope, asOf: string)
     reader.indexedFrom(),
   ])
   const vault = invoices.map(paymentRow)
-  const router = routed.map(routerRow).filter((p) => p.token === scope.token) // the saved query filters too; this is the check
+  // The saved queries filter on the token and the buyer: a row that doesn't match means they were saved for other settings.
+  const router = routed.map(routerRow)
+  if (router.some((p) => p.token !== scope.token)) throw new Misconfigured('meigi_router_paid returned a payment in a token other than SETTLEMENT_TOKEN')
+  const sent = transfers.map(transferRow)
+  if (sent.some((t) => t.sender !== scope.buyer)) throw new Misconfigured('meigi_mjpy_transfers returned a transfer from a sender other than X402_BUYER')
   const payees = [...new Set([...scope.known, ...vault.map((p) => p.digits), ...router.map((p) => p.digits)])].slice(0, MAX_PAYEES)
   const records = new Map(await Promise.all(payees.map(async (d) => [d, await reader.payee(d)] as const)))
   const byPayout = new Map([...records].flatMap(([d, payee]) => (payee.payout ? [[payee.payout.toLowerCase(), d] as const] : [])))
@@ -175,16 +182,16 @@ async function readSnapshot(reader: MultiBaasReader, scope: Scope, asOf: string)
     payout: p.payout,
     amount: { units: p.amount.toString(), display: yen(p.amount, decimals) },
   })
-  const x402 = transfers.map(transferRow).flatMap((t) => {
+  const x402 = sent.flatMap((t) => {
     const d = byPayout.get(t.recipient.toLowerCase())
-    return d && t.sender === scope.buyer && !settledTxs.has(t.txHash.toLowerCase()) ? [row('x402', d, { ...t, payout: t.recipient })] : []
+    return d && !settledTxs.has(t.txHash.toLowerCase()) ? [row('x402', d, { ...t, payout: t.recipient })] : []
   })
   const settlements = [
     ...vault.filter((p) => records.has(p.digits)).map((p) => row('invoice', p.digits, p)),
     ...router.filter((p) => records.has(p.digits)).map((p) => row('router', p.digits, p)),
     ...x402,
   ].sort((a, b) => b.blockNumber - a.blockNumber || a.txHash.localeCompare(b.txHash))
-  return { asOf, indexedFrom, scope: payees.map((d) => `T${d}`), settlements }
+  return { asOf, indexedFrom, decimals, scope: payees.map((d) => `T${d}`), settlements }
 }
 
 const isTNumber = (value: unknown): value is string => typeof value === 'string' && /^T\d{13}$/.test(value)
@@ -207,12 +214,18 @@ function isSettlement(value: unknown): value is Settlement {
   )
 }
 
-/** A snapshot read back from the edge cache: ours, but every row is still checked before use. Anything else is null. */
+/**
+ * A snapshot read back from the edge cache: ours, but every row is still checked before use, and each amount is
+ * displayed afresh from its units. Anything else is null.
+ */
 export function parseSnapshot(value: unknown): Snapshot | null {
   if (!isRecord(value) || !isTime(value.asOf) || typeof value.indexedFrom !== 'number' || !Number.isSafeInteger(value.indexedFrom)) return null
+  const decimals = value.decimals
+  if (typeof decimals !== 'number' || !Number.isInteger(decimals) || decimals < 0 || decimals > 36) return null
   if (!Array.isArray(value.scope) || !value.scope.every(isTNumber)) return null
   if (!Array.isArray(value.settlements) || !value.settlements.every(isSettlement)) return null
-  return value as unknown as Snapshot
+  const settlements = value.settlements.map((s) => ({ ...s, amount: { units: s.amount.units, display: yen(BigInt(s.amount.units), decimals) } }))
+  return { ...(value as unknown as Snapshot), settlements }
 }
 
 const JSON_HEADERS = { 'content-type': 'application/json; charset=utf-8', 'x-content-type-options': 'nosniff' }

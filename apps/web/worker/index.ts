@@ -35,7 +35,8 @@ function edgeStore(scope: string): SnapshotStore | undefined {
       return hit ? await hit.json().catch(quiet('parse')) : null
     },
     async put(snapshot) {
-      const body = new Response(JSON.stringify(snapshot), { headers: { 'content-type': 'application/json', 'cache-control': `max-age=${SNAPSHOT_EDGE_S}` } })
+      const left = SNAPSHOT_EDGE_S - Math.floor((Date.now() - Date.parse(snapshot.asOf)) / 1000) // what's left of its window
+      const body = new Response(JSON.stringify(snapshot), { headers: { 'content-type': 'application/json', 'cache-control': `max-age=${Math.max(1, Math.min(SNAPSHOT_EDGE_S, left))}` } })
       await cache.put(key, body)
     },
   }

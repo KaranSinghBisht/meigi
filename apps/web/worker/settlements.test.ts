@@ -15,19 +15,17 @@ const FAKE_TOKEN = '0x2222222222222222222222222222222222222222'
 const tx = (n: number) => `0x${n.toString(16).padStart(64, '0')}`
 const units = (yen: number) => (BigInt(yen) * 10n ** 18n).toString()
 
-/** A MultiBaas with one vault payment (and its Transfer), router payments in mJPYC and a fake token, and transfers. */
+/** A MultiBaas with one vault payment (and its Transfer), a router payment in mJPYC, and the buyer's transfers. */
 function scripted(overrides: Partial<MultiBaasReader> = {}): MultiBaasReader & { calls: string[] } {
   const calls: string[] = []
   const rows: Record<QueryName, Record<string, unknown>[]> = {
     meigi_invoices_paid: [{ tnumber: '2011001234567', payout: MEIGI, amount: units(55_000), invoiceref: '[1, 2]', block: '11784200', at: '2026-09-26 06:00:00+00', txhash: tx(1) }],
     meigi_router_paid: [
       { tnumber: '6999900000003', payout: MINATO, token: MJPYC, amount: units(500), invoiceref: '[3]', block: 11784100, at: null, txhash: tx(2) },
-      { tnumber: '2011001234567', payout: MEIGI, token: FAKE_TOKEN, amount: units(999_999_999), invoiceref: '[4]', block: 11790000, at: null, txhash: tx(5) },
     ],
     meigi_mjpy_transfers: [
       { sender: BUYER, recipient: MEIGI, amount: units(55_000), block: '11784200', at: null, txhash: tx(1) }, // inside the vault payment
       { sender: BUYER, recipient: MINATO, amount: units(15), block: '11784165', at: '2026-09-26 05:31:48+00', txhash: tx(3) },
-      { sender: '0x0000000000000000000000000000000000000000', recipient: MINATO, amount: units(1_000_000), block: '11784300', at: null, txhash: tx(4) }, // a mint
       { sender: BUYER, recipient: '0x1111111111111111111111111111111111111111', amount: units(1), block: '11784301', at: null, txhash: tx(6) }, // not a payee
     ],
   }
@@ -77,7 +75,7 @@ describe('GET /api/settlements', () => {
         ['invoice', tx(1), 'T2011001234567', { units: units(55_000), display: '¥55,000' }], // its Transfer isn't listed again
         ['x402', tx(3), 'T6999900000003', { units: units(15), display: '¥15' }], // block 11784165
         ['router', tx(2), 'T6999900000003', { units: units(500), display: '¥500' }], // block 11784100
-      ], // not listed: the fake-token Paid (tx 5), the mint to Minato (tx 4), the transfer to a non-payee (tx 6)
+      ], // not listed: the transfer to a non-payee (tx 6)
     )
     assert.deepEqual(body.settlements[0], {
       kind: 'invoice',
@@ -188,7 +186,7 @@ describe('GET /api/settlements', () => {
     const clock = 1_790_000_000_000
     const good = createSettlements(scripted(), { ...OPTIONS, now: () => clock })
     const { body } = await get(good)
-    const snapshot = { asOf: body.asOf, indexedFrom: body.indexedFrom, scope: ['T2011001234567'], settlements: body.settlements }
+    const snapshot = { asOf: body.asOf, indexedFrom: body.indexedFrom, decimals: 18, scope: ['T2011001234567'], settlements: body.settlements }
     const poisoned = [
       { ...body.settlements[0], payout: 'javascript:alert(1)' },
       { ...body.settlements[0], kind: 'refund' },
@@ -224,6 +222,38 @@ describe('GET /api/settlements', () => {
     clock += 11_000 // 181 s after the read
     assert.notEqual((await get(late)).body.asOf, first.body.asOf)
     assert.equal(reads(), 2)
+  })
+
+  it('answers 503 when a saved query returns a row its own filter should have excluded, and logs which', async () => {
+    const [invoice] = await scripted().rows('meigi_invoices_paid')
+    const otherToken = { ...invoice, token: FAKE_TOKEN, invoiceref: '[4]', txhash: tx(5) }
+    const mint = { sender: '0x0000000000000000000000000000000000000000', recipient: MINATO, amount: units(1_000_000), block: '11784300', at: null, txhash: tx(4) }
+    const cases: [Partial<Record<QueryName, Record<string, unknown>[]>>, string][] = [
+      [{ meigi_router_paid: [otherToken] }, 'meigi_router_paid returned a payment in a token other than SETTLEMENT_TOKEN'],
+      [{ meigi_mjpy_transfers: [mint] }, 'meigi_mjpy_transfers returned a transfer from a sender other than X402_BUYER'],
+    ]
+    for (const [rows, log] of cases) {
+      const base = scripted()
+      const reader = scripted({ rows: async (query) => rows[query] ?? base.rows(query) })
+      const lines: string[] = []
+      const { status } = await quietly(() => get(createSettlements(reader, OPTIONS)), lines)
+      assert.equal(status, 503)
+      assert.deepEqual(lines, [`[settlements] Misconfigured: ${log}`])
+    }
+  })
+
+  it('never uses an edge copy dated in the future, and displays a copy\'s amounts from their units', async () => {
+    const clock = 1_790_000_000_000
+    const { body } = await get(createSettlements(scripted(), { ...OPTIONS, now: () => clock }))
+    const copy = { asOf: body.asOf, indexedFrom: body.indexedFrom, decimals: 18, scope: ['T2011001234567'], settlements: body.settlements }
+    const reader = scripted()
+    const future: SnapshotStore = { get: async () => ({ ...copy, asOf: new Date(clock + 60_000).toISOString() }), put: async () => {} }
+    await get(createSettlements(reader, { ...OPTIONS, store: future, memo: createMemo(() => clock), now: () => clock }))
+    assert.equal(reader.calls.filter((c) => c === 'meigi_invoices_paid').length, 1) // read MultiBaas instead
+    const misprinted = { ...copy, settlements: copy.settlements.map((s: Record<string, any>) => ({ ...s, amount: { ...s.amount, display: '¥999,999,999' } })) }
+    const store: SnapshotStore = { get: async () => misprinted, put: async () => {} }
+    const served = await get(createSettlements(scripted(), { ...OPTIONS, store, memo: createMemo(() => clock), now: () => clock }))
+    assert.deepEqual(served.body.settlements.map((s: Record<string, any>) => s.amount.display), ['¥55,000', '¥15', '¥500'])
   })
 
   it('never reuses an edge snapshot older than 3 minutes, even if the cache still returns it', async () => {
