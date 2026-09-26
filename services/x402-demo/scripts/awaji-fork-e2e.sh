@@ -9,7 +9,8 @@
 #      swapped, must be refused before anything is signed.
 # Settlement is forced in-process (a hosted facilitator would settle the fork's authorizations on the real chain)
 # and screening is off, so a run calls no outside service but the fork's upstream RPC.
-# Needs anvil, cast, jq, nc and ../../.env. AWAJI_MINATO_PAYOUT defaults to a throwaway address for the rehearsal.
+# Needs anvil, cast, jq, nc and ../../.env. The payout is AWAJI_MINATO_PAYOUT (the environment, then ../../.env.awaji),
+# or a throwaway address when neither sets it.
 #   bash services/x402-demo/scripts/awaji-fork-e2e.sh
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -57,8 +58,12 @@ wait_for() {
   kill -0 "$pid" 2>/dev/null || fail "$what exited; something else answers on its port"
 }
 port_free() { ! nc -z 127.0.0.1 "$1" 2>/dev/null || fail "port $1 is in use; set FORK_PORT / DEMO_PORT"; }
-# env_file <KEY>: a value from ../../.env; env_need <KEY>: the same, and it must be set.
-env_file() { sed -nE "s/^$1=\"?([^\"]*)\"?$/\1/p" ../../.env | tail -1; }
+# env_file <KEY> [file]: a value from ../../.env (or the file), empty if absent; env_need <KEY>: it must be in .env.
+env_file() {
+  local file=${2:-../../.env}
+  [ -f "$file" ] || return 0
+  sed -nE "s/^$1=\"?([^\"]*)\"?$/\1/p" "$file" | tail -1
+}
 env_need() {
   local value
   value=$(env_file "$1")
@@ -85,7 +90,7 @@ client=$(cast client --rpc-url "$FORK")
 [[ $client == anvil/* ]] || fail "$FORK is $client, not our anvil fork"
 expect "the fork is Awaji" "$(cast chain-id --rpc-url "$FORK")" 6497
 
-payout=${AWAJI_MINATO_PAYOUT:-$(env_file AWAJI_MINATO_PAYOUT)}
+payout=${AWAJI_MINATO_PAYOUT:-$(env_file AWAJI_MINATO_PAYOUT ../../.env.awaji)}
 [ -n "$payout" ] || payout=$(cast wallet new --json | jq -r '.[0].address')
 export AWAJI_MINATO_PAYOUT=$payout
 SEED_RPC_URL=$FORK bash ../../contracts/script/seed-awaji.sh

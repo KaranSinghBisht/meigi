@@ -2,8 +2,8 @@
 # Seeds Meigi's Awaji deployment (Mizuhiki, chain 6497) with the two FICTIONAL payees paid there, each at a payout
 # this team holds the key to. Idempotent: it reuses seed-demo.sh's `register`, which skips a registered number.
 #   - 株式会社メイギ商事 (T2011001234567), PayRouter.pay's payee: DEMO_VENDOR_PAYOUT, as on Sepolia,
-#   - 株式会社ミナトGPUクラウド (T6999900000003), the x402 demo's GPU merchant: AWAJI_MINATO_PAYOUT (on Sepolia its
-#     payout's key was discarded; here the MJPY it earns stays spendable).
+#   - 株式会社ミナトGPUクラウド (T6999900000003), the x402 demo's GPU merchant: AWAJI_MINATO_PAYOUT, from .env.awaji,
+#     which also holds its key (on Sepolia that payout's key was discarded; here the MJPY it earns stays spendable).
 # Same fixture officer and evidence as Sepolia: evidence says on-chain that neither is an NTA company.
 # On Awaji the deployer is the attester (DeployAwaji.s.sol keeps one funded key), and fees respect the chain's
 # 30-gwei priority floor. SEED_RPC_URL=http://127.0.0.1:<port> rehearses on an anvil fork first. Never prints keys.
@@ -24,7 +24,10 @@ seed_awaji() {
   # The caller's RPC and payout win over .env's, so a rehearsal can't be pointed back at the real chain by .env.
   local rpc=${SEED_RPC_URL:-} payout=${AWAJI_MINATO_PAYOUT:-}
   cd "$here/.."
-  set -a; . ../.env; set +a
+  set -a
+  . ../.env
+  if [ -f ../.env.awaji ]; then . ../.env.awaji; fi
+  set +a
   RPC=${rpc:-$AWAJI_RPC}
   AWAJI_MINATO_PAYOUT=${payout:-${AWAJI_MINATO_PAYOUT:-}}
   if [ "$(cast chain-id --rpc-url "$RPC")" != 6497 ]; then

@@ -27,7 +27,7 @@ const schema = z.object({
   AWAJI_RPC_URL: z.url().default("https://rpc.awaji.mizuhiki.io"),
   AWAJI_REGISTRY_ADDRESS: address.default("0x4dbF8b5C3da46996C156AC3d17B16a230387b7C4"),
   AWAJI_TOKEN_ADDRESS: address.default("0x78f5f0Ac4EF201618b97638ded959b155c4f4B04"),
-  // Minato GPU Cloud's payout as registered on Awaji (required in Awaji mode).
+  // Minato GPU Cloud's payout as registered on Awaji (required in Awaji mode; kept in .env.awaji with its key).
   AWAJI_MINATO_PAYOUT: optional(address),
   // Mizuhiki's hosted facilitator. Unset, the in-process facilitator settles on Awaji with FACILITATOR_PRIVATE_KEY.
   AWAJI_FACILITATOR_URL: optional(z.url()),
