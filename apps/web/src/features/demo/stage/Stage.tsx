@@ -2,6 +2,7 @@ import { memo, useLayoutEffect, useRef, type RefObject } from 'react'
 import { BrowserWindow } from './browser/BrowserWindow'
 import { Cursor, EndCard, Flights } from './Overlays'
 import { AgentPanel } from './panel/AgentPanel'
+import { RegistryPanel } from './onboard/RegistryPanel'
 import { Phone } from './Phone'
 import './stage.css'
 
@@ -64,6 +65,9 @@ export const Stage = memo(function Stage({ mode, designRef, onPanelHover }: Stag
           onPointerLeave={() => onPanelHover(false)}
         >
           <AgentPanel />
+        </div>
+        <div className="dstage__slot dstage__slot--panel" data-d="slot-registry" data-enter="" aria-hidden="true">
+          <RegistryPanel />
         </div>
         <div className="dstage__slot dstage__slot--phone" aria-hidden="true">
           <Phone />

@@ -104,7 +104,7 @@ export function Controls({ clock, snap, script, reduced, variant, captionsOn, on
               aria-current={index === snap.chapter ? 'step' : undefined}
               onClick={() => (reduced ? clock.seek(firstStepOf(script, index)) : clock.jumpToChapter(index))}
             >
-              <span className="dchip-btn__n">{index + 1}</span>
+              <span className="dchip-btn__n">{index}</span>
               <span className="dchip-btn__t">{chapter.title}</span>
             </button>
           </li>

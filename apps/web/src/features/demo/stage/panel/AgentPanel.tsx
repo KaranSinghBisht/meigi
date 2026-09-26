@@ -84,7 +84,12 @@ function ChainLog() {
         <span>Chain log</span>
         <span className="plog__where">
           {LOG_GROUPS.map((group) => (
-            <span key={group.id} className="mono" data-d={`log-where-${group.id}`} data-enter="">
+            <span
+              key={group.id}
+              className="mono"
+              data-d={`log-where-${group.id}`}
+              data-enter={group.id === LOG_GROUPS[0]?.id ? undefined : ''}
+            >
               {group.where}
             </span>
           ))}

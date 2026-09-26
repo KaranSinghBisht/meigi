@@ -1,0 +1,243 @@
+/* Chapter 0's page: a light replica of Meigi's /register inside the browser prop. The same glass and size scale
+   as the app, drawn over the page's own dawn gradient. */
+.onb {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  grid-template-rows: 44px minmax(0, 1fr);
+  padding: 0 16px 16px;
+  background: linear-gradient(170deg, var(--sky-top) 0%, var(--sky-mid) 55%, var(--sky-low) 100%);
+  color: var(--ink);
+  font-family: var(--demo-font);
+}
+
+.onb__top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.onb__brand {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-strong);
+  letter-spacing: -0.02em;
+}
+
+.onb__crumb {
+  margin-left: 8px;
+  color: var(--ink-muted);
+}
+
+.onb__window {
+  display: grid;
+  grid-template-columns: 196px minmax(0, 1fr);
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 20px 50px -30px rgba(64, 44, 120, 0.45);
+}
+
+.onb__rail {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 20px 14px;
+  box-shadow: inset -1px 0 0 var(--lg-hairline);
+}
+
+.onb__eyebrow {
+  color: var(--ink-muted);
+  font-size: 11px;
+  font-weight: var(--weight-strong);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.onb__rail-title {
+  margin-bottom: 12px;
+  font-size: var(--text-md);
+  font-weight: var(--weight-strong);
+}
+
+.onb__steps {
+  display: grid;
+  gap: 4px;
+}
+
+.onb__step {
+  --on: 0;
+  --done: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, calc(var(--on) * 0.85));
+  box-shadow: 0 6px 16px -10px rgba(64, 44, 120, calc(var(--on) * 0.5));
+  color: var(--ink-soft);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.onb__num {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: color-mix(
+    in srgb,
+    var(--jade) calc(var(--done) * 100%),
+    color-mix(in srgb, var(--lg-ink) calc(var(--on) * 100%), rgba(42, 39, 48, 0.08))
+  );
+  color: color-mix(in srgb, #fff calc(max(var(--on), var(--done)) * 100%), var(--ink-soft));
+  font-size: 11px;
+}
+
+.onb__num > * {
+  grid-area: 1 / 1;
+}
+
+.onb__num-n {
+  opacity: calc(1 - var(--done));
+}
+
+.onb__num-done {
+  opacity: var(--done);
+}
+
+.onb__body {
+  position: relative;
+  min-height: 0;
+}
+
+.onb__screen {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 24px 28px;
+}
+
+.onb__screen[data-enter] {
+  transform: translateX(24px);
+}
+
+.onb__title {
+  font-size: 26px;
+  font-weight: var(--weight-strong);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.onb__lede {
+  margin-bottom: 6px;
+  color: var(--ink-soft);
+  font-size: 13.5px;
+}
+
+.onb__label {
+  font-size: 12.5px;
+  font-weight: var(--weight-strong);
+}
+
+.onb__input {
+  --focus: 0;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 0 calc(var(--focus) * 3px) rgba(224, 69, 43, 0.25);
+  font-size: var(--text-md);
+}
+
+.onb__input .typed {
+  width: 100%;
+}
+
+.onb__payee {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.45);
+  font-size: 12.5px;
+}
+
+.onb__payee > span:first-child {
+  font-weight: var(--weight-strong);
+}
+
+.onb__record,
+.onb__wallet,
+.onb__officer,
+.onb__review {
+  width: 100%;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.onb__record {
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+  padding: 12px 14px;
+}
+
+.onb__record[data-enter] {
+  transform: translateY(8px);
+}
+
+.onb__record-name {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-strong);
+}
+
+.onb__next {
+  align-self: flex-end;
+  margin-top: auto;
+}
+
+/* Phones: the screens alone, no rail. */
+.dstage__design--portrait .onb__window {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.dstage__design--portrait .onb__rail {
+  display: none;
+}
+
+.dstage__design--portrait .onb__screen {
+  gap: 8px;
+  padding: 16px;
+}
+
+.dstage__design--portrait .onb__title {
+  font-size: 19px;
+}
+
+.dstage__design--portrait .onb__lede {
+  margin-bottom: 0;
+  font-size: 12.5px;
+}
+
+.dstage__design--portrait :is(.onb__qr, .onb__card-qr) {
+  width: 80px;
+  height: 80px;
+}

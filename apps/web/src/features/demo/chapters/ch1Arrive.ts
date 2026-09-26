@@ -5,7 +5,14 @@ import { card, click, cursorTo, fly, hide, light, scrollTo, show, status, step }
 
 const READ_ORDER = ['tNumber', 'amount', 'address', 'invoice'] as const
 
+/** A different company's desk: while the browser is away, it swaps Meigi's /register for Haruka's inbox. */
+function handOff(c: BuildCtx): void {
+  for (const name of ['onboard-page', 'tab-face-register', 'url-register']) c.tl.set(c.el(name), { autoAlpha: 0 }, c.t0)
+  for (const name of ['tab-face-mail', 'url-mail']) c.tl.set(c.el(name), { autoAlpha: 1 }, c.t0)
+}
+
 function arrive(c: BuildCtx): void {
+  handOff(c)
   show(c, 'slot-browser', 0, { duration: 0.7 })
   show(c, 'slot-panel', 0.15, { duration: 0.7 })
   c.tl.set(c.el('cursor'), { x: 560, y: 470 }, c.t0)
@@ -57,7 +64,7 @@ export const chapter1: ChapterDef = {
   title: 'Bank-change email',
   duration: 18,
   captions: [
-    { at: 0, text: 'Haruka’s accounts-payable inbox. An AI agent pays suppliers from it.' },
+    { at: 0, text: '…now its customer’s AI agent can pay it safely: Haruka’s accounts-payable inbox.' },
     { at: 3, text: 'A supplier says its payout wallet changed.' },
     { at: 8.8, text: 'It reads the T-number, the amount and the new address.' },
     { at: 13.8, text: 'Classic business email compromise: a new account, and “please don’t call to confirm”.' },

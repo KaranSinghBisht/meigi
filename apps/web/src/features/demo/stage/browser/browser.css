@@ -54,7 +54,7 @@
 }
 
 .mac__tab {
-  display: flex;
+  display: grid;
   flex: 0 1 232px;
   align-items: center;
   gap: 8px;
@@ -67,6 +67,24 @@
 
 .mac__tab--mail {
   background: #fbfbfd;
+}
+
+.mac__tab--agent {
+  display: flex;
+}
+
+.mac__tab-face {
+  display: flex;
+  grid-area: 1 / 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.mac__tab-icon--meigi {
+  background: var(--seal);
+  color: #fff;
+  font: 600 9px/1 var(--font-jp);
 }
 
 .mac__tab-title {
@@ -127,10 +145,13 @@
   color: #5f6368;
 }
 
-.mac__url-text--agent {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+.mac__url-texts {
+  display: grid;
+}
+
+.mac__url-texts > * {
+  grid-area: 1 / 1;
+  text-align: center;
 }
 
 .mac__page {

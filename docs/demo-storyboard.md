@@ -37,57 +37,76 @@ It autoplays, loops, and has chapter chips and pause. Reduced motion turns it in
   The chain log is at the bottom.
 - **Captions:** one line at a time in a bottom caption bar, English with the Japanese term where it matters.
 
-## Chapters (about 100 s loop)
+## Chapters (about 2 min 20 s loop)
 
-### 1. A bank-change email arrives (0:00–0:18)
+### 0. A company joins Meigi (0:00–0:24)
+
+The browser shows Meigi's own `/register` (a replica of the onboarding wizard). Beside it, instead of the agent panel,
+the registry on Sepolia fills in with what the chain will hold.
+
+| t | Browser | Registry panel | Caption |
+|---|---|---|---|
+| 0:00 | `meigi…/register`, step 1: `T2011001234567` is typed; the legal name 株式会社メイギ商事 fills in (labelled "Fictional demo company", as the real wizard labels it) and the payee name `t2011001234567.payee.eth` appears live | T-number and ENS name rows | "Verify once: a company binds its registry number to one payout." |
+| 0:05 | Step 2: "Connect wallet" → business wallet `0xc33a…4638`; "Create a new payout wallet" → `0x9B4f…47e4` | Business wallet and payout rows | — |
+| 0:09 | Step 3: the TXT record `_meigi.meigi-shoji.example` (`meigi-sig=…`, blurred) → "Domain proven" | Domain row | — |
+| 0:12 | Step 4: an officer's World ID QR ticks → "Verified human", with the real officer id `0xe221…a3ad` | Officers row | — |
+| 0:15 | Step 5: review → "Register" → "Registered on Sepolia" · tx `0x277c2115…d2dc` | Evidence row; `PayeeRegistered` · block 11,781,118 · 26 Sep 03:49 JST; status → Active | "One registration on Sepolia, and t2011001234567.payee.eth resolves to that payout." |
+| 0:18 | Step 6, "You're verified": the payee card with a QR of the public payee page, and "✓ Resolves in any ENS client" | `t2011001234567.payee.eth → 0x9B4f…47e4` | — |
+
+Real data: the registry's `PayeeRegistered` event for 2011001234567 (registry
+`0x205c977cF1f4Ed42e51a48759550eF40160A6396`, read from block 11781105) and `officersOf`: the tx, block, business
+wallet, payout, legal name, evidence hash and officer id. Chapter 1 then continues on the customer's side.
+
+### 1. A bank-change email arrives (0:24–0:42)
 
 | t | Browser | Agent panel | Caption |
 |---|---|---|---|
-| 0:00 | Inbox with 4 read mails (a Rakuten invoice, a SaaS receipt, an internal note) | Idle: "ap.meigi.eth · watching ap@haruka-seisakusho.example" | "Haruka's accounts-payable inbox. An AI agent pays suppliers from it." |
-| 0:03 | A new unread mail slides in on top: **【重要】お支払先ウォレットアドレス変更のお知らせ（請求書番号 MS-2026-1003）**, from 株式会社メイギ商事 経理部 | A pulse: "New mail from a supplier" | "A supplier says its payout wallet changed." |
-| 0:06 | The mail opens. The body scrolls slowly; the sender's address `keiri@meigi-shoji-jp.example` sits a little too long under the cursor | Step 1 (Read) starts. Highlights sweep across the body. | — |
-| 0:09 | Four spans glow as they're read: `T2011001234567`, `¥132,000（税込）`, `0xdCa52b…0096d5b`, `MS-2026-1003`. Each flies into the panel as a chip. | The Extraction card fills: T-number, amount, pay to (as printed), invoice. "deterministic, no model". | "It reads the T-number, the amount and the new address." |
-| 0:14 | The line 「お電話でのご確認はお控えいただき」 ("please don't call to confirm") gets a soft amber underline | — | "Classic business email compromise: new account, don't call." |
+| 0:24 | Inbox with 4 read mails (a Rakuten invoice, a SaaS receipt, an internal note) | Idle: "ap.meigi.eth · watching ap@haruka-seisakusho.example" | "…now its customer's AI agent can pay it safely: Haruka's accounts-payable inbox." |
+| 0:27 | A new unread mail slides in on top: **【重要】お支払先ウォレットアドレス変更のお知らせ（請求書番号 MS-2026-1003）**, from 株式会社メイギ商事 経理部 | A pulse: "New mail from a supplier" | "A supplier says its payout wallet changed." |
+| 0:30 | The mail opens. The body scrolls slowly; the sender's address `keiri@meigi-shoji-jp.example` sits a little too long under the cursor | Step 1 (Read) starts. Highlights sweep across the body. | — |
+| 0:33 | Four spans glow as they're read: `T2011001234567`, `¥132,000（税込）`, `0xdCa52b…0096d5b`, `MS-2026-1003`. Each flies into the panel as a chip. | The Extraction card fills: T-number, amount, pay to (as printed), invoice. "deterministic, no model". | "It reads the T-number, the amount and the new address." |
+| 0:38 | The line 「お電話でのご確認はお控えいただき」 ("please don't call to confirm") gets a soft amber underline | — | "Classic business email compromise: new account, don't call." |
 
-### 2. The agent believes it; the chain doesn't (0:18–0:45)
-
-| t | Browser | Agent panel | Caption |
-|---|---|---|---|
-| 0:18 | Dimmed | Step 2, Triage: bars animate to *payee change 97%*, *new destination 1.00*, *suspicion 3.0 / 3*, then a **Hold** chip. "payee-0.8b · 45 ms" | "Our fine-tuned 0.8B model flags it in 45 ms." |
-| 0:24 | — | Step 3, the LLM believes (quote bubble, typed out): "The supplier explicitly requests payment for invoice MS-2026-1003 using the new wallet address provided in the email." Wants to pay **¥132,000 → 0xdCa5…6d5b**. | "The LLM believes the email. That's expected: it only proposes." |
-| 0:30 | — | Step 4, Kernel: check rows tick in one by one. ✓ approved vendor, ✓ registered and active, ✗ **`t2011001234567.payee.eth` → 0x9B4f…47e4; this invoice asked for 0xdCa5…6d5b**, ✓ within cap, ✓ not paid before | "The kernel reads the chain: Meigi Shoji is paid at 0x9B4f…, nowhere else." |
-| 0:37 | — | Step 6, Decision card: **HOLD, 2 blocking reasons**, and the model-worded explanation | "Payment held." |
-
-### 3. "Pay anyway": the vault refuses (0:45–0:58)
+### 2. The agent believes it; the chain doesn't (0:42–1:09)
 
 | t | Browser | Agent panel | Caption |
 |---|---|---|---|
-| 0:45 | — | The cursor moves to "Let the agent pay anyway" and clicks | "Say someone talks the agent into paying anyway." |
-| 0:48 | — | The chain log types out: `simulate payInvoice(T2011001234567, 0xdCa5…, ¥132,000)` → **revert `PayeeMismatch`**. A red seal: "Refused by the vault. Nothing was broadcast." | "The vault itself refuses. The address isn't the registered payout." |
-| 0:54 | A reply draft opens in Gmail (compose window slides up), written by the agent: 「新しい受取アドレスは弊社で確認できませんでした。登録済みの受取先へお支払いいたします。」, with the English beneath | "Draft reply ready for review" | "It drafts the safe reply: we'll pay the registered account." |
+| 0:42 | Dimmed | Step 2, Triage: bars animate to *payee change 97%*, *new destination 1.00*, *suspicion 3.0 / 3*, then a **Hold** chip. "payee-0.8b · 45 ms" | "Our fine-tuned 0.8B model flags it in 45 ms." |
+| 0:48 | — | Step 3, the LLM believes (quote bubble, typed out): "The supplier explicitly requests payment for invoice MS-2026-1003 using the new wallet address provided in the email." Wants to pay **¥132,000 → 0xdCa5…6d5b**. | "The LLM believes the email. That's expected: it only proposes." |
+| 0:54 | — | Step 4, Kernel: check rows tick in one by one. ✓ approved vendor, ✓ registered and active, ✗ **`t2011001234567.payee.eth` → 0x9B4f…47e4; this invoice asked for 0xdCa5…6d5b**, ✓ within cap, ✓ not paid before | "The kernel reads the chain: Meigi Shoji is paid at 0x9B4f…, nowhere else." |
+| 1:01 | — | Step 6, Decision card: **HOLD, 2 blocking reasons**, and the model-worded explanation | "Payment held." |
 
-### 4. A genuine but urgent invoice, and a human decides (0:58–1:22)
+### 3. "Pay anyway": the vault refuses (1:09–1:22)
 
 | t | Browser | Agent panel | Caption |
 |---|---|---|---|
-| 0:58 | A new mail: 【至急】ご請求書送付のお知らせ from the real `meigi-shoji.example`, with a PDF chip | Read → Triage: pressure high → **Hold for a verified human** | "A real invoice, but it pushes for speed (至急)." |
-| 1:04 | — | The World ID for Agents card: QR code, link and user code; "Waiting for a verified human" | "The agent asks a verified human through World ID." |
-| 1:08 | A phone mock slides in beside the browser: World ID approve screen → Face check → **Approved** | The card goes green: "Approved by the enrolled approver · orb-v3 · fresh" | "One fresh human proof, bound to this invoice, single-use." |
-| 1:14 | — | Pay → chain log: `payInvoice` → **Paid ¥55,000 to 0x9B4f…47e4** · tx `0xf15571d7…0c48` (real Sepolia) | "Only now does it pay, still through the vault's checks." |
-| 1:19 | The mail gets a green "Paid" label | — | — |
+| 1:09 | — | The cursor moves to "Let the agent pay anyway" and clicks | "Say someone talks the agent into paying anyway." |
+| 1:12 | — | The chain log types out: `simulate payInvoice(T2011001234567, 0xdCa5…, ¥132,000)` → **revert `PayeeMismatch`**. A red seal: "Refused by the vault. Nothing was broadcast." | "The vault itself refuses. The address isn't the registered payout." |
+| 1:18 | A reply draft opens in Gmail (compose window slides up), written by the agent: 「新しい受取アドレスは弊社で確認できませんでした。登録済みの受取先へお支払いいたします。」, with the English beneath | "Draft reply ready for review" | "It drafts the safe reply: we'll pay the registered account." |
 
-### 5. Agents buying compute and data (1:22–1:42)
+### 4. A genuine but urgent invoice, and a human decides (1:22–1:46)
 
-The browser switches tab to a terminal-style "research agent" log, or the x402 marketplace page.
+| t | Browser | Agent panel | Caption |
+|---|---|---|---|
+| 1:22 | A new mail: 【至急】ご請求書送付のお知らせ from the real `meigi-shoji.example`, with a PDF chip; the invoice is MS-2026-0940, the number the paid tx's invoiceRef commits to | Read → Triage: pressure high → **Hold for a verified human** | "A real invoice, but it pushes for speed (至急)." |
+| 1:28 | — | The World ID for Agents card: QR code, link and user code; "Waiting for a verified human" | "The agent asks a verified human through World ID." |
+| 1:32 | A phone mock slides in beside the browser: World ID approve screen → Face check → **Approved** | The card goes green: "Approved by the enrolled approver · orb-v3 · fresh" | "One fresh human proof, bound to this invoice, single-use." |
+| 1:38 | — | Pay → chain log: `payInvoice` → **Paid ¥55,000 to 0x9B4f…47e4** · tx `0xf15571d7…0c48` (real Sepolia) | "Only now does it pay, still through the vault's checks." |
+| 1:43 | The mail gets a green "Paid" label | — | — |
+
+### 5. Agents buying compute and data (1:46–2:12)
+
+The browser switches tab to a terminal-style "research agent" log. It plays worldui's recorded research-agent run on
+Sepolia (`content/x402-run.json`), paced by the run itself; its settlements also land in the chain log.
 
 | t | Screen | Caption |
 |---|---|---|
-| 1:22 | The research agent needs 2 GPU-minutes and a dataset slice. `402 Payment Required` from **Minato GPU Cloud**, declaring `T79999…` / `t79999….payee.eth` | "Agents pay each other over x402, before any human looks." |
-| 1:27 | The guard resolves the ENS name, reads the registry, and screens → ✓ → signed → settled (tx) | "Before signing, the guard checks who it's paying." |
-| 1:32 | A compromised server swaps `payTo` → **refused before signing**: "t….payee.eth resolves to the registered payout 0x…, but payTo asks for 0xdCa5…" | "A hacked merchant is refused. The agent never signs." |
-| 1:38 | An undeclared API: only ≤ 50 mJPYC, and only with a clean Intercepta screen, else refused | "Unknown merchants get a small, screened allowance, or nothing." |
+| 1:46 | Two GPU-minutes from **Minato GPU Cloud**: `402 Payment Required` · 15 mJPYC, declaring `T6999900000003` / `t6999900000003.payee.eth` | "Agents pay each other over x402, before any human looks." |
+| 1:50 | The guard: the ENS name resolves, the registry agrees, payTo matches → signed → settled (tx `0x24b128e8…`, `0xce9c6cf8…`); then a dataset slice from Fuji Data (tx `0x48d3d33a…`) | "Before signing, the guard checks who it's paying." |
+| 2:01 | A cheaper-looking GPU inference mirror swaps `payTo` → **refused before signing**: "t6999900000003.payee.eth resolves to the registered payout 0x4d6D…, but payTo asks for 0xdCa5… instead" | "A hacked merchant is refused. The agent never signs." |
+| 2:07 | A web-scrape API with no Meigi record: refused ("no screening is configured"); with a clean screen it would get at most 50 mJPYC | "Unknown merchants get a small, screened allowance, or nothing." |
 
-### 6. End card (1:42–1:50)
+### 6. End card (2:12–2:20)
 
 "**Pay companies, not addresses.**" Meigi: a company's official registry number, bound to one payout, verified once
 and checked on every payment, by people and by agents. Links: the live app, `t2011001234567.payee.eth`, GitHub.

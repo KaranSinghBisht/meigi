@@ -1,4 +1,6 @@
 import { MAILBOX } from '../../content/inbox'
+import { ONBOARD } from '../../content/onboard'
+import { OnboardPage } from '../onboard/OnboardPage'
 import { MailApp } from './MailApp'
 import { TerminalPage } from './TerminalPage'
 import './browser.css'
@@ -17,8 +19,16 @@ function Tabs() {
   return (
     <div className="mac__tabs">
       <div className="mac__tab mac__tab--mail" data-d="tab-mail">
-        <span className="mac__tab-icon mac__tab-icon--mail" aria-hidden="true" />
-        <span className="mac__tab-title">{MAILBOX.tab}</span>
+        <span className="mac__tab-face" data-d="tab-face-register">
+          <span className="mac__tab-icon mac__tab-icon--meigi" aria-hidden="true">
+            名
+          </span>
+          <span className="mac__tab-title">Register a business · Meigi</span>
+        </span>
+        <span className="mac__tab-face" data-d="tab-face-mail" data-enter="">
+          <span className="mac__tab-icon mac__tab-icon--mail" aria-hidden="true" />
+          <span className="mac__tab-title">{MAILBOX.tab}</span>
+        </span>
       </div>
       <div className="mac__tab mac__tab--agent" data-d="tab-agent" data-enter="">
         <span className="mac__tab-icon mac__tab-icon--term" aria-hidden="true">
@@ -41,11 +51,16 @@ function Toolbar() {
           <path d="M3 6V4.5a3 3 0 0 1 6 0V6" fill="none" stroke="currentColor" strokeWidth="1.4" />
           <rect x="1.5" y="6" width="9" height="7" rx="1.6" fill="currentColor" />
         </svg>
-        <span className="mac__url-text" data-d="url-mail">
-          {MAILBOX.host}
-        </span>
-        <span className="mac__url-text mac__url-text--agent" data-d="url-agent" data-enter="">
-          localhost:8790/research-agent
+        <span className="mac__url-texts">
+          <span className="mac__url-text" data-d="url-mail" data-enter="">
+            {MAILBOX.host}
+          </span>
+          <span className="mac__url-text" data-d="url-register">
+            {ONBOARD.appHost}/register
+          </span>
+          <span className="mac__url-text" data-d="url-agent" data-enter="">
+            localhost:8790/research-agent
+          </span>
         </span>
       </div>
     </div>
@@ -64,6 +79,7 @@ export function BrowserWindow() {
       <div className="mac__page">
         <MailApp />
         <TerminalPage />
+        <OnboardPage />
       </div>
       <div className="mac__dim" data-d="browser-dim" />
     </section>

@@ -1,0 +1,124 @@
+/* Chapter 0's side panel: the registry on Sepolia, filling in as the wizard goes. Glass like the agent panel. */
+.rpanel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  background: var(--lg-sheen-window), var(--lg-window-dense);
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+  box-shadow: var(--lg-shadow);
+  color: var(--ink);
+  font-family: var(--demo-font);
+}
+
+.rpanel__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.rpanel__name {
+  font-size: var(--text-md);
+  font-weight: var(--weight-strong);
+}
+
+.rpanel__sub {
+  overflow: hidden;
+  color: var(--ink-muted);
+  font-size: 11px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.rpanel__status {
+  display: grid;
+  justify-items: end;
+}
+
+.rpanel__status > * {
+  grid-area: 1 / 1;
+}
+
+.rpanel__lede {
+  color: var(--ink-muted);
+  font-size: 12.5px;
+}
+
+.rpanel__rows {
+  display: grid;
+  margin: 0;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.rpanel__row {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 10px;
+  padding: 10px 14px;
+  box-shadow: inset 0 -1px 0 var(--lg-hairline);
+  font-size: 12.5px;
+}
+
+.rpanel__row[data-enter] {
+  transform: translateY(6px);
+}
+
+.rpanel__row dt {
+  color: var(--ink-muted);
+}
+
+.rpanel__row dd {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+}
+
+.rpanel__note {
+  color: var(--ink-muted);
+  font-size: 11.5px;
+}
+
+.rpanel__event {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--jade-tint);
+  color: var(--jade-deep);
+  font-size: 12.5px;
+}
+
+.rpanel__event .rpanel__note {
+  color: var(--jade-deep);
+}
+
+.rpanel__resolve {
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--jade-deep);
+  font-size: 12.5px;
+  font-weight: var(--weight-strong);
+}
+
+/* Phones: a shorter panel, so the notes and the evidence row give way. */
+.dstage__design--portrait .rpanel {
+  gap: 8px;
+  padding: 12px;
+}
+
+.dstage__design--portrait :is(.rpanel__lede, .rpanel__row .rpanel__note, [data-d='r-evidence']) {
+  display: none;
+}
+
+.dstage__design--portrait .rpanel__row {
+  padding: 7px 12px;
+}

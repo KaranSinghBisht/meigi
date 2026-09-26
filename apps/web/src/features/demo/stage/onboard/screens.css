@@ -1,0 +1,172 @@
+/* The wizard screens' contents: wallets, the TXT record, the officer, the review and the payee card. */
+.onb__wallet {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+}
+
+.onb__wallet-label {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.onb__wallet-label span {
+  color: var(--ink-muted);
+  font-size: 12px;
+}
+
+.onb__swap {
+  display: grid;
+  justify-items: start;
+}
+
+.onb__swap > * {
+  grid-area: 1 / 1;
+  align-self: center;
+}
+
+.onb__swap--end {
+  align-self: stretch;
+  justify-items: end;
+  margin-top: auto;
+}
+
+.onb__wallet-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.onb__txt {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 14px;
+  width: 100%;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(29, 27, 34, 0.86);
+  color: #f1eef7;
+  font-size: 12px;
+}
+
+.onb__txt dt {
+  color: #a9a3b8;
+}
+
+.onb__txt dd {
+  margin: 0;
+}
+
+.onb__blur {
+  filter: blur(3px);
+}
+
+.onb__officer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 14px;
+}
+
+.onb__officer-body {
+  display: grid;
+  gap: 8px;
+}
+
+.onb__qr,
+.onb__card-qr {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: #fff;
+}
+
+.onb__qr {
+  width: 104px;
+  height: 104px;
+}
+
+.onb__qr img,
+.onb__card-qr img {
+  width: 100%;
+  height: 100%;
+}
+
+.onb__qr-ok {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(63, 157, 120, 0.9);
+  color: #fff;
+  font-size: 40px;
+}
+
+.onb__muted {
+  color: var(--ink-muted);
+  font-size: 12.5px;
+}
+
+.onb__review {
+  display: grid;
+  overflow: hidden;
+  margin: 0;
+}
+
+.onb__review > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 14px;
+  box-shadow: inset 0 -1px 0 var(--lg-hairline);
+  font-size: 12.5px;
+}
+
+.onb__review dt {
+  color: var(--ink-muted);
+}
+
+.onb__review dd {
+  margin: 0;
+  font-weight: var(--weight-strong);
+  text-align: right;
+}
+
+.onb__card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 16px 40px -24px rgba(64, 44, 120, 0.45);
+}
+
+.onb__card-qr {
+  width: 112px;
+  height: 112px;
+}
+
+.onb__card-body {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.onb__card-ens {
+  font-size: 12.5px;
+}
+
+.onb__resolves {
+  color: var(--jade-deep);
+  font-size: 13px;
+  font-weight: var(--weight-strong);
+}
