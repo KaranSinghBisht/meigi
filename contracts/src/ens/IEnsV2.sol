@@ -38,12 +38,12 @@ interface IEnsV2Registry {
 }
 
 /// @dev A PermissionedResolver proxy. Setters take the DNS-encoded name. A setter role is scoped by its argument
-///      (e.g. one text key), never by name, so one instance per name is what keeps roles from crossing names.
+///      (e.g. one text key), never by name, and a record written under the root node answers every name that has no
+///      record of its own; so one instance per name, written only for that exact name, is what keeps names apart.
 interface IEnsV2Resolver {
     /// @dev Grants root roles, then runs `calls` on itself without permission checks.
     function initialize(EnsV2Grant[] calldata grants, bytes[] calldata calls) external;
-    function setAddress(bytes calldata name, uint256 coinType, bytes calldata addressBytes) external;
     function setText(bytes calldata name, string calldata key, string calldata value) external;
-    /// @dev Grants the role `setter` needs, scoped to its argument (for setText: the key).
-    function grantSetterRoles(bytes calldata setter, address account) external returns (bool);
+    /// @dev ENSIP-10: answers `data` (e.g. text(node, key)) for the DNS-encoded `name`.
+    function resolve(bytes calldata name, bytes calldata data) external view returns (bytes memory);
 }

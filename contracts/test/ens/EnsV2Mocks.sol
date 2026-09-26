@@ -118,13 +118,13 @@ contract MockNamespaceRegistry {
     }
 }
 
-/// @dev The PermissionedResolver's role model: root roles from initialize, setter roles scoped by text key, and
-///      initializer calls that skip permission checks.
+/// @dev The PermissionedResolver's role model: root roles from initialize, setter roles scoped by argument, and
+///      initializer calls that skip permission checks. `resolve` answers text by the queried name, as the real one does.
 contract MockProfileResolver {
     uint256 internal constant ROOT = 0;
     uint256 internal constant ROLE_SET_ADDRESS = 1 << 0;
     uint256 internal constant ROLE_SET_TEXT = 1 << 4;
-    uint256 internal constant ROLE_SET_TEXT_ADMIN = ROLE_SET_TEXT << 128;
+    bytes4 internal constant TEXT = 0x59d1d43c;
 
     mapping(uint256 resource => mapping(address account => uint256)) public roles;
     mapping(bytes32 nameHash => mapping(string key => string)) internal _texts;
@@ -160,15 +160,10 @@ contract MockProfileResolver {
         _texts[keccak256(name)][key] = value;
     }
 
-    function grantSetterRoles(bytes calldata setter, address account) external returns (bool) {
-        require(bytes4(setter) == this.setText.selector, "text setters only");
-        (, string memory key) = abi.decode(setter[4:], (bytes, string));
-        uint256 resource = uint256(keccak256(bytes(key)));
-        if ((roles[ROOT][msg.sender] | roles[resource][msg.sender]) & ROLE_SET_TEXT_ADMIN == 0) {
-            revert Unauthorized(resource, ROLE_SET_TEXT_ADMIN, msg.sender);
-        }
-        roles[resource][account] |= ROLE_SET_TEXT;
-        return true;
+    function resolve(bytes calldata name, bytes calldata data) external view returns (bytes memory) {
+        require(bytes4(data[:4]) == TEXT, "text only");
+        (, string memory key) = abi.decode(data[4:], (bytes32, string));
+        return abi.encode(_texts[keccak256(name)][key]);
     }
 
     function hasRoles(uint256 resource, uint256 roleBitmap, address account) external view returns (bool) {
@@ -177,14 +172,6 @@ contract MockProfileResolver {
 
     function text(bytes calldata name, string calldata key) external view returns (string memory) {
         return _texts[keccak256(name)][key];
-    }
-
-    function addr(bytes calldata name) external view returns (address a) {
-        bytes memory packed = _addresses[keccak256(name)][60];
-        if (packed.length != 20) return address(0);
-        assembly {
-            a := shr(96, mload(add(packed, 32)))
-        }
     }
 
     function _check(uint256 resource, uint256 roleBitmap) private view {

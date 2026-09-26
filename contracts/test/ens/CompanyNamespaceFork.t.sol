@@ -3,26 +3,31 @@ pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
 import {CompanyNamespace} from "../../src/ens/CompanyNamespace.sol";
-import {IEnsV2Factory, IEnsV2Registry, IEnsV2Resolver} from "../../src/ens/IEnsV2.sol";
+import {IEnsV2Factory, IEnsV2Registry} from "../../src/ens/IEnsV2.sol";
 import {IPayeeRegistry} from "../../src/registry/IPayeeRegistry.sol";
 
 interface IClaimsRegistry {
     function setSubregistry(uint256 anyId, address registry) external;
-    function getSubregistry(string calldata label) external view returns (address);
 }
 
-interface IUserRegistryToken {
-    function getTokenId(uint256 anyId) external view returns (uint256);
-    function unsafeTransfer(address to, uint256 tokenId, bytes calldata data) external;
+interface ILiveResolver {
+    function setText(bytes calldata name, string calldata key, string calldata value) external;
+    function setAddress(bytes calldata name, uint256 coinType, bytes calldata addressBytes) external;
+}
+
+interface ILivePayeeRegistry {
+    function fileDispute(uint64 tNumber, address claimant, bytes32 evidence) external;
+    function dismissDispute(uint64 tNumber) external;
 }
 
 interface IUniversalResolver {
     function resolve(bytes calldata name, bytes calldata data) external view returns (bytes memory, address);
 }
 
-/// @dev The gate against the real ENSv2 Beta contracts on a Sepolia fork, for t2011001234567.payee.eth: roles, pinned
-///      addresses, expiry, revocation and Meigi's brake as stock ENS resolution sees them. Needs SEPOLIA_RPC_URL (the
-///      suite is skipped without it) and state from 2026-09-26 on (the claim, and Meigi's deployer as claims admin).
+/// @dev The gate against the real ENSv2 Beta contracts on a Sepolia fork, through the canonical UniversalResolver
+///      (what viem and ethers call), for t2011001234567.payee.eth. It covers the two Beta behaviours contracts-review
+///      confirmed (a root-node record answering deeper names; unregister then renew reviving a name) as the gate
+///      handles them, plus text-only answers, a dispute and a reset. Needs SEPOLIA_RPC_URL; skipped without it.
 contract CompanyNamespaceForkTest is Test {
     IPayeeRegistry internal constant PAYEES = IPayeeRegistry(0x205c977cF1f4Ed42e51a48759550eF40160A6396);
     IEnsV2Factory internal constant FACTORY = IEnsV2Factory(0x9e726Eb570beb6BCEb495AB8cdA7df517d4e841C);
@@ -30,11 +35,13 @@ contract CompanyNamespaceForkTest is Test {
     address internal constant RESOLVER_IMPL = 0x14F09Fd05d4585759e54844DC9B00147131Cf243;
     address internal constant CLAIMS = 0xcA0317C97C0f915faaD6D8F354110eA98bDeD0B6;
     IUniversalResolver internal constant UR = IUniversalResolver(0xeEeEEEeE14D718C2B47D9923Deab1335E144EeEe);
-    address internal constant DEPLOYER = 0x706C68adE875a8B9e755DC03836Ac0cEfA9cb02c;
+    address internal constant MEIGI = 0x706C68adE875a8B9e755DC03836Ac0cEfA9cb02c; // payee.eth, claims and registry owner
+    address internal constant ATTESTER = 0x3D5F314C30E77CC6f3677C5409FdC91e83510493;
     address internal constant CONTROLLER = 0xc33a9cD6662D39E190855c43a459CBcB938e4638;
     address internal constant PAYOUT = 0x9B4fc8994FcF2d5FE08a82A9454B61AA14D647e4;
     uint64 internal constant T_NUMBER = 2011001234567;
     bytes internal constant PARENT = hex"0570617965650365746800"; // payee.eth
+    string internal constant AP = "ap.t2011001234567.payee.eth";
     bytes4 internal constant ADDR = 0x3b3b57de;
     bytes4 internal constant TEXT = 0x59d1d43c;
 
@@ -51,82 +58,103 @@ contract CompanyNamespaceForkTest is Test {
         }
         vm.createSelectFork(rpc);
         gate = new CompanyNamespace(
-            PAYEES, FACTORY, USER_REGISTRY_IMPL, RESOLVER_IMPL, IEnsV2Registry(CLAIMS), DEPLOYER, PARENT
+            PAYEES, FACTORY, USER_REGISTRY_IMPL, RESOLVER_IMPL, IEnsV2Registry(CLAIMS), MEIGI, PARENT
         );
     }
 
-    function test_ForkNamesResolveScopedPinnedAndExpiring() public {
-        assertEq(_addr("t2011001234567.payee.eth"), PAYOUT, "before: the registry payout");
-        address ns = _openAndAttach();
-        address apResolver =
-            _issue("ap", agent, 0, unicode"AP agent of 株式会社メイギ商事 (fictional demo company)");
-        _issue("keiri", accounts, 0, "Accounts department (fictional demo company)");
-        _issue(
-            "zeirishi",
-            taxAccountant,
-            uint64(block.timestamp + 30 days),
-            "External tax accountant (fictional)"
-        );
-
-        assertEq(_addr("ap.t2011001234567.payee.eth"), agent);
-        assertEq(_addr("keiri.t2011001234567.payee.eth"), accounts);
-        assertEq(_addr("zeirishi.t2011001234567.payee.eth"), taxAccountant);
+    function test_ForkNamesAreTextOnlyExactAndScoped() public {
+        address records = _openAttachIssue();
+        Text memory description = _text(AP, "description");
+        assertEq(description.used, address(gate), "the UniversalResolver asks the gate");
+        assertEq(description.v, unicode"AP agent of 株式会社メイギ商事 (fictional demo company)");
         assertEq(
-            _text("ap.t2011001234567.payee.eth", "description"),
-            unicode"AP agent of 株式会社メイギ商事 (fictional demo company)"
+            _text(AP, "agent-endpoint[web]").v,
+            "https://meigi.karanbishttt.workers.dev/registry/T2011001234567"
         );
+        assertEq(_addr(AP), address(0), "an issued name resolves no address");
         assertEq(_addr("t2011001234567.payee.eth"), PAYOUT, "the payee name is untouched");
 
-        // The agent sets its one key; everything else, and the address, is out of its reach.
-        bytes memory apName = _dns("ap");
+        // The holder sets its status through the gate; it holds no role on its resolver, so it can't write another
+        // key, an address, or the root node that the resolver would serve to every deeper name.
         vm.prank(agent);
-        IEnsV2Resolver(apResolver).setText(apName, "agent-status", "online");
-        assertEq(_text("ap.t2011001234567.payee.eth", "agent-status"), "online");
-        vm.prank(agent);
+        gate.setStatus(T_NUMBER, "ap", "busy");
+        assertEq(_text(AP, "agent-status").v, "busy");
+        vm.startPrank(agent);
         vm.expectRevert();
-        IEnsV2Resolver(apResolver).setText(apName, "description", "rewritten");
-        vm.prank(agent);
+        ILiveResolver(records).setText(hex"00", "agent-status", "pwned");
         vm.expectRevert();
-        IEnsV2Resolver(apResolver).setAddress(apName, 60, abi.encodePacked(agent));
-        vm.prank(CONTROLLER);
+        ILiveResolver(records).setText(_dns(AP), "description", "rewritten");
         vm.expectRevert();
-        IEnsV2Resolver(apResolver).setAddress(apName, 60, abi.encodePacked(CONTROLLER));
+        ILiveResolver(records).setAddress(_dns(AP), 60, abi.encodePacked(agent));
+        vm.stopPrank();
 
-        // Non-transferable: issued with no token roles.
-        uint256 tokenId = IUserRegistryToken(ns).getTokenId(uint256(keccak256("ap")));
-        vm.prank(agent);
-        vm.expectRevert();
-        IUserRegistryToken(ns).unsafeTransfer(makeAddr("buyer"), tokenId, "");
-
-        // Revoked and expired names stop resolving; the payee name never moves.
-        vm.prank(CONTROLLER);
-        gate.revoke(T_NUMBER, "keiri");
-        assertEq(_addr("keiri.t2011001234567.payee.eth"), address(0));
-        vm.warp(block.timestamp + 30 days);
-        assertEq(_addr("zeirishi.t2011001234567.payee.eth"), address(0));
-        assertEq(_addr("ap.t2011001234567.payee.eth"), agent);
-
-        // Meigi's brake: detach the namespace from the claim, and every name under it goes dark at once.
-        vm.prank(DEPLOYER);
-        IClaimsRegistry(CLAIMS).setSubregistry(uint256(keccak256("t2011001234567")), address(0));
-        assertEq(_addr("ap.t2011001234567.payee.eth"), address(0));
-        assertEq(_addr("t2011001234567.payee.eth"), PAYOUT);
+        // A deeper name reaches the gate through the ENSIP-10 wildcard, and gets nothing.
+        Text memory deeper = _text("x.ap.t2011001234567.payee.eth", "agent-status");
+        assertEq(deeper.used, address(gate));
+        assertEq(deeper.v, "");
+        assertEq(_addr("x.ap.t2011001234567.payee.eth"), address(0));
     }
 
-    function test_ForkLabelsCantPoseAsAnotherPayee() public {
-        _openAndAttach();
+    function test_ForkRevokeThenRenewCantReviveAName() public {
+        _openAttachIssue();
+        vm.startPrank(CONTROLLER);
+        gate.revoke(T_NUMBER, "keiri");
+        vm.expectRevert(abi.encodeWithSelector(CompanyNamespace.UnknownName.selector, T_NUMBER, "keiri"));
+        gate.renew(T_NUMBER, "keiri", uint64(block.timestamp + 30 days));
+        vm.stopPrank();
+        assertEq(_text("keiri.t2011001234567.payee.eth", "description").v, "");
+
+        vm.warp(block.timestamp + 30 days);
+        assertEq(_text("zeirishi.t2011001234567.payee.eth", "description").v, "", "expired after 30 days");
+        assertEq(
+            _text(AP, "description").v,
+            unicode"AP agent of 株式会社メイギ商事 (fictional demo company)"
+        );
+    }
+
+    function test_ForkADisputeDarkensAndAResetStartsOver() public {
+        _openAttachIssue();
+        vm.prank(ATTESTER);
+        ILivePayeeRegistry(address(PAYEES)).fileDispute(T_NUMBER, makeAddr("claimant"), keccak256("evidence"));
+        assertEq(_text(AP, "description").v, "", "dark while disputed");
+        vm.prank(MEIGI);
+        ILivePayeeRegistry(address(PAYEES)).dismissDispute(T_NUMBER);
+        assertEq(
+            _text(AP, "description").v,
+            unicode"AP agent of 株式会社メイギ商事 (fictional demo company)"
+        );
+
+        // Meigi resets the namespace: the old names stop answering even while the old registry is still attached.
+        vm.prank(MEIGI);
+        gate.reset(T_NUMBER);
+        assertEq(_text(AP, "description").v, "");
+        vm.prank(CONTROLLER);
+        address fresh = gate.open(T_NUMBER);
+        vm.prank(MEIGI);
+        IClaimsRegistry(CLAIMS).setSubregistry(uint256(keccak256("t2011001234567")), fresh);
+        _issue("ap", taxAccountant, 0, "a new holder, in a new namespace");
+        assertEq(_text(AP, "description").v, "a new holder, in a new namespace");
+    }
+
+    function test_ForkLookalikeLabelsAreRefused() public {
+        _openAttachIssue();
         CompanyNamespace.Name memory n = _name("t8999900000001", agent, 0, "look-alike");
         vm.prank(CONTROLLER);
         vm.expectRevert(abi.encodeWithSelector(CompanyNamespace.InvalidLabel.selector, "t8999900000001"));
         gate.issue(T_NUMBER, n);
     }
 
-    function _openAndAttach() internal returns (address ns) {
+    function _openAttachIssue() internal returns (address apRecords) {
         vm.prank(CONTROLLER);
-        ns = gate.open(T_NUMBER);
-        vm.prank(DEPLOYER);
+        address ns = gate.open(T_NUMBER);
+        vm.prank(MEIGI);
         IClaimsRegistry(CLAIMS).setSubregistry(uint256(keccak256("t2011001234567")), ns);
-        assertEq(IClaimsRegistry(CLAIMS).getSubregistry("t2011001234567"), ns);
+        apRecords =
+            _issue("ap", agent, 0, unicode"AP agent of 株式会社メイギ商事 (fictional demo company)");
+        _issue("keiri", accounts, 0, "Accounts department (fictional demo company)");
+        _issue(
+            "zeirishi", taxAccountant, uint64(block.timestamp + 30 days), "Outside tax accountant (fictional)"
+        );
     }
 
     function _issue(string memory label, address holder, uint64 expiry, string memory description)
@@ -147,32 +175,34 @@ contract CompanyNamespaceForkTest is Test {
         n.holder = holder;
         n.expiry =
             expiry == 0 ? IEnsV2Registry(CLAIMS).getExpiry(uint256(keccak256("t2011001234567"))) : expiry;
-        n.keys = new string[](1);
-        n.values = new string[](1);
+        n.keys = new string[](3);
+        n.values = new string[](3);
         n.keys[0] = "description";
         n.values[0] = description;
-        n.holderKeys = new string[](1);
-        n.holderKeys[0] = "agent-status";
+        n.keys[1] = "agent-status";
+        n.values[1] = "online";
+        n.keys[2] = "agent-endpoint[web]";
+        n.values[2] = "https://meigi.karanbishttt.workers.dev/registry/T2011001234567";
+    }
+
+    struct Text {
+        string v;
+        address used;
+    }
+
+    function _text(string memory name, string memory key) internal view returns (Text memory t) {
+        bytes memory out;
+        (out, t.used) = UR.resolve(_dns(name), abi.encodeWithSelector(TEXT, vm.ensNamehash(name), key));
+        t.v = abi.decode(out, (string));
     }
 
     function _addr(string memory name) internal view returns (address) {
-        (bytes memory out,) = UR.resolve(_encode(name), abi.encodeWithSelector(ADDR, vm.ensNamehash(name)));
+        (bytes memory out,) = UR.resolve(_dns(name), abi.encodeWithSelector(ADDR, vm.ensNamehash(name)));
         return abi.decode(out, (address));
     }
 
-    function _text(string memory name, string memory key) internal view returns (string memory) {
-        (bytes memory out,) =
-            UR.resolve(_encode(name), abi.encodeWithSelector(TEXT, vm.ensNamehash(name), key));
-        return abi.decode(out, (string));
-    }
-
-    function _dns(string memory label) internal pure returns (bytes memory) {
-        return
-            bytes.concat(bytes1(uint8(bytes(label).length)), bytes(label), hex"0e", "t2011001234567", PARENT);
-    }
-
     /// @dev DNS-encodes a dotted name.
-    function _encode(string memory name) internal pure returns (bytes memory out) {
+    function _dns(string memory name) internal pure returns (bytes memory out) {
         bytes memory s = bytes(name);
         uint256 start;
         for (uint256 i; i <= s.length; ++i) {
