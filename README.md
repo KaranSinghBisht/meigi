@@ -83,14 +83,16 @@ the vault reverts `PayeeMismatch` and names the registered company.
 
 ## Sponsor integrations
 
-- **ENS (ENSv2, Sepolia).** `payee.eth` is registered on both Sepolia ENSv2 deployments with
-  [`PayeeResolver`](contracts/src/ens/PayeeResolver.sol) as its resolver and no subregistry. The resolver
-  implements ENSIP-10 `resolve(name, data)` and answers from the registry at call time, so millions of
-  T-numbers resolve without minting a single subname. Registration scripts:
-  [`contracts/script/ens`](contracts/script/ens).
-  - The AP agent has its own namespace, `ap.meigi.eth` (ENSv2 subregistry plus a PermissionedResolver).
-  - It carries the ENSIP-26 agent records.
-  - Its key can edit only `agent-status` (Enhanced Access Control).
+- **ENS (ENSv2, Sepolia): two namespaces as verifiable identity and delegated authority.**
+  - `payee.eth` names companies. [`PayeeResolver`](contracts/src/ens/PayeeResolver.sol) answers every
+    `t<13 digits>.payee.eth` from the registry at call time (ENSIP-10), so millions of T-numbers resolve without
+    minting. A company can also claim its name as an ENSv2 token for its own profile; its payout still comes from
+    the registry.
+  - `meigi.eth` names agents. `ap.meigi.eth` is the AP agent, with ENSIP-26 records. Its key can edit only
+    `agent-status` (Enhanced Access Control), and it is the AgentVault's ENSIP-19 primary name.
+  - The names survive changing keys. Payouts and business keys change behind a 72h public timelock, and
+    `ens.sh agent-rotate` moves the agent to a new key without changing `ap.meigi.eth` (fork-tested).
+  - Anyone can check them with stock viem and no configuration. Scripts: [`contracts/script/ens`](contracts/script/ens).
 - **World ID (IDKit 4.0).**
   - An officer enrolls once with an IDKit session.
   - A payout change needs `proveSession` from the same human, with a signal that binds chain, registry,
