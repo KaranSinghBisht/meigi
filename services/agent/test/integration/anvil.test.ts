@@ -191,7 +191,7 @@ describe.skipIf(!hasFoundry())("agent against the real contracts on anvil", () =
     expect(paid).toMatchObject({ status: "paid", forced: false, payTo: MEIGI_PAYOUT, amount: "¥55,000" });
     const receipt = await reader.getTransactionReceipt({ hash: paid.txHash as Hex });
     const [event] = parseEventLogs({ abi: agentVaultAbi, eventName: "InvoicePaid", logs: receipt.logs });
-    expect(event?.args).toMatchObject({ payout: MEIGI_PAYOUT, amount: yen(55_000), invoiceRef: invoiceRefOf("2011001234567", "MS-2026-0926") });
+    expect(event?.args).toMatchObject({ payout: MEIGI_PAYOUT, amount: yen(55_000), invoiceRef: invoiceRefOf("2011001234567", "MS-2026-0931") });
   });
 
   it("the signer's own ceiling: above it, nothing is signed without a fresh human approval", async () => {
