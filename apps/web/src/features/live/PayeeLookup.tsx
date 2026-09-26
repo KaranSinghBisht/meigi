@@ -78,7 +78,7 @@ function LookupResult({ state, errorId }: { readonly state: ResolveState; readon
 }
 
 /**
- * "Check a payee": a T-number in, what any ENS-aware wallet sees for t<digits>.payee.eth out (stock viem through
+ * "Check a payee": a T-number in, what a standard ENS client sees for t<digits>.payee.eth out (stock viem through
  * Sepolia's Universal Resolver). Self-contained, so it can sit in any section; the parent sets its width.
  */
 export function PayeeLookup({ label = 'Check a payee' }: { readonly label?: string }) {

@@ -38,9 +38,9 @@ export const CHECKS: readonly Check[] = [
     links: [{ label: 'Open 株式会社メイギ商事', href: `/registry/${FIXTURE}` }],
   },
   {
-    title: 'Resolve it in any ENS client',
+    title: 'Resolve it on ENS',
     proves:
-      't2011001234567.payee.eth resolves to that payout in stock viem or any ENS app, with no Meigi code, and the agent has its own name.',
+      "t2011001234567.payee.eth resolves to that payout on ENS, in stock viem and in ENS's own app, with no Meigi code, and the agent has its own name.",
     status: <EnsStatus />,
     links: [
       { label: 't2011001234567.payee.eth on app.ens.dev', href: `${ENS_APP}/t2011001234567.payee.eth` },

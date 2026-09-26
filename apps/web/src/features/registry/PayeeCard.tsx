@@ -74,7 +74,7 @@ function ensNote(check: EnsCheck, active: boolean): { text: string; tone: NoteTo
   if (check === 'checking') return { text: 'checking ENS…', tone: 'muted' }
   if (check === 'error') return { text: 'ENS lookup failed', tone: 'muted' }
   if (active) {
-    if (check === 'match') return { text: '✓ resolves to this payout in any ENS client', tone: 'ok' }
+    if (check === 'match') return { text: '✓ resolves to this payout on ENS (checked with stock viem)', tone: 'ok' }
     if (check === 'none') return { text: 'not resolving yet', tone: 'muted' }
     return { text: 'resolves to a different address', tone: 'bad' }
   }

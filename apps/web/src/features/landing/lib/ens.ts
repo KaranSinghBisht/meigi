@@ -1,4 +1,4 @@
-// Resolves t<13 digits>.payee.eth the way any ENS-aware wallet does: stock viem against Sepolia's default Universal
+// Resolves t<13 digits>.payee.eth the way a standard ENS client does: stock viem against Sepolia's default Universal
 // Resolver, which hands the name to Meigi's PayeeResolver, which answers from the registry at lookup time. This
 // module pulls in viem, so UI code loads it with a dynamic import.
 
@@ -77,7 +77,7 @@ export interface IssuedEnsName {
 }
 
 /**
- * The issued name `name` as any ENS client reads it, or null when it isn't one or doesn't answer right now (then it
+ * The issued name `name` as stock viem reads it, or null when it isn't one or doesn't answer right now (then it
  * publishes nothing). Its company comes from the parent payee name, which the registry answers.
  */
 export async function resolveIssued(rpcUrl: string, name: string): Promise<IssuedEnsName | null> {

@@ -1,6 +1,6 @@
 // Names a company issued under its payee name, through CompanyNamespace on the Sepolia ENSv2 Beta: each label's
 // holder and expiry, whether it answers right now, and what it publishes (its ENSIP-27 class, description and
-// agent-status), read with stock viem the way any ENS client would. An issued name is text-only: it has no address,
+// agent-status), read with stock viem, as a standard ENS client does. An issued name is text-only: it has no address,
 // so it can never be paid. Also whether the AgentVault obeys one of them: its agent is a MandateGate for that name.
 
 import { agentVaultAbi, mandateGateAbi } from '@meigi/abi'

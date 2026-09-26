@@ -126,7 +126,7 @@ export function RegisteredScreen() {
             <span className="mono">{ONBOARD.ens}</span> → <span className="mono">{ONBOARD.payoutShort}</span>
           </p>
           <p className="onb__resolves" data-d="onb-resolves" data-enter="">
-            ✓ Resolves in any ENS client
+            ✓ Resolves on ENS (checked with stock viem)
           </p>
         </div>
       </div>

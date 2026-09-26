@@ -13,7 +13,7 @@ function EnsCheck({ ens, payout }: { readonly ens: string; readonly payout: HexA
     return (
       <p className="ens-check" role="status">
         <span className="ens-check__ok">
-          <span aria-hidden="true">✓</span> Resolves in any ENS client
+          <span aria-hidden="true">✓</span> Resolves on ENS (checked with stock viem)
         </span>
         <span className="ens-check__detail">Checked live on Sepolia with a stock ENS lookup.</span>
       </p>
