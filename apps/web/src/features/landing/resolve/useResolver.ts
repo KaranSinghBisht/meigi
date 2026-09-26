@@ -1,41 +1,39 @@
 import { useCallback, useRef, useState } from 'react'
-import type { ChainFailure, PayeeLookup } from '../lib/registry'
+import type { EnsFailure, EnsPayee } from '../lib/ens'
 import { parseTNumber, type ParsedTNumber } from '../../../lib/chain/tNumber'
-import { landingConfig as env, type RegistryConfig } from '../lib/config'
+import { landingConfig as env } from '../lib/config'
 
-export type ActivePayee = Extract<PayeeLookup, { kind: 'active' }>
+export type ActivePayee = Extract<EnsPayee, { kind: 'active' }>
 
-/** Why a lookup failed: the chain module didn't load, or the chain read failed. */
-export type ResolveFailure = ChainFailure | 'load'
+/** Why a lookup failed: the ENS module didn't load, Sepolia was unreachable, or ENS answered oddly. */
+export type ResolveFailure = EnsFailure | 'load'
 
 export type ResolveState =
   | { readonly status: 'idle' }
   | { readonly status: 'invalid' }
-  | { readonly status: 'undeployed'; readonly target: ParsedTNumber }
   | { readonly status: 'loading'; readonly target: ParsedTNumber }
   | { readonly status: 'active'; readonly target: ParsedTNumber; readonly payee: ActivePayee }
-  | { readonly status: 'disputed'; readonly target: ParsedTNumber; readonly changePendingUntil: Date | null }
+  | { readonly status: 'disputed'; readonly target: ParsedTNumber }
   | { readonly status: 'missing'; readonly target: ParsedTNumber }
   | { readonly status: 'error'; readonly target: ParsedTNumber; readonly reason: ResolveFailure }
 
-async function lookup(registry: RegistryConfig, target: ParsedTNumber): Promise<ResolveState> {
-  let chain: typeof import('../lib/registry')
+/** Resolves the T-number's ENS name (t<digits>.payee.eth) with stock viem, as any wallet would. */
+async function lookup(rpcUrl: string, target: ParsedTNumber): Promise<ResolveState> {
+  let ens: typeof import('../lib/ens')
   try {
-    chain = await import('../lib/registry')
+    ens = await import('../lib/ens')
   } catch (error) {
     reportError(error)
     return { status: 'error', target, reason: 'load' }
   }
   try {
-    const result = await chain.lookupPayee(registry, target.value)
+    const result = await ens.resolvePayee(rpcUrl, target.ens)
     if (result.kind === 'active') return { status: 'active', target, payee: result }
-    if (result.kind === 'disputed') {
-      return { status: 'disputed', target, changePendingUntil: result.changePendingUntil }
-    }
+    if (result.kind === 'disputed') return { status: 'disputed', target }
     return { status: 'missing', target }
   } catch (error) {
     reportError(error)
-    return { status: 'error', target, reason: chain.classifyChainError(error) }
+    return { status: 'error', target, reason: ens.classifyEnsError(error) }
   }
 }
 
@@ -48,10 +46,8 @@ export function useResolver() {
     const request = ++latest.current
     const target = parseTNumber(input)
     if (!target) return setState({ status: 'invalid' })
-    const registry = env.registry
-    if (!registry) return setState({ status: 'undeployed', target })
     setState({ status: 'loading', target })
-    const next = await lookup(registry, target)
+    const next = await lookup(env.registry.rpcUrl, target)
     if (request === latest.current) setState(next)
   }, [])
 

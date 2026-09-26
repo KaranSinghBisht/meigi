@@ -9,7 +9,7 @@ const dateFormat = new Intl.DateTimeFormat('en-GB', {
 
 const FAILURE_TEXT: Record<ResolveFailure, string> = {
   network: "Couldn't reach Sepolia. Try again in a moment.",
-  registry: 'The registry gave an unexpected answer. Check the configured network and address.',
+  ens: "ENS didn't give a usable answer for this name. Try again in a moment.",
   load: "Couldn't load the resolver. Refresh the page and try again.",
 }
 
@@ -26,20 +26,23 @@ function Active({ payee, ens }: { readonly payee: ActivePayee; readonly ens: str
         <span className="resolve__mark" aria-hidden="true">
           ✓
         </span>
-        <span>{payee.legalName}</span>
+        <span className="resolve__legal" lang="ja">
+          {payee.legalName}
+        </span>
         <span className="resolve__badge">active</span>
       </p>
       <p className="resolve__caption">Pays to</p>
       <p className="resolve__address">
         <code>{payee.payout}</code>
       </p>
-      <p className="resolve__meta">{ens}</p>
+      <p className="resolve__meta">{ens} · via ENS</p>
       <PendingChange until={payee.changePendingUntil} />
     </div>
   )
 }
 
-function Disputed({ ens, until }: { readonly ens: string; readonly until: Date | null }) {
+/** ENS publishes only the status of a disputed payee: neither claimant's name, and no address. */
+function Disputed({ ens }: { readonly ens: string }) {
   return (
     <div className="resolve__card">
       <p className="resolve__name">
@@ -48,8 +51,7 @@ function Disputed({ ens, until }: { readonly ens: string; readonly until: Date |
         </span>
         <span>Disputed: payments frozen</span>
       </p>
-      <p className="resolve__meta">{ens}</p>
-      <PendingChange until={until} />
+      <p className="resolve__meta">{ens} resolves to no address while the dispute is open.</p>
     </div>
   )
 }
@@ -71,23 +73,17 @@ export function ResolveResult({ state, errorId }: ResolveResultProps) {
           Use T followed by 13 digits, like T2011001234567.
         </p>
       )
-    case 'undeployed':
-      return (
-        <p className="resolve__note">
-          The registry isn't deployed yet, so {state.target.ens} can't be resolved. It goes live with the Sepolia
-          deployment.
-        </p>
-      )
     case 'loading':
       return <p className="resolve__note">Resolving {state.target.ens}…</p>
     case 'active':
       return <Active payee={state.payee} ens={state.target.ens} />
     case 'disputed':
-      return <Disputed ens={state.target.ens} until={state.changePendingUntil} />
+      return <Disputed ens={state.target.ens} />
     case 'missing':
       return (
         <p className="resolve__note resolve__note--missing">
-          <strong>Not registered.</strong> No payout address is bound to {state.target.display}.
+          <strong>Not registered.</strong> {state.target.ens} resolves to no address: nothing is bound to{' '}
+          {state.target.display}.
         </p>
       )
     case 'error':

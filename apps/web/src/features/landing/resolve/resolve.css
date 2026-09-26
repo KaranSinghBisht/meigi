@@ -132,6 +132,11 @@
   font-weight: var(--weight-strong);
 }
 
+/* A long company name breaks between phrases (Chromium), never leaving one kana alone on a line. */
+.landing .resolve__legal {
+  word-break: auto-phrase;
+}
+
 .landing .resolve__mark {
   display: inline-grid;
   flex: none;

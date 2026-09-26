@@ -2,31 +2,10 @@
 // viem, so UI code loads it with a dynamic import.
 
 import { payeeRegistryAbi } from '@meigi/abi'
-import { BaseError, HttpRequestError, TimeoutError, createPublicClient, getAbiItem, http } from 'viem'
+import { createPublicClient, getAbiItem, http } from 'viem'
 import { sepolia } from 'viem/chains'
-import type { HexAddress, RegistryConfig } from './config'
+import type { RegistryConfig } from './config'
 
-/** IPayeeRegistry.Status */
-const STATUS = { none: 0, active: 1, disputed: 2 } as const
-
-/**
- * What the resolver may show. Only an active payee exposes its name and
- * payout; a queued payout change surfaces as a date, never as an address.
- */
-export type PayeeLookup =
-  | {
-      readonly kind: 'active'
-      readonly legalName: string
-      readonly payout: HexAddress
-      readonly changePendingUntil: Date | null
-    }
-  | { readonly kind: 'disputed'; readonly changePendingUntil: Date | null }
-  | { readonly kind: 'not-registered' }
-
-/** Network trouble, or a registry that answered wrongly (wrong chain, address or ABI). */
-export type ChainFailure = 'network' | 'registry'
-
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 const LOG_CHUNK = 10_000n
 const MAX_LOG_CHUNKS = 60n
 
@@ -70,35 +49,6 @@ function verifyRegistry(client: RegistryClient, config: RegistryConfig): Promise
   // A failed check is retried on the next call instead of being cached.
   check.catch(() => verified.delete(key))
   return check
-}
-
-export function classifyChainError(error: unknown): ChainFailure {
-  if (error instanceof RegistryMismatchError) return 'registry'
-  if (error instanceof BaseError) {
-    const offline = error.walk((cause) => cause instanceof HttpRequestError || cause instanceof TimeoutError)
-    return offline ? 'network' : 'registry'
-  }
-  return 'network'
-}
-
-function pendingUntil(pending: HexAddress, effectiveAt: bigint): Date | null {
-  if (pending === ZERO_ADDRESS || effectiveAt === 0n) return null
-  return new Date(Number(effectiveAt) * 1000)
-}
-
-export async function lookupPayee(config: RegistryConfig, tNumber: bigint): Promise<PayeeLookup> {
-  const client = clientFor(config)
-  await verifyRegistry(client, config)
-  const payee = await client.readContract({
-    address: config.address,
-    abi: payeeRegistryAbi,
-    functionName: 'payeeOf',
-    args: [tNumber],
-  })
-  const changePendingUntil = pendingUntil(payee.pending, payee.effectiveAt)
-  if (payee.status === STATUS.disputed) return { kind: 'disputed', changePendingUntil }
-  if (payee.status !== STATUS.active || payee.payout === ZERO_ADDRESS) return { kind: 'not-registered' }
-  return { kind: 'active', legalName: payee.legalName, payout: payee.payout, changePendingUntil }
 }
 
 async function logsInRange(client: RegistryClient, config: RegistryConfig, from: bigint, to: bigint) {

@@ -1,5 +1,4 @@
 import { useId, useState, type FormEvent, type RefObject } from 'react'
-import { landingConfig as env } from '../lib/config'
 import { ResolveResult } from './ResolveResult'
 import { usePopover } from './usePopover'
 import { useResolver, type ResolveState } from './useResolver'
@@ -49,9 +48,7 @@ function ResolvePanel({ id, panelRef, inputRef, state, onResolve }: PanelProps) 
           </button>
         </div>
         <p id={hintId} className="resolve__hint">
-          {env.registry
-            ? 'T + 13 digits · reads payeeOf on Sepolia'
-            : "T + 13 digits · the registry isn't deployed yet"}
+          T + 13 digits · resolved through ENS on Sepolia
         </p>
       </form>
       <div className="resolve__result" aria-live="polite">
@@ -61,7 +58,7 @@ function ResolvePanel({ id, panelRef, inputRef, state, onResolve }: PanelProps) 
   )
 }
 
-/** "Resolve a T-number": a frosted popover that reads payeeOf from the registry. */
+/** "Resolve a T-number": a frosted popover that resolves t<digits>.payee.eth through ENS, like any wallet. */
 export function ResolvePopover() {
   const { state, resolve, reset } = useResolver()
   const { open, toggle, trigger, panel, input } = usePopover(reset)
