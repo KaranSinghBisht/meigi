@@ -89,7 +89,7 @@ export interface Milestone {
 
 export const ROADMAP: readonly Milestone[] = [
   { id: 'jp', name: 'Japan first', detail: 'T-number, 5.8M corporations', status: 'now' },
-  { id: 'lei', name: 'LEI', detail: 'The global Legal Entity Identifier', status: 'in progress' },
+  { id: 'lei', name: 'LEI', detail: 'The global Legal Entity Identifier; lookup live', status: 'in progress' },
   { id: 'eu', name: 'EU VAT', detail: 'VIES', status: 'next' },
   { id: 'uk', name: 'UK', detail: 'Companies House', status: 'next' },
   { id: 'in', name: 'India', detail: 'GSTIN', status: 'next' },
@@ -105,4 +105,12 @@ export const WHY_NOW = [
     title: 'Payee checks are becoming law',
     body: 'Verification of Payee has been mandatory in the EU since October 2025.',
   },
+] as const
+
+export const LEI_NOTE =
+  "LEI lookup live: our verifier checks any company's LEI against GLEIF, and links Japanese ones to their T-number (Sony Group → T5010401067252)."
+
+export const LEI_EXAMPLES = [
+  { label: 'Sony Group', lei: '529900R5WX9N2OI2N910' },
+  { label: 'Toyota Motor Asia (Singapore)', lei: '2549007SWUPLDICDFN48' },
 ] as const

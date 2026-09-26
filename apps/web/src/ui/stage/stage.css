@@ -36,20 +36,21 @@
   transform: scale(1.14);
 }
 
+/* Every shift stays inside the scale's overflow, so the still world never shows an edge. */
 .scene-layer[data-station='lake'] .scene-still {
-  transform: translateY(-12vh) scale(1.08);
+  transform: translateY(-8vh) scale(1.2);
 }
 
 .scene-layer[data-station='shore'] .scene-still {
-  transform: translateX(6vw) scale(1.06);
+  transform: translateX(5vw) scale(1.14);
 }
 
 .scene-layer[data-station='torii'] .scene-still {
-  transform: translateX(-6vw) scale(1.06);
+  transform: translateX(-5vw) scale(1.14);
 }
 
 .scene-layer[data-station='sky'] .scene-still {
-  transform: translateY(14vh) scale(0.96);
+  transform: translateY(8vh) scale(1.2);
 }
 
 /* Moods on the still world: a wash over the scene, eased in and out. The live stage tints itself instead. */

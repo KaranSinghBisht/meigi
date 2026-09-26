@@ -85,6 +85,12 @@ const CODES: Record<string, Omit<Explained, 'tone'> & { tone?: Tone }> = {
     detail: 'Nothing was paid. Try again shortly.',
   },
   approval_not_found: { title: 'The agent has no approval request for this invoice.', detail: 'Ask again.' },
+  invalid_lei: {
+    title: "That LEI's check digits don't match.",
+    detail: 'An LEI is 20 characters; the last two check the rest.',
+  },
+  lei_not_found: { title: 'GLEIF has no record of this LEI.' },
+  lei_unavailable: { title: "GLEIF isn't answering right now.", detail: 'Try again in a moment.' },
   approval_busy: { title: 'Too many approvals are waiting right now.', detail: 'Try again in a minute.' },
   approval_too_soon: { title: 'An approval for this invoice was just started.', detail: 'Try again in a few seconds.' },
   approval_not_approved: {

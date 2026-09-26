@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
 import { Badge } from '../../ui/components/Badge'
-import { PRODUCTS, ROADMAP, TIERS, WHY_NOW, type Milestone, type Product } from './content'
+import { LEI_NOTE, PRODUCTS, ROADMAP, TIERS, WHY_NOW, type Milestone, type Product } from './content'
 import './business.css'
 
 function ProductCard({ product, index }: { readonly product: Product; readonly index: number }) {
@@ -81,6 +81,7 @@ export function Roadmap() {
           </li>
         ))}
       </ol>
+      <p className="biz-roadmap__note">{LEI_NOTE}</p>
     </section>
   )
 }
