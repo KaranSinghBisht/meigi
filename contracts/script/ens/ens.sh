@@ -7,6 +7,8 @@
 #   claimed names: claim-deploy | claim-attach | claim | claim-profile | claim-check | claim-revoke |
 #                  claim-detach (rollback)
 #   payout wallets: payout-name (the payee's name as the wallet's primary name)
+#   company names: ns-deploy | ns-fund | ns-open | ns-attach | ns-issue | ns-primary | ns-check |
+#                  ns-detach (rollback). Names a company issues under its payee name (CompanyNamespace).
 # Transactions are only simulated unless BROADCAST=1. Keys and the RPC URL come from the environment or
 # meigi/.env and never appear on a command line; tool output is redacted. See README.md.
 set -euo pipefail
@@ -37,7 +39,7 @@ load_dotenv() {
     value="${BASH_REMATCH[3]}"
     [[ $key =~ ^(SEPOLIA_RPC_URL|(DEPLOYER|ATTESTER|PAYEE|ENS)_[A-Z0-9_]+|VAULT_OWNER_(PRIVATE_KEY|ADDRESS))$ ||
       $key == DEMO_VENDOR_CONTROLLER_PRIVATE_KEY || $key =~ ^DEMO_[A-Z]+_PAYOUT_PRIVATE_KEY$ ||
-      $key =~ $agent_vars ]] || continue
+      $key =~ $agent_vars || $key =~ ^NS_(AP|KEIRI|ZEIRISHI)_(PRIVATE_KEY|ADDRESS)$ ]] || continue
     if [[ -n ${!key:-} ]]; then continue; fi
     if [[ $value =~ $quoted ]]; then
       value="${BASH_REMATCH[1]}"
@@ -86,6 +88,9 @@ setup() {
   # there is also a valid Sepolia transaction.
   if [[ ${SKIP_DOTENV:-0} != 1 && -f $dotenv ]] && ! is_local "${RPC_URL:-}"; then load_dotenv "$dotenv"; fi
   if [[ ${SKIP_DOTENV:-0} != 1 && -f $signer_env ]] && ! is_local "${RPC_URL:-}"; then load_dotenv "$signer_env"; fi
+  # The keys of the demo company's issued names (its AP agent, accounts, tax accountant) live in .env.names.
+  local names_env="${DOTENV_NAMES:-$CONTRACTS/../.env.names}"
+  if [[ ${SKIP_DOTENV:-0} != 1 && -f $names_env ]] && ! is_local "${RPC_URL:-}"; then load_dotenv "$names_env"; fi
   ENS_DEPLOYMENT="${ENS_DEPLOYMENT:-beta}" # the official Beta: what default ENS clients resolve
   [[ $ENS_DEPLOYMENT =~ ^[a-z0-9_-]+$ && -f $HERE/deployments/$ENS_DEPLOYMENT.env ]] ||
     die "unknown ENS_DEPLOYMENT '$ENS_DEPLOYMENT' (see $HERE/deployments)"
@@ -113,10 +118,10 @@ check_rpc() {
 # Gives each command only the key it signs with.
 scope_keys() {
   case "$1" in
-    check | agent-check | claim-check)
+    check | agent-check | claim-check | ns-check)
       unset DEPLOYER_PRIVATE_KEY ATTESTER_PRIVATE_KEY AGENT_PRIVATE_KEY VAULT_OWNER_PRIVATE_KEY
       ;;
-    claim-profile)
+    claim-profile | ns-open | ns-issue)
       # The demo company's key is its registry controller (DEMO_VENDOR_CONTROLLER in .env).
       if [[ -z ${COMPANY_PRIVATE_KEY:-} && -n ${DEMO_VENDOR_CONTROLLER_PRIVATE_KEY:-} ]]; then
         export COMPANY_PRIVATE_KEY="$DEMO_VENDOR_CONTROLLER_PRIVATE_KEY"
@@ -127,6 +132,10 @@ scope_keys() {
     seed)
       require_key ATTESTER_PRIVATE_KEY
       unset DEPLOYER_PRIVATE_KEY AGENT_PRIVATE_KEY VAULT_OWNER_PRIVATE_KEY
+      ;;
+    ns-primary)
+      require_key NS_AP_PRIVATE_KEY
+      unset DEPLOYER_PRIVATE_KEY ATTESTER_PRIVATE_KEY AGENT_PRIVATE_KEY VAULT_OWNER_PRIVATE_KEY
       ;;
     agent-status)
       require_key AGENT_PRIVATE_KEY
@@ -157,7 +166,9 @@ scope_keys() {
       unset ATTESTER_PRIVATE_KEY AGENT_PRIVATE_KEY VAULT_OWNER_PRIVATE_KEY COMPANY_PRIVATE_KEY
       ;;
   esac
-  if [[ $1 != claim-profile ]]; then unset COMPANY_PRIVATE_KEY; fi
+  if [[ $1 != claim-profile && $1 != ns-open && $1 != ns-issue ]]; then unset COMPANY_PRIVATE_KEY; fi
+  if [[ $1 != ns-primary ]]; then unset NS_AP_PRIVATE_KEY; fi
+  unset NS_KEIRI_PRIVATE_KEY NS_ZEIRISHI_PRIVATE_KEY
   if [[ $1 != payout-name ]]; then unset PAYOUT_PRIVATE_KEY; fi
   unset DEMO_VENDOR_CONTROLLER_PRIVATE_KEY
   local demo
@@ -253,10 +264,12 @@ main() {
     vault-name) ;;
     claim-deploy | claim-attach | claim-detach | claim | claim-profile | claim-check | claim-revoke) ;;
     payout-name) ;;
+    ns-deploy | ns-fund | ns-open | ns-attach | ns-issue | ns-primary | ns-check | ns-detach) ;;
     *) die "usage: ens.sh <command>; see the header of this file" ;;
   esac
   setup
-  if [[ ($cmd == agent-* || $cmd == vault-name || $cmd == claim* || $cmd == payout-name) && $ENS_DEPLOYMENT != beta ]]; then
+  if [[ ($cmd == agent-* || $cmd == vault-name || $cmd == claim* || $cmd == payout-name || $cmd == ns-*) &&
+    $ENS_DEPLOYMENT != beta ]]; then
     die "$cmd targets the Beta (ENS_DEPLOYMENT=beta)"
   fi
   scope_keys "$cmd"
@@ -297,6 +310,8 @@ main() {
       (unset PAYOUT_PRIVATE_KEY && forge_script script/ens/PayoutName.s.sol --sig "fund()")
       (unset DEPLOYER_PRIVATE_KEY && forge_script script/ens/PayoutName.s.sol --sig "name()")
       ;;
+    ns-check) (cd "$CONTRACTS" && forge script script/ens/CompanyNames.s.sol --sig "check()") 2>&1 | redact ;;
+    ns-*) forge_script script/ens/CompanyNames.s.sol --sig "${cmd#ns-}()" ;;
   esac
 }
 
