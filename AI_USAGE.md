@@ -47,7 +47,7 @@ section).
   and security and coding rules for all code.
 - **Handled** accounts, keys and funds: the World Developer Portal, Cloudflare, Sepolia ETH and the Intercepta
   key request.
-- **Tested** the demos; Karan records the demo video.
+- **Tested** the demos, and recorded the demo video: Karan recorded the screen takes and the voiceover in his own voice.
 
 ## Reviews
 
