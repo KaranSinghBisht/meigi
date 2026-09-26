@@ -7,8 +7,16 @@ payout address. Anything that pays through Meigi can only reach that address.
 |---|---|
 | `registry/PayeeRegistry.sol` | T-number → payout address. An attester (the Meigi verifier) registers a company after NTA, domain and World ID checks. Every change that could move money waits out a public timelock (`changeDelay`: set at deploy, 72h on Sepolia and Awaji; the contract enforces at least 1 hour) and can be cancelled. A second claim freezes the payee as *disputed*; it is never overwritten. |
 | `registry/OfficerQuorum.sol` | Attesters, per-company officer sets (World ID 4.0 session ids, hashed) and EIP-712 officer approvals bound to payee + action + target + nonce. |
+| `registry/IPayeeRegistry.sol` | The registry's read side (a payee's status, controller and payout) that the resolvers, the vault, the router and the gate read. |
+| `registry/TNumber.sol` | T-numbers: `T` + 13 digits, stored as the digits in a `uint64`. The verifier checks the check digit. |
 | `ens/PayeeResolver.sol` | ENSIP-10 wildcard resolver: `t2011001234567.payee.eth` resolves to the active payout. It only answers names directly under its configured parent. Disputed or unknown payees resolve to zero (fail closed), and a disputed payee publishes only its status and two pointers (`meigi.tNumber`, `meigi.registry`), never a name or a payout. Text records: `name`, `meigi.tNumber`, `meigi.status`, `meigi.changePending`, `meigi.effectiveAt`, `meigi.registry`. |
+| `ens/ClaimedPayeeResolver.sol` | Resolver for a payee name a company has claimed as an ENSv2 token: `addr`, `name` and `meigi.*` come from PayeeResolver (the registry), and other texts from the company's own PermissionedResolver, shown only while it's active under the key that claimed the name. |
+| `ens/CompanyNamespace.sol` | A claimed company issues text-only names under its payee name (`ap.t2011001234567.payee.eth`) in its own ENSv2 registry, one PermissionedResolver each. A name answers only while the payee is active and the key that issued it is still its controller. Meigi's brake can block, freeze or reset. |
+| `ens/CompanyNameRules.sol` | The rules for issued names: ENSIP-15-normal `[a-z0-9]` labels with single inner hyphens and no run of 13 digits, reserved text keys, and the parser that splits a name into its T-number and label. |
+| `ens/IEnsV2.sol` | The ENSv2 Beta contracts CompanyNamespace drives: VerifiableFactory, UserRegistry and PermissionedResolver. |
+| `payments/PayeeGuard.sol` | The one check every payment path shares: money only goes to the registry's active payout. |
 | `payments/AgentVault.sol` | The wallet an AI accounts-payable agent spends from. The agent's key can only `payInvoice` an owner-approved vendor, after a vendor delay, within caps, to the payout the owner approved (`approveVendor` takes the reviewed address explicitly), which must also be the registry's current payout. A swapped address reverts `PayeeMismatch`. A registry change reverts `VendorPayoutChanged` until the owner re-approves. |
+| `payments/MandateGate.sol` | The vault's agent on Sepolia: passes `payInvoice` on only while the buyer's ENS mandate (`ap.t4999900000005.payee.eth`) answers and the caller holds it. The vault still checks every payment. |
 | `payments/PayRouter.sol` | A stateless "pay by T-number" for any wallet. |
 | `token/MockJPYC.sol` | A testnet stand-in for JPYC: 18 decimals, EIP-2612, EIP-3009 with `bytes` and `v,r,s` forms, EOA/7702/1271 signers. Used only if the official Sepolia faucet is dry. |
 
@@ -43,9 +51,13 @@ payout address. Anything that pays through Meigi can only reach that address.
 
 ```sh
 forge build
-forge test          # 138 tests, including fuzzing the core guarantee and regression tests for the review rounds;
-                    # the CompanyNamespace fork test runs only with an RPC
+forge test                         # without an RPC the 2 fork suites skip
+SEPOLIA_RPC_URL=<rpc> forge test   # with them, against live Sepolia state
 ```
+
+Tests (recount with `forge test | tail -1`): **156 passed, 2 skipped** without an RPC; **164 passed** with one, 8 of
+them fork tests (`CompanyNamespaceFork`, `MandateGateFork`). They include fuzzing the core guarantee and regression
+tests for the review rounds.
 
 Dependencies are git submodules: OpenZeppelin v5.4.0 and forge-std v1.16.2 (see `foundry.lock`).
 ABIs for TypeScript consumers are exported to `packages/abi` by `script/export-abi.sh`.
