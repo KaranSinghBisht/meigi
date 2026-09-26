@@ -28,6 +28,7 @@ const JOBS: readonly Job[] = [
     path: "/compute/minato/inference/compromised",
   },
   { label: "A public web-scrape API with no Meigi record", method: "GET", path: "/web/scrape/undeclared" },
+  { label: "Another public web-scrape API, paying an address screening already flags", method: "GET", path: "/web/scrape/undeclared-flagged" },
 ];
 
 export interface ScenarioStep {
