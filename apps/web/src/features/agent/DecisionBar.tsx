@@ -61,7 +61,7 @@ function PayButtons({ analysis, ...controls }: PayControls & { readonly analysis
     <div className="decision__actions">
       {hold && approvable && enabled ? (
         <Button size="lg" busy={busyAsking} disabled={locked && !busyAsking} onClick={() => void approval.ask()}>
-          Ask a verified human to approve
+          Ask a human to approve with World ID
         </Button>
       ) : (
         <Button
@@ -75,8 +75,8 @@ function PayButtons({ analysis, ...controls }: PayControls & { readonly analysis
       )}
       {hold && approvable && !enabled ? (
         <p className="decision__note">
-          A verified human could approve this hold, but this agent has no World ID for Agents client configured, so it
-          stays held.
+          A human could approve this hold through World ID for Agents, but this agent has no World ID for Agents client
+          configured, so it stays held.
         </p>
       ) : null}
       {attackDemoFits(analysis) ? (

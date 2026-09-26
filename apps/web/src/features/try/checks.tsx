@@ -52,7 +52,7 @@ export const CHECKS: readonly Check[] = [
   },
   {
     title: 'A company registered by World ID officers',
-    proves: 'Verified humans enrolled as its officers, and any payout change waits 72 hours in public before it lands.',
+    proves: 'Its officers enrolled with World ID, and any payout change waits 72 hours in public before it lands.',
     status: <OfficersStatus />,
     links: [{ label: `Open ${OFFICER_RUN}`, href: `/registry/${OFFICER_RUN}` }],
   },
@@ -72,7 +72,7 @@ export const CHECKS: readonly Check[] = [
   {
     title: 'Settlements, indexed by Curvegrid MultiBaas',
     proves:
-      "Every payment Meigi's contracts settle, read from MultiBaas's event index. The same contracts run on Mizuhiki (Awaji) too.",
+      "Every payment Meigi's contracts have settled since block 11,783,796, when we linked them, read from MultiBaas's event index. The same contracts run on Mizuhiki (Awaji) too.",
     status: <SettlementsStatus />,
     links: [
       { label: 'Payments received by 株式会社メイギ商事', href: `/registry/${FIXTURE}` },

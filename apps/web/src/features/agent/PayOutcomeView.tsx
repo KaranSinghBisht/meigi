@@ -19,7 +19,7 @@ interface PaidViewProps {
 }
 
 function kicker(outcome: Paid, approved: boolean): string {
-  if (approved) return 'Approved by a verified human, then paid'
+  if (approved) return 'Approved by a human through World ID for Agents, then paid'
   return outcome.forced ? 'Forced, and the chain still only paid the registered payout' : 'Paid'
 }
 
@@ -46,12 +46,12 @@ function PaidView({ outcome, analysis, approved }: PaidViewProps) {
   )
 }
 
-/** Force never pays: a hold only a verified human may release is answered calmly, not as an attack. */
+/** Force never pays: a hold only a human's World ID approval may release is answered calmly, not as an attack. */
 function NeedsHuman({ analysis }: { readonly analysis: Analysis }) {
   const { enabled, approvable } = analysis.approval
   return (
-    <Notice tone="info" title="Only a verified human can release this hold; forcing can't.">
-      <p>Nothing was paid.{enabled && approvable ? ' Use “Ask a verified human to approve” instead.' : ''}</p>
+    <Notice tone="info" title="Only a human approving through World ID can release this hold; forcing can't.">
+      <p>Nothing was paid.{enabled && approvable ? ' Use “Ask a human to approve with World ID” instead.' : ''}</p>
     </Notice>
   )
 }

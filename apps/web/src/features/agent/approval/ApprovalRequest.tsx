@@ -36,7 +36,7 @@ export function ApprovalRequest({ attempt, holds, lostContact, onCancel }: Appro
       <div className="approval__body">
         <p className="eyebrow">World ID for Agents</p>
         <h3 id="approval-title" className="approval__title">
-          Waiting for a verified human to approve this payment
+          Waiting for a human to approve this payment with World ID
         </h3>
         <p className="approval__lede">
           Scan with {app}, then approve with a fresh World ID proof. Nothing is paid until then.

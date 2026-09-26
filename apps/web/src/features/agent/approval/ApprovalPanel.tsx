@@ -34,7 +34,7 @@ function ApprovedNotice({ flow }: { readonly flow: Approved }) {
   return (
     <Notice
       tone="success"
-      title={`Approved by a verified human: fresh World ID proof${when}.`}
+      title={`Approved by a human through World ID for Agents: a fresh proof${when}.`}
       action={<HankoMark size={52} glyphs="承認" tone="jade" className="approval__stamp" />}
     >
       {flow.approver === 'enrolled' ? <p>First approval: this human is now the enrolled approver.</p> : null}

@@ -36,14 +36,14 @@ export const PRODUCTS: readonly Product[] = [
   {
     kanji: '支払',
     name: 'Meigi AP Agent',
-    body: 'For SMEs paying invoices in stablecoins: triage, a verified human for doubtful payments, and on-chain enforcement.',
+    body: "For SMEs paying invoices in stablecoins: triage, a human's World ID approval for doubtful payments, and on-chain enforcement.",
     model: 'Per company + per invoice',
     demo: { to: '/agent', label: 'Try the agent console' },
   },
   {
     kanji: '学習',
     name: 'Custom triage models',
-    body: 'We fine-tune a small model on your own AP history, and it runs on your hardware. For example, our 0.8B beat a 70B LLM on payment-fraud triage at 39 ms, trained in 39 minutes on a MacBook.',
+    body: 'We fine-tune a small model on your own AP history, and it runs on your hardware. For example, our 0.8B model beat Llama 3.3 70B on the held-out templates of our own benchmark (PayeeBench-JA), at 39 ms p50, trained in 39 minutes on a MacBook.',
     model: 'Setup + annual license',
   },
 ]
@@ -103,12 +103,12 @@ export const ROADMAP: readonly Milestone[] = [
 export const WHY_NOW = [
   {
     title: 'Stablecoins are paying businesses',
-    body: 'Stablecoin B2B payments are arriving, and JPYC is licensed in Japan.',
+    body: 'Stablecoin B2B payments are arriving, and JPYC is registered in Japan as a fund-transfer provider.',
   },
   { title: 'Agents pay for themselves', body: 'AI agents already pay for APIs and data on their own, over x402.' },
   {
     title: 'Payee checks are becoming law',
-    body: 'Verification of Payee has been mandatory in the EU since October 2025.',
+    body: 'Verification of Payee has been mandatory in the euro area since October 2025.',
   },
 ] as const
 
