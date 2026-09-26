@@ -98,8 +98,9 @@ async function reverted(deps: AppDeps, stored: StoredAnalysis, raw: RawRevert, f
     decimals,
     nameOf: async (tNumber) => registeredName(await deps.chain.payee(tNumber)),
   });
-  const explanation = await explainOutcome(deps.llm, stored.view.kernel, stored.verdict, error);
-  return { status: "reverted", broadcast: txHash !== undefined, ...(txHash ? { txHash } : {}), forced, error, explanation };
+  const broadcast = txHash !== undefined; // only a mined transaction was refused on-chain
+  const explanation = await explainOutcome(deps.llm, stored.view.kernel, stored.verdict, error, broadcast);
+  return { status: "reverted", broadcast, ...(txHash ? { txHash } : {}), forced, error, explanation };
 }
 
 function held(stored: StoredAnalysis, reasons: Reason[]): PayResult {

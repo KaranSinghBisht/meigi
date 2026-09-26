@@ -21,12 +21,13 @@ export async function explainOutcome(
   kernel: KernelResult,
   verdict: Verdict,
   revert: DecodedRevert | null = null,
+  broadcast = false, // a revert of a transaction that was sent and mined; otherwise the refusal was in simulation
 ): Promise<Explanation> {
-  const template = templateText(kernel, verdict, revert);
+  const template = templateText(kernel, verdict, revert, broadcast);
   if (verdict.decision === "pay" && !revert) return { source: "template", text: template };
   if (!llm) return { source: "template", text: template };
   try {
-    const text = await llm.explain(factsOf(kernel, verdict, revert));
+    const text = await llm.explain(factsOf(kernel, verdict, revert, broadcast));
     return { source: "llm", text, model: llm.model };
   } catch (error) {
     if (!(error instanceof LlmError)) {
@@ -37,7 +38,7 @@ export async function explainOutcome(
   }
 }
 
-export function factsOf(kernel: KernelResult, verdict: Verdict, revert: DecodedRevert | null): ExplanationFacts {
+export function factsOf(kernel: KernelResult, verdict: Verdict, revert: DecodedRevert | null, broadcast = false): ExplanationFacts {
   return {
     decision: revert ? "reverted" : verdict.decision,
     payee: {
@@ -47,13 +48,14 @@ export function factsOf(kernel: KernelResult, verdict: Verdict, revert: DecodedR
     },
     payment: { payTo: kernel.intent?.payTo ?? null, amount: kernel.intent?.amount.display ?? null },
     reasons: verdict.reasons.slice(0, 6).map((r) => ({ code: r.code, message: r.message })),
-    revert: revert ? { name: revert.name, sentence: revert.sentence } : null,
+    revert: revert ? { name: revert.name, sentence: revert.sentence, broadcast } : null,
   };
 }
 
 /** The deterministic fallback, and the text used when every check passed. */
-export function templateText(kernel: KernelResult, verdict: Verdict, revert: DecodedRevert | null): string {
-  if (revert) return `The chain refused the payment: ${revert.sentence}`;
+export function templateText(kernel: KernelResult, verdict: Verdict, revert: DecodedRevert | null, broadcast = false): string {
+  if (revert && broadcast) return `The vault refused the payment on-chain: ${revert.sentence}`;
+  if (revert) return `The vault refused the payment (in simulation; nothing was sent): ${revert.sentence}`;
   const intent = kernel.intent;
   if (verdict.decision === "pay" && intent && kernel.payee) {
     const label = payeeLabel(kernel.payee.tNumber, kernel.payee.legalName);

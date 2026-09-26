@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { describe, expect, it } from "vitest";
 import { createAnthropicLlm } from "../src/llm/anthropic.js";
+import { EXPLAIN_SYSTEM } from "../src/llm/prompts.js";
 import { LlmError, type ExplanationFacts, type Proposal } from "../src/llm/types.js";
 import { createWorkersAiLlm } from "../src/llm/workers-ai.js";
 import { LOOKALIKE } from "./fakes.js";
@@ -19,7 +20,7 @@ const facts: ExplanationFacts = {
   payee: { tNumber: "T2011001234567", legalName: "株式会社メイギ商事", registeredPayout: "0xa1c4Da602D3048DD7D0E9A8E1cf5a90419945C3b" },
   payment: { payTo: LOOKALIKE, amount: "¥88,000" },
   reasons: [{ code: "payout_mismatch", message: "..." }],
-  revert: { name: "PayeeMismatch", sentence: "..." },
+  revert: { name: "PayeeMismatch", sentence: "...", broadcast: false },
 };
 
 /** A Messages API reply, as the Anthropic SDK receives it over fetch. */
@@ -101,5 +102,14 @@ describe("Workers AI provider", () => {
     expect(await workersWith({ result: { response: " Held. " } }).llm.explain(facts)).toBe("Held.");
     await expect(workersWith({ result: { response: "no json here" } }).llm.propose("x")).rejects.toBeInstanceOf(LlmError);
     await expect(workersWith({ errors: [] }, 500).llm.explain(facts)).rejects.toMatchObject({ code: "http_500" });
+  });
+});
+
+describe("the explanation prompt", () => {
+  it("never lets a refusal in simulation be called on-chain", () => {
+    expect(EXPLAIN_SYSTEM).toContain("held, refused by the vault, or paid");
+    expect(EXPLAIN_SYSTEM).toContain('"broadcast": false');
+    expect(EXPLAIN_SYSTEM).toContain("(in simulation; nothing was sent)");
+    expect(EXPLAIN_SYSTEM).not.toContain("refused on-chain or paid");
   });
 });

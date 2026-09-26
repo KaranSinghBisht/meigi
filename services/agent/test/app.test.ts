@@ -110,6 +110,10 @@ describe("POST /invoices/:id/pay", () => {
     });
     expect(deps.payer.simulated[0]?.expectedPayout).toBe(SCAMMER);
     expect(deps.payer.sent).toEqual([]);
+    // nothing reached the chain, so the explanation must not say it was refused on-chain
+    expect(forced.body.explanation.text).toBe(
+      "The vault refused the payment (in simulation; nothing was sent): T2011001234567 = 株式会社メイギ商事 pays 0x9B4f…47e4; this invoice asked for 0xdCa5…6d5b.",
+    );
   });
 
   it("never pays a credit note, even when forced", async () => {
@@ -177,6 +181,7 @@ describe("with a gullible LLM agent", () => {
     const forced = await call("POST", `/invoices/${body.id}/pay`, { force: true });
     expect(forced.body.error.sentence).toBe("T2011001234567 = 株式会社メイギ商事 pays 0x9B4f…47e4; this invoice asked for 0xdCa5…6d5b.");
     expect(forced.body.explanation).toMatchObject({ source: "llm", text: "LLM explanation (reverted)" });
+    expect(llm.explained.at(-1)?.revert).toMatchObject({ name: "PayeeMismatch", broadcast: false }); // the model is told it was a simulation
     expect(deps.payer.sent).toEqual([]);
   });
 

@@ -18,7 +18,7 @@ export interface ExplanationFacts {
   payee: { tNumber: string | null; legalName: string | null; registeredPayout: string | null };
   payment: { payTo: string | null; amount: string | null }; // no invoice number: that is document text
   reasons: { code: string; message: string }[];
-  revert: { name: string; sentence: string } | null;
+  revert: { name: string; sentence: string; broadcast: boolean } | null; // broadcast false: refused in simulation, nothing sent
 }
 
 export interface LlmPort {

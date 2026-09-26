@@ -67,6 +67,7 @@ describe("sent transactions are never lost or resent (M3)", () => {
     const analysis = await analyze(demo("01-routine-invoice.ja.txt"));
     const { body } = await call("POST", `/invoices/${analysis.id}/pay`);
     expect(body).toMatchObject({ status: "reverted", broadcast: true, txHash: "0xfeed1", error: { name: "TransactionReverted" } });
+    expect(body.explanation.text).toMatch(/^The vault refused the payment on-chain: /u); // mined, so on-chain is true
   });
 
   it("reports a simulated revert as not broadcast", async () => {
