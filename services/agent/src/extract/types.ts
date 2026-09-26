@@ -21,6 +21,7 @@ export type FlagCode =
   | "hidden_payment_details"
   | "html_markup"
   | "bidi_control"
+  | "lookalike_digits"
   | "no_bill_wording"
   | "zero_address"
   | "prompt_injection_suspected"

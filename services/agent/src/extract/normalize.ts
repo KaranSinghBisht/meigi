@@ -10,6 +10,7 @@
 const INVISIBLE = /[­​-‍⁠-⁤﻿︀-️\u{E0000}-\u{E007F}\u{E0100}-\u{E01EF}]/gu;
 // Bidirectional overrides ("Trojan Source"): they reorder what a human sees without changing the bytes.
 const BIDI = /[‎‏‪-‮⁦-⁩]/gu;
+const NON_ASCII = /[^\x00-\x7F]/gu;
 // An opening tag that hides its content: display:none, visibility:hidden, font-size:0, opacity:0, white text,
 // or the `hidden` attribute. Bounded so hostile input stays linear.
 const HIDDEN_TAG =
@@ -21,6 +22,7 @@ export interface Normalized {
   hidden: string; // what was removed from `visible`
   hiddenMarkers: string[]; // human-readable descriptions of hidden content, if any
   bidiControls: number; // reorder what a person sees, so the displayed text may not be what extraction reads
+  lookalikeDigits: string[]; // superscript, circled and similar digits found (each replaced by a space)
 }
 
 export function normalizeText(raw: string): Normalized {
@@ -29,13 +31,26 @@ export function normalizeText(raw: string): Normalized {
   const bidi = raw.match(BIDI)?.length ?? 0;
   if (invisible > 0) hiddenMarkers.push(`${invisible} invisible character${invisible === 1 ? "" : "s"}`);
   if (bidi > 0) hiddenMarkers.push(`${bidi} bidirectional control character${bidi === 1 ? "" : "s"}`);
-  const text = raw.replace(INVISIBLE, "").replace(BIDI, "").normalize("NFKC").replace(/\r\n?/gu, "\n");
+  const found = new Set<string>();
+  // Before NFKC, which would turn ¹ ① ₁ into ASCII digits that silently join an amount (¥13,200¹ → ¥132,001).
+  const safe = raw.replace(INVISIBLE, "").replace(BIDI, "").replace(NON_ASCII, (ch) => (lookalikeDigit(ch) ? (found.add(ch), " ") : ch));
+  const text = safe.normalize("NFKC").replace(/\r\n?/gu, "\n");
   const comments = cut(text, commentSpans(text));
   const elements = cut(comments.kept, hiddenElementSpans(comments.kept));
   if (comments.removed.length > 0) hiddenMarkers.push("an HTML comment");
   if (elements.removed.length > 0) hiddenMarkers.push("an element styled to be invisible");
   const hidden = [...comments.removed, ...elements.removed].join("\n");
-  return { text, visible: elements.kept, hidden, hiddenMarkers, bidiControls: bidi };
+  return { text, visible: elements.kept, hidden, hiddenMarkers, bidiControls: bidi, lookalikeDigits: [...found] };
+}
+
+/**
+ * A character NFKC turns into an ASCII digit: superscripts, subscripts, circled, parenthesised and full-stop digits,
+ * fractions, mathematical digits. Full-width ０-９ (U+FF10-FF19) are ordinary Japanese typing and stay.
+ */
+function lookalikeDigit(ch: string): boolean {
+  const cp = ch.codePointAt(0) ?? 0;
+  if (cp >= 0xff10 && cp <= 0xff19) return false;
+  return /[0-9]/u.test(ch.normalize("NFKC"));
 }
 
 type Span = [start: number, end: number];

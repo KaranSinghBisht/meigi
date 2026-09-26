@@ -45,6 +45,10 @@ export function extractInvoice(raw: string): Extracted {
   if (normalized.bidiControls > 0) {
     flags.push(block("bidi_control", "The document contains bidirectional control characters: what a reader sees may differ from what is read here."));
   }
+  if (normalized.lookalikeDigits.length > 0) {
+    const message = "The document uses superscript, circled or similar digits, which can change an amount without looking like it: treated as tampering.";
+    flags.push({ ...block("lookalike_digits", message), evidence: normalized.lookalikeDigits.join(" ") });
+  }
   return {
     kind,
     tNumbers: t.tNumbers,
