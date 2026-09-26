@@ -12,11 +12,20 @@ tripping through our verifier — most of it spent on the two friction points be
 - **Session flows reject presets.** IDKit's own example for `createSession` uses a preset, but a session
   request with one is refused: "Presets are not supported for session flows. Use `.constraints()` instead." The
   docs example needed correcting before anything else would work.
-- **The staging simulator can't complete a 4.0 session.** `simulator.worldcoin.org` fetches our request from
-  the bridge (200 OK) and then sits on a loading screen; it never offers a fake identity to confirm. A request
-  older than a few minutes shows "Invalid or expired QR code" instead. The simulator's own banner says it "will
-  change with the adoption of World ID 4.0" — so as of this build, session-based 4.0 flows can't be tested
-  end-to-end without a real phone running the World ID app.
+- **The staging simulator can't complete a 4.0 session — re-tested same-day as a possible phone-free booth
+  backup, ruled out.** We didn't want to assume this had stayed true, so we re-ran it fresh: a brand-new
+  `IDKit.createSession(...)` connector URI, straight from the verifier's own `session.ts` (same `WORLD_APP_ID`/
+  `WORLD_RP_ID` the live app uses, `environment: "staging"`), pasted into simulator.worldcoin.org's own "Paste
+  code" flow. Both attempts fail client-side, immediately, with `Invalid QR code` thrown inside the simulator's
+  own `performVerification` — before it makes any network request at all (nothing to `verify` or any World
+  endpoint shows in the browser's network log). So this isn't a stale-QR or a hung-bridge issue; the simulator's
+  own link parser rejects a session-mode request outright. Its banner is unchanged: "This simulator will change
+  with the adoption of World ID 4.0." **Conclusion: no simulator-based, phone-free booth backup exists today.**
+  We didn't add a `--staging --simulator` path to `world-live.sh`, since that would document something that
+  doesn't work. The only credential paths that work today are a phone running World ID (production) or the
+  World ID Sandbox app (staging/sandbox) — and Sandbox is itself still phone-app-based, not a desktop stand-in,
+  and this team's own Sandbox access isn't fully unblocked yet (Android invite pending, iOS needs an email-based
+  portal account). Session-based 4.0 flows still can't be tested end-to-end without one of those two real apps.
 - **`rp_context` field naming drifts from the signing helper.** The helper that signs our request context
   outputs a field the verify step expects under a different name (`signature` vs. `sig`); we normalize both on
   read (`RpContextWire` accepts either) rather than betting on one name staying stable.
