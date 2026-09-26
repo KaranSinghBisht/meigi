@@ -19,6 +19,8 @@ export interface AppEnv {
   readonly registryFromBlock: bigint
   readonly vault: HexAddress
   readonly token: HexAddress
+  /** CompanyNamespace: the gate through which a company issues text-only names under its payee name. */
+  readonly companyNamespace: HexAddress
   readonly worldAppId: `app_${string}`
   readonly worldEnvironment: WorldEnvironment
   readonly worldRpId: string | null
@@ -56,6 +58,8 @@ const DEFAULTS = {
   registryFromBlock: 11781105n,
   vault: deployed('vault'),
   token: deployed('token'),
+  // contracts/script/ens/deployments/beta.env (COMPANY_NAMESPACE), on the Sepolia ENSv2 Beta.
+  companyNamespace: '0x7ECaD5Fd6892270F09D91aB296786186C5bC660A',
   worldAppId: 'app_30048059325fb60b495b43dd2fe67ae0',
   worldEnvironment: 'staging',
 } as const
@@ -121,6 +125,7 @@ function readEnv(raw: ImportMetaEnv): AppEnv {
     ),
     vault: pick('VITE_VAULT_ADDRESS', raw.VITE_VAULT_ADDRESS, DEFAULTS.vault, address),
     token: pick('VITE_TOKEN_ADDRESS', raw.VITE_TOKEN_ADDRESS, DEFAULTS.token, address),
+    companyNamespace: pick('VITE_COMPANY_NAMESPACE', raw.VITE_COMPANY_NAMESPACE, DEFAULTS.companyNamespace, address),
     worldAppId: pick('VITE_WORLD_APP_ID', raw.VITE_WORLD_APP_ID, DEFAULTS.worldAppId, appId),
     worldEnvironment: pick('VITE_WORLD_ENVIRONMENT', raw.VITE_WORLD_ENVIRONMENT, DEFAULTS.worldEnvironment, worldEnv),
     worldRpId: pick<string | null>('VITE_WORLD_RP_ID', raw.VITE_WORLD_RP_ID, null, rpId),

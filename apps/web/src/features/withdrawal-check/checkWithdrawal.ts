@@ -10,7 +10,7 @@ import { getAddress, isAddress } from 'viem'
 import { readPayee, resolveEnsAddress, type PayeeSnapshot } from '../../lib/chain/registry'
 import type { ParsedTNumber } from '../../lib/chain/tNumber'
 import { env, type HexAddress } from '../../lib/env/env'
-import { resolvePayee, type EnsPayee } from '../landing/lib/ens'
+import { resolveIssued, resolvePayee, type EnsPayee, type IssuedEnsName } from '../landing/lib/ens'
 
 /** The one network the registry vouches for. */
 const NETWORK = 'eip155:11155111'
@@ -36,6 +36,8 @@ export type Verdict =
       /** Where the customer asked to send it (null when a name didn't resolve). Never presented as correct. */
       readonly asked: HexAddress | null
       readonly reason: MismatchReason
+      /** When the name that didn't resolve is one a company issued (text-only: never a payee, no address). */
+      readonly issued?: IssuedEnsName
     }
   | { readonly kind: 'unregistered'; readonly target: ParsedTNumber }
   | { readonly kind: 'pending'; readonly target: ParsedTNumber; readonly legalName: string; readonly landsAt: Date }
@@ -82,7 +84,11 @@ export async function checkWithdrawal(target: ParsedTNumber, destination: Destin
   const { legalName } = snapshot
   if (snapshot.payoutChangeLandsAt) return { kind: 'pending', target, legalName, landsAt: snapshot.payoutChangeLandsAt }
   const payout = snapshot.payout ?? ZERO
-  if (!asked) return { kind: 'mismatch', target, legalName, payout, asked: null, reason: 'unresolved' }
+  if (!asked) {
+    const issued = destination.kind === 'name' ? await resolveIssued(env.rpcUrl, destination.name) : null
+    const unresolved = { kind: 'mismatch', target, legalName, payout, asked: null, reason: 'unresolved' } as const
+    return issued ? { ...unresolved, issued } : unresolved
+  }
   const verdict = await checkPayee(
     guardDeps(snapshot, target, ens),
     { tNumber: target.display, ens: target.ens },

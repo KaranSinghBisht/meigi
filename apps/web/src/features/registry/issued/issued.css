@@ -1,0 +1,43 @@
+/* Names a company issued under its payee name: one row per name, divided by the window's hairlines. */
+.issued {
+  margin-top: 24px;
+}
+
+.issued__lede {
+  color: var(--ink-soft);
+}
+
+.issued__list {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.issued__row {
+  display: grid;
+  gap: 6px;
+  padding: 16px 0;
+}
+
+.issued__name {
+  overflow-wrap: anywhere;
+}
+
+.issued__facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+
+.issued__text {
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+
+.issued__mandate {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-strong);
+}

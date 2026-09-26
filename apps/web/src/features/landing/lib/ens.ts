@@ -62,6 +62,37 @@ export async function resolvePayee(rpcUrl: string, name: string): Promise<EnsPay
   return { kind: 'active', legalName, payout, changePendingUntil: pendingUntil(pending, effectiveAt) }
 }
 
+/** A name a company issued under its payee name, e.g. ap.t2011001234567.payee.eth. */
+const ISSUED = /^([a-z0-9-]+)\.t(\d{13})\.payee\.eth$/
+
+/** An issued name that answers: text-only, so it is never a payee and has no address. */
+export interface IssuedEnsName {
+  readonly name: string
+  /** ENSIP-27, as the name publishes it: "Agent", "Workgroup" or "Person". */
+  readonly nameClass: string | null
+  /** The issuing company's registered name, from its payee name; null if that doesn't answer. */
+  readonly company: string | null
+  /** The issuing company's T-number, e.g. T2011001234567. */
+  readonly tNumber: string
+}
+
+/**
+ * The issued name `name` as any ENS client reads it, or null when it isn't one or doesn't answer right now (then it
+ * publishes nothing). Its company comes from the parent payee name, which the registry answers.
+ */
+export async function resolveIssued(rpcUrl: string, name: string): Promise<IssuedEnsName | null> {
+  const digits = ISSUED.exec(name)?.[2]
+  if (!digits) return null
+  const client = clientFor(rpcUrl)
+  const [nameClass, description, company] = await Promise.all([
+    client.getEnsText({ name, key: 'class' }),
+    client.getEnsText({ name, key: 'description' }),
+    client.getEnsText({ name: `t${digits}.payee.eth`, key: 'name' }),
+  ])
+  if (!nameClass && !description) return null
+  return { name, nameClass: nameClass ?? null, company: company ?? null, tNumber: `T${digits}` }
+}
+
 export function classifyEnsError(error: unknown): EnsFailure {
   if (error instanceof BaseError) {
     const offline = error.walk((cause) => cause instanceof HttpRequestError || cause instanceof TimeoutError)

@@ -5,6 +5,7 @@ import { Panel } from '../../ui/components/Panel'
 import { Spinner } from '../../ui/components/Spinner'
 import { SettlementsPanel } from '../settlements/SettlementsPanel'
 import { EventFeed } from './EventFeed'
+import { IssuedNames } from './issued/IssuedNames'
 import { PayeeCard } from './PayeeCard'
 import { PayeeFinder } from './PayeeFinder'
 import { StaleNote } from './StaleNote'
@@ -93,9 +94,12 @@ export default function RegistryPage() {
         <FeedPanel feed={feed} />
       </div>
       {current && !invalid ? (
-        <div className="registry__settlements">
-          <SettlementsPanel key={current} tNumber={current} title="Payments received · via MultiBaas" />
-        </div>
+        <>
+          <IssuedNames key={current} tNumber={current} />
+          <div className="registry__settlements">
+            <SettlementsPanel key={current} tNumber={current} title="Payments received · via MultiBaas" />
+          </div>
+        </>
       ) : null}
     </div>
   )

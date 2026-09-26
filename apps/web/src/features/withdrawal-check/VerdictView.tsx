@@ -3,6 +3,7 @@ import { formatJst } from '../../lib/chain/format'
 import { Address } from '../../ui/components/Address'
 import { Badge, type BadgeTone } from '../../ui/components/Badge'
 import { Countdown } from '../../ui/components/Countdown'
+import type { IssuedEnsName } from '../landing/lib/ens'
 import type { Destination, MismatchReason, Verdict } from './checkWithdrawal'
 
 const WHY: Record<MismatchReason, string> = {
@@ -10,6 +11,9 @@ const WHY: Record<MismatchReason, string> = {
   unresolved: "The name the customer gave doesn't resolve to an address.",
   ens: "ENS doesn't agree with the registry right now. Hold, and check the payee before anything else.",
 }
+
+/** Who an issued name was issued to, by its ENSIP-27 class. */
+const ISSUED_TO: Record<string, string> = { Agent: 'to its agent', Workgroup: 'to one of its teams', Person: 'to a person' }
 
 function Row({ label, children }: { readonly label: string; readonly children: ReactNode }) {
   return (
@@ -36,6 +40,17 @@ interface FrameProps {
 }
 
 /** One status chip, one sentence saying what to do, then the facts behind it. */
+/** "A name 株式会社メイギ商事 issued to its agent. It isn't a payee and has no address." */
+function IssuedWhy({ issued }: { readonly issued: IssuedEnsName }) {
+  const to = issued.nameClass ? ISSUED_TO[issued.nameClass] : undefined
+  return (
+    <>
+      A name {issued.company ? <Name>{issued.company}</Name> : <span className="mono nowrap">{issued.tNumber}</span>}{' '}
+      issued{to ? ` ${to}` : ''}. It isn&apos;t a payee and has no address.
+    </>
+  )
+}
+
 function Frame({ tone, chip, lead, children }: FrameProps) {
   return (
     <div className="withdrawal__verdict">
@@ -89,7 +104,7 @@ function Mismatch({ verdict, destination }: MismatchProps) {
       <Row label="Its ENS name">
         <span className="mono nowrap">{verdict.target.ens}</span>
       </Row>
-      <Row label="Why">{WHY[verdict.reason]}</Row>
+      <Row label="Why">{verdict.issued ? <IssuedWhy issued={verdict.issued} /> : WHY[verdict.reason]}</Row>
     </Frame>
   )
 }

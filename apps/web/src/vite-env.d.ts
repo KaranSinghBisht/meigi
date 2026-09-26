@@ -8,6 +8,7 @@ interface ImportMetaEnv {
   readonly VITE_REGISTRY_ADDRESS?: string
   readonly VITE_REGISTRY_FROM_BLOCK?: string
   readonly VITE_VAULT_ADDRESS?: string
+  readonly VITE_COMPANY_NAMESPACE?: string
   readonly VITE_TOKEN_ADDRESS?: string
   readonly VITE_WORLD_APP_ID?: string
   readonly VITE_WORLD_ENVIRONMENT?: string
