@@ -17,13 +17,7 @@ export function Hero({ appUrl, onEnter, onStamp }: HeroProps) {
     <div className="hero">
       <div className="hero__top">
         <p className="hero__byline">
-          <span className="hero__names">
-            <span className="hero__name">Karan Singh Bisht</span> ·{' '}
-            <span className="hero__name">Adithya Prasanna Suriya Prakash</span>
-          </span>
-          <span className="hero__event">
-            <span className="hero__dash"> — </span>ETHGlobal Tokyo 2026
-          </span>
+          <span className="hero__event">ETHGlobal Tokyo 2026</span>
         </p>
         <h1 className="hero__wordmark" data-cursor="press" onPointerDown={stamp}>
           meigi.

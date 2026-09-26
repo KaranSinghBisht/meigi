@@ -43,10 +43,6 @@
   text-shadow: 0 1px 12px rgba(255, 244, 240, 0.7);
 }
 
-.landing .hero__name {
-  white-space: nowrap;
-}
-
 .landing .hero__wordmark {
   margin: 0;
   padding-right: 0.05em;
@@ -168,10 +164,6 @@
 
   .landing .hero__byline > span {
     display: block;
-  }
-
-  .landing .hero__dash {
-    display: none;
   }
 
   .landing .vlabel {
