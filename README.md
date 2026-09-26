@@ -166,6 +166,9 @@ The details:
   - **Friction:** `POST /contracts/{label}` needs `bin`, although the API reference marks it optional. Without it
     the answer is a 400: `null value in column "bytecode" of relation "contracts" violates not-null constraint`.
     Sending `bin: ""` works; it is stored as `0x`.
+  - **Friction:** `GET /events` ignores its `tx_hash` filter: it answers `[]` for a transaction MultiBaas has
+    indexed, so our settlement lookup reads a saved query instead. Event queries also return a `bytes32` as its
+    bytes, `"[218, 200, …]"`, while `GET /events` returns hex.
   - **Friction:** the free plan backfills 100 blocks and keeps events for 72 hours. History from before the link
     has to come from RPC logs, which is why `GET /payments` merges the two.
   - **Top improvement:** make `bin` optional in practice, or document it as required. And let a plan backfill a
