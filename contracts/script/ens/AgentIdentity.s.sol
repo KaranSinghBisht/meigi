@@ -5,14 +5,7 @@ import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 import {Script, console} from "forge-std/Script.sol";
 import {AgentConfig, IPermissionedResolver, IUserRegistry} from "./AgentNs.sol";
 import {EnsV2Lib} from "./EnsV2.sol";
-
-/// @dev The ERC-8004 IdentityRegistry: each agent is an ERC-721 token whose URI is its registration file.
-interface IAgentIdentityRegistry {
-    function register(string calldata agentURI) external returns (uint256 agentId);
-    function unsetAgentWallet(uint256 agentId) external;
-    function ownerOf(uint256 agentId) external view returns (address);
-    function tokenURI(uint256 agentId) external view returns (string memory);
-}
+import {Ensip25, IAgentIdentityRegistry} from "./Ensip25.sol";
 
 /// @notice Registers the AP agent in the ERC-8004 IdentityRegistry and links it to ap.meigi.eth, as ENSIP-25 describes.
 ///         The two sides point at each other:
@@ -24,8 +17,6 @@ interface IAgentIdentityRegistry {
 /// @dev Env: DEPLOYER_PRIVATE_KEY (or, on a fork, the unlocked DEPLOYER_ADDRESS), AGENT_RESOLVER (for link()),
 ///      AGENT_8004_ID (for link()). Optional: ERC8004_IDENTITY_REGISTRY (the Sepolia v2.0.0 deployment).
 contract AgentIdentity is Script {
-    address private constant SEPOLIA_REGISTRY = 0x8004A818BFB912233c491871b3d84c89A494BD9e;
-
     function register() external {
         IAgentIdentityRegistry agents = _registry();
         string memory uri = registrationUri();
@@ -64,23 +55,7 @@ contract AgentIdentity is Script {
 
     /// @notice ENSIP-25's key: `agent-registration[<registry as an ERC-7930 address>][<agentId>]`.
     function registrationKey(address registry, uint256 agentId) public view returns (string memory) {
-        return
-            string.concat(
-                "agent-registration[", vm.toString(erc7930(registry)), "][", vm.toString(agentId), "]"
-            );
-    }
-
-    /// @notice ERC-7930 interoperable address: version 1, chain type 0 (eip155), then the chain id and the address,
-    ///         each length-prefixed. On Sepolia: 0x0001 0000 03 aa36a7 14 <20 bytes>.
-    function erc7930(address account) public view returns (bytes memory) {
-        bytes memory chain = abi.encodePacked(block.chainid);
-        uint256 start;
-        while (start < chain.length - 1 && chain[start] == 0) start++;
-        bytes memory chainRef = new bytes(chain.length - start);
-        for (uint256 i; i < chainRef.length; i++) {
-            chainRef[i] = chain[start + i];
-        }
-        return abi.encodePacked(uint16(1), uint16(0), uint8(chainRef.length), chainRef, uint8(20), account);
+        return Ensip25.registrationKey(registry, agentId);
     }
 
     /// @notice The ERC-8004 registration file, fully on-chain as a data: URI. Its ENS service is the agent's name.
@@ -104,6 +79,6 @@ contract AgentIdentity is Script {
     }
 
     function _registry() private view returns (IAgentIdentityRegistry) {
-        return IAgentIdentityRegistry(vm.envOr("ERC8004_IDENTITY_REGISTRY", SEPOLIA_REGISTRY));
+        return Ensip25.registry();
     }
 }

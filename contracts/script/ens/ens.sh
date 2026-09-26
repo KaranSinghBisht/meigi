@@ -7,8 +7,8 @@
 #   claimed names: claim-deploy | claim-attach | claim | claim-profile | claim-check | claim-revoke |
 #                  claim-detach (rollback)
 #   payout wallets: payout-name (the payee's name as the wallet's primary name)
-#   company names: ns-deploy | ns-fund | ns-open | ns-attach | ns-issue | ns-primary | ns-check |
-#                  ns-detach (rollback). Names a company issues under its payee name (CompanyNamespace).
+#   company names: ns-deploy | ns-fund | ns-agent | ns-open | ns-attach | ns-issue | ns-status | ns-check |
+#                  ns-detach (rollback). Text-only names a company issues under its payee name (CompanyNamespace).
 # Transactions are only simulated unless BROADCAST=1. Keys and the RPC URL come from the environment or
 # meigi/.env and never appear on a command line; tool output is redacted. See README.md.
 set -euo pipefail
@@ -121,7 +121,7 @@ scope_keys() {
     check | agent-check | claim-check | ns-check)
       unset DEPLOYER_PRIVATE_KEY ATTESTER_PRIVATE_KEY AGENT_PRIVATE_KEY VAULT_OWNER_PRIVATE_KEY
       ;;
-    claim-profile | ns-open | ns-issue)
+    claim-profile | ns-agent | ns-open | ns-issue)
       # The demo company's key is its registry controller (DEMO_VENDOR_CONTROLLER in .env).
       if [[ -z ${COMPANY_PRIVATE_KEY:-} && -n ${DEMO_VENDOR_CONTROLLER_PRIVATE_KEY:-} ]]; then
         export COMPANY_PRIVATE_KEY="$DEMO_VENDOR_CONTROLLER_PRIVATE_KEY"
@@ -133,7 +133,7 @@ scope_keys() {
       require_key ATTESTER_PRIVATE_KEY
       unset DEPLOYER_PRIVATE_KEY AGENT_PRIVATE_KEY VAULT_OWNER_PRIVATE_KEY
       ;;
-    ns-primary)
+    ns-status)
       require_key NS_AP_PRIVATE_KEY
       unset DEPLOYER_PRIVATE_KEY ATTESTER_PRIVATE_KEY AGENT_PRIVATE_KEY VAULT_OWNER_PRIVATE_KEY
       ;;
@@ -166,8 +166,8 @@ scope_keys() {
       unset ATTESTER_PRIVATE_KEY AGENT_PRIVATE_KEY VAULT_OWNER_PRIVATE_KEY COMPANY_PRIVATE_KEY
       ;;
   esac
-  if [[ $1 != claim-profile && $1 != ns-open && $1 != ns-issue ]]; then unset COMPANY_PRIVATE_KEY; fi
-  if [[ $1 != ns-primary ]]; then unset NS_AP_PRIVATE_KEY; fi
+  if [[ $1 != claim-profile && $1 != ns-agent && $1 != ns-open && $1 != ns-issue ]]; then unset COMPANY_PRIVATE_KEY; fi
+  if [[ $1 != ns-status ]]; then unset NS_AP_PRIVATE_KEY; fi
   unset NS_KEIRI_PRIVATE_KEY NS_ZEIRISHI_PRIVATE_KEY
   if [[ $1 != payout-name ]]; then unset PAYOUT_PRIVATE_KEY; fi
   unset DEMO_VENDOR_CONTROLLER_PRIVATE_KEY
@@ -255,6 +255,22 @@ cmd_check() {
   (cd "$CONTRACTS" && forge script script/ens/CheckName.s.sol) 2>&1 | redact
 }
 
+# The company's AP agent in ERC-8004: registers it, then prints its id from the receipt (issue() takes it as
+# NS_AP_8004_ID for the ENSIP-25 link).
+cmd_ns_agent() {
+  local receipt registered id
+  forge_script script/ens/CompanyNames.s.sol --sig "agentId()"
+  if [[ ${BROADCAST:-0} != 1 ]]; then
+    echo "Dry run only. With BROADCAST=1 the agent id is read from the receipt."
+    return
+  fi
+  receipt="${FOUNDRY_BROADCAST:-$CONTRACTS/broadcast}/CompanyNames.s.sol/$SEPOLIA/agentId-latest.json"
+  registered="$(cast keccak 'Registered(uint256,string,address)')"
+  id="$(jq -r --arg t "$registered" '[.receipts[].logs[] | select(.topics[0] == $t)][0].topics[1]' "$receipt")"
+  [[ $id =~ ^0x[0-9a-fA-F]{64}$ ]] || die "no Registered event in $receipt"
+  echo "NS_AP_8004_ID=$(cast to-dec "$id")"
+}
+
 main() {
   local cmd="${1:-}"
   case "$cmd" in
@@ -264,7 +280,7 @@ main() {
     vault-name) ;;
     claim-deploy | claim-attach | claim-detach | claim | claim-profile | claim-check | claim-revoke) ;;
     payout-name) ;;
-    ns-deploy | ns-fund | ns-open | ns-attach | ns-issue | ns-primary | ns-check | ns-detach) ;;
+    ns-deploy | ns-fund | ns-agent | ns-open | ns-attach | ns-issue | ns-status | ns-check | ns-detach) ;;
     *) die "usage: ens.sh <command>; see the header of this file" ;;
   esac
   setup
@@ -311,6 +327,7 @@ main() {
       (unset DEPLOYER_PRIVATE_KEY && forge_script script/ens/PayoutName.s.sol --sig "name()")
       ;;
     ns-check) (cd "$CONTRACTS" && forge script script/ens/CompanyNames.s.sol --sig "check()") 2>&1 | redact ;;
+    ns-agent) cmd_ns_agent ;;
     ns-*) forge_script script/ens/CompanyNames.s.sol --sig "${cmd#ns-}()" ;;
   esac
 }
