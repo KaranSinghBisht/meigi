@@ -50,7 +50,8 @@ Check: `EXPECT_ADDR=0x9B4fc8994FcF2d5FE08a82A9454B61AA14D647e4 contracts/script/
 | Port | Service | Start |
 |---|---|---|
 | 8787 | verifier (attester) | `pnpm --filter @meigi/verifier start` |
-| 8788 | AP agent | `pnpm --filter @meigi/agent start` |
+| 8796 | Signer: the only process with the agent key (`.env.signer`); signs `payInvoice` only | started by `scripts/ap-stack.sh` |
+| 8788 | AP agent: no key; pays through the signer | `scripts/ap-stack.sh` starts and supervises the signer, then the agent; `--stop` stops both |
 | 8790 | x402 demo (merchant + facilitator + guarded buyer) | `pnpm --filter @meigi/x402-demo start` |
 | 8102 | System-1 triage: our fine-tuned payee-0.8b (`kev.serve`) | see `bench/README.md` |
 | 11434 | Agent LLM: Ollama with `gemma4:e4b` (`LLM_PROVIDER=local`) | `ollama serve` (the model is pulled once with `ollama pull gemma4:e4b`) |
@@ -116,7 +117,7 @@ a trusted single-user machine; the ENS scripts and forge scripts read keys from 
 ## Demo checks (five minutes before judging)
 
 1. `curl localhost:8787/payees/T2011001234567`: the fixture vendor is active.
-2. `curl localhost:8788/health`: `triage` lists `systemone` (Kev on :8102). `screening` is true once
+2. `curl localhost:8788/health`: `signer` is `ok`, `triage` lists `systemone` (Kev on :8102). `screening` is true once
    `INTERCEPTA_API_KEY` is set.
 3. `curl localhost:8790/demo/compromised`: refused before signing (`payto_mismatch`). With an Intercepta key,
    `/demo/unverified-flagged` is refused as `screened`.
