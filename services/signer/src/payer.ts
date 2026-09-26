@@ -60,6 +60,7 @@ const PAY_ABI = [...agentVaultAbi, ...mandateGateAbi.filter((item) => item.type 
 export function createPayer(opts: PayerOptions): SignerPayer {
   const exclusive = createLock();
   const inFlight = new Map<string, Hex>(); // "tNumber:invoiceRef" (the vault's invoice identity) → its tx, until mined
+  const nonces: NonceMemory = { last: null };
   return {
     simulate: (call) => simulate(opts, call),
     send: (call) =>
@@ -69,7 +70,7 @@ export function createPayer(opts: PayerOptions): SignerPayer {
         if (sent) return { ok: true, txHash: sent, payout: null };
         const outcome = await simulate(opts, call);
         if (!outcome.ok) return outcome;
-        const txHash = await signAndBroadcast(opts, call);
+        const txHash = await signAndBroadcast(opts, call, nonces);
         inFlight.set(invoice, txHash);
         return { ok: true, txHash, payout: outcome.payout };
       }),
@@ -82,12 +83,33 @@ export function createPayer(opts: PayerOptions): SignerPayer {
 }
 
 /** Signs the payment once, locally, and broadcasts those bytes (broadcast.ts): never a second signature. */
-async function signAndBroadcast(opts: PayerOptions, call: PayCall): Promise<Hex> {
+async function signAndBroadcast(opts: PayerOptions, call: PayCall, nonces: NonceMemory): Promise<Hex> {
   const data = encodeFunctionData({ abi: PAY_ABI, functionName: "payInvoice", args: [call.tNumber, call.expectedPayout, call.amount, call.invoiceRef] });
   const { account, chain } = opts.walletClient;
-  const request = await opts.walletClient.prepareTransactionRequest({ account, chain, to: opts.target, data });
+  const pending = await opts.publicClient.getTransactionCount({ address: account.address, blockTag: "pending" });
+  const nonce = nextNonce(pending, nonces.last, Date.now());
+  const request = await opts.walletClient.prepareTransactionRequest({ account, chain, to: opts.target, data, nonce });
   const serialized = await opts.walletClient.signTransaction(request);
-  return broadcast(opts.rpcs, serialized);
+  const txHash = await broadcast(opts.rpcs, serialized);
+  nonces.last = { nonce, at: Date.now() };
+  return txHash;
+}
+
+/** The last nonce this signer broadcast, and when. Sends are serialised, so one slot is enough. */
+export interface NonceMemory {
+  last: { nonce: number; at: number } | null;
+}
+
+export const NONCE_MEMORY_MS = 10 * 60_000;
+
+/**
+ * The nonce for the next payment. Reads fail over between RPCs whose pending pools can differ, and one that hasn't
+ * seen our last transaction yet would hand its nonce out again, so never go below the last one sent + 1. The memory
+ * lapses after NONCE_MEMORY_MS, so a transaction dropped from every pool can't hold back the ones after it for long.
+ */
+export function nextNonce(pending: number, last: NonceMemory["last"], now: number): number {
+  if (!last || now - last.at > NONCE_MEMORY_MS) return pending;
+  return Math.max(pending, last.nonce + 1);
 }
 
 async function simulate(opts: PayerOptions, call: PayCall) {

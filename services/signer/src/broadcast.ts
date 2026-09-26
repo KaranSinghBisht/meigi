@@ -1,4 +1,5 @@
-import { BaseError, HttpRequestError, keccak256, TimeoutError, type Hex } from "viem";
+import { BaseError, keccak256, type Hex } from "viem";
+import { isTransportError, wasSkipped } from "./rpc.js";
 
 /**
  * Broadcasts one signed transaction across the configured RPCs (SEPOLIA_RPC_URL, then SEPOLIA_RPC_FALLBACK_URL)
@@ -6,6 +7,7 @@ import { BaseError, HttpRequestError, keccak256, TimeoutError, type Hex } from "
  * whether they have it:
  * - "already known", or an RPC that has the transaction, means it was sent;
  * - a transport error (timeout, connection, an HTTP error such as a Cloudflare 403) passes the same bytes to the next RPC;
+ * - an RPC benched after a recent failure (rpc.ts) is passed over without asking anyone: nothing was sent to it;
  * - any other refusal (a nonce another transaction used, an underpriced fee, …) is final: not sent.
  */
 
@@ -15,12 +17,8 @@ export interface BroadcastRpc {
   getTransaction(args: { hash: Hex }): Promise<unknown>;
 }
 
-const ALREADY_KNOWN = /already known|known transaction|alreadyknown/iu;
-
-function isTransportError(error: unknown): boolean {
-  if (!(error instanceof BaseError)) return false;
-  return error.walk((e) => e instanceof HttpRequestError || e instanceof TimeoutError) !== null;
-}
+// Anchored so that "unknown transaction" never counts as sent.
+const ALREADY_KNOWN = /already known|\bknown transaction|alreadyknown/iu;
 
 function isAlreadyKnown(error: unknown): boolean {
   return error instanceof BaseError ? error.walk((e) => e instanceof Error && ALREADY_KNOWN.test(e.message)) !== null : false;
@@ -46,8 +44,9 @@ export async function broadcast(rpcs: readonly BroadcastRpc[], serializedTransac
       await rpc.sendRawTransaction({ serializedTransaction });
       return hash;
     } catch (error) {
-      if (isAlreadyKnown(error) || (await seenAnywhere(rpcs, hash))) return hash;
       failure = error;
+      if (wasSkipped(error)) continue; // a benched RPC: these bytes never left this machine
+      if (isAlreadyKnown(error) || (await seenAnywhere(rpcs, hash))) return hash;
       if (!isTransportError(error)) break; // the chain refused this transaction: another RPC won't take it either
     }
   }

@@ -7,12 +7,20 @@ import { z } from "zod";
  */
 
 const address = z.string().regex(/^0x[0-9a-fA-F]{40}$/u, "must be an address");
+/** An empty value (`KEY=` in .env) counts as unset. */
+const optional = <T extends z.ZodType>(schema: T) => z.preprocess((v) => (v === "" ? undefined : v), schema.optional());
+/** https, or plain http on this machine only (a local chain). */
+const secureOrLoopback = (url: string) => {
+  if (!URL.canParse(url)) return false;
+  const { protocol, hostname } = new URL(url);
+  return protocol === "https:" || (protocol === "http:" && ["127.0.0.1", "localhost", "[::1]"].includes(hostname));
+};
 
 const schema = z.object({
   AGENT_PRIVATE_KEY: z.string().regex(/^0x[0-9a-fA-F]{64}$/u, "must be 0x followed by 64 hex characters"),
   SIGNER_TOKEN: z.string().min(32, "must be at least 32 characters (openssl rand -hex 32)"),
   SEPOLIA_RPC_URL: z.url(),
-  SEPOLIA_RPC_FALLBACK_URL: z.url().optional(), // reads fall back to it; a payment's bytes are broadcast there too
+  SEPOLIA_RPC_FALLBACK_URL: optional(z.url().refine(secureOrLoopback, "must be https, or http on loopback")), // reads fall back to it; a payment's bytes are broadcast there too
   CHAIN_ID: z.coerce.number().int().positive().default(11155111),
   VAULT_ADDRESS: address,
   // 1: pay through the ENS MandateGate at MANDATE_GATE_ADDRESS, which must already be the vault's agent (route.ts).

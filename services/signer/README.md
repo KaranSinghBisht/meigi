@@ -13,7 +13,12 @@ This small process holds the AgentVault's agent key and signs one call for it: `
     both RPCs for that hash. If neither has it, the same bytes go to `SEPOLIA_RPC_FALLBACK_URL`.
   - "Already known", or a nonce collision on that very hash, counts as sent.
   - Any other refusal is final: nothing is signed again.
-  - Reads fall back to the second RPC too.
+  - Reads fall back to the second RPC too, after one 4 s try on a hung primary, which is then skipped for a minute
+    (`rpc.ts`) but still tried last, so the fallback is never the only way to the chain. A skipped RPC was sent
+    nothing, so broadcasting passes over it without asking for the hash. `SEPOLIA_RPC_FALLBACK_URL` must be https,
+    or http on loopback; empty means unset.
+  - Every RPC's view of the pending pool can differ, so a payment's nonce is never below the last one this signer
+    sent + 1 (for ten minutes, so a transaction dropped everywhere can't block the next for long).
 - **Its own rule, whatever the agent decided.** Above `SIGNER_HUMAN_ABOVE_YEN` (¥150,000), it signs only with a World ID
   for Agents approval: an Orb-level ID token, at most `SIGNER_APPROVAL_MAX_AGE_S` (10 minutes) old, from the
   configured issuer and client. The agent forwards the approving token once, when a verified human has released the
@@ -35,9 +40,9 @@ This small process holds the AgentVault's agent key and signs one call for it: `
       keys it, in one step with the check, so concurrent requests can't share it. The reservation is released only
       when the chain's simulation refuses the payment and nothing was broadcast.
   - Keys that can't be fetched fail closed. A local mock IdP (http on loopback) is accepted only on chain 31337.
-  - `/health` always says which phase is on (`verifiesApproval: true` or `false`). The kill switch is the variable,
-    plus a restart:
-    `SIGNER_VERIFY_APPROVAL=1 scripts/ap-stack.sh`.
+  - `/health` always says which phase is on (`verifiesApproval: true` or `false`). `scripts/ap-stack.sh` starts it
+    in Phase 2 unless told otherwise, so a bare restart keeps it on. The kill switch is the variable, plus a restart:
+    `scripts/ap-stack.sh --stop && SIGNER_VERIFY_APPROVAL=0 scripts/ap-stack.sh`.
   - **Limit.** World ID for Agents' device grant carries nothing about the payment. The signer knows the approval is
     genuine, fresh, unspent and from an approver, but not which payment the human was shown: the agent binds that.
 - **Localhost and a shared secret.** It listens on 127.0.0.1:8796 only. Every route but `/health` needs
