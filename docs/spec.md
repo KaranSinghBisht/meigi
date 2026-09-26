@@ -53,7 +53,7 @@ proof-of-concept exploits:
 
 ## Demo
 
-1. "This is our AI accountant. It holds JPYC and pays our suppliers. Please try to rob it."
+1. "This is our AI accountant. It holds JPYC, reads every invoice, and only pays verified companies."
 2. A judge writes a fake invoice or a bank-change email, or hides a prompt injection. The agent's LLM agrees
    to pay; the vault reverts `PayeeMismatch` and names the real company.
 3. Redirecting money properly: the business key + the same World ID human + 72h public timelock. A different

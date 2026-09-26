@@ -48,7 +48,7 @@ flowchart LR
   R --> X["x402 guard<br/>+ Intercepta screening"]
 ```
 
-**"This is our AI accountant. It holds JPYC and pays our suppliers. Please try to rob it."** Write it a fake
+**"This is our AI accountant. It holds JPYC, reads every invoice, and only pays verified companies."** Write it a fake
 invoice or a bank-change email, or hide a prompt injection. Its LLM may well agree to pay the scammer. Then
 the vault reverts `PayeeMismatch` and names the registered company.
 
