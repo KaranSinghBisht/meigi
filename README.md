@@ -2,10 +2,12 @@
 
 **Confirmation of Payee for stablecoins and AI agents. Pay companies, not addresses.**
 
-**In one sentence:** Meigi binds a Japanese company's invoice registration number (T-number) to one on-chain
-payout. The number and exact name are matched to the NTA corporate registry (法人番号), the registrant proves control
-of a domain, and World ID officers enroll. People, wallets and AI agents paying in stablecoins can then refuse a
-swapped address before any money moves.
+**In one sentence:** Meigi binds a Japanese company's government-issued invoice number (T-number) to one on-chain
+payout that can change only after 72 hours in public, so AI agents, wallets and exchanges paying in stablecoins can
+refuse a swapped address before any money moves.
+
+To register, the number and exact name are matched to the NTA corporate registry (法人番号), the registrant proves
+control of a domain, and World ID officers enroll.
 
 - **Live:** [meigi.karanbishttt.workers.dev](https://meigi.karanbishttt.workers.dev) is one site: the landing,
   and "enter" glides into the app. The registry explorer, ENS check and event feed read Sepolia live. Steps that need our services show recorded real
@@ -15,8 +17,9 @@ swapped address before any money moves.
   - **Mizuhiki's Awaji testnet** (chain 6497): the registry and PayRouter, paid in Mizuhiki's own MJPY and MUSD,
     and x402 settled in MJPY. Awaji has no AgentVault and no ENS. See [docs/mizuhiki.md](docs/mizuhiki.md).
 - **Team:**
-  - Karan Singh Bisht, GitHub [@KaranSinghBisht](https://github.com/KaranSinghBisht);
-  - Adithya Prasanna Suriya Prakash, handle: TODO (Adithya to add).
+  - **Karan Singh Bisht**: `<TODO: Karan>`. GitHub [@KaranSinghBisht](https://github.com/KaranSinghBisht) · X
+    `<TODO: Karan>`
+  - **Adithya Prasanna Suriya Prakash**: `<TODO: Karan>`. GitHub `<TODO: Karan>` · X `<TODO: Karan>`
 - **Event:** ETHGlobal Tokyo 2026, From Scratch track.
 
 A stablecoin payment goes to an address, and nothing checks that the address belongs to the company you mean
@@ -136,15 +139,17 @@ company it belongs to.
 
 ### Curvegrid: Best AI Agent Project
 
-Meigi's AP agent is three of the ideas in Curvegrid's brief:
+Meigi's AP agent is two of the ideas in Curvegrid's brief, and Meigi's x402 guard covers a third:
 - **Stablecoin Payment Agent.** It reads Japanese invoices, pays them in mJPYC (our JPYC stand-in on Sepolia) and
-  tracks settlement: `GET /invoices/:id/settlement` confirms each payment from MultiBaas's index.
+  tracks settlement: `GET /invoices/:id/settlement` confirms each payment made since we linked MultiBaas (block
+  11,783,796) from its index.
 - **Policy-Aware Transaction Agent.** It pays only owner-approved vendors, only to the payout registered for their
   T-number, and only within per-vendor caps, all enforced by the AgentVault. Above ¥150,000 the signer won't sign
   unless a human approves through World ID for Agents.
-- **Agent-to-Agent Payments.** Before a buying agent signs an x402 payment, the x402 guard checks a declared
-  merchant's `payTo` against the registry and, where it declares one, the merchant's ENS name. A merchant that declares none gets at most a
-  small screened allowance (¥50 by default), or nothing.
+- **Agent-to-Agent Payments.** Before a buying agent signs an x402 payment (in our demo, a scripted buyer that holds
+  its own key), the x402 guard checks a declared merchant's `payTo` against the registry and, where it declares one,
+  the merchant's ENS name. A merchant that declares none gets at most a small screened allowance (¥50 by default), or
+  nothing.
 
 At the Curvegrid workshop, Jeff Wentworth named three danger zones for agents that move money. Here is where Meigi
 handles each:
@@ -162,6 +167,18 @@ handles each:
   - A hash-chained audit log records every verdict, approval and payment, and `GET /audit?verify=1` checks the
     chain.
 
+**Custody and recovery.** This is hackathon custody: a hot key in a file only the signer reads. If it leaked, the
+thief could pay only approved vendors, at their registered payouts, within caps, so the money can't reach the thief;
+the ¥150,000 human rule lives in the signer, not on-chain. Recovery is one transaction: the buyer revokes
+`ap.t4999900000005.payee.eth`, and the MandateGate refuses the key (`MandateNotLive`) before anything is sent. We ran
+it live: revoked, refused, re-issued, paid again ([`docs/ens.md`](docs/ens.md)). In production the signer keeps its
+policy, and the key moves to an HSM or MPC wallet, such as a MultiBaas cloud wallet.
+
+**On Mizuhiki Awaji,** the registry and router run too (the AP agent runs on Sepolia): a registered vendor was paid
+[1,000 MJPY by T-number](https://awaji.blockscout.com/tx/0x294d6b5b697620dbee17ef3880eee9ad58dbde2157e5b61d17908b63fa280ca3)
+and [5 MUSD](https://awaji.blockscout.com/tx/0xf87e428b3d1f3f6cfbe44a39d80e01acb3ac3952a685a7fbb5c799674d8c446a),
+and an [x402 sale settled in 15 MJPY](https://awaji.blockscout.com/tx/0x779c3619797c1ef48a25aceba107f24f47cf0db4f172ebb2d8b9277b0525959b).
+
 ### How we use Curvegrid MultiBaas
 
 Meigi on Mizuhiki, indexed and queried through MultiBaas, like Curvegrid's Matsuri sample. We run two MultiBaas
@@ -174,15 +191,19 @@ deployments, one per chain:
   x402 sale is indexed live.
 
 The details:
-- **Queries.** Six saved event queries, in the format of Curvegrid's Matsuri sample:
+- **Queries.** Seven saved event queries, in the format of Curvegrid's Matsuri sample:
   - `meigi_invoices_paid`: every `InvoicePaid` the vault emitted;
   - `meigi_invoices_by_payee`: `InvoicePaid` summed per T-number;
   - `meigi_payees_registered`: every company the registry recorded, with its exact registered name;
   - `meigi_router_paid`: every pay-by-T-number `Paid` through the PayRouter;
   - `meigi_mjpy_balances`: net MJPY per account, the way the Matsuri sample computes balances (`add` for the
     recipient, `subtract` for the sender);
-  - `meigi_mjpy_received`: MJPY summed per recipient.
-- **What reads it.** The AP agent's `GET /payments` feeds the dashboards.
+  - `meigi_mjpy_received`: MJPY summed per recipient;
+  - `meigi_mjpy_transfers`: the x402 buyer's token transfers, kept when they reach a registered payout.
+- **What reads it.** The site's settlements panel reads MultiBaas through its own Worker (`/api/settlements`): the
+  meigi Worker queries MultiBaas server-side, with the key kept as a Worker secret, and the agent console's
+  "Settlements · indexed by Curvegrid MultiBaas" panel shows the rows live: amount, payee (ENS name and T-number), tx
+  and "indexed at block N". The AP agent's `GET /payments`, an API no page shows yet, merges MultiBaas with RPC logs:
   - **Sepolia section:** MultiBaas's rows from the link block on (`source: "multibaas"`), and RPC logs read with
     viem for the older history (`source: "rpc"`), merged with no block counted twice.
     `GET /invoices/:id/settlement` confirms each new payment from its indexed `InvoicePaid`.
@@ -191,9 +212,6 @@ The details:
     - registered payees;
     - what each payee received;
     - the token's decimals, read through the contract call API.
-  - **The hosted site.** The meigi Worker answers `GET /api/settlements` from MultiBaas server-side, with the key
-    kept as a Worker secret. The agent console's "Settlements · indexed by Curvegrid MultiBaas" panel shows the
-    rows live: amount, payee (ENS name and T-number), tx and "indexed at block N".
 - **Setup:**
   1. Put `MULTIBAAS_URL` / `MULTIBAAS_API_KEY` (Sepolia) and `MULTIBAAS_AWAJI_URL` / `MULTIBAAS_AWAJI_API_KEY` in
      `.env`. Sepolia is linked with `pnpm --filter @meigi/agent multibaas:setup --from-block -100`.
