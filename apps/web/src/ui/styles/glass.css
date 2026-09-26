@@ -1,74 +1,174 @@
-/* Liquid Glass. Surfaces are tinted, not white: low-alpha fills take their colour from the blurred, saturated
-   world behind them, and read as glass through light, not opacity: a bright rim, a specular top edge, a soft
-   lower inner shadow for thickness and a gentle drop shadow. Defined once here; components use these tokens.
+/* Liquid Glass, visionOS-style: large translucent windows over the world, lit rather than outlined. A window is a
+   tinted fill with a strong blur and saturation, an inset top highlight, a hairline rim that fades out down the
+   sides (never a uniform line), and a soft lavender shadow. There are no strokes, dashed frames or coloured edges:
+   status is a chip (a dot plus a label) or an icon. Defined once here; components use these tokens.
 
-   Density follows content: controls over the world are clear; panels that carry body text are denser, so small
-   text stays AA over the darkest and reddest parts of the scene. Only surfaces that sit on the world blur it
-   (panels, plates, the header, the landing's pills); anything inside a panel is tint and light only, so a page
-   keeps few blurred layers over the live canvas. */
+   Density follows content: controls on the world are clear, windows that carry small text are denser, so text
+   stays AA over every station. Only surfaces that sit on the world blur it; glass inside glass is tint and light
+   only, which keeps blurred layers few over the live canvas. */
 :root {
-  --lg-clear: rgba(255, 255, 255, 0.16);
-  --lg-regular: rgba(250, 247, 255, 0.3);
-  --lg-dense: rgba(248, 244, 253, 0.6);
-  --lg-denser: rgba(248, 244, 253, 0.74);
-  --lg-inner: rgba(255, 255, 255, 0.34);
-  --lg-selected: rgba(255, 255, 255, 0.64);
-  /* Dark glass for primary actions, vermilion glass for the accent: white text on both is AA. */
-  --lg-ink: rgba(30, 27, 36, 0.82);
-  --lg-seal: rgba(150, 38, 26, 0.88);
+  --lg-lens: rgba(255, 252, 255, 0.34);
+  --lg-window: rgba(252, 249, 255, 0.58);
+  --lg-window-dense: rgba(252, 249, 255, 0.72);
+  --lg-cell: rgba(255, 255, 255, 0.36);
+  --lg-cell-strong: rgba(255, 255, 255, 0.72);
+  --lg-ink: #1d1b22;
+  --lg-ink-hover: #2e2b35;
 
-  --lg-blur: blur(24px) saturate(1.7) brightness(1.1);
-  --lg-rim: rgba(255, 255, 255, 0.56);
-  --lg-rim-bright: rgba(255, 255, 255, 0.95);
-  --lg-sheen: linear-gradient(
+  --lg-blur: blur(28px) saturate(1.8) brightness(1.08);
+  --lg-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  --lg-drop: 0 24px 64px -28px rgba(92, 70, 160, 0.34), 0 6px 18px -10px rgba(92, 70, 160, 0.16);
+  --lg-drop-soft: 0 10px 26px -14px rgba(92, 70, 160, 0.32);
+  --lg-shadow: var(--lg-highlight), var(--lg-drop);
+  --lg-shadow-control: var(--lg-highlight), var(--lg-drop-soft);
+  --lg-shadow-inset: inset 0 1px 2px rgba(42, 39, 48, 0.12);
+  --lg-hairline: rgba(42, 39, 48, 0.09);
+  /* The rim: bright along the top edge, gone by mid-height. */
+  --lg-rim-gradient: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.34),
-    rgba(255, 255, 255, 0.07) 40%,
-    rgba(255, 255, 255, 0) 62%
-  );
-  --lg-sheen-dark: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.2),
-    rgba(255, 255, 255, 0.03) 45%,
-    rgba(255, 255, 255, 0) 65%
+    rgba(255, 255, 255, 0.85),
+    rgba(255, 255, 255, 0.25) 22%,
+    rgba(255, 255, 255, 0) 55%
   );
 
-  --lg-light: inset 0 1px 0.5px rgba(255, 255, 255, 0.9), inset 0 0 0 0.5px rgba(255, 255, 255, 0.28);
-  --lg-depth: inset 0 -10px 18px -12px rgba(42, 39, 48, 0.2), inset 0 -1px 1px rgba(255, 255, 255, 0.32);
-  --lg-drop: 0 14px 34px -16px rgba(42, 39, 48, 0.32), 0 2px 6px -2px rgba(42, 39, 48, 0.1);
-  --lg-shadow: var(--lg-light), var(--lg-depth), var(--lg-drop);
-  /* Controls: the same light, a tighter drop. */
-  --lg-shadow-control: var(--lg-light), var(--lg-depth), 0 8px 20px -10px rgba(42, 39, 48, 0.3);
-  /* Pressed into the glass: inputs. */
-  --lg-shadow-inset: inset 0 1px 3px rgba(42, 39, 48, 0.14), inset 0 -1px 0 rgba(255, 255, 255, 0.5);
+  /* Earlier names, kept so no page needs its own values. Strokes are gone: every rim colour is transparent. */
+  --lg-clear: var(--lg-lens);
+  --lg-regular: var(--lg-lens);
+  --lg-dense: var(--lg-window);
+  --lg-denser: var(--lg-window-dense);
+  --lg-inner: var(--lg-cell);
+  --lg-selected: var(--lg-cell-strong);
+  --lg-seal: rgba(255, 255, 255, 0.42);
+  --lg-rim: transparent;
+  --lg-rim-bright: transparent;
+  --lg-sheen: linear-gradient(transparent, transparent);
+  --lg-sheen-dark: linear-gradient(transparent, transparent);
+  --lg-light: var(--lg-highlight);
+  --lg-depth: 0 0 transparent;
 }
 
 /* The glass plate: headings and short copy that sit straight on the world. */
 .page-head,
 .on-scene {
-  padding: 16px 22px 18px;
-  border: 1px solid var(--lg-rim);
+  padding: 24px;
+  border: 0;
   border-radius: var(--radius-lg);
-  background: var(--lg-sheen), var(--lg-dense);
+  background: var(--lg-window);
   -webkit-backdrop-filter: var(--lg-blur);
   backdrop-filter: var(--lg-blur);
   box-shadow: var(--lg-shadow);
 }
 
+/* The window rim on every surface that sits on the world. */
+:where(
+  .panel,
+  .page-head,
+  .on-scene,
+  .topbar__inner,
+  .window,
+  .invoice,
+  .vault,
+  .decision,
+  .refusal,
+  .paid,
+  .approval,
+  .demo-machine,
+  .checklist,
+  .home__feature,
+  .flow-cards,
+  .strip,
+  .biz-window,
+  .biz-cta,
+  .landing .pill
+) {
+  position: relative;
+}
+
+:is(
+  .panel,
+  .page-head,
+  .on-scene,
+  .topbar__inner,
+  .window,
+  .invoice,
+  .vault,
+  .decision,
+  .refusal,
+  .paid,
+  .approval,
+  .demo-machine,
+  .checklist,
+  .home__feature,
+  .flow-cards,
+  .strip,
+  .biz-window,
+  .biz-cta,
+  .landing .pill
+)::before {
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: var(--lg-rim-gradient);
+  content: '';
+  pointer-events: none;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+/* A window: one of the few large glass surfaces a page is made of. Cells inside it are divided by hairlines. */
+.window {
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--lg-window);
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+  box-shadow: var(--lg-shadow);
+}
+
+.window--dense {
+  background: var(--lg-window-dense);
+}
+
+/* Cells inside a window, divided by hairlines at any column count: each cell draws a line along its own left and
+   top edge, and the lines that would fall on the window's outer edge are clipped away. */
+.cells {
+  display: grid;
+  overflow: hidden;
+}
+
+.cells > * {
+  box-shadow:
+    -1px 0 0 var(--lg-hairline),
+    0 -1px 0 var(--lg-hairline);
+}
+
+/* A panel inside a window is a cell of that window: no fill, light or rim of its own. */
+:is(.window, .panel) .panel {
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+:is(.window, .panel) .panel::before {
+  display: none;
+}
+
 /* Glass inside glass doesn't blur again: the surface behind it already blurred the world (and an element with a
    backdrop-filter is the backdrop root for its children, so a nested blur would only re-blur that surface), while
-   every extra blurred layer costs a pass over the live canvas. Every surface that blurs the world is listed here. */
+   every extra blurred layer costs a pass over the live canvas. */
 :is(
     .panel,
     .page-head,
     .on-scene,
     .topbar__inner,
+    .window,
     .footer,
     .notice,
     .strip,
-    .flow-card,
-    .home__feature,
-    .col,
     .invoice,
     .vault,
     .decision,
@@ -77,30 +177,12 @@
     .approval,
     .demo-machine,
     .checklist,
-    .steps__item,
-    .biz-product,
-    .biz-tier,
-    .biz-fact,
-    .biz-step,
-    .biz-cta,
-    .biz-lei,
-    .biz-roadmap__note
+    .home__feature,
+    .flow-cards,
+    .biz-window,
+    .biz-cta
   )
-  :is(
-    .panel,
-    .page-head,
-    .on-scene,
-    .notice,
-    .strip,
-    .col,
-    .decision,
-    .refusal,
-    .paid,
-    .approval,
-    .demo-machine,
-    .steps__item,
-    .biz-roadmap__note
-  ) {
+  :is(.panel, .page-head, .on-scene, .window, .notice, .strip, .btn, .steps, .approval, .demo-machine) {
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
@@ -119,21 +201,17 @@ html.lg-refract .lg-lens {
   overflow: hidden;
 }
 
-/* Asked for less transparency, or more contrast: solid fills, no blur, no refraction. */
+/* Asked for less transparency, or more contrast: solid fills, no blur, no refraction, no rim. */
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
   :root {
-    --lg-clear: #f6f3fa;
-    --lg-regular: #f6f3fa;
-    --lg-dense: #fbf9fd;
-    --lg-denser: #ffffff;
-    --lg-inner: #ffffff;
-    --lg-selected: #ffffff;
-    --lg-ink: #2a2730;
-    --lg-seal: #9e2a1d;
+    --lg-lens: #f6f3fa;
+    --lg-window: #fbf9fd;
+    --lg-window-dense: #ffffff;
+    --lg-cell: #ffffff;
+    --lg-cell-strong: #ffffff;
     --lg-blur: none;
-    --lg-sheen: linear-gradient(transparent, transparent);
-    --lg-sheen-dark: linear-gradient(transparent, transparent);
-    --lg-rim: rgba(42, 39, 48, 0.3);
+    --lg-rim-gradient: linear-gradient(transparent, transparent);
+    --lg-hairline: rgba(42, 39, 48, 0.16);
   }
 
   html.lg-refract .lg-lens {
@@ -144,7 +222,7 @@ html.lg-refract .lg-lens {
 
 @media (prefers-contrast: more) {
   :root {
-    --lg-rim: rgba(42, 39, 48, 0.6);
+    --lg-hairline: rgba(42, 39, 48, 0.4);
     --ink-soft: #37333f;
     --ink-muted: #423e4a;
   }

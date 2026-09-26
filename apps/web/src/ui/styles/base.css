@@ -17,7 +17,7 @@ body {
   background: transparent;
   color: var(--ink);
   font-family: var(--font-latin);
-  font-size: 16px;
+  font-size: var(--text-md);
   line-height: 1.5;
   font-synthesis: none;
   /* Inter's contextual alternates render "0x0" as "0×0"; addresses must read exactly as they are. */
@@ -45,6 +45,17 @@ ol,
 ul {
   padding: 0;
   list-style: none;
+}
+
+/* Headings break into even lines instead of leaving one word on its own; paragraphs avoid a lone last word. */
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
 }
 
 button,
@@ -80,10 +91,72 @@ kbd,
   letter-spacing: 0;
 }
 
+/* T-numbers, hashes and other tokens: never broken mid-string. */
+.mono {
+  white-space: nowrap;
+}
+
+/* Two weights only: bold text uses the strong weight. */
+b,
+strong {
+  font-weight: var(--weight-strong);
+}
+
+/* A sideways-scrolling strip: no scrollbar, and the edges that hide more items fade (useScrollFade sets the flags). */
+.scroll-fade {
+  --fade-start: 0px;
+  --fade-end: 0px;
+  margin-block: -8px;
+  padding-block: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.scroll-fade::-webkit-scrollbar {
+  display: none;
+}
+
+.scroll-fade[data-more-start='true'] {
+  --fade-start: 32px;
+}
+
+.scroll-fade[data-more-end='true'] {
+  --fade-end: 32px;
+}
+
+.scroll-fade:is([data-more-start='true'], [data-more-end='true']) {
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000 var(--fade-start),
+    #000 calc(100% - var(--fade-end)),
+    transparent
+  );
+  mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000 var(--fade-start),
+    #000 calc(100% - var(--fade-end)),
+    transparent
+  );
+}
+
+/* A word that must not break at its hyphen ("T-number"). */
+.nowrap {
+  white-space: nowrap;
+}
+
+/* Amounts line up. */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Japanese breaks between phrases (Chromium), so a name never leaves one kana alone on a line. */
 .jp {
   font-family: var(--font-jp);
-  font-weight: 600;
+  font-weight: var(--weight-strong);
   letter-spacing: 0.02em;
+  word-break: auto-phrase;
 }
 
 .sr-only {
@@ -100,8 +173,8 @@ kbd,
 
 .eyebrow {
   color: var(--ink-soft);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-strong);
   letter-spacing: 0.09em;
   text-transform: uppercase;
 }
@@ -114,7 +187,7 @@ kbd,
   display: grid;
   min-height: 100vh;
   place-items: center;
-  font-size: 22px;
+  font-size: var(--text-lg);
 }
 
 ::selection {

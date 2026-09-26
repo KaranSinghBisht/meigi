@@ -1,5 +1,7 @@
-import { Link, NavLink } from 'react-router'
+import { useRef } from 'react'
+import { Link, NavLink, useLocation } from 'react-router'
 import { HankoMark } from '../brand/HankoMark'
+import { useCurrentInView, useScrollFade } from '../components/useScrollFade'
 import { WalletButton } from './WalletButton'
 import './layout.css'
 
@@ -12,6 +14,28 @@ const LINKS = [
   { to: '/business', label: 'For business' },
 ] as const
 
+/** The page links. On a narrow screen they form a tab strip that scrolls sideways, keeps the current page in view
+    and fades whichever edge hides more links. */
+function Nav() {
+  const list = useRef<HTMLUListElement>(null)
+  const { pathname } = useLocation()
+  useScrollFade(list)
+  useCurrentInView(list, pathname)
+  return (
+    <nav className="nav" aria-label="Main">
+      <ul ref={list} className="nav__list scroll-fade">
+        {LINKS.map((link) => (
+          <li key={link.to}>
+            <NavLink to={link.to} className="nav__link">
+              {link.label}
+            </NavLink>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  )
+}
+
 export function Header() {
   return (
     <header className="topbar">
@@ -22,17 +46,7 @@ export function Header() {
             meigi.
           </span>
         </Link>
-        <nav className="nav" aria-label="Main">
-          <ul className="nav__list">
-            {LINKS.map((link) => (
-              <li key={link.to}>
-                <NavLink to={link.to} className="nav__link">
-                  {link.label}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        <Nav />
         <div className="topbar__end">
           <span className="chain-pill" title="All reads and writes use Ethereum Sepolia (11155111)">
             Sepolia

@@ -13,7 +13,10 @@
   --seal-deep: #9e2a1d; /* small text on white: 7.4:1 */
   --seal-tint: rgba(224, 69, 43, 0.1);
   --jade: #3f9d78;
-  --jade-deep: #1b5840; /* 8.4:1 on white, 5.4:1 on glass over the torii */
+  --jade-deep: #1b5840;
+  /* The one colour card per page: a soft single-hue lavender, with ink text (AA across the whole gradient). */
+  --lavender: rgba(182, 166, 250, 0.94);
+  --lavender-soft: rgba(210, 200, 253, 0.9); /* 8.4:1 on white, 5.4:1 on glass over the torii */
   --jade-tint: rgba(63, 157, 120, 0.13);
   --amber-deep: #7a4d00;
   --amber-tint: rgba(245, 166, 35, 0.16);
@@ -40,11 +43,28 @@
   --font-jp: 'Shippori Mincho', 'Hiragino Mincho ProN', 'Yu Mincho', serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
-  --radius-lg: 22px;
-  --radius-md: 14px;
+  /* One size scale: controls 36 / 44 / 52, radii 10 / 16 / 24 / pill, an 8 px grid, three text sizes and three
+     display sizes, two weights. */
+  /* Chips you pick from (examples, directory entries) are one smaller step: 32. */
+  --control-chip: 32px;
+  --control-sm: 36px;
+  --control-md: 44px;
+  --control-lg: 52px;
   --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --space: 8px;
+  --text-sm: 13px;
+  --text-md: 15px;
+  --text-lg: 17px;
+  /* Display: figures and names inside a window, page titles, and the two hero moments (the start page, 拒否). */
+  --text-display-sm: clamp(24px, 2.4vw, 32px);
+  --text-display: clamp(32px, 4vw, 48px);
+  --text-display-lg: clamp(44px, 6.4vw, 88px);
+  --weight-regular: 400;
+  --weight-strong: 600;
   --gutter: clamp(16px, 3vw, 40px);
-  --content: 1120px;
+  --content: 1200px;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 
   color-scheme: light;

@@ -10,9 +10,20 @@ interface AddressProps {
   readonly link?: boolean
 }
 
+/** People check an address by its ends, so a full address that doesn't fit is cut in the middle: the head shrinks
+    behind an ellipsis and the last six characters always show. Copying the text still copies all of it. */
+function FullAddress({ value }: { readonly value: string }) {
+  return (
+    <>
+      <span className="address__head">{value.slice(0, -6)}</span>
+      <span className="address__tail">{value.slice(-6)}</span>
+    </>
+  )
+}
+
 /** An address in mono with optional copy and Etherscan link. The full value is always in the title. */
 export function Address({ value, short = false, copy = false, link = true }: AddressProps) {
-  const text = short ? shortAddress(value) : value
+  const text = short ? shortAddress(value) : <FullAddress value={value} />
   return (
     <span className="address">
       {link ? (

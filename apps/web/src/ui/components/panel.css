@@ -1,12 +1,12 @@
+/* A panel is a window: translucent, lit, no stroke (the rim lives in glass.css). */
 .panel {
-  position: relative;
-  padding: clamp(18px, 2.2vw, 28px);
-  border: 1px solid var(--glass-edge);
+  padding: clamp(16px, 2.4vw, 24px);
+  border: 0;
   border-radius: var(--radius-lg);
-  background: var(--glass);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
-  box-shadow: var(--shadow-panel);
+  background: var(--lg-window);
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+  box-shadow: var(--lg-shadow);
 }
 
 .panel__header {
@@ -14,7 +14,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 }
 
 .panel__titles {
@@ -24,10 +24,10 @@
 }
 
 .panel__title {
-  font-size: 21px;
-  font-weight: 500;
-  letter-spacing: -0.025em;
-  line-height: 1.2;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-strong);
+  letter-spacing: -0.015em;
+  line-height: 1.3;
 }
 
 .panel__actions {
@@ -41,13 +41,13 @@
 .facts {
   display: grid;
   grid-template-columns: minmax(120px, max-content) 1fr;
-  gap: 10px 20px;
+  gap: 8px 20px;
   align-items: baseline;
 }
 
 .facts dt {
   color: var(--ink-soft);
-  font-size: 14px;
+  font-size: var(--text-sm);
 }
 
 .facts dd {
@@ -57,11 +57,11 @@
 
 @media (max-width: 560px) {
   .facts {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 2px;
   }
 
   .facts dd {
-    margin-bottom: 10px;
+    margin-bottom: 8px;
   }
 }

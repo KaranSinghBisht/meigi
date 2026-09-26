@@ -15,14 +15,14 @@ export function WalletButton() {
   }
   if (!wallet.account) {
     return (
-      <Button variant="ghost" size="sm" busy={wallet.connecting} onClick={() => void wallet.connect()}>
+      <Button variant="ghost" busy={wallet.connecting} onClick={() => void wallet.connect()}>
         Connect wallet
       </Button>
     )
   }
   if (!wallet.onSepolia) {
     return (
-      <Button variant="ghost" size="sm" className="wallet-switch" onClick={() => void wallet.ready()}>
+      <Button variant="ghost" className="wallet-switch" onClick={() => void wallet.ready()}>
         Switch to Sepolia
       </Button>
     )

@@ -16,24 +16,25 @@
   }
 }
 
+/* The one chip: a dot and a label on a soft tint. Status is always a chip (or an icon), never a coloured edge. */
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
+  gap: 8px;
+  height: 24px;
+  padding: 0 8px;
   border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  line-height: 1.2;
-  text-transform: uppercase;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-strong);
+  line-height: 1;
   white-space: nowrap;
 }
 
 .badge::before {
   content: '';
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
+  flex: none;
   border-radius: 50%;
   background: currentColor;
 }
@@ -63,22 +64,35 @@
   color: var(--ink-soft);
 }
 
-/* Notices often sit straight on the world (under the agent's decision, for one), so the tint rides on a nearly
-   opaque white base rather than on the scene. */
+/* The one progress bar: thin and rounded. */
+.progress {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(42, 39, 48, 0.08);
+}
+
+.progress__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--iris-deep);
+}
+
+/* Notices: a soft tint on glass, and a status dot before the title; no coloured edge. On the world they blur it,
+   inside a window they don't. */
 .notice {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  padding: 14px 16px;
-  border: 1px solid transparent;
-  border-left-width: 4px;
+  padding: 16px;
   border-radius: var(--radius-md);
-  background-color: var(--lg-denser);
+  background-color: var(--lg-window-dense);
   -webkit-backdrop-filter: var(--lg-blur);
   backdrop-filter: var(--lg-blur);
-  box-shadow: var(--lg-light);
-  font-size: 15px;
+  box-shadow: var(--lg-highlight);
+  font-size: var(--text-md);
 }
 
 .notice__body {
@@ -88,7 +102,20 @@
 }
 
 .notice__title {
-  font-weight: 600;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-weight: var(--weight-strong);
+}
+
+.notice__title::before {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--notice-dot, var(--ink-muted));
+  content: '';
+  transform: translateY(-1px);
 }
 
 .notice__detail {
@@ -97,7 +124,7 @@
 }
 
 .notice__detail code {
-  padding: 1px 6px;
+  padding: 1px 8px;
   border-radius: 6px;
   background: rgba(42, 39, 48, 0.07);
   color: var(--ink);
@@ -108,14 +135,12 @@
 }
 
 .notice--info {
-  border-color: rgba(125, 110, 214, 0.28);
-  border-left-color: #7d6ed6;
+  --notice-dot: var(--iris-deep);
   background-image: linear-gradient(var(--iris-tint), var(--iris-tint));
 }
 
 .notice--success {
-  border-color: rgba(63, 157, 120, 0.3);
-  border-left-color: var(--jade);
+  --notice-dot: var(--jade);
   background-image: linear-gradient(var(--jade-tint), var(--jade-tint));
 }
 
@@ -125,8 +150,7 @@
 
 .notice--warn,
 .notice--offline {
-  border-color: rgba(245, 166, 35, 0.35);
-  border-left-color: #e0a030;
+  --notice-dot: #d99a1f;
   background-image: linear-gradient(var(--amber-tint), var(--amber-tint));
 }
 
@@ -135,27 +159,23 @@
   color: var(--amber-deep);
 }
 
-.notice--danger {
-  border-color: rgba(224, 69, 43, 0.3);
-  border-left-color: var(--vermilion);
+.notice--danger,
+.notice--denied {
+  --notice-dot: var(--seal);
   background-image: linear-gradient(var(--seal-tint), var(--seal-tint));
 }
 
-.notice--danger .notice__title {
+.notice--danger .notice__title,
+.notice--denied .notice__title {
   color: var(--seal-deep);
 }
 
-/* A refusal the user should feel: bigger, stamped. */
+/* A refusal the user should feel: a larger title. */
 .notice--denied {
-  padding: 18px 20px;
-  border-color: rgba(200, 55, 45, 0.45);
-  border-left-width: 6px;
-  border-left-color: var(--seal);
-  background-image: linear-gradient(100deg, rgba(224, 69, 43, 0.16), rgba(224, 69, 43, 0.05));
+  padding: 20px 24px;
 }
 
 .notice--denied .notice__title {
-  color: var(--seal-deep);
-  font-size: 19px;
-  letter-spacing: -0.015em;
+  font-size: var(--text-lg);
+  letter-spacing: -0.01em;
 }

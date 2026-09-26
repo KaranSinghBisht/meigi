@@ -1,14 +1,17 @@
+/* Buttons on one size scale (36 / 44 / 52, always a capsule): every action in a row shares a height. Primary is
+   solid ink, secondary is frosted glass, accent and danger are glass with a coloured label, quiet is a text
+   button. None has a stroke; glass is lit by an inset highlight and a soft shadow. */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5em;
-  height: 44px;
+  gap: 8px;
+  height: var(--control-md);
   padding: 0 20px;
-  border: 1px solid transparent;
+  border: 0;
   border-radius: 999px;
-  font-size: 15px;
-  font-weight: 500;
+  font-size: var(--text-md);
+  font-weight: var(--weight-strong);
   letter-spacing: -0.01em;
   line-height: 1;
   text-decoration: none;
@@ -16,15 +19,9 @@
   cursor: pointer;
   transition:
     background-color 0.2s var(--ease-out),
-    border-color 0.2s var(--ease-out),
     color 0.2s var(--ease-out),
     transform 0.18s var(--ease-out),
     box-shadow 0.2s var(--ease-out);
-}
-
-/* Glass lenses: hover brightens the rim, press compresses the lens a little. */
-.btn:hover:not(:disabled) {
-  border-color: var(--lg-rim-bright);
 }
 
 .btn:active:not(:disabled) {
@@ -37,58 +34,49 @@
 
 .btn:disabled {
   cursor: not-allowed;
-  opacity: 0.5;
+  opacity: 0.45;
 }
 
 .btn[aria-busy='true'] {
   cursor: progress;
 }
 
-/* Smoked glass: the main action. */
+/* Primary: solid ink. */
 .btn--primary {
-  border-color: rgba(255, 255, 255, 0.24);
-  background: var(--lg-sheen-dark), var(--lg-ink);
+  background: var(--lg-ink);
   color: #fff;
   box-shadow:
-    inset 0 1px 0.5px rgba(255, 255, 255, 0.45),
-    inset 0 -10px 18px -12px rgba(0, 0, 0, 0.45),
-    0 12px 26px -14px rgba(42, 39, 48, 0.7);
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 10px 22px -12px rgba(29, 27, 34, 0.6);
 }
 
 .btn--primary:hover:not(:disabled) {
-  border-color: rgba(255, 255, 255, 0.5);
+  background: var(--lg-ink-hover);
 }
 
-/* Vermilion glass: the accent, tinted rather than flat. */
+/* Secondary: frosted glass. On the world it blurs; inside a window it is tint and light only. */
+.btn--ghost,
 .btn--accent {
-  border-color: rgba(255, 196, 186, 0.5);
-  background: var(--lg-sheen-dark), var(--lg-seal);
-  color: #fff;
-  box-shadow:
-    inset 0 1px 0.5px rgba(255, 220, 210, 0.7),
-    inset 0 -10px 18px -12px rgba(70, 8, 4, 0.5),
-    0 12px 26px -14px rgba(200, 55, 45, 0.6);
-}
-
-.btn--accent:hover:not(:disabled) {
-  border-color: rgba(255, 220, 210, 0.85);
-}
-
-/* Clear glass. */
-.btn--ghost {
-  border-color: var(--lg-rim);
-  background: var(--lg-sheen), var(--lg-regular);
+  background: var(--lg-lens);
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
   color: var(--ink);
   box-shadow: var(--lg-shadow-control);
 }
 
-.btn--ghost:hover:not(:disabled) {
-  background: var(--lg-sheen), var(--lg-selected);
+.btn--ghost:hover:not(:disabled),
+.btn--accent:hover:not(:disabled) {
+  background: var(--lg-cell-strong);
 }
 
+/* Accent and danger: the same glass, with a vermilion label. */
+.btn--accent {
+  color: var(--seal-deep);
+}
+
+/* Quiet: a text button. */
 .btn--quiet {
-  height: auto;
-  padding: 6px 10px;
+  padding: 0 12px;
   background: transparent;
   color: var(--ink-soft);
 }
@@ -99,22 +87,20 @@
 }
 
 .btn--sm {
-  height: 34px;
-  padding: 0 14px;
-  font-size: 13.5px;
+  height: var(--control-sm);
+  padding: 0 16px;
+  font-size: var(--text-sm);
 }
 
-.btn--lg {
-  height: 52px;
-  padding: 0 26px;
-  font-size: 17px;
+.btn--sm.btn--quiet {
+  padding: 0 8px;
 }
 
+.btn--lg,
 .btn--xl {
-  height: 64px;
-  padding: 0 34px;
-  font-size: 21px;
-  letter-spacing: -0.02em;
+  height: var(--control-lg);
+  padding: 0 24px;
+  font-size: var(--text-md);
 }
 
 .btn .spinner {

@@ -55,11 +55,11 @@
   top: 10px;
   left: 10px;
   z-index: 100;
-  padding: 10px 16px;
+  padding: 8px 16px;
   border-radius: 999px;
   background: var(--ink);
   color: #fff;
-  font-weight: 500;
+  font-weight: var(--weight-strong);
   transform: translateY(-160%);
   transition: transform 0.2s var(--ease-out);
 }
@@ -82,12 +82,11 @@
   align-items: center;
   gap: 16px;
   max-width: var(--content);
-  min-height: 58px;
+  min-height: 60px;
   margin: 0 auto;
-  padding: 8px 10px 8px 16px;
-  border: 1px solid var(--lg-rim);
+  padding: 8px 8px 8px 16px;
   border-radius: 999px;
-  background: var(--lg-sheen), var(--lg-dense);
+  background: var(--lg-window);
   -webkit-backdrop-filter: var(--lg-blur);
   backdrop-filter: var(--lg-blur);
   box-shadow: var(--lg-shadow-control);
@@ -106,13 +105,13 @@
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   text-decoration: none;
 }
 
 .brand__word {
   font-size: 25px;
-  font-weight: 500;
+  font-weight: var(--weight-regular);
   letter-spacing: -0.06em;
   line-height: 1;
 }
@@ -125,19 +124,18 @@
 .nav__list {
   display: flex;
   gap: 4px;
-  overflow-x: auto;
-  scrollbar-width: none;
 }
 
+/* The nav is a segmented control: the current page is a solid white segment. */
 .nav__link {
   display: inline-flex;
   align-items: center;
-  height: 38px;
-  padding: 0 14px;
+  height: var(--control-md);
+  padding: 0 16px;
   border-radius: 999px;
   color: var(--ink-soft);
-  font-size: 15px;
-  font-weight: 500;
+  font-size: var(--text-md);
+  font-weight: var(--weight-regular);
   text-decoration: none;
   white-space: nowrap;
   transition:
@@ -146,7 +144,7 @@
 }
 
 .nav__link:hover {
-  background: var(--lg-inner);
+  background: var(--lg-cell);
   color: var(--ink);
 }
 
@@ -155,12 +153,10 @@
 }
 
 .nav__link[aria-current='page'] {
-  background: var(--lg-sheen), var(--lg-selected);
+  background: var(--lg-cell-strong);
   color: var(--ink);
-  box-shadow:
-    var(--lg-light),
-    inset 0 -2px 0 var(--vermilion),
-    0 6px 14px -8px rgba(42, 39, 48, 0.35);
+  font-weight: var(--weight-strong);
+  box-shadow: var(--lg-shadow-control);
 }
 
 .topbar__end {
@@ -174,14 +170,14 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  height: 34px;
-  padding: 0 12px;
-  border: 1px solid var(--lg-rim);
+  height: var(--control-md);
+  padding: 0 16px;
+  border: 0;
   border-radius: 999px;
-  background: var(--lg-sheen), var(--lg-inner);
-  box-shadow: var(--lg-light);
-  font-size: 13.5px;
-  font-weight: 500;
+  background: var(--lg-cell);
+  box-shadow: var(--lg-highlight);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-strong);
   white-space: nowrap;
 }
 
@@ -202,38 +198,37 @@
 }
 
 .wallet-switch {
-  border-color: rgba(245, 166, 35, 0.6);
   color: var(--amber-deep);
 }
 
 /* Small print: denser glass. */
 .footer {
-  border-top: 1px solid var(--lg-rim);
-  background: var(--lg-sheen), var(--lg-denser);
+  background: var(--lg-window-dense);
   -webkit-backdrop-filter: var(--lg-blur);
   backdrop-filter: var(--lg-blur);
-  box-shadow: var(--lg-light);
+  box-shadow: var(--lg-highlight);
 }
 
 .footer__inner {
   display: grid;
-  gap: 6px;
+  gap: 8px;
   max-width: calc(var(--content) + 2 * var(--gutter));
   margin: 0 auto;
-  padding: 18px var(--gutter) 24px;
+  padding: 16px var(--gutter) 24px;
   color: var(--ink-soft);
-  font-size: 13.5px;
+  font-size: var(--text-sm);
 }
 
 .footer__line {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 10px;
+  gap: 4px 8px;
 }
 
 .footer__line .address__value {
-  font-size: 13px;
+  color: var(--ink);
+  font-size: var(--text-sm);
 }
 
 .footer__line--quiet {
@@ -242,7 +237,7 @@
 
 .footer__issues {
   color: var(--seal-deep);
-  font-weight: 500;
+  font-weight: var(--weight-strong);
 }
 
 .route-fallback {
@@ -254,15 +249,15 @@
 
 .page-head {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   width: fit-content;
   max-width: 780px;
   margin-bottom: clamp(20px, 3vw, 32px);
 }
 
 .page-head__title {
-  font-size: clamp(32px, 4vw, 46px);
-  font-weight: 500;
+  font-size: var(--text-display);
+  font-weight: var(--weight-strong);
   letter-spacing: -0.045em;
   line-height: 1.05;
 }
@@ -270,7 +265,7 @@
 .page-head__lede {
   max-width: 840px;
   color: var(--ink-soft);
-  font-size: clamp(16px, 1.3vw, 18.5px);
+  font-size: var(--text-lg);
   line-height: 1.55;
 }
 
@@ -283,8 +278,8 @@
 @media (max-width: 980px) {
   .topbar__inner {
     flex-wrap: wrap;
-    gap: 10px 16px;
-    border-radius: 26px;
+    gap: 8px 16px;
+    border-radius: var(--radius-lg);
   }
 
   .nav {

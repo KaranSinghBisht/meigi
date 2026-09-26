@@ -1,35 +1,40 @@
+/* The step indicator is one segmented control: a single glass capsule, the current step a solid white segment. */
 .steps {
   display: grid;
   grid-auto-columns: minmax(0, 1fr);
   grid-auto-flow: column;
-  gap: 8px;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--lg-lens);
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+  box-shadow: var(--lg-shadow-control);
 }
 
 .steps__item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
+  gap: 8px;
   min-width: 0;
-  padding: 10px 14px;
-  border: 1px solid var(--glass-edge);
+  height: var(--control-md);
+  padding: 0 16px;
   border-radius: 999px;
-  background: var(--glass);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
-  color: var(--ink-muted);
-  font-size: 14.5px;
+  color: var(--ink-soft);
+  font-size: var(--text-md);
 }
 
 .steps__marker {
   display: inline-grid;
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   flex: none;
   place-items: center;
-  border: 1.5px solid currentColor;
   border-radius: 50%;
-  font-size: 13px;
-  font-weight: 600;
+  background: rgba(42, 39, 48, 0.08);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-strong);
 }
 
 .steps__label {
@@ -39,16 +44,14 @@
 }
 
 .steps__item--current {
-  border-color: rgba(42, 39, 48, 0.2);
-  background: var(--lg-sheen), var(--lg-selected);
+  background: var(--lg-cell-strong);
   color: var(--ink);
-  font-weight: 600;
-  box-shadow: var(--shadow-soft);
+  font-weight: var(--weight-strong);
+  box-shadow: var(--lg-shadow-control);
 }
 
 .steps__item--current .steps__marker {
-  border-color: var(--seal);
-  background: var(--seal);
+  background: var(--lg-ink);
   color: #fff;
 }
 
@@ -57,7 +60,6 @@
 }
 
 .steps__item--done .steps__marker {
-  border-color: var(--jade);
   background: var(--jade);
   color: #fff;
 }
@@ -65,5 +67,6 @@
 @media (max-width: 760px) {
   .steps {
     grid-auto-flow: row;
+    border-radius: var(--radius-lg);
   }
 }
