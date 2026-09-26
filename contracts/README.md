@@ -43,7 +43,8 @@ payout address. Anything that pays through Meigi can only reach that address.
 
 ```sh
 forge build
-forge test          # 121 tests, including fuzzing the core guarantee and regression tests for the review rounds
+forge test          # 138 tests, including fuzzing the core guarantee and regression tests for the review rounds;
+                    # the CompanyNamespace fork test runs only with an RPC
 ```
 
 Dependencies are git submodules: OpenZeppelin v5.4.0 and forge-std v1.16.2 (see `foundry.lock`).

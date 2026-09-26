@@ -240,12 +240,15 @@ Both were checked against the nationwide NTA data. See [`docs/runbook.md`](docs/
 
 ## Security
 
-The contracts went through three review rounds by separate AI reviewers, with proof-of-concept exploits:
+The core contracts (registry and officer quorum, resolver, vault, router, mock JPYC) went through three review rounds
+by separate AI reviewers, with proof-of-concept exploits:
 - 16 findings: 14 fixed, 2 documented as by design;
 - round 3 mutation-tested every fix;
-- 121 Foundry tests, including fuzzing of the core guarantee.
+- 138 Foundry tests in all, including fuzzing of the core guarantee.
 
-These reviews were AI-assisted, not a professional audit.
+These reviews were AI-assisted, not a professional audit. Contract work after them (the ENS claim contracts
+`ClaimedPayeeResolver` and `CompanyNamespace`, and a resolver change that hides a disputed payee's name) has tests
+but no review round.
 
 Roles, delays and the trust model are in [`contracts/README.md`](contracts/README.md). The agent is untrusted
 by design and holds no key. The signer (`services/signer`) holds it, signs only `payInvoice`, and above ¥150,000 only
@@ -261,7 +264,7 @@ Needs Node ≥ 22, pnpm 11 and Foundry. The bench also needs Python with uv. Sec
 
 ```sh
 pnpm install
-cd contracts && forge test && cd ..                    # 121 tests
+cd contracts && forge test && cd ..                    # 138 tests (a fork test is skipped without an RPC)
 pnpm -r test                                           # unit tests (vitest): agent, verifier, x402 guard, signer
 pnpm --filter @meigi/verifier start                    # :8787 (needs the NTA index: services/verifier/scripts/build_nta_index.py)
 scripts/ap-stack.sh                                    # the signer :8796 (the only key holder), then the agent :8788
