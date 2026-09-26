@@ -20,14 +20,17 @@ All are verified on Sourcify. Timelocks: 72h for payout changes, rotations and d
 
 Demo fixtures, fictional companies marked as such in their on-chain evidence:
 - `T2011001234567` 株式会社メイギ商事: the AP-agent vendor. The vault approves it with caps of ¥500k per invoice and ¥1M per 30 days.
-- `T8999900000001` 株式会社フジデータ: the x402 data merchant. Registry office 9999 doesn't exist, so no real
-  company can ever hold this number.
+- `T8999900000001` 株式会社フジデータ: the x402 demo's dataset merchant (invoice-OCR training data). Registry
+  office 9999 doesn't exist, so no real company can ever hold this number.
+- `T6999900000003` 株式会社ミナトGPUクラウド: the x402 demo's GPU-compute merchant (inference and GPU-minutes).
+  Same office-9999 fixture pattern; registered via `contracts/script/seed-demo.sh`.
 - `T3999905000001` 合同会社ベイサイド・アドバイザリー: the fake-CEO example's payee. It is registered but deliberately
   **not** approved in the vault, so the agent holds it and a forced payment reverts `VendorNotApproved`
   (registered on 2026-09-26 in `0xdd058c9f…b5af`).
 - `T2010401000001` is **retired**. It was registered in error: the number belongs to a real company
   (旭紙業株式会社). It is frozen by a dispute, so it pays nothing and resolves to nothing. Never reuse it.
-- Fixture numbers were checked against the nationwide NTA data (5,787,472 corporations): neither fixture exists.
+- Fixture numbers and names were checked against the nationwide NTA data (5,787,472 corporations): none of these
+  fixtures exists.
 
 ## ENS
 
