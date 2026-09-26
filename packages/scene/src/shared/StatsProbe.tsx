@@ -27,6 +27,8 @@ export interface TraceFrame {
   /** Compiled shader programs so far; a jump means a compile this frame */
   readonly programs: number
   readonly calls: number
+  /** A station move is still running after this frame (false on its arrival frame, which shows the final pose) */
+  readonly moving: boolean
 }
 
 export interface SceneDebug {
@@ -63,7 +65,8 @@ function recordFrame(gl: WebGLRenderer, camera: Camera, deltaSeconds: number): v
   const { x: fx, y: fy, z: fz } = camera.getWorldDirection(forward)
   const programs = gl.info.programs?.length ?? 0
   const dpr = gl.getPixelRatio()
-  trace.push({ ts: frameTime(), delta: deltaSeconds * 1000, x, y, z, fx, fy, fz, dpr, programs, calls: gl.info.render.calls })
+  const calls = gl.info.render.calls
+  trace.push({ ts: frameTime(), delta: deltaSeconds * 1000, x, y, z, fx, fy, fz, dpr, programs, calls, moving: sceneBus.cameraMoving })
   if (trace.length > TRACE_FRAMES) trace.shift()
 }
 

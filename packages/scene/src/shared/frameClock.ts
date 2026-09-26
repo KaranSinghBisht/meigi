@@ -7,6 +7,24 @@ const MAX_INTERVAL = 1 / 24
 const MAX_STEP = 0.1
 /** Longer gaps than this are pauses (hidden tab, idle demand mode), not slow frames. */
 const PAUSE = 0.25
+/** A real refresh-rate change moves the median by far more than frame-time jitter does. */
+const RETUNE = 0.04
+/** Common display refresh rates (Hz). A measured interval within SNAP of one is taken as exact. */
+const REFRESH_RATES = [240, 165, 144, 120, 100, 90, 75, 72, 60, 50, 30]
+const SNAP = 0.05
+
+function snapToRefresh(seconds: number): number {
+  let best = seconds
+  let bestError = SNAP
+  for (const hz of REFRESH_RATES) {
+    const error = Math.abs(seconds * hz - 1)
+    if (error < bestError) {
+      best = 1 / hz
+      bestError = error
+    }
+  }
+  return best
+}
 
 /**
  * Animation clock that advances in whole display frames. R3F's delta is
@@ -38,9 +56,14 @@ class FrameClock {
   }
 
   /**
-   * Rolling median of recent frame gaps: the display's refresh interval.
-   * Only back-to-back frames count; on-demand renders (a startup pump every
-   * 60 ms, one-off wakes) would otherwise read as a slow display.
+   * The display's refresh interval: the rolling median of recent frame gaps,
+   * snapped to a common refresh rate when it is close to one. Only
+   * back-to-back frames count; on-demand renders (a startup pump every 60 ms,
+   * one-off wakes) would otherwise read as a slow display. Frame times come in
+   * 0.1 ms steps with up to a millisecond of jitter, so the raw median flips
+   * between neighbours (8.3 / 8.4 ms at 120 Hz); snapped, and held once the
+   * window is full until the median moves by more than RETUNE, every frame
+   * advances by exactly the same step.
    */
   private track(raw: number): void {
     if (raw > this.interval * 2.5) return
@@ -48,7 +71,8 @@ class FrameClock {
     if (this.samples.length > SAMPLES) this.samples.shift()
     const sorted = [...this.samples].sort((a, b) => a - b)
     const median = sorted[Math.floor(sorted.length / 2)] ?? raw
-    this.interval = Math.min(Math.max(median, MIN_INTERVAL), MAX_INTERVAL)
+    const steady = this.samples.length === SAMPLES && Math.abs(median - this.interval) <= this.interval * RETUNE
+    if (!steady) this.interval = Math.min(Math.max(snapToRefresh(median), MIN_INTERVAL), MAX_INTERVAL)
   }
 }
 

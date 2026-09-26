@@ -1,9 +1,9 @@
-import { Quaternion, Vector3, type CatmullRomCurve3 } from 'three'
+import { LineCurve3, Quaternion, Vector3, type Curve } from 'three'
 import type { ToriiPlacement } from '../shared/world'
 import { GLIDE_SECONDS, STATION_SECONDS } from '../timing'
 import type { Station } from '../types'
-import { createGlidePath } from './glidePath'
-import { gatePoint, lookQuaternion, type StationPose } from './stations'
+import { pathThroughGate } from './gatePath'
+import type { StationPose } from './stations'
 
 /** The camera pose before drift and parallax are layered on. */
 export interface BasePose {
@@ -12,28 +12,29 @@ export interface BasePose {
   fov: number
 }
 
-interface TweenMove {
-  readonly kind: 'tween'
+/**
+ * A station change in progress, the only thing driving the camera while it
+ * runs: the position eases along `path`, the view turns once and the lens
+ * eases once.
+ */
+export interface CameraMove {
+  readonly path: Curve<Vector3>
   readonly from: BasePose
   readonly to: StationPose
   readonly duration: number
+  /** Eased progress along the path (0..1) at linear time t (0..1) */
+  readonly ease: (t: number) => number
+  /** Share of the turn done at eased progress e (0..1) */
+  readonly turn: (e: number) => number
   elapsed: number
 }
 
-interface GlideMove {
-  readonly kind: 'glide'
-  readonly path: CatmullRomCurve3
-  /** Where the camera was facing when the glide began. */
-  readonly restDir: Vector3
-  /** A point well beyond the gate on its axis: the camera looks through the torii at it. */
-  readonly gateFocus: Vector3
-  readonly from: BasePose
-  readonly to: StationPose
-  readonly duration: number
-  elapsed: number
-}
-
-export type CameraMove = TweenMove | GlideMove
+/**
+ * The glide's single turn is done by here. The camera reaches the gate's
+ * sightline at about 0.6 and passes the torii after 0.74 (at any aspect), so
+ * it flies through without turning.
+ */
+const GLIDE_TURN_DONE = 0.6
 
 export function createBasePose(): BasePose {
   return { position: new Vector3(), quaternion: new Quaternion(), fov: 34 }
@@ -56,51 +57,34 @@ function smoothstep(a: number, b: number, x: number): number {
 
 const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
 const power2InOut = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2)
-
-/** hero → gate flies through the torii; every other change is an eased tween. */
-export function startMove(fromStation: Station, toStation: Station, base: BasePose, to: StationPose, torii: ToriiPlacement): CameraMove {
-  const from = clonePose(base)
-  if (fromStation === 'hero' && toStation === 'gate') {
-    const restDir = new Vector3(0, 0, -1).applyQuaternion(base.quaternion)
-    const path = createGlidePath(base.position, torii, to.position)
-    const gateFocus = gatePoint(torii, -45, 2.6)
-    return { kind: 'glide', path, restDir, gateFocus, from, to, duration: GLIDE_SECONDS, elapsed: 0 }
-  }
-  return { kind: 'tween', from, to, duration: STATION_SECONDS, elapsed: 0 }
-}
-
-const gateDir = new Vector3()
-const endDir = new Vector3()
-const lookDir = new Vector3()
-const lookPoint = new Vector3()
+const glideTurn = (e: number) => smoothstep(0, GLIDE_TURN_DONE, e)
+const evenTurn = (e: number) => e
 
 /**
- * Blends view directions, not look-at points: from where the camera faced,
- * to straight through the torii, to the mountain. Blending points at very
- * different distances made the nearer one grab the view and whip the camera.
+ * A move starts from `start`, the pose actually on screen, so its first frame
+ * never jumps. hero → gate is the enter glide; any other move across the
+ * torii goes through its opening too; the rest are straight eased tweens.
  */
-function glidePose(move: GlideMove, t: number, out: BasePose): void {
-  const e = power2InOut(t)
-  move.path.getPointAt(e, out.position)
-  gateDir.subVectors(move.gateFocus, out.position).normalize()
-  endDir.subVectors(move.to.target, out.position).normalize()
-  lookDir.copy(move.restDir).lerp(gateDir, smoothstep(0.04, 0.45, e)).normalize()
-  lookDir.lerp(endDir, smoothstep(0.55, 0.97, e)).normalize()
-  lookQuaternion(out.position, lookPoint.copy(out.position).add(lookDir), out.quaternion)
-  out.fov = move.from.fov + (move.to.fov - move.from.fov) * e + 4 * Math.sin(Math.PI * e)
+export function startMove(fromStation: Station, toStation: Station, start: BasePose, to: StationPose, torii: ToriiPlacement): CameraMove {
+  const from = clonePose(start)
+  const skim = fromStation === 'hero' || toStation === 'hero'
+  const through = pathThroughGate(torii, start.position, to.position, skim)
+  if (through && fromStation === 'hero' && toStation === 'gate') {
+    return { path: through, from, to, duration: GLIDE_SECONDS, ease: power2InOut, turn: glideTurn, elapsed: 0 }
+  }
+  const path = through ?? new LineCurve3(start.position.clone(), to.position.clone())
+  return { path, from, to, duration: STATION_SECONDS, ease: easeInOutCubic, turn: evenTurn, elapsed: 0 }
 }
 
-function tweenPose(move: TweenMove, t: number, out: BasePose): void {
-  const e = easeInOutCubic(t)
-  out.position.lerpVectors(move.from.position, move.to.position, e)
-  out.quaternion.slerpQuaternions(move.from.quaternion, move.to.quaternion, e)
-  out.fov = move.from.fov + (move.to.fov - move.from.fov) * e
-}
-
-/** Writes the pose at absolute progress t (0..1) without advancing the move. */
+/**
+ * Writes the pose at linear progress t (0..1) without advancing the move.
+ * At t = 1 it is the station pose exactly, so nothing corrects on arrival.
+ */
 export function poseAt(move: CameraMove, t: number, out: BasePose): void {
-  if (move.kind === 'glide') glidePose(move, t, out)
-  else tweenPose(move, t, out)
+  const e = move.ease(t)
+  move.path.getPointAt(e, out.position)
+  out.quaternion.slerpQuaternions(move.from.quaternion, move.to.quaternion, move.turn(e))
+  out.fov = move.from.fov + (move.to.fov - move.from.fov) * e
 }
 
 /** Advances a move by dt seconds and writes the base pose; false once it has arrived. */

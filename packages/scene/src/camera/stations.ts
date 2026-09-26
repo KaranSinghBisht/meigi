@@ -5,32 +5,35 @@ import { WORLD, framingFor, toriiPlacement, type ToriiPlacement } from '../share
 export interface StationPose {
   readonly position: Vector3
   readonly quaternion: Quaternion
-  /** Point the camera looks at; the glide steers towards it. */
-  readonly target: Vector3
   readonly fov: number
 }
 
 /** Where Fuji-facing stations look: the mountain's upper body. */
-export const FUJI_FOCUS = new Vector3(WORLD.fuji.x, 55, WORLD.fuji.z)
+const FUJI_FOCUS = new Vector3(WORLD.fuji.x, 55, WORLD.fuji.z)
 
 const UP = new Vector3(0, 1, 0)
 const lookMatrix = new Matrix4()
 const MAX_FOV = 84
 
 /** Camera orientation looking from `position` at `target` (camera -z towards target). */
-export function lookQuaternion(position: Vector3, target: Vector3, out = new Quaternion()): Quaternion {
+function lookQuaternion(position: Vector3, target: Vector3): Quaternion {
   lookMatrix.lookAt(position, target, UP)
-  return out.setFromRotationMatrix(lookMatrix)
+  return new Quaternion().setFromRotationMatrix(lookMatrix)
 }
 
-/** A point `ahead` units in front of the gate (negative = beyond it), height scaled with the gate. */
-export function gatePoint(torii: ToriiPlacement, ahead: number, height: number): Vector3 {
-  const facing = new Vector3(Math.sin(torii.rotY), 0, Math.cos(torii.rotY))
-  return new Vector3(torii.x, height * torii.scale, torii.z).addScaledVector(facing, ahead)
+/**
+ * A point on the gate's sightline, the level line from the middle of the
+ * torii towards Fuji: `beyond` units past the gate (negative = in front of
+ * it, on the lake side), height scaled with the gate. The gate station sits
+ * on it, and moves through the torii fly along it.
+ */
+export function sightlinePoint(torii: ToriiPlacement, beyond: number, height: number): Vector3 {
+  const along = new Vector3(FUJI_FOCUS.x - torii.x, 0, FUJI_FOCUS.z - torii.z).normalize()
+  return new Vector3(torii.x, height * torii.scale, torii.z).addScaledVector(along, beyond)
 }
 
 function pose(position: Vector3, target: Vector3, fov: number): StationPose {
-  return { position, target, fov: Math.min(fov, MAX_FOV), quaternion: lookQuaternion(position, target) }
+  return { position, fov: Math.min(fov, MAX_FOV), quaternion: lookQuaternion(position, target) }
 }
 
 /** A look target straight down -z, tilted up by `pitch` radians. */
@@ -51,7 +54,7 @@ export function stationPose(station: Station, aspect: number): StationPose {
     case 'hero':
       return pose(eye, pitched(eye, framing.pitch), fov)
     case 'gate':
-      return pose(gatePoint(torii, -16, 2.4), FUJI_FOCUS.clone(), fov * 1.1)
+      return pose(sightlinePoint(torii, 16, 2.4), FUJI_FOCUS.clone(), fov * 1.1)
     case 'fuji':
       return pose(new Vector3(0, 11, -30), new Vector3(0, 92, -900), fov * 0.8)
     case 'lake':

@@ -39,18 +39,19 @@ function dprForFactor(factor: number): number {
 interface ContentsProps {
   readonly station: Station
   readonly animate: boolean
+  readonly drift: boolean
   readonly interactive: boolean
   readonly multisampling: number
 }
 
-function SceneContents({ station, animate, interactive, multisampling }: ContentsProps) {
+function SceneContents({ station, animate, drift, interactive, multisampling }: ContentsProps) {
   // The lake, mist and petals re-centre on a station only once the camera has
   // arrived there, so nothing jumps mid-glide.
   const [settled, setSettled] = useState<Station>(station)
   return (
     <>
       <FrameClockDriver />
-      <CameraRig station={station} animate={animate} interactive={interactive} onSettled={setSettled} />
+      <CameraRig station={station} animate={animate} drift={drift} interactive={interactive} onSettled={setSettled} />
       <MoodDriver animate={animate} />
       <Sky animate={animate} />
       <Fuji />
@@ -129,7 +130,13 @@ export function MeigiStage(props: MeigiStageProps) {
         camera={{ fov: 34, near: 0.1, far: WORLD.cameraFar, position: [0, WORLD.eyeHeight, 0] }}
         onCreated={handleCreated}
       >
-        <SceneContents station={station} animate={animate} interactive={interactive} multisampling={multisampling} />
+        <SceneContents
+          station={station}
+          animate={animate}
+          drift={loop === 'always'}
+          interactive={interactive}
+          multisampling={multisampling}
+        />
         <Lifecycle loop={loop} animate={animate} onReady={onReady} onDpr={setDpr} />
       </Canvas>
     </StageBoundary>
