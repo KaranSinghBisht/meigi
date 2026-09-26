@@ -49,6 +49,22 @@ function useHandoff(flow: UseIDKitSessionHookResult, props: WorldIdSessionProps)
   return verifying
 }
 
+const STALE_AFTER_MS = 150_000 // 2.5 minutes: World App can fail silently on its own side, with nothing sent
+// back through the bridge - the person shouldn't be left guessing whether it's still trying.
+
+/** True once `connectorURI` has sat unresolved for `STALE_AFTER_MS`; resets the moment the QR changes (a fresh
+ * `open()`, e.g. after Cancel then trying again) or the session resolves. */
+function useStaleAfter(connectorURI: string | null, resolved: boolean): boolean {
+  const [stale, setStale] = useState(false)
+  useEffect(() => {
+    setStale(false)
+    if (!connectorURI || resolved) return
+    const timer = setTimeout(() => setStale(true), STALE_AFTER_MS)
+    return () => clearTimeout(timer)
+  }, [connectorURI, resolved])
+  return stale
+}
+
 function statusText(flow: UseIDKitSessionHookResult, verifying: boolean, sameHuman: boolean): string {
   const app = APPS[env.worldEnvironment]
   if (verifying) return 'Checking the proof with the Meigi verifier…'
@@ -73,6 +89,8 @@ export function WorldIdSession(props: WorldIdSessionProps) {
   useEffect(() => open(), [open])
   const verifying = useHandoff(flow, props)
   const qr = useQr(flow.connectorURI)
+  const resolved = flow.isSuccess || flow.isError || verifying
+  const stale = useStaleAfter(flow.connectorURI, resolved)
   const waiting = !flow.connectorURI || flow.isAwaitingUserConfirmation || verifying
   return (
     <div className="world-session" role="group" aria-label="World ID request">
@@ -87,7 +105,16 @@ export function WorldIdSession(props: WorldIdSessionProps) {
         <p className="world-session__status" aria-live="polite">
           {waiting ? <Spinner /> : null} {statusText(flow, verifying, Boolean(props.sessionId))}
         </p>
-        <WorldIdLinks uri={flow.connectorURI} onCancel={() => props.onFinish(null)} />
+        {stale && !resolved ? (
+          <p className="muted" role="status">
+            No answer from World ID yet. Try again, or cancel below.
+          </p>
+        ) : null}
+        <WorldIdLinks
+          uri={flow.connectorURI}
+          onCancel={() => props.onFinish(null)}
+          onRetry={stale && !resolved ? open : undefined}
+        />
         {env.worldEnvironment === 'staging' ? (
           <p className="world-session__hint">
             Staging: the World ID simulator rejects World ID 4.0 sessions. Use the sandbox or production environment.
@@ -98,7 +125,15 @@ export function WorldIdSession(props: WorldIdSessionProps) {
   )
 }
 
-function WorldIdLinks({ uri, onCancel }: { readonly uri: string | null; readonly onCancel: () => void }) {
+function WorldIdLinks({
+  uri,
+  onCancel,
+  onRetry,
+}: {
+  readonly uri: string | null
+  readonly onCancel: () => void
+  readonly onRetry?: () => void
+}) {
   return (
     <div className="world-session__links">
       {uri ? (
@@ -107,6 +142,11 @@ function WorldIdLinks({ uri, onCancel }: { readonly uri: string | null; readonly
         </a>
       ) : null}
       {uri ? <CopyButton value={uri} label="Copy link" /> : null}
+      {onRetry ? (
+        <Button variant="quiet" size="sm" onClick={onRetry}>
+          Try again
+        </Button>
+      ) : null}
       <Button variant="quiet" size="sm" onClick={onCancel}>
         Cancel
       </Button>
