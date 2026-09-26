@@ -13,18 +13,22 @@ export interface MultiBaasOptions {
   timeoutMs?: number;
 }
 
-/** MultiBaas couldn't be reached, timed out, or answered with an error or an unexpected body. */
+/**
+ * MultiBaas couldn't be reached, timed out, or answered with an error or an unexpected body. `detail` is MultiBaas's
+ * own error text: for the operator (the setup script), never for API responses.
+ */
 export class MultiBaasUnavailable extends Error {
   constructor(
     message: string,
     readonly status: number | null = null,
+    readonly detail: string | null = null,
   ) {
     super(message);
     this.name = "MultiBaasUnavailable";
   }
 }
 
-const envelope = z.object({ status: z.number(), message: z.string().optional(), result: z.unknown() });
+const envelope = z.object({ status: z.number(), message: z.string().optional(), result: z.unknown().optional() }); // errors carry no result
 
 const eventField = z.object({ name: z.string(), value: z.unknown(), type: z.string().optional() });
 const indexedEvent = z.object({
@@ -56,7 +60,9 @@ export interface MultiBaas {
   query(definition: unknown, limit?: number): Promise<Record<string, unknown>[]>;
   /** Any other call (the setup script): returns the envelope's `result`. */
   call(method: "GET" | "POST" | "PUT", path: string, body?: unknown): Promise<unknown>;
-  /** Throws unless the deployment serves `chainId`: a deployment's network is fixed when it is created. */
+  /** The chain the deployment serves: a deployment's network is fixed when it is created. */
+  chainId(): Promise<number>;
+  /** Throws unless the deployment serves `chainId`. */
   requireChain(chainId: number): Promise<void>;
 }
 
@@ -86,14 +92,18 @@ export function createMultiBaas(opts: MultiBaasOptions): MultiBaas {
       return parsed.data.rows.map((row) => Object.fromEntries(Object.entries(row).map(([key, value]) => [key.toLowerCase(), value])));
     },
     call,
+    chainId: () => servedChain(call),
     async requireChain(chainId) {
-      const status = z.object({ chainID: z.number() }).safeParse(await call("GET", "/chains/ethereum/status"));
-      if (!status.success) throw new MultiBaasUnavailable("MultiBaas returned its chain status in an unexpected shape");
-      if (status.data.chainID !== chainId) {
-        throw new MultiBaasUnavailable(`the MultiBaas deployment is on chain ${status.data.chainID}, not ${chainId}`);
-      }
+      const served = await servedChain(call);
+      if (served !== chainId) throw new MultiBaasUnavailable(`the MultiBaas deployment is on chain ${served}, not ${chainId}`);
     },
   };
+}
+
+async function servedChain(call: (method: "GET", path: string) => Promise<unknown>): Promise<number> {
+  const status = z.object({ chainID: z.number() }).safeParse(await call("GET", "/chains/ethereum/status"));
+  if (!status.success) throw new MultiBaasUnavailable("MultiBaas returned its chain status in an unexpected shape");
+  return status.data.chainID;
 }
 
 async function request(opts: MultiBaasOptions, base: string, method: string, path: string, body?: unknown): Promise<unknown> {
@@ -111,6 +121,9 @@ async function request(opts: MultiBaasOptions, base: string, method: string, pat
     throw new MultiBaasUnavailable(timedOut ? "MultiBaas did not answer in time" : "could not reach MultiBaas");
   }
   const parsed = envelope.safeParse(await response.json().catch(() => null));
-  if (!response.ok || !parsed.success) throw new MultiBaasUnavailable(`MultiBaas answered ${response.status}`, response.status);
+  if (!response.ok || !parsed.success) {
+    const detail = parsed.success && parsed.data.message ? parsed.data.message.slice(0, 300) : null;
+    throw new MultiBaasUnavailable(`MultiBaas answered ${response.status}`, response.status, detail);
+  }
   return parsed.data.result;
 }

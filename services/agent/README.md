@@ -30,11 +30,11 @@ if `AGENT_API_TOKEN` is set. It answers only requests addressed to `localhost`, 
 | POST | `/invoices/:id/pay` `{ force?: boolean }` or `{ approvalId }` | See the payment results below |
 | POST | `/invoices/:id/approval` `{}` | `202 { attemptId, userCode, verificationUriComplete, expiresAt, interval }` (unix seconds; seconds): see [Human approval](#human-approval-world-id-for-agents) |
 | GET | `/invoices/:id/approval` | `{ attemptId, status, expiresAt, used, approvedAt?, approver?, reason? }` |
-| GET | `/payments?tNumber=T…[,T…]&limit=50` | `{ source: { settled, received }, notes, settled[], received[], refused[] }`: see [Settlement history](#settlement-history-curvegrid-multibaas) |
+| GET | `/payments?tNumber=T…[,T…]&limit=50` | `{ label, source: { settled, received }, notes, settled[], received[], refused[], mizuhiki }`: see [Settlement history](#settlement-history-curvegrid-multibaas) |
 | GET | `/invoices/:id/settlement` | `{ status: "confirmed" \| "indexing" \| "pending" \| "mismatch", source, txHash, blockNumber?, at?, note? }`; `404 not_paid` |
 | GET | `/vault` | `{ agent, vaultAgent, agentAuthorized, vault, registry, owner, token, balance, paused, vendorDelaySeconds, vendors[] }` |
 | GET | `/demo/invoices` | The documents in `scripts/demo-invoices/` with the manifest |
-| GET | `/health` | `{ ok, chainId, vault, agent, triage, triageRequired, llm, screening, humanApproval, multibaas }` |
+| GET | `/health` | `{ ok, chainId, vault, agent, triage, triageRequired, llm, screening, humanApproval, multibaas, mizuhiki }` |
 
 A payment returns one of:
 
@@ -164,14 +164,23 @@ grant: the agent is the device, and the human approves in World App. It is off u
 
 ## Settlement history (Curvegrid MultiBaas)
 
-The agent reads what the vault paid, and what each payee received, from a MultiBaas deployment's event index. When
-MultiBaas isn't configured or can't answer, it reads the same facts from RPC logs.
+Meigi also runs on Mizuhiki Awaji (chain 6497), where it is indexed and queried only through MultiBaas, like
+Curvegrid's Matsuri sample. On the agent's own chain (Sepolia), payments are read from RPC logs with viem, unless a
+MultiBaas deployment there indexes the vault from the start of that history. A free plan backfills only about
+100 blocks, so older payments would be missing.
 
-- **Setup:** `pnpm --filter @meigi/agent multibaas:setup`, with `MULTIBAAS_URL` and `MULTIBAAS_API_KEY` in the
-  repo-root `.env`. It is idempotent.
-  - It imports each contract's ABI through MultiBaas's explorer lookup (the repo's copy if unverified).
-  - It aliases and links PayeeRegistry, AgentVault and MockJPYC with event indexing from block 11781105.
-  - It saves the event queries in `src/multibaas/labels.ts`.
+- **Setup:** `pnpm --filter @meigi/agent multibaas:setup --awaji` (the Awaji deployment, `MULTIBAAS_AWAJI_URL` and
+  `MULTIBAAS_AWAJI_API_KEY`) or without `--awaji` (`MULTIBAAS_URL` and `MULTIBAAS_API_KEY`). It is idempotent.
+  - It reads the chain the deployment serves, and the addresses from `contracts/deployments/<chain>.json`.
+  - It imports each contract's ABI through MultiBaas's explorer lookup, or uses the repo's copy when the lookup has no
+    ABI declaring the events it queries.
+  - It aliases and links PayeeRegistry, AgentVault, PayRouter and the JPY token. Event indexing starts at the first
+    block of the forge broadcast that deployed them (Sepolia: block 11781105; override with `--from-block N`). A
+    dry run's deployment file is refused.
+  - It saves the event queries in `src/multibaas/labels.ts`, in the Matsuri sample's format: invoices paid, totals
+    per payee, payees registered, router payments, MJPY net balances (add/subtract) and MJPY received.
+  - `--library-only` adds just the ABIs and queries, before the contracts exist. Then linking a fresh deploy is
+    quick, well inside the plan's 100-block backfill (about 10 minutes at Awaji's 6-second blocks).
 - **`GET /payments`:**
   - `settled` has every `InvoicePaid`, newest first.
   - `received` has the mJPYC each registered payee got, totalled from `Transfer`. That covers the T-numbers
@@ -179,6 +188,15 @@ MultiBaas isn't configured or can't answer, it reads the same facts from RPC log
   - `refused` has this agent's holds since it started, newest first. Refusals never reach the chain, so they
     always come from the agent.
   - `source` says where `settled` and `received` came from (`multibaas` or `rpc`), and `notes` explains a fallback.
+    `label` names it, e.g. `Sepolia · via RPC`.
+  - `mizuhiki` is Meigi on Mizuhiki Awaji (`null` when it isn't configured). It has:
+    - `label: "Mizuhiki · via MultiBaas"`, plus `chainId`, `network`, `explorer` and `source: "multibaas"`;
+    - `token` (`{ symbol, decimals }`, read through MultiBaas's contract call API);
+    - `settled[]`: rows as above plus `via: "vault" | "router"`, from `InvoicePaid` and `Paid`;
+    - `payees[]`: `{ tNumber, legalName, payout, at, txHash }`, from `PayeeRegistered`;
+    - `received[]`: the MJPY each registered payout got.
+
+    When MultiBaas can't answer, or serves another chain, the lists are empty and a `note` says why.
 - **`GET /invoices/:id/settlement`:** after a payment, it is `confirmed` once MultiBaas has indexed its
   `InvoicePaid`, or `indexing` until then. On the RPC path it is `confirmed` from the receipt, or `pending`.
 - **Keys:** only this service holds the MultiBaas key; the dashboards read `/payments`.
@@ -225,7 +243,7 @@ and token match the configuration, that the key is the vault's agent, and that i
 | LLM | `LLM_PROVIDER=local` (the default for demos: a model on this machine behind an OpenAI-compatible API, `LOCAL_LLM_URL=http://127.0.0.1:11434/v1`, `LOCAL_LLM_MODEL=llama3.1:8b`, `LOCAL_LLM_TIMEOUT_MS=60000`), `proxy` (Llama 3.3 via `AI_PROXY_URL/v1/chat` with `AI_PROXY_TOKEN`), `anthropic` (`ANTHROPIC_API_KEY`, `claude-haiku-4-5`), `workers-ai` or `none` |
 | Screening | `INTERCEPTA_API_KEY` (optional), `INTERCEPTA_CACHE_PATH=../../data/agent/intercepta-cache.json`, `INTERCEPTA_MAX_CALLS=900`, `INTERCEPTA_TOXIC_THRESHOLD=50` |
 | Judgement holds | `TRIAGE_MAX_PRESSURE=0.5`, `AUTO_CLEAR_MAX_YEN` (unset: no budget hold) |
-| Settlement history | `MULTIBAAS_URL` and `MULTIBAAS_API_KEY` (both or neither; https only), `HISTORY_FROM_BLOCK` (RPC log scans; default 11781105 on Sepolia, 0 elsewhere) |
+| Settlement history | `MULTIBAAS_URL` and `MULTIBAAS_API_KEY` (the agent's chain), `MULTIBAAS_AWAJI_URL` and `MULTIBAAS_AWAJI_API_KEY` (Mizuhiki Awaji); each pair both or neither, https only. `HISTORY_FROM_BLOCK` (RPC log scans; default 11781105 on Sepolia, 0 elsewhere) |
 | Human approval | `WORLD_AGENTS_CLIENT_ID` and `WORLD_AGENTS_CLIENT_SECRET` (both or neither), `WORLD_AGENTS_ISSUER=https://sandbox.auth.world.org`, `WORLD_AGENTS_AUTH_METHOD=client_secret_basic` (or `client_secret_post`), `WORLD_AGENTS_APPROVERS`, `WORLD_AGENTS_ENROLL` (off), `WORLD_AGENTS_APPROVERS_PATH=../../data/agent/approvers.json`, `WORLD_AGENTS_TRACE` (off) |
 | Server | `AGENT_PORT=8788`, `AGENT_HOST=127.0.0.1`, `AGENT_ALLOWED_HOSTS` (extra Host names for LAN use), `APP_ORIGINS=http://localhost:5173,http://localhost:4173`, `VENDOR_T_NUMBERS=2011001234567` |
 

@@ -1,9 +1,11 @@
 import { MultiBaasUnavailable } from "../multibaas/client.js";
+import type { IndexedNetwork } from "./network.js";
 import type { PaymentHistory } from "./types.js";
 
 export interface HistorySources {
-  multibaas: PaymentHistory | null; // null: MULTIBAAS_URL / MULTIBAAS_API_KEY not set
+  multibaas: PaymentHistory | null; // the agent's chain in MultiBaas; null: MULTIBAAS_URL / MULTIBAAS_API_KEY not set
   rpc: PaymentHistory;
+  mizuhiki: IndexedNetwork | null; // Meigi on Mizuhiki Awaji via its MultiBaas deployment; null: not configured
 }
 
 export interface Sourced<T> {

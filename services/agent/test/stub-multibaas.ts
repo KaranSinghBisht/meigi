@@ -15,6 +15,15 @@ export interface StubEvent {
   inputs: { tNumber: string; payout: string; amount: string; invoiceRef: string };
 }
 
+export interface StubPayee {
+  tNumber: string;
+  payout: string;
+  legalName: string;
+  block: number;
+  at: string;
+  txHash: string;
+}
+
 export interface StubMultiBaas {
   url: string;
   down: boolean;
@@ -24,9 +33,13 @@ export interface StubMultiBaas {
   contracts: Map<string, Record<string, unknown>>;
   aliases: Map<string, { address: string; links: Record<string, unknown>[] }>;
   queries: Map<string, unknown>;
-  verified: Set<string>; // addresses whose contract lookup returns a verified ABI
+  verified: Map<string, string>; // address → the ABI (JSON) its contract lookup returns as verified
   invoicesPaid: StubEvent[];
+  routerPaid: StubEvent[];
+  payees: StubPayee[];
   received: { payout: string; total: string }[];
+  token: { symbol: string; decimals: number };
+  vaultStart: number | null; // where the vault link's indexing starts; null: not linked
   close(): void;
 }
 
@@ -42,9 +55,13 @@ export async function startStubMultiBaas(): Promise<StubMultiBaas> {
     contracts: new Map(),
     aliases: new Map(),
     queries: new Map(),
-    verified: new Set(),
+    verified: new Map(),
     invoicesPaid: [],
+    routerPaid: [],
+    payees: [],
     received: [],
+    token: { symbol: "mJPYC", decimals: 18 },
+    vaultStart: null,
   } as unknown as StubMultiBaas;
   const server: Server = createServer((req, res) => {
     let raw = "";
@@ -76,9 +93,17 @@ function route(stub: StubMultiBaas, method: string, url: URL, body: any, auth: s
   const contract = /^\/contracts\/([^/]+)$/u.exec(path)?.[1];
   const query = /^\/queries\/([^/]+)$/u.exec(path)?.[1];
   if (method === "GET" && alias?.startsWith("0x") && url.searchParams.get("include") === "contractLookup") {
-    const lookup = stub.verified.has(alias) ? [{ address: alias, abi: "[]", verified: true }] : [];
+    const abi = stub.verified.get(alias);
+    const lookup = abi ? [{ address: alias, abi, verified: true }] : [];
     return [200, ok({ alias: "", address: alias, chain: "ethereum", contracts: [], contractLookup: lookup })];
   }
+  const status = /^\/chains\/ethereum\/addresses\/([^/]+)\/contracts\/([^/]+)\/status$/u.exec(path);
+  if (method === "GET" && status) {
+    if (status[1] !== "meigi_vault" || stub.vaultStart === null) return [404, notFound];
+    return [200, ok({ startBlockNumber: stub.vaultStart, latestBlockNumber: 11783500, isProcessingPastLogs: false })];
+  }
+  const read = /^\/chains\/ethereum\/addresses\/meigi_mjpy\/contracts\/meigi_jpy_token\/methods\/(symbol|decimals)$/u.exec(path)?.[1];
+  if (method === "POST" && read) return [200, ok({ kind: "MethodCallResponse", output: read === "symbol" ? stub.token.symbol : stub.token.decimals })];
   if (method === "GET" && alias) {
     const entry = stub.aliases.get(alias);
     return entry ? [200, ok({ alias, address: entry.address, chain: "ethereum", contracts: entry.links })] : [404, notFound];
@@ -94,6 +119,7 @@ function route(stub: StubMultiBaas, method: string, url: URL, body: any, auth: s
   }
   if (method === "GET" && contract) return stub.contracts.has(contract) ? [200, ok(stub.contracts.get(contract))] : [404, notFound];
   if (method === "POST" && contract) {
+    if (typeof body.bin !== "string") return [400, { status: 400, message: 'null value in column "bytecode" violates not-null constraint' }];
     stub.contracts.set(contract, body);
     return [200, ok(body)];
   }
@@ -109,7 +135,10 @@ function route(stub: StubMultiBaas, method: string, url: URL, body: any, auth: s
 function rowsFor(stub: StubMultiBaas, definition: { events: { eventName: string; select: { aggregator?: string }[] }[] }) {
   const event = definition.events[0]!;
   if (event.eventName === "Transfer") return stub.received.map((r) => ({ payout: r.payout, total: r.total }));
-  return [...stub.invoicesPaid]
+  if (event.eventName === "PayeeRegistered") {
+    return [...stub.payees].sort((a, b) => b.block - a.block).map((p) => ({ tNumber: p.tNumber, payout: p.payout, legalName: p.legalName, block: p.block, at: p.at, txHash: p.txHash }));
+  }
+  return [...(event.eventName === "Paid" ? stub.routerPaid : stub.invoicesPaid)]
     .sort((a, b) => b.block - a.block)
     .map((e) => ({ tNumber: e.inputs.tNumber, payout: e.inputs.payout, amount: e.inputs.amount, invoiceRef: e.inputs.invoiceRef, block: e.block, at: e.at, txHash: e.txHash }));
 }

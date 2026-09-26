@@ -1,3 +1,4 @@
+import { payeeRegistryAbi } from "@meigi/abi";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
 import type { AppDeps } from "../src/deps.js";
@@ -21,12 +22,14 @@ const DEPLOYMENT = {
   chainId: 11155111,
   registry: "0x205c977cF1f4Ed42e51a48759550eF40160A6396",
   vault: "0x87A798CD92dE1340B1b761dd45196AC82bEF793B",
+  router: "0xbA95BA5D4a2244cce46a76920f411B225116850C",
   token: "0xEcA2B093682a46B14b143474d188A120bA2d0EC2",
+  startBlock: V2_START_BLOCK,
 };
 
 function withMultiBaas(): AppDeps & Fakes {
   const deps = fakeDeps();
-  return { ...deps, history: { multibaas: createMultiBaasHistory(mbClient(), 11155111), rpc: deps.history.rpc } };
+  return { ...deps, history: { multibaas: createMultiBaasHistory(mbClient(), 11155111), rpc: deps.history.rpc, mizuhiki: null } };
 }
 
 async function call(deps: AppDeps, method: string, path: string, body?: unknown) {
@@ -54,15 +57,24 @@ describe("MultiBaas client", () => {
 });
 
 describe("setup", () => {
-  it("imports, aliases and links the three contracts from the v2 block, saves the queries, and is idempotent", async () => {
-    stub.verified.add(DEPLOYMENT.registry);
+  it("imports, aliases and links the four contracts from the deploy block, saves the queries, and is idempotent", async () => {
+    stub.verified.set(DEPLOYMENT.registry, JSON.stringify(payeeRegistryAbi));
+    stub.verified.set(DEPLOYMENT.token, JSON.stringify([{ type: "function", name: "upgradeTo", inputs: [] }])); // a proxy's own ABI
     const log: string[] = [];
     await setupMultiBaas(mbClient(), DEPLOYMENT, (line) => log.push(line));
-    expect([...stub.contracts.keys()].sort()).toEqual(["meigi_agent_vault", "meigi_mock_jpyc", "meigi_payee_registry"]);
+    expect([...stub.contracts.keys()].sort()).toEqual(["meigi_agent_vault", "meigi_jpy_token", "meigi_pay_router", "meigi_payee_registry"]);
     expect(stub.aliases.get("meigi_vault")).toMatchObject({ address: DEPLOYMENT.vault, links: [{ label: "meigi_agent_vault", startingBlock: String(V2_START_BLOCK) }] });
-    expect([...stub.queries.keys()].sort()).toEqual(["meigi_invoices_by_payee", "meigi_invoices_paid", "meigi_mjpyc_received"]);
+    expect([...stub.queries.keys()].sort()).toEqual([
+      "meigi_invoices_by_payee",
+      "meigi_invoices_paid",
+      "meigi_mjpy_balances",
+      "meigi_mjpy_received",
+      "meigi_payees_registered",
+      "meigi_router_paid",
+    ]);
     expect(log).toContain("PayeeRegistry: ABI imported from its verified source");
     expect(log).toContain("AgentVault: no verified source found, using the repo's ABI");
+    expect(log).toContain("MockJPYC: no verified source found, using the repo's ABI"); // the proxy ABI has no Transfer
 
     const before = stub.requests.filter((r) => r.method === "POST").length;
     await setupMultiBaas(mbClient(), DEPLOYMENT, () => {});

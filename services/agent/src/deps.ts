@@ -18,6 +18,7 @@ export interface HealthInfo {
   screening: boolean;
   humanApproval: boolean; // World ID for Agents is configured: held payments can be approved by a verified human
   multibaas: boolean; // settlement history comes from MultiBaas's event index (else RPC logs)
+  mizuhiki: boolean; // GET /payments also reads Meigi on Mizuhiki Awaji through its MultiBaas deployment
 }
 
 /** Everything the routes need, injected so tests can swap in fakes. */

@@ -6,6 +6,7 @@ import { createApprovals, type ApprovalService } from "./approval/approvals.js";
 import { createApproverRegistry } from "./approval/approvers.js";
 import { createIdp } from "./approval/idp.js";
 import { createMultiBaasHistory } from "./history/multibaas.js";
+import { createIndexedNetwork } from "./history/network.js";
 import { createRpcHistory } from "./history/rpc.js";
 import { createMultiBaas } from "./multibaas/client.js";
 import { V2_START_BLOCK } from "./multibaas/labels.js";
@@ -49,9 +50,14 @@ export function buildDeps(config: Config) {
     toxicThreshold: config.INTERCEPTA_TOXIC_THRESHOLD,
   });
   const approvals = createApprovalService(config);
+  const fromBlock = historyFrom(config);
+  const multibaas = (url?: string, apiKey?: string) => (url && apiKey ? createMultiBaas({ url, apiKey }) : null);
+  const sameChain = multibaas(config.MULTIBAAS_URL, config.MULTIBAAS_API_KEY);
+  const awaji = multibaas(config.MULTIBAAS_AWAJI_URL, config.MULTIBAAS_AWAJI_API_KEY);
   const history = {
-    multibaas: config.MULTIBAAS_URL && config.MULTIBAAS_API_KEY ? createMultiBaasHistory(createMultiBaas({ url: config.MULTIBAAS_URL, apiKey: config.MULTIBAAS_API_KEY }), config.CHAIN_ID) : null,
-    rpc: createRpcHistory({ client: publicClient, vault, token: async () => (await chain.token()).address, fromBlock: historyFrom(config) }),
+    multibaas: sameChain ? createMultiBaasHistory(sameChain, config.CHAIN_ID, fromBlock) : null, // only once it indexes the whole history
+    rpc: createRpcHistory({ client: publicClient, vault, token: async () => (await chain.token()).address, fromBlock }),
+    mizuhiki: awaji ? createIndexedNetwork(awaji) : null,
   };
   const deps: AppDeps = {
     chain,
@@ -79,6 +85,7 @@ export function buildDeps(config: Config) {
       screening: screening.enabled,
       humanApproval: approvals !== null,
       multibaas: history.multibaas !== null,
+      mizuhiki: history.mizuhiki !== null,
     },
   };
   return { deps, init: chain.init };

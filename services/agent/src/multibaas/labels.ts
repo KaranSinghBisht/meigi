@@ -1,23 +1,32 @@
 /**
- * How Meigi's Sepolia contracts are named inside MultiBaas, shared by the setup script and the agent. Labels are
- * MultiBaas identifiers: lowercase, digits and underscores.
+ * How Meigi's contracts are named inside MultiBaas, shared by the setup script and the agent. Labels are MultiBaas
+ * identifiers: lowercase, digits and underscores. A MultiBaas deployment serves one chain (ours: Mizuhiki Awaji).
  */
 
-/** The v2 deployment's first block: event indexing starts here. */
+/** The Sepolia v2 deployment's first block: RPC history and a Sepolia MultiBaas start here. */
 export const V2_START_BLOCK = 11781105;
 
 export const CONTRACTS = {
   registry: { label: "meigi_payee_registry", contractName: "PayeeRegistry", alias: "meigi_registry" },
   vault: { label: "meigi_agent_vault", contractName: "AgentVault", alias: "meigi_vault" },
-  token: { label: "meigi_mock_jpyc", contractName: "MockJPYC", alias: "meigi_mjpyc" },
+  router: { label: "meigi_pay_router", contractName: "PayRouter", alias: "meigi_router" },
+  token: { label: "meigi_jpy_token", contractName: "MockJPYC", alias: "meigi_mjpy" }, // MockJPYC's ABI: a plain ERC-20 to index
 } as const;
+
+/** The free MultiBaas plan returns at most 50 rows per event query. */
+export const MAX_QUERY_ROWS = 50;
 
 export const CONTRACT_VERSION = "2";
 
 export const EVENTS = {
   invoicePaid: "InvoicePaid(uint64,address,uint256,bytes32)",
+  paid: "Paid(uint64,address,address,address,uint256,bytes32)",
+  payeeRegistered: "PayeeRegistered(uint64,address,address,string,bytes32)",
   transfer: "Transfer(address,address,uint256)",
 } as const;
+
+/** The events each contract's ABI must carry for the queries to decode them. */
+export const REQUIRED_EVENTS = { registry: ["PayeeRegistered"], vault: ["InvoicePaid"], router: ["Paid"], token: ["Transfer"] } as const;
 
 const onContract = (alias: string) => ({ fieldType: "contract_address_alias", operator: "equal", value: alias });
 
@@ -62,8 +71,72 @@ export const QUERIES = {
     orderBy: "total",
     order: "DESC",
   },
-  // mJPYC each address has received (vault payments and x402 sales alike): the seller-side view.
-  meigi_mjpyc_received: {
+  // Every company the registry recorded: T-number, payout and the exact registered name.
+  meigi_payees_registered: {
+    events: [
+      {
+        eventName: "PayeeRegistered",
+        select: [
+          { type: "input", inputIndex: 0, alias: "tnumber" },
+          { type: "input", inputIndex: 2, alias: "payout" },
+          { type: "input", inputIndex: 3, alias: "legalname" },
+          { type: "block_number", alias: "block" },
+          { type: "triggered_at", alias: "at" },
+          { type: "tx_hash", alias: "txhash" },
+        ],
+        filter: onContract(CONTRACTS.registry.alias),
+      },
+    ],
+    orderBy: "block",
+    order: "DESC",
+  },
+  // Pay-by-T-number payments through the PayRouter: Paid(tNumber, payer, payout, token, amount, ref).
+  meigi_router_paid: {
+    events: [
+      {
+        eventName: "Paid",
+        select: [
+          { type: "input", inputIndex: 0, alias: "tnumber" },
+          { type: "input", inputIndex: 2, alias: "payout" },
+          { type: "input", inputIndex: 4, alias: "amount" },
+          { type: "input", inputIndex: 5, alias: "invoiceref" },
+          { type: "block_number", alias: "block" },
+          { type: "triggered_at", alias: "at" },
+          { type: "tx_hash", alias: "txhash" },
+        ],
+        filter: onContract(CONTRACTS.router.alias),
+      },
+    ],
+    orderBy: "block",
+    order: "DESC",
+  },
+  // Net MJPY per account, as in Curvegrid's Matsuri sample: each Transfer adds to `to` and subtracts from `from`.
+  // Counted from where indexing starts, so it is a balance only for a token deployed after that block.
+  meigi_mjpy_balances: {
+    events: [
+      {
+        eventName: "Transfer",
+        select: [
+          { type: "input", inputIndex: 1, alias: "account" },
+          { type: "input", inputIndex: 2, alias: "balance", aggregator: "add" },
+        ],
+        filter: onContract(CONTRACTS.token.alias),
+      },
+      {
+        eventName: "Transfer",
+        select: [
+          { type: "input", inputIndex: 0, alias: "account" },
+          { type: "input", inputIndex: 2, alias: "balance", aggregator: "subtract" },
+        ],
+        filter: onContract(CONTRACTS.token.alias),
+      },
+    ],
+    groupBy: "account",
+    orderBy: "balance",
+    order: "DESC",
+  },
+  // MJPY each address has received (vault payments and x402 sales alike): the seller-side view.
+  meigi_mjpy_received: {
     events: [
       {
         eventName: "Transfer",

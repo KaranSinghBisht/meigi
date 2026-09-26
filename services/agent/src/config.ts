@@ -60,8 +60,10 @@ const schema = z
     INTERCEPTA_MAX_CALLS: z.coerce.number().int().nonnegative().default(900),
     INTERCEPTA_TOXIC_THRESHOLD: z.coerce.number().min(0).max(100).default(50),
     // MultiBaas (Curvegrid): indexed settlement history. Off unless both are set; RPC logs otherwise
-    MULTIBAAS_URL: optional(z.url().refine((v) => v.startsWith("https://"), "must be https")),
+    MULTIBAAS_URL: optional(z.url().refine((v) => v.startsWith("https://"), "must be https")), // on the agent's chain
     MULTIBAAS_API_KEY: optional(z.string().min(16)),
+    MULTIBAAS_AWAJI_URL: optional(z.url().refine((v) => v.startsWith("https://"), "must be https")), // on Mizuhiki Awaji
+    MULTIBAAS_AWAJI_API_KEY: optional(z.string().min(16)),
     HISTORY_FROM_BLOCK: optional(z.coerce.number().int().nonnegative()), // RPC log scans start here (default: v2 deploy block on Sepolia, 0 elsewhere)
     // Holds only a verified human may release (with World ID for Agents, below)
     TRIAGE_MAX_PRESSURE: probability.default(0.5), // System-1 pressure above this holds the payment
@@ -93,6 +95,9 @@ const schema = z
     const multibaas = "set both MULTIBAAS_URL and MULTIBAAS_API_KEY, or neither";
     require("MULTIBAAS_API_KEY", Boolean(env.MULTIBAAS_URL) && !env.MULTIBAAS_API_KEY, multibaas);
     require("MULTIBAAS_URL", Boolean(env.MULTIBAAS_API_KEY) && !env.MULTIBAAS_URL, multibaas);
+    const awaji = "set both MULTIBAAS_AWAJI_URL and MULTIBAAS_AWAJI_API_KEY, or neither";
+    require("MULTIBAAS_AWAJI_API_KEY", Boolean(env.MULTIBAAS_AWAJI_URL) && !env.MULTIBAAS_AWAJI_API_KEY, awaji);
+    require("MULTIBAAS_AWAJI_URL", Boolean(env.MULTIBAAS_AWAJI_API_KEY) && !env.MULTIBAAS_AWAJI_URL, awaji);
     const together = "set both World ID client values, or neither";
     require("WORLD_AGENTS_CLIENT_SECRET", Boolean(env.WORLD_AGENTS_CLIENT_ID) && !env.WORLD_AGENTS_CLIENT_SECRET, together);
     require("WORLD_AGENTS_CLIENT_ID", Boolean(env.WORLD_AGENTS_CLIENT_SECRET) && !env.WORLD_AGENTS_CLIENT_ID, together);

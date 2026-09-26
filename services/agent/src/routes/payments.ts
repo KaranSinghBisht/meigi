@@ -2,13 +2,15 @@ import { Hono } from "hono";
 import type { Address } from "viem";
 import { z } from "zod";
 import type { StoredAnalysis } from "../analysis/store.js";
-import { formatTokenYen, registeredName } from "../chain/format.js";
+import { registeredName } from "../chain/format.js";
 import type { AppDeps } from "../deps.js";
 import { parseTNumber } from "../extract/tnumber.js";
 import { readHistory } from "../history/read.js";
 import type { SettledPayment } from "../history/types.js";
 import { HttpError } from "../http.js";
 import { load } from "./lookup.js";
+import { mizuhikiSection } from "./payments-mizuhiki.js";
+import { settledRow, yenAmount } from "./payment-rows.js";
 
 const paymentsQuery = z.object({
   tNumber: z.string().max(300).optional(), // comma-separated T-numbers; default: the vendor list
@@ -16,8 +18,9 @@ const paymentsQuery = z.object({
 });
 
 /**
- * Settlement, read from MultiBaas's event index when it is configured (Curvegrid) and from RPC logs otherwise;
- * every section says which. Refusals never reach the chain, so they come from this agent's own analyses.
+ * Settlement on the agent's chain, read from MultiBaas's event index when it is configured for that chain (Curvegrid)
+ * and from RPC logs otherwise; every section says which. Refusals never reach the chain, so they come from this
+ * agent's own analyses. `mizuhiki` is Meigi on Mizuhiki Awaji, read only through its MultiBaas deployment.
  */
 export function paymentRoutes(deps: AppDeps) {
   const app = new Hono();
@@ -31,11 +34,13 @@ export function paymentRoutes(deps: AppDeps) {
     const rows = settled.value.filter((p) => !filter || filter.includes(p.tNumber.toString()));
     const received = await receivedRows(deps, filter ?? deps.vendorTNumbers, decimals, names);
     return c.json({
+      label: `${networkName(deps.info.chainId)} · via ${settled.source === "multibaas" ? "MultiBaas" : "RPC"}`,
       source: { settled: settled.source, received: received.source },
       notes: [...new Set([settled.note, received.note].filter((note): note is string => Boolean(note)))],
       settled: await Promise.all(rows.map(async (p) => settledRow(p, decimals, await names(p.tNumber)))),
       received: received.rows,
       refused: refusedRows(deps.store.recent(500), filter, query.limit),
+      mizuhiki: await mizuhikiSection(deps.history.mizuhiki, filter, query.limit),
     });
   });
 
@@ -53,6 +58,10 @@ export function paymentRoutes(deps: AppDeps) {
   });
 
   return app;
+}
+
+function networkName(chainId: number): string {
+  return chainId === 11155111 ? "Sepolia" : chainId === 31337 ? "Anvil" : `Chain ${chainId}`;
 }
 
 function tNumbersOf(list: string): string[] {
@@ -77,19 +86,6 @@ function nameCache(deps: AppDeps) {
   };
 }
 
-function settledRow(p: SettledPayment, decimals: number, payee: { name: string | null }) {
-  return {
-    txHash: p.txHash,
-    blockNumber: p.blockNumber.toString(),
-    at: p.at,
-    tNumber: `T${p.tNumber}`,
-    legalName: payee.name,
-    payout: p.payout,
-    amount: { units: p.amount.toString(), display: formatTokenYen(p.amount, decimals) },
-    invoiceRef: p.invoiceRef,
-  };
-}
-
 async function receivedRows(deps: AppDeps, tNumbers: string[], decimals: number, names: ReturnType<typeof nameCache>) {
   const payees = await Promise.all(tNumbers.map(async (t) => ({ tNumber: t, ...(await names(t)) })));
   const payouts = payees.flatMap((p) => (p.payout ? [p.payout] : []));
@@ -98,7 +94,7 @@ async function receivedRows(deps: AppDeps, tNumbers: string[], decimals: number,
     .filter((p) => p.payout)
     .map((p) => {
       const total = totals.value.find((t) => t.payout.toLowerCase() === p.payout!.toLowerCase())?.total ?? 0n;
-      return { tNumber: `T${p.tNumber}`, legalName: p.name, payout: p.payout!, total: { units: total.toString(), display: formatTokenYen(total, decimals) } };
+      return { tNumber: `T${p.tNumber}`, legalName: p.name, payout: p.payout!, total: yenAmount(total, decimals) };
     });
   return { rows, source: totals.source, note: totals.note };
 }

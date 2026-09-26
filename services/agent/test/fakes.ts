@@ -231,9 +231,9 @@ export function fakeDeps(parts: Partial<Fakes> = {}, llm: LlmPort | null = null)
     triageRequired: true,
     holds: DEFAULT_HOLD_POLICY,
     approvals: null,
-    history: { multibaas: null, rpc: new FakeHistory() },
+    history: { multibaas: null, rpc: new FakeHistory(), mizuhiki: null },
     apiToken: null,
     demoDir: DEMO_DIR,
-    info: { chainId: 31337, vault: VAULT, agent: AGENT, triage: ["fake"], triageRequired: true, llm: llm ? "fake" : "none", screening: false, humanApproval: false, multibaas: false },
+    info: { chainId: 31337, vault: VAULT, agent: AGENT, triage: ["fake"], triageRequired: true, llm: llm ? "fake" : "none", screening: false, humanApproval: false, multibaas: false, mizuhiki: false },
   };
 }

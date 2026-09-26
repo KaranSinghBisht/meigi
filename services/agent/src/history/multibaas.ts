@@ -1,35 +1,32 @@
 import { getAddress, isAddress, isHex, type Address, type Hex } from "viem";
+import { z } from "zod";
 import type { IndexedEvent, MultiBaas } from "../multibaas/client.js";
 import { MultiBaasUnavailable } from "../multibaas/client.js";
-import { CONTRACTS, EVENTS, QUERIES } from "../multibaas/labels.js";
-import type { PaymentHistory, ReceivedTotal, SettledPayment } from "./types.js";
+import { CONTRACTS, EVENTS, MAX_QUERY_ROWS, QUERIES } from "../multibaas/labels.js";
+import type { PaymentHistory, ReceivedTotal, RegisteredPayee, SettledPayment, TokenInfo } from "./types.js";
 
 /**
  * Settlement history from MultiBaas's event index (Curvegrid). Throws MultiBaasUnavailable on any trouble, including
- * a deployment on another chain than the agent's (checked once, rechecked after a failure).
+ * a deployment on another chain than `chainId`. With `coversFrom`, also unless the vault's events are indexed from
+ * that block or earlier: a plan that backfills only a few blocks can't answer for older payments, so they come from
+ * RPC logs instead of silently going missing.
  */
-export function createMultiBaasHistory(mb: MultiBaas, chainId: number): PaymentHistory {
-  let checked: Promise<void> | null = null;
-  const sameChain = () => {
-    checked ??= mb.requireChain(chainId).catch((error: unknown) => {
-      checked = null;
-      throw error;
-    });
-    return checked;
-  };
+export function createMultiBaasHistory(mb: MultiBaas, chainId: number, coversFrom?: bigint): PaymentHistory {
+  const sameChain = checkedOnce(async () => {
+    await mb.requireChain(chainId);
+    if (coversFrom !== undefined) await requireCoverage(mb, coversFrom);
+  });
   return {
     source: "multibaas",
     async invoicesPaid(limit) {
       await sameChain();
-      const rows = await mb.query(QUERIES.meigi_invoices_paid, limit);
-      return rows.map((row) =>
-        payment({ txHash: row.txhash, blockNumber: row.block, at: row.at, tNumber: row.tnumber, payout: row.payout, amount: row.amount, invoiceRef: row.invoiceref }),
-      );
+      const rows = await mb.query(QUERIES.meigi_invoices_paid, Math.min(limit, MAX_QUERY_ROWS));
+      return rows.map((row) => ({ ...paymentRow(row), via: "vault" as const }));
     },
     async received(payouts) {
       await sameChain();
       const wanted = new Set(payouts.map((p) => p.toLowerCase()));
-      const rows = await mb.query(QUERIES.meigi_mjpyc_received, 1000);
+      const rows = await mb.query(QUERIES.meigi_mjpy_received, MAX_QUERY_ROWS);
       const totals: ReceivedTotal[] = [];
       for (const row of rows) {
         const payout = String(row.payout ?? "");
@@ -46,6 +43,70 @@ export function createMultiBaasHistory(mb: MultiBaas, chainId: number): PaymentH
   };
 }
 
+/** A check that passes once for good; a failure is remembered for `retryMs`, so an unready index costs few calls. */
+function checkedOnce(check: () => Promise<void>, retryMs = 5 * 60_000): () => Promise<void> {
+  let passed: Promise<void> | null = null;
+  let failed: { error: unknown; at: number } | null = null;
+  return () => {
+    if (failed && Date.now() - failed.at < retryMs) return Promise.reject(failed.error);
+    passed ??= check().catch((error: unknown) => {
+      passed = null;
+      failed = { error, at: Date.now() };
+      throw error;
+    });
+    return passed;
+  };
+}
+
+async function requireCoverage(mb: MultiBaas, from: bigint): Promise<void> {
+  const path = `/chains/ethereum/addresses/${CONTRACTS.vault.alias}/contracts/${CONTRACTS.vault.label}/status`;
+  const status = z.object({ startBlockNumber: z.number() }).safeParse(
+    await mb.call("GET", path).catch((error: unknown) => {
+      if (error instanceof MultiBaasUnavailable && error.status === 404) throw new MultiBaasUnavailable("the vault isn't linked in MultiBaas", 404);
+      throw error;
+    }),
+  );
+  if (!status.success) throw new MultiBaasUnavailable("MultiBaas returned its indexing status in an unexpected shape");
+  if (BigInt(status.data.startBlockNumber) > from) {
+    throw new MultiBaasUnavailable(`MultiBaas indexes the vault from block ${status.data.startBlockNumber}, after block ${from} where this history starts`);
+  }
+}
+
+/** Payments made through the PayRouter (pay by T-number), newest first. */
+export async function routerPaid(mb: MultiBaas, limit: number): Promise<SettledPayment[]> {
+  const rows = await mb.query(QUERIES.meigi_router_paid, Math.min(limit, MAX_QUERY_ROWS));
+  return rows.map((row) => ({ ...paymentRow(row), via: "router" as const }));
+}
+
+/** Every company the registry has recorded, newest first. */
+export async function payeesRegistered(mb: MultiBaas): Promise<RegisteredPayee[]> {
+  const rows = await mb.query(QUERIES.meigi_payees_registered, MAX_QUERY_ROWS);
+  return rows.map((row) => {
+    if (typeof row.legalname !== "string" || !isHex(row.txhash)) throw new MultiBaasUnavailable("MultiBaas returned a PayeeRegistered without a name");
+    return { tNumber: bigintOf(row.tnumber), payout: address(row.payout), legalName: row.legalname, at: typeof row.at === "string" ? row.at : null, txHash: row.txhash };
+  });
+}
+
+const methodOutput = z.object({ output: z.union([z.string(), z.number()]) });
+
+/** The token's symbol and decimals, read through MultiBaas's contract call API (a read, nothing is signed). */
+export async function tokenInfo(mb: MultiBaas): Promise<TokenInfo> {
+  const read = async (method: string) => {
+    const path = `/chains/ethereum/addresses/${CONTRACTS.token.alias}/contracts/${CONTRACTS.token.label}/methods/${method}`;
+    const parsed = methodOutput.safeParse(await mb.call("POST", path, { args: [] }));
+    if (!parsed.success) throw new MultiBaasUnavailable(`MultiBaas returned the token's ${method} in an unexpected shape`);
+    return parsed.data.output;
+  };
+  const [symbol, decimals] = await Promise.all([read("symbol"), read("decimals")]);
+  const places = Number(decimals);
+  if (!Number.isInteger(places) || places < 0 || places > 36) throw new MultiBaasUnavailable("MultiBaas returned unusable token decimals");
+  return { symbol: String(symbol), decimals: places };
+}
+
+function paymentRow(row: Record<string, unknown>): SettledPayment {
+  return payment({ txHash: row.txhash, blockNumber: row.block, at: row.at, tNumber: row.tnumber, payout: row.payout, amount: row.amount, invoiceRef: row.invoiceref });
+}
+
 function fromEvent(e: IndexedEvent): SettledPayment {
   const input = (name: string) => e.event.inputs.find((field) => field.name === name)?.value;
   return payment({
@@ -59,8 +120,8 @@ function fromEvent(e: IndexedEvent): SettledPayment {
   });
 }
 
-function payment(raw: Record<keyof SettledPayment, unknown>): SettledPayment {
-  if (!isHex(raw.txHash) || !isHex(raw.invoiceRef)) throw new MultiBaasUnavailable("MultiBaas returned an InvoicePaid without a hash");
+function payment(raw: Record<Exclude<keyof SettledPayment, "via">, unknown>): SettledPayment {
+  if (!isHex(raw.txHash) || !isHex(raw.invoiceRef)) throw new MultiBaasUnavailable("MultiBaas returned a payment without a hash");
   return {
     txHash: raw.txHash as Hex,
     blockNumber: bigintOf(raw.blockNumber),
