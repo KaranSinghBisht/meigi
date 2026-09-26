@@ -40,28 +40,47 @@ Never share the QR code or session link from a screenshot: whoever completes it 
        registration request it approved.
      - A registration transaction appears on Sepolia, sent by the attester (not Karan's wallet) — the app shows
        its hash; confirm it on Etherscan.
-7. On `/change/T7999900000002`: pick **payout change**, request a new address, and approve it from the **same**
-   phone/session with Selfie Check again.
-   - **We check:** the verifier log shows the signed approval; the UI shows "1 of 1 approvals" before the
-     "Quorum reached" notice appears.
-   - Tap **"Queue it with the controller wallet."** This is the one real transaction Karan's own wallet sends —
-     confirm it needs a moment to mine, then shows "Queued on-chain. It lands in 72 hours unless cancelled,"
-     with a tx hash.
+7. On `/change/T7999900000002`, pick **payout change** and request a new address. Then, in this order:
+   1. **The cancelled proof (alternative path a — cheapest, no second human needed).** Tap "Approve with World
+      ID," open the QR/session, then **cancel from inside World App itself** (decline, or back out) once.
+      - **We check:** the panel closes and shows a plain, calm line — "Cancelled. Nothing changed — try again
+        when you're ready." — not a red error. This is `apps/web/src/lib/world/rpContext.ts`'s `widgetOutcome()`
+        (fixed for this run in `80fd408`: `user_rejected`/`cancelled` now render as a muted status line, not an
+        alert).
+      - Tap the same button again immediately: it must start a fresh request with no leftover state.
+   2. **The wrong human (alternative path b) — only if Adithya's World App is available.** From the "someone who
+      isn't an enrolled officer" row, have Adithya prove with his own World ID.
+      - **We check:** the verifier refuses it (not the same human who enrolled) and the approval count stays at
+        0 of 1 — nothing is queued.
+   3. **The real approval.** Karan approves for real from the same phone/session with Selfie Check.
+      - **We check:** the verifier log shows the signed approval; the UI shows "1 of 1 approvals" before the
+        "Quorum reached" notice appears.
+   Tap **"Queue it with the controller wallet."** This is the one real transaction Karan's own wallet sends —
+   confirm it needs a moment to mine, then shows "Queued on-chain. It lands in 72 hours unless cancelled," with
+   a tx hash.
    - **We check:** the registry explorer shows the pending change and its countdown, but not the new address
      (it only resolves once the 72h timelock lands).
-8. Have a second person (or a second World App session on a different phone) try to approve the **same**
-   request from the "someone who isn't an enrolled officer" row. Confirm the verifier refuses it (not the same
-   human who enrolled) and nothing new is queued.
+8. **Cancel the queued payout change (alternative path c — also settles what to do with a real pending change).**
+   Back on `/change/T7999900000002`, pick **"Cancel the pending payout change."** One officer (Karan, Selfie
+   Check again) approves; the attester executes the cancellation on-chain directly — no wallet tx from Karan
+   this time.
+   - **We check:** the UI shows "Done. The attester executed it on-chain." with a tx hash, and the registry no
+     longer shows a pending change.
+9. **Optional — leave a fresh pending change (Karan decides at run time).** If there's appetite for judges to
+   see a *live* 72h countdown rather than only a replay, repeat step 7 once more (skip the cancel/wrong-human
+   sub-steps) and queue a new change, and deliberately leave this one to run its course rather than cancelling
+   it.
 
 ## What worldui captures for the record
 
 No private keys, no World ID session tokens beyond their public session id, no personal data:
 
-- the verifier's exact JSON responses for opening the intent and both approvals (session ids, the signal
-  string, nonce, deadline, threshold/approvals count);
-- both transaction hashes (registration, payout-change queue) and the block each landed in;
-- the exact UI copy at each stage ("1 of 1 officers", "Quorum reached...", "Queued on-chain...");
-- the refusal message from step 8, verbatim.
+- the verifier's exact JSON responses for opening the intent and every approval attempt (session ids, the
+  signal string, nonce, deadline, threshold/approvals count);
+- every transaction hash (registration, payout-change queue, payout-change cancel) and the block each landed in;
+- the exact UI copy at each stage ("1 of 1 officers", "Cancelled. Nothing changed...", "Quorum reached...",
+  "Queued on-chain...", "Done. The attester executed it on-chain...");
+- the wrong-human refusal message from step 7.2, verbatim, if Adithya took part.
 
 This becomes the recorded run `/change`'s hosted page replays, the same way `apps/web/src/features/x402`
 replays a real settled run today.
@@ -69,5 +88,6 @@ replays a real settled run today.
 ## After
 
 `scripts/world-live.sh --staging` returns both services to today's default (staging, `proof_of_human`), or
-`--stop` to stop them. The queued payout change from step 7 is real and public: it either lands after 72 hours
-or gets cancelled deliberately — worth deciding which before submission judging.
+`--stop` to stop them. Step 8 already resolves what to do with the pending change from step 7 (it's cancelled
+on-chain, deliberately, as part of the run) — unless step 9 happens, in which case that second change is real
+and public and left running on purpose.
