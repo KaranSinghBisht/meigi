@@ -14,6 +14,8 @@ export interface PendingListing {
 }
 
 const QUEUED = "submit_after IS NOT NULL AND outcome IS NULL";
+/** Listed publicly: queued and not closed by review or failure. */
+const LISTED = `${QUEUED} AND (review IS NULL OR review = 'objected')`;
 
 function toListing(row: Row): PendingListing {
   return {
@@ -35,18 +37,21 @@ export function pendingStore(db: DatabaseSync) {
       const publicId = randomBytes(12).toString("hex");
       const result = db
         .prepare(
-          "UPDATE registrations SET threshold = ?, submit_after = ?, public_id = ? " +
+          "UPDATE registrations SET threshold = ?, submit_after = ?, public_id = ?, claimed_at = NULL " +
             "WHERE id = ? AND submit_after IS NULL AND outcome IS NULL",
         )
         .run(threshold, submitAfter, publicId, id);
       return result.changes === 1 ? publicId : null;
     },
     pendingRegistrations(): PendingListing[] {
-      const rows = db.prepare(`SELECT * FROM registrations WHERE ${QUEUED} ORDER BY submit_after, rowid`).all();
+      const rows = db.prepare(`SELECT * FROM registrations WHERE ${LISTED} ORDER BY submit_after, rowid`).all();
       return (rows as Row[]).map(toListing);
     },
+    /** A listed registration that can still be objected to: not already being written on-chain. */
     pendingByPublicId(publicId: string): PendingListing | null {
-      const row = db.prepare(`SELECT * FROM registrations WHERE public_id = ? AND ${QUEUED}`).get(publicId);
+      const row = db
+        .prepare(`SELECT * FROM registrations WHERE public_id = ? AND ${LISTED} AND claimed_at IS NULL`)
+        .get(publicId);
       return row ? toListing(row as Row) : null;
     },
     /** Records an objection and holds the registration for manual review; the attester won't submit it. */
@@ -57,12 +62,34 @@ export function pendingStore(db: DatabaseSync) {
         contact,
         atMs,
       );
-      db.prepare(`UPDATE registrations SET review = 'objected' WHERE public_id = ? AND ${QUEUED}`).run(publicId);
+      db.prepare(
+        `UPDATE registrations SET review = 'objected' WHERE public_id = ? AND ${QUEUED} AND review IS NULL`,
+      ).run(publicId);
+    },
+    /** Objections to one listing, for the operator reviewing it (contacts are personal data: never listed publicly). */
+    objectionsFor(publicId: string): { reason: string; contact: string | null; createdAt: number }[] {
+      const rows = db.prepare("SELECT * FROM objections WHERE public_id = ? ORDER BY created_at").all(publicId) as Row[];
+      return rows.map((row) => ({
+        reason: String(row.reason),
+        contact: row.contact === null ? null : String(row.contact),
+        createdAt: Math.floor(Number(row.created_at) / 1000),
+      }));
+    },
+    /** Manual review of a held registration: "release" lets the attester submit it, "reject" closes it. */
+    reviewPending(publicId: string, decision: "release" | "reject"): boolean {
+      const review = decision === "release" ? null : "rejected";
+      const result = db
+        .prepare(`UPDATE registrations SET review = ? WHERE public_id = ? AND ${QUEUED} AND review = 'objected'`)
+        .run(review, publicId);
+      return result.changes === 1;
     },
     /** Queued registrations whose window has passed and that nobody objected to. */
     dueRegistrations(now: number): RegistrationRecord[] {
       const rows = db
-        .prepare(`SELECT * FROM registrations WHERE ${QUEUED} AND review IS NULL AND submit_after <= ? ORDER BY rowid`)
+        .prepare(
+          `SELECT * FROM registrations WHERE ${QUEUED} AND review IS NULL AND claimed_at IS NULL AND submit_after <= ? ` +
+            "ORDER BY rowid",
+        )
         .all(now);
       return (rows as Row[]).map(toRecord);
     },

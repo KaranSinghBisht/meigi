@@ -1,3 +1,4 @@
+import { isIP } from "node:net";
 import { HttpError } from "../http.js";
 
 const HOUR = 3600;
@@ -37,13 +38,15 @@ export class RateLimiter {
 
 /**
  * The key an address is limited under: IPv4 as is, IPv6 by its /64 (one subscriber usually holds a whole /64), and
- * IPv4-mapped IPv6 as the IPv4 address.
+ * IPv4-mapped IPv6 as the IPv4 address. Anything that isn't an IP address shares one "invalid" key.
  */
 export function ipKey(address: string): string {
   const ip = address.trim().toLowerCase();
+  const version = isIP(ip);
+  if (version === 0) return "invalid";
   const mapped = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/u.exec(ip);
   if (mapped) return mapped[1]!;
-  if (!ip.includes(":")) return ip;
+  if (version === 4) return ip;
   const [head = "", tail = ""] = ip.split("::");
   const left = head ? head.split(":") : [];
   const right = tail ? tail.split(":") : [];

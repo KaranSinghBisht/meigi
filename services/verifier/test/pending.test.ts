@@ -30,11 +30,11 @@ async function call(method: string, path: string, body?: unknown) {
 }
 
 /** A registration that passed every check (Curvegrid, or a fixture), submitted with one officer. */
-async function submitted(tNumber = "T1010601051968", legalName = "Curvegrid株式会社") {
+async function submitted(tNumber = "T1010601051968", legalName = "Curvegrid株式会社", officer = "e") {
   const created = await call("POST", "/registrations", { tNumber, legalName, domain: "curvegrid.co.jp", controller: CONTROLLER, payout: PAYOUT });
   const id = created.body.id as string;
   await call("POST", `/registrations/${id}/domain`, {});
-  const human = proof(sessionId("e"), `0x${(++nullifier).toString(16)}`, enrollmentSignal(id));
+  const human = proof(sessionId(officer), `0x${(++nullifier).toString(16)}`, enrollmentSignal(id));
   expect((await call("POST", `/registrations/${id}/officers`, { result: human })).status).toBe(200);
   return { id, response: await call("POST", `/registrations/${id}/submit`, { threshold: 1 }) };
 }
@@ -90,6 +90,69 @@ describe("public pending window (VERIFIER_PENDING_HOURS)", () => {
     clock.now += 2 * DAY;
     expect(await submitDueRegistrations(deps)).toBe(0);
     expect(chain.calls).toEqual([]);
+  });
+
+  it("never submits a registration objected to while the scheduler was running", async () => {
+    const first = await submitted();
+    const second = await submitted(undefined, undefined, "g");
+    clock.now += DAY;
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const register = chain.register.bind(chain);
+    chain.register = async (args) => (await gate, register(args));
+
+    const run = submitDueRegistrations(deps);
+    while (deps.store.getRegistration(first.id)!.claimedAt === null) await new Promise((r) => setTimeout(r, 1));
+    const reason = { reason: "We are Curvegrid and did not file this." };
+    expect((await call("POST", `/registrations/${first.response.body.publicId}/object`, reason)).status).toBe(404); // in flight
+    expect((await call("POST", `/registrations/${second.response.body.publicId}/object`, reason)).status).toBe(202);
+    release();
+    expect(await run).toBe(1);
+    expect(chain.calls).toHaveLength(1);
+    expect((await call("GET", `/registrations/${second.id}`)).body.state).toBe("under_review");
+  });
+
+  it("closes a queued registration the chain can no longer take, instead of retrying it forever", async () => {
+    const { id } = await submitted();
+    await chain.register({ tNumber: 1010601051968n, legalName: "x", controller: CONTROLLER, payout: PAYOUT, officers: [], threshold: 1, evidence: "0x00" });
+    clock.now += DAY;
+    expect(await submitDueRegistrations(deps)).toBe(0);
+    expect((await call("GET", `/registrations/${id}`)).body.state).toBe("failed");
+    expect((await call("GET", "/registrations/pending")).body.registrations).toEqual([]);
+    expect(await submitDueRegistrations(deps)).toBe(0);
+    expect(chain.calls).toHaveLength(1); // only the setup's own register
+  });
+
+  it("retries after a chain error, and frees a claim left by a process that stopped mid-write", async () => {
+    const { id } = await submitted();
+    clock.now += DAY;
+    const register = chain.register.bind(chain);
+    chain.register = async () => {
+      throw new Error("RPC unavailable");
+    };
+    expect(await submitDueRegistrations(deps)).toBe(0);
+    chain.register = register;
+    expect(deps.store.claimForSubmission(id, clock.now)).toBe(true); // as if a stopped process had claimed it
+    expect(await submitDueRegistrations(deps)).toBe(0);
+    clock.now += 11 * 60;
+    expect(await submitDueRegistrations(deps)).toBe(1);
+  });
+
+  it("lets an operator release a held registration, or reject it and free its officer", async () => {
+    const held = await submitted();
+    const publicId = held.response.body.publicId as string;
+    await call("POST", `/registrations/${publicId}/object`, { reason: "We did not file this claim." });
+    expect(deps.store.objectionsFor(publicId)).toMatchObject([{ reason: "We did not file this claim.", contact: null }]);
+    expect(deps.store.reviewPending(publicId, "reject")).toBe(true);
+    expect((await call("GET", `/registrations/${held.id}`)).body.state).toBe("rejected");
+    expect((await call("GET", "/registrations/pending")).body.registrations).toEqual([]);
+
+    const again = await submitted(); // the same officer may claim again once theirs is closed
+    const againId = again.response.body.publicId as string;
+    await call("POST", `/registrations/${againId}/object`, { reason: "Checking this one by hand first." });
+    expect(deps.store.reviewPending(againId, "release")).toBe(true);
+    clock.now += DAY;
+    expect(await submitDueRegistrations(deps)).toBe(1);
   });
 
   it("lets fixtures (office 9999) skip the window", async () => {

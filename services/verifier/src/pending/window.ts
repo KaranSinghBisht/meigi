@@ -25,20 +25,27 @@ export function queueForWindow(
   return { outcome: "pending_public_window", tNumber: formatTNumber(registration.tNumber), publicId, submitAfter };
 }
 
+/** A claim older than this was left by a process that stopped mid-write; the registration is retried. */
+const STALE_CLAIM_SECONDS = 10 * 60;
+
 /**
- * Submits every queued registration whose window has passed and that nobody objected to. A failure is logged and
- * retried on the next run; a registration that can no longer be submitted (e.g. its business already controls the
- * payee) is logged every run until someone reviews it.
+ * Submits every queued registration whose window has passed and that nobody objected to. Each one is claimed first,
+ * so an objection that lands during the run, or another writer, can't race it. A refusal from the chain's state
+ * (e.g. the payee is already disputed) closes it as "failed:<code>"; any other error is retried on the next run.
  */
 export async function submitDueRegistrations(deps: AppDeps): Promise<number> {
+  deps.store.releaseStaleClaims(nowSeconds(deps) - STALE_CLAIM_SECONDS);
   let submitted = 0;
   for (const registration of deps.store.dueRegistrations(nowSeconds(deps))) {
+    if (!deps.store.claimForSubmission(registration.id, nowSeconds(deps))) continue; // objected or taken meanwhile
     try {
-      if (registration.threshold === null) throw new Error("queued without a threshold");
+      if (registration.threshold === null) throw new HttpError(409, "no_threshold", "queued without a threshold");
       const outcome = await plannedOutcome(deps, registration);
       await submitOnChain(deps, registration, registration.threshold, outcome);
       submitted++;
     } catch (error) {
+      if (error instanceof HttpError) deps.store.closeRegistration(registration.id, `failed:${error.code}`);
+      else deps.store.releaseClaim(registration.id);
       process.stderr.write(`[verifier] queued ${formatTNumber(registration.tNumber)} not submitted: ${reasonOf(error)}\n`);
     }
   }

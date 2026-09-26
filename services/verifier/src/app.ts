@@ -12,7 +12,7 @@ import { registrationRoutes } from "./routes/registrations.js";
 
 export function createApp(deps: AppDeps) {
   const app = new Hono();
-  app.use("*", cors({ origin: deps.origins, allowMethods: ["GET", "POST"] }));
+  app.use("*", cors({ origin: deps.origins, allowMethods: ["GET", "POST"], exposeHeaders: ["Retry-After"] }));
   app.use("*", bodyLimit({ maxSize: 64 * 1024 }));
   app.onError(handleError);
   app.get("/health", (c) => c.json({ ok: true }));

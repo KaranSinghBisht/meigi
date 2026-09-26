@@ -15,7 +15,14 @@ export interface RegistrationRecord {
   submitAfter: number | null;
   threshold: number | null; // chosen at submission
   publicId: string | null; // the id it is listed and objected to under; never the capability id above
-  review: string | null; // "objected": held for manual review instead of being submitted
+  /** null, or "objected" (held for manual review), "rejected" (by review) or "failed:<code>" (can't be submitted). */
+  review: string | null;
+  claimedAt: number | null; // set while the attester is writing it on-chain (unix seconds)
+}
+
+/** Rejected by review, or refused by the chain for good: it no longer counts against anyone and is never submitted. */
+export function isClosed(r: RegistrationRecord): boolean {
+  return r.review === "rejected" || (r.review?.startsWith("failed:") ?? false);
 }
 
 /** A raw SQLite row. */
@@ -40,5 +47,6 @@ export function toRecord(row: Row): RegistrationRecord {
     threshold: int("threshold"),
     publicId: text("public_id"),
     review: text("review"),
+    claimedAt: int("claimed_at"),
   };
 }

@@ -11,12 +11,21 @@ const FIXTURE_EVIDENCE = "fictional demo company: registry office 9999 is never 
 
 export type Outcome = "registered" | "disputed";
 
-/** Whether writing the registration now registers it, or files a dispute because the T-number is already claimed. */
+const DISPUTED = 2; // PayeeRegistry.Status.Disputed
+
+/**
+ * Whether writing the registration now registers it, or files a dispute because the T-number is already claimed.
+ * A payee that is already disputed gets no second dispute: on-chain it would only drop governance's queued
+ * resolution and restart the freeze, which is how repeated claims grief a real company. Fixtures are exempt.
+ */
 export async function plannedOutcome(deps: AppDeps, registration: RegistrationRecord): Promise<Outcome> {
   const current = await deps.chain.payee(toChainId(registration.tNumber));
   if (current.status === 0) return "registered";
   if (current.controller === getAddress(registration.controller)) {
     throw new HttpError(409, "already_registered", "this business already controls the payee");
+  }
+  if (current.status === DISPUTED && !isFixture(deps, registration.tNumber)) {
+    throw new HttpError(409, "already_disputed", "this T-number is already under dispute; governance reviews every claim");
   }
   return "disputed";
 }

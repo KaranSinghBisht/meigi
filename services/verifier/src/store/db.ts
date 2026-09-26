@@ -47,6 +47,7 @@ const ADDED_COLUMNS: Record<string, string> = {
   threshold: "INTEGER",
   public_id: "TEXT",
   review: "TEXT",
+  claimed_at: "INTEGER",
 };
 
 function migrate(db: DatabaseSync): void {
@@ -99,6 +100,35 @@ function registrations(db: DatabaseSync) {
     },
     setDomainVerified(id: string, method: string): void {
       db.prepare("UPDATE registrations SET domain_method = ? WHERE id = ?").run(method, id);
+    },
+    /**
+     * Claims a registration for one on-chain write: returns false if it is already submitted, being submitted, or
+     * held. Everything that writes it on-chain claims it first, so it can never be written twice.
+     */
+    claimForSubmission(id: string, now: number): boolean {
+      const result = db
+        .prepare(
+          "UPDATE registrations SET claimed_at = ? WHERE id = ? AND outcome IS NULL AND claimed_at IS NULL AND review IS NULL",
+        )
+        .run(now, id);
+      return result.changes === 1;
+    },
+    releaseClaim(id: string): void {
+      db.prepare("UPDATE registrations SET claimed_at = NULL WHERE id = ? AND outcome IS NULL").run(id);
+    },
+    /** Frees claims left by a process that stopped mid-write, so the registration is retried. */
+    releaseStaleClaims(before: number): number {
+      const result = db
+        .prepare("UPDATE registrations SET claimed_at = NULL WHERE outcome IS NULL AND claimed_at < ?")
+        .run(before);
+      return Number(result.changes);
+    },
+    /** Sets a final review state: "rejected", or "failed:<code>" when the chain refuses it for good. */
+    closeRegistration(id: string, review: string): void {
+      db.prepare("UPDATE registrations SET review = ?, claimed_at = NULL WHERE id = ? AND outcome IS NULL").run(
+        review,
+        id,
+      );
     },
     setOutcome(id: string, outcome: string, txHash: string): void {
       db.prepare("UPDATE registrations SET outcome = ?, tx_hash = ? WHERE id = ?").run(outcome, txHash, id);

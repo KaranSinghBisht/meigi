@@ -7,6 +7,7 @@ import { ipKey } from "../src/limits/rate.js";
 import type { Corporation } from "../src/nta/corporations.js";
 import { enrollmentSignal } from "../src/routes/registrations.js";
 import { hasCorporateCheckDigit } from "../src/tnumber.js";
+import { officerIdFor } from "../src/world/session.js";
 import { CONTROLLER, FakeChain, PAYOUT, curvegrid, fakeDeps, proof, sessionId } from "./fakes.js";
 
 /** Five real-looking corporations (fictional numbers outside office 9999), each with its NTA name. */
@@ -95,6 +96,20 @@ describe("per-human limits", () => {
     expect((await enroll(await company(0), "a")).status).toBe(200);
   });
 
+  it("counts a claim that became a dispute: the same human can't file a second claim on that number", async () => {
+    await chain.register({ tNumber: BigInt(COMPANIES[0]!.number), legalName: "x", controller: "0x9999999999999999999999999999999999999999", payout: PAYOUT, officers: [], threshold: 1, evidence: "0x00" });
+    const first = await company(0);
+    await enroll(first, "a");
+    expect((await post(`/registrations/${first}/submit`, { threshold: 1 })).body.outcome).toBe("disputed");
+    expect(await enroll(await company(0), "a")).toMatchObject({ status: 409, body: { code: "duplicate_open_registration" } });
+  });
+
+  it("caps a company at the registry's 8 officers", async () => {
+    const id = await company(0);
+    for (const human of "abcdefgh") expect((await enroll(id, human)).status).toBe(200);
+    expect(await enroll(id, "i")).toMatchObject({ status: 409, body: { code: "too_many_officers" } });
+  });
+
   it("leaves fictional fixtures (office 9999) out, so demos can repeat", async () => {
     setup({ fixtures: true });
     for (const n of [1, 2, 3, 4, 5, 5]) {
@@ -102,6 +117,57 @@ describe("per-human limits", () => {
       expect((await enroll(id, "a")).status).toBe(200);
     }
     expect((await enroll(await company(0), "a")).status).toBe(200); // fixtures didn't count toward the limit
+  });
+});
+
+describe("disputes", () => {
+  const other = "0x9999999999999999999999999999999999999999";
+
+  it("never files a second dispute on a payee that is already disputed (it would restart the freeze)", async () => {
+    await chain.register({ tNumber: BigInt(COMPANIES[0]!.number), legalName: "x", controller: other, payout: PAYOUT, officers: [], threshold: 1, evidence: "0x00" });
+    chain.payees.get(BigInt(COMPANIES[0]!.number))!.status = 2;
+    const id = await company(0);
+    await enroll(id, "a");
+    expect(await post(`/registrations/${id}/submit`, { threshold: 1 })).toMatchObject({ status: 409, body: { code: "already_disputed" } });
+    expect(chain.calls.filter((call) => call.startsWith("dispute:"))).toEqual([]);
+    expect((await post(`/registrations/${id}/submit`, { threshold: 1 })).body.code).toBe("already_disputed"); // claim was released
+  });
+
+  it("still lets a fictional fixture be disputed again, for repeatable demos", async () => {
+    setup({ fixtures: true });
+    const fixture = fixtureNumber(2);
+    await chain.register({ tNumber: BigInt(fixture.slice(1)), legalName: "x", controller: other, payout: PAYOUT, officers: [], threshold: 1, evidence: "0x00" });
+    chain.payees.get(BigInt(fixture.slice(1)))!.status = 2;
+    const id = await start(fixture, "株式会社メイギ試験");
+    await enroll(id, "a");
+    expect((await post(`/registrations/${id}/submit`, { threshold: 1 })).body.outcome).toBe("disputed");
+  });
+});
+
+describe("a registration being submitted is frozen", () => {
+  it("writes it on-chain once when two submits race", async () => {
+    const id = await company(0);
+    await enroll(id, "a");
+    const [one, two] = await Promise.all([
+      post(`/registrations/${id}/submit`, { threshold: 1 }),
+      post(`/registrations/${id}/submit`, { threshold: 1 }),
+    ]);
+    expect([one.status, two.status].sort()).toEqual([200, 409]);
+    expect(chain.calls.filter((call) => call.startsWith("register:"))).toHaveLength(1);
+  });
+
+  it("refuses an officer whose proof was still being checked when the registration was submitted", async () => {
+    const id = await company(0);
+    await enroll(id, "a");
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const verify = deps.world.verify;
+    deps.world.verify = async (result, signal) => (await gate, verify(result, signal));
+    const late = enroll(id, "b"); // its World ID check is still in flight...
+    expect((await post(`/registrations/${id}/submit`, { threshold: 1 })).status).toBe(200); // ...when this lands
+    release();
+    expect(await late).toMatchObject({ status: 409, body: { code: "already_submitted" } });
+    expect(chain.calls[0]).toBe(`register:${COMPANIES[0]!.number}:1:${officerIdFor(sessionId("a"))}`);
   });
 });
 
@@ -140,18 +206,26 @@ describe("rate limits per client IP", () => {
     expect(chain.calls.filter((call) => call.startsWith("dispute:"))).toHaveLength(3);
   });
 
+  it("don't apply to fictional fixtures, so demos from localhost can repeat", async () => {
+    setup({ fixtures: true });
+    const fixture = { ...body, tNumber: fixtureNumber(2), legalName: "株式会社メイギ試験" };
+    for (let i = 0; i < 15; i++) expect((await post("/registrations", fixture)).status).toBe(201);
+    expect((await post("/registrations", body)).status).toBe(201); // real numbers still have their own budget
+  });
+
   it("can be turned off", async () => {
     setup({ policy: { ratePerHour: { registrations: 0 } } });
     for (let i = 0; i < 15; i++) expect((await post("/registrations", body)).status).toBe(201);
   });
 
-  it("takes the client from the socket, and from forwarded headers only behind a trusted proxy", () => {
-    const headers: Record<string, string> = { "x-forwarded-for": "192.0.2.50, 10.0.0.2" };
+  it("takes the client from the socket, and behind a trusted proxy only from the hop that proxy added", () => {
+    const headers: Record<string, string> = { "x-forwarded-for": "192.0.2.50, 10.0.0.2", "cf-connecting-ip": "198.51.100.23" };
     const c = { env: { incoming: { socket: { remoteAddress: "::ffff:127.0.0.1" } } }, req: { header: (n: string) => headers[n] } };
-    expect(clientIpOf(c as unknown as Context, false)).toBe("127.0.0.1"); // a client can't pick its own bucket
-    expect(clientIpOf(c as unknown as Context, true)).toBe("192.0.2.50");
-    headers["cf-connecting-ip"] = "198.51.100.23";
-    expect(clientIpOf(c as unknown as Context, true)).toBe("198.51.100.23");
+    const ip = (trust: boolean) => clientIpOf(c as unknown as Context, trust);
+    expect(ip(false)).toBe("127.0.0.1"); // without a trusted proxy, headers never pick the bucket
+    expect(ip(true)).toBe("10.0.0.2"); // the entry our proxy appended; the client wrote everything to its left
+    headers["x-forwarded-for"] = "1:2:3:4:5:6:7:8::9"; // not an address: fall back to the socket, never throw
+    expect(ip(true)).toBe("127.0.0.1");
   });
 
   it("keys IPv6 clients by their /64 and unwraps IPv4-mapped addresses", () => {
@@ -160,5 +234,6 @@ describe("rate limits per client IP", () => {
     expect(ipKey("2001:db8:1:2:3:4:5:6")).toBe("2001:db8:1:2::/64");
     expect(ipKey("2001:DB8:1:2::99")).toBe(ipKey("2001:db8:1:2:ffff::1"));
     expect(ipKey("2001:db8::1")).toBe("2001:db8:0:0::/64");
+    expect(ipKey("1:2:3:4:5:6:7:8::9")).toBe("invalid");
   });
 });

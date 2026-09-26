@@ -5,7 +5,7 @@ import { nowSeconds, type AppDeps } from "../deps.js";
 import { domainProofMessage, normalizeDomain, TXT_PREFIX, txtRecordName } from "../domain/proof.js";
 import { isFixture } from "../fixtures.js";
 import { HttpError } from "../http.js";
-import { checkOfficerLimits, isExpired } from "../limits/officers.js";
+import { checkOfficerLimits, isExpired, MAX_OFFICERS } from "../limits/officers.js";
 import { policyOf } from "../limits/policy.js";
 import type { RateLimiter } from "../limits/rate.js";
 import { checkRegisteredName } from "../nta/corporations.js";
@@ -51,7 +51,10 @@ export function enrollmentSignal(registrationId: string): string {
 /** Where a registration stands, as GET /registrations/:id reports it. */
 function stateOf(deps: AppDeps, r: RegistrationRecord): string {
   if (r.outcome) return r.outcome;
-  if (r.submitAfter !== null) return r.review ? "under_review" : "pending_public_window";
+  if (r.review === "rejected" || r.review?.startsWith("failed:")) return r.review.split(":")[0]!;
+  if (r.review === "objected") return "under_review";
+  if (r.claimedAt !== null) return "submitting";
+  if (r.submitAfter !== null) return "pending_public_window";
   return !isFixture(deps, r.tNumber) && isExpired(r, policyOf(deps), nowSeconds(deps)) ? "expired" : "open";
 }
 
@@ -66,10 +69,13 @@ export function registrationRoutes(deps: AppDeps, limiter: RateLimiter) {
     return registration;
   }
 
-  /** A registration that can still change: not submitted or queued, and not expired (fixtures never expire). */
+  /**
+   * A registration that can still change: not submitted, being submitted or queued, and not expired (fixtures never
+   * expire). Handlers call it again after every await, so a step that raced a submission can't change it afterwards.
+   */
   function loadOpen(id: string): RegistrationRecord {
     const registration = load(id);
-    if (registration.outcome || registration.submitAfter !== null) {
+    if (registration.outcome || registration.submitAfter !== null || registration.claimedAt !== null || registration.review) {
       throw new HttpError(409, "already_submitted", `already ${stateOf(deps, registration).replaceAll("_", " ")}`);
     }
     if (!isFixture(deps, registration.tNumber) && isExpired(registration, policy, nowSeconds(deps))) {
@@ -80,9 +86,12 @@ export function registrationRoutes(deps: AppDeps, limiter: RateLimiter) {
 
   /** Step 1: exact NTA match, then a domain-proof challenge for the controller wallet to sign. */
   app.post("/", async (c) => {
-    limiter.hit("registrations", client(c), policy.ratePerHour.registrations, nowSeconds(deps));
     const body = createBody.parse(await c.req.json());
     const digits = requireDigits(body.tNumber);
+    // Every attempt counts, failed NTA matches included. Fictional fixtures can't squat anyone, so demos are exempt.
+    if (!isFixture(deps, digits)) {
+      limiter.hit("registrations", client(c), policy.ratePerHour.registrations, nowSeconds(deps));
+    }
     const domain = normalizeDomain(body.domain);
     if (!domain) throw new HttpError(400, "invalid_domain", "expected a public domain name like example.co.jp");
     const name = registeredName(deps, digits, body.legalName);
@@ -134,15 +143,22 @@ export function registrationRoutes(deps: AppDeps, limiter: RateLimiter) {
       controller: registration.controller as Address,
     });
     if (!result.ok) throw new HttpError(422, `domain_${result.reason}`, "no valid domain proof found yet");
+    loadOpen(registration.id); // still open after the await
     deps.store.setDomainVerified(registration.id, result.method);
     return c.json({ ok: true, method: result.method });
   });
 
   /** Step 3: each officer creates a World ID session bound to this registration, within the per-human limits. */
   app.post("/:id/officers", async (c) => {
-    const registration = loadOpen(c.req.param("id"));
+    const id = c.req.param("id");
+    loadOpen(id);
     const { result } = proofBody.parse(await c.req.json());
-    const session = await deps.world.verify(result, enrollmentSignal(registration.id));
+    const session = await deps.world.verify(result, enrollmentSignal(id));
+    const registration = loadOpen(id); // still open after the await; from here on nothing awaits
+    const enrolled = deps.store.officersOf(id).map((o) => o.officerId);
+    if (enrolled.length >= MAX_OFFICERS && !enrolled.includes(session.officerId)) {
+      throw new HttpError(409, "too_many_officers", `a company can have at most ${MAX_OFFICERS} officers`);
+    }
     checkOfficerLimits(deps, registration, session.officerId, policy, nowSeconds(deps));
     if (!deps.store.consumeNullifier(session.sessionNullifier, `enroll:${registration.id}`)) {
       throw new HttpError(409, "proof_replayed", "this proof was already used");
@@ -156,21 +172,37 @@ export function registrationRoutes(deps: AppDeps, limiter: RateLimiter) {
    * window configured, a non-fixture registration is queued instead and listed at GET /registrations/pending.
    */
   app.post("/:id/submit", async (c) => {
-    const registration = loadOpen(c.req.param("id"));
     const { threshold } = submitBody.parse(await c.req.json());
+    const registration = loadOpen(c.req.param("id"));
     if (!registration.domainMethod) throw new HttpError(409, "domain_not_verified", "verify the domain first");
     const officers = deps.store.officersOf(registration.id).length;
     if (officers === 0) throw new HttpError(409, "no_officers", "enroll at least one officer");
     if (threshold > officers) throw new HttpError(400, "invalid_threshold", "threshold exceeds officers");
 
+    // Claimed before the first await: a second submit, or an officer or domain step that raced it, gets 409.
+    if (!deps.store.claimForSubmission(registration.id, nowSeconds(deps))) {
+      throw new HttpError(409, "already_submitted", "this registration is already being submitted");
+    }
+    try {
+      return await submit(c, registration, threshold);
+    } catch (error) {
+      deps.store.releaseClaim(registration.id); // nothing was written on-chain, or the write failed: retryable
+      throw error;
+    }
+  });
+
+  async function submit(c: Context, registration: RegistrationRecord, threshold: number) {
+    const fixture = isFixture(deps, registration.tNumber);
     const outcome = await plannedOutcome(deps, registration);
-    if (outcome === "disputed") limiter.hit("disputes", client(c), policy.ratePerHour.disputes, nowSeconds(deps));
-    if (policy.pendingHours > 0 && !isFixture(deps, registration.tNumber)) {
+    if (outcome === "disputed" && !fixture) {
+      limiter.hit("disputes", client(c), policy.ratePerHour.disputes, nowSeconds(deps));
+    }
+    if (policy.pendingHours > 0 && !fixture) {
       return c.json(queueForWindow(deps, registration, threshold, policy.pendingHours), 202);
     }
     const { txHash } = await submitOnChain(deps, registration, threshold, outcome);
     return c.json({ outcome, txHash, tNumber: formatTNumber(registration.tNumber) });
-  });
+  }
 
   return app;
 }

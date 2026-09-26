@@ -1,20 +1,25 @@
 import { getConnInfo } from "@hono/node-server/conninfo";
 import type { Context } from "hono";
+import { isIP } from "node:net";
 import { ipKey } from "./rate.js";
 
 /**
- * The client a request is rate-limited as. Without a trusted proxy, the socket's address: forwarded headers are
- * attacker-controlled, so they only count when VERIFIER_TRUST_PROXY says a proxy we run sets them.
+ * The client a request is rate-limited as. By default the socket's address: forwarded headers are set by the client
+ * unless a proxy we run overwrites them. With `trustProxy` (one proxy of ours in front, e.g. cloudflared or nginx),
+ * the rightmost X-Forwarded-For entry is the address that proxy saw. Entries further left are whatever the client
+ * sent, so they never count.
  */
 export function clientIpOf(c: Context, trustProxy: boolean): string {
   if (trustProxy) {
-    const forwarded = c.req.header("cf-connecting-ip") ?? c.req.header("x-forwarded-for")?.split(",")[0];
-    if (forwarded?.trim()) return ipKey(forwarded);
+    const hops = (c.req.header("x-forwarded-for") ?? "").split(",").map((hop) => hop.trim());
+    const nearest = hops.at(-1);
+    if (nearest && isIP(nearest)) return ipKey(nearest);
   }
   try {
     const address = getConnInfo(c).remote.address;
-    return address ? ipKey(address) : "unknown";
+    if (address && isIP(address)) return ipKey(address);
   } catch {
-    return "unknown"; // no socket, e.g. app.request() in tests
+    // no socket, e.g. app.request() in tests
   }
+  return "unknown";
 }
