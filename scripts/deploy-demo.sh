@@ -5,10 +5,12 @@
 # value is compiled into a public bundle, so before deploying, the script checks that no secret from the
 # git-ignored .env appears in the build. apps/landing is no longer deployed.
 #
-# It always builds the committed HEAD in a temporary git worktree, so uncommitted work in progress never ships.
+# It always builds a committed revision (HEAD, or DEPLOY_REF) in a temporary git worktree, so uncommitted work in
+# progress never ships. Pin DEPLOY_REF to the commit your checks passed on when others may commit meanwhile.
 #
 #   scripts/deploy-demo.sh              # build HEAD, check, deploy
 #   DRY_RUN=1 scripts/deploy-demo.sh    # build and check only
+#   DEPLOY_REF=32e8e77 scripts/deploy-demo.sh   # deploy exactly this commit
 #
 # Needs `npx wrangler login`. Optional: WORKERS_SUBDOMAIN (the account's workers.dev subdomain), GITHUB_URL
 # (adds the dock's GitHub pill), CONTACT_EMAIL (the business page's "Talk to us"), PUBLIC_RPC_URL.
@@ -23,14 +25,15 @@ OLD_APP_URL="https://meigi-app.${WORKERS_SUBDOMAIN}.workers.dev"
 PUBLIC_RPC_URL="${PUBLIC_RPC_URL:-https://ethereum-sepolia-rpc.publicnode.com}"
 CONTACT_EMAIL="${CONTACT_EMAIL:-karanbishttt@gmail.com}"
 WORKTREE="$(mktemp -d)/meigi-deploy"
+DEPLOY_REF="${DEPLOY_REF:-HEAD}"
 REGISTRY_FROM_BLOCK=11781105 # block of the v2 registry deployment (docs/runbook.md)
 
-# A clean checkout of HEAD with its own install (pnpm hard-links from the shared store, so this is quick).
+# A clean checkout of DEPLOY_REF with its own install (pnpm hard-links from the shared store, so this is quick).
 checkout_head() {
-  git worktree add --detach --quiet "$WORKTREE" HEAD
+  git worktree add --detach --quiet "$WORKTREE" "$DEPLOY_REF"
   trap 'git worktree remove --force "$WORKTREE"' EXIT
   (cd "$WORKTREE" && pnpm install --frozen-lockfile --prefer-offline --filter "@meigi/web..." >/dev/null)
-  echo "building $(git rev-parse --short HEAD) in a clean worktree"
+  echo "building $(git -C "$WORKTREE" rev-parse --short HEAD) in a clean worktree"
 }
 
 build_app() {
