@@ -49,7 +49,8 @@ This small process holds the AgentVault's agent key and signs one call for it: `
   `Authorization: Bearer <SIGNER_TOKEN>`, compared in constant time.
 - **The right key.** At startup it checks on-chain that its key isn't the vault's owner (the owner may pay an invoice
   twice), and that it is the vault's agent, directly or through the ENS mandate (below).
-- **An ENS mandate (prepared, off: `SIGNER_VIA_GATE=0`).** The buyer company can issue its AP agent a name,
+- **An ENS mandate (live since 2026-09-26 with `SIGNER_VIA_GATE=1`; the default, 0, is the rollback).** The buyer
+  company can issue its AP agent a name,
   `ap.t<company>.payee.eth`, and make the `MandateGate` the vault's agent. The gate forwards `payInvoice` (same
   arguments) only while that name answers and is held by this key.
   - With `SIGNER_VIA_GATE=1` and `MANDATE_GATE_ADDRESS`, the signer sends `payInvoice` to the gate, still typed fields
@@ -59,7 +60,10 @@ This small process holds the AgentVault's agent key and signs one call for it: `
     key), and name this key as the mandate's holder. Otherwise the signer refuses to start. Once it is running, a revoked mandate comes back
     as `MandateNotLive`, which the agent shows as a hold.
   - With the default `SIGNER_VIA_GATE=0`, the vault's agent must be this key. The rollback is
-    `vault.setAgent(<this key>)`, `SIGNER_VIA_GATE=0`, and a restart.
+    `vault.setAgent(<this key>)` (`ens.sh mandate-unwire`), `SIGNER_VIA_GATE=0`, and a restart.
+  - Live on Sepolia: the gate `0x591d…83BF` has been the vault's agent since 20:15 JST on 2026-09-26. The live
+    rehearsal paid through it, held `MandateNotLive` while the company had revoked the mandate, and paid again once
+    it was re-issued (`docs/ens.md`).
   - `/health` says which route is in use (`via: "vault" | "gate"`, `gate`). The vault still emits `InvoicePaid`, so
     receipts and indexing are unchanged.
 

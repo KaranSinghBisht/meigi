@@ -52,7 +52,8 @@ Check: `EXPECT_ADDR=0x9B4fc8994FcF2d5FE08a82A9454B61AA14D647e4 contracts/script/
 
 ### The agent's ENS mandate goes live (MandateGate)
 
-Only after Karan's video, and only on the lead's word. The demo must never depend on the gate being healthy.
+Live since 2026-09-26 20:15 JST: it went ahead of Karan's video, on the lead's word. The demo must never depend on
+the gate being healthy, so the rollback below stays one call away.
 
 1. **Order.**
    1. ens commits the gate's constructor check (efd4574), and contracts-review passes it.

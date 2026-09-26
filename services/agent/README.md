@@ -268,7 +268,8 @@ Two MultiBaas deployments, one per chain:
     the first check, but the broken lookup above meant its exact indexing moment wasn't captured. The closest
     measurement is the x402 run earlier the same day: its transfers were queryable within about 30 s of mining.
   - **What shows it:** `GET /payments` lists the payment with `source: "multibaas"` and the older ones from RPC. The
-    site's settlements panel shows "¥33,000 · Invoice paid by the AgentVault · indexed at block 11,784,298".
+    site's settlements panel, which reads MultiBaas through the site's own Worker (`apps/web/worker`), not through
+    this agent, shows "¥33,000 · Invoice paid by the AgentVault · indexed at block 11,784,298".
 - **The first payment signed by the signer, with the agent holding no key (2026-09-26):** `scripts/evidence/ms-2026-0927.ja.txt`
   (MS-2026-0927, ¥27,500), auto-cleared.
   - **The payment:** tx `0x8ce2cdc8f98b246f27531a5e8076f98273afa8b8cc8827aaa67bdf0a66040a46`, block 11,784,544
@@ -276,8 +277,11 @@ Two MultiBaas deployments, one per chain:
   - **Settlement:** `GET /invoices/:id/settlement` answered `confirmed` with `source: "multibaas"` at the first check,
     10 s after the block's timestamp. That puts mining-to-indexed at 10 s or less.
   - **Audit:** the log records `analysis` (pay), then `payment` pending, then `payment` paid, and the chain verifies.
-- **Keys:** only this service holds the MultiBaas key; the dashboards read `/payments`.
-- **Not built yet:** the contract-call API and webhooks.
+- **Keys:** the MultiBaas key never reaches a browser. This service holds one, and the site's Worker holds its own
+  as a Worker secret for the settlements panel. No page calls `GET /payments`: it is this agent's API, for
+  operators and scripts.
+- **Not built yet:** composing `payInvoice` through MultiBaas's contract-call API (we only read through it), and
+  webhooks.
 
 ## Run it
 
