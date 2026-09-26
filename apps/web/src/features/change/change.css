@@ -24,6 +24,12 @@
   align-items: start;
 }
 
+/* One stage of a change (the officers' approvals, then the business key's signature): a column of its parts. */
+.change__step {
+  display: grid;
+  gap: 16px;
+}
+
 .picker {
   display: grid;
   gap: 16px;

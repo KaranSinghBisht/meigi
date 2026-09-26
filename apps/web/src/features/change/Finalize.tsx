@@ -69,7 +69,7 @@ export function Finalize(props: FinalizeProps) {
     )
   }
   return (
-    <div className="step">
+    <div className="change__step">
       <Notice tone="success" title="Quorum reached. The attester signed the officers' approval.">
         <p>Now the business key queues it: the controller's wallet calls requestPayoutChange.</p>
       </Notice>

@@ -60,7 +60,7 @@ export function Approvals({ flow }: { readonly flow: IntentFlow }) {
   if (!intent || !request) return null
   const approvals = flow.phase.kind === 'collecting' ? flow.phase.approvals : intent.threshold
   return (
-    <div className="step">
+    <div className="change__step">
       <div className="approvals__head">
         <p>
           <strong>{ACTION_LABELS[request.action] ?? request.action}</strong> for{' '}
