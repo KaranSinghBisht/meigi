@@ -7,7 +7,7 @@ DNS-encoded name (ENSIP-10), and the resolver answers from `PayeeRegistry`.
 
 | File | Purpose |
 |---|---|
-| `ens.sh` | Entry point: `deploy`, `seed`, `register`, `set-resolver`, `check`. It only simulates unless `BROADCAST=1`. |
+| `ens.sh` | Entry point: `deploy`, `seed`, `register`, `set-resolver`, `check`, and `agent-deploy`, `agent-setup`, `agent-status`, `agent-check`. It only simulates unless `BROADCAST=1`. |
 | `fork-e2e.sh` | Full proof on an anvil fork of Sepolia, against both ENSv2 deployments. Sends nothing to a real network. |
 | `RegisterName.s.sol` | `commit()`, `register()`, `dryRun()` (full flow with pranks and a time warp), `setResolver()` |
 | `CheckName.s.sol` | Read-only. Resolves through the UniversalResolver, compares with the registry, and checks that other names fail closed |
@@ -16,6 +16,9 @@ DNS-encoded name (ENSIP-10), and the resolver answers from `PayeeRegistry`.
 | `EnsV2.sol` | ENSv2 interfaces (from the verified source), DNS encoding, and deployment wiring checks |
 | `deployments/*.env` | ENSv2 address tables: `beta` (default) and `hackathon` |
 | `check-viem.mjs` | viem `getEnsAddress` / `getEnsText`, called the way a wallet calls them |
+| `AgentNamespace.s.sol`, `AgentNs.sol` | The AP agent's namespace `ap.meigi.eth`: `deploy()`, `setup()`, `setStatus()` (see below) |
+| `CheckAgent.s.sol` | Read-only proof of the namespace, the agent's one scoped role (simulated allowed and denied writes) and an unchanged `payee.eth` |
+| `agent-e2e.sh`, `check-agent-viem.mjs` | The namespace flow on an anvil fork, and stock viem resolving `ap.meigi.eth` |
 
 ## Which ENSv2 deployment
 
@@ -66,7 +69,8 @@ stops with a hint if the name uses a different resolver. If it stops after `comm
 `export PAYEE_RESOLVER=<new address>` and run `BROADCAST=1 ens.sh set-resolver` for each deployment.
 
 **Optional variables.** `ENS_LABEL` (default `payee`), `ENS_OWNER` (the signer), `ENS_DURATION` (31536000),
-`T_NUMBER` and `EXPECT_ADDR`.
+`ENS_SUBREGISTRY` (registers a namespace with that subregistry instead of a resolver; set it or `PAYEE_RESOLVER`, never both), `T_NUMBER`
+and `EXPECT_ADDR`.
 
 ## Fork proof
 
@@ -78,6 +82,42 @@ script/ens/fork-e2e.sh    # FORK_URL, ANVIL_PORT (8546) and ENS_DEPLOYMENTS ("ha
 - It never reads `.env`. Its signers come from anvil's `--mnemonic-random`.
 - The fork keeps chain id 11155111, so broadcast files go to a temp dir. anvil takes `FORK_URL` as a command-line
   argument, so use a keyless endpoint.
+
+## AP agent namespace: `ap.meigi.eth` (Beta only)
+
+This gives the AI agent its own ENSv2 name and permissions, isolated from `payee.eth` and its resolver.
+
+| Piece | Setup |
+|---|---|
+| `meigi.eth` | A pure namespace. Its subregistry is a `UserRegistry` proxy, and it has no resolver. |
+| `ap.meigi.eth` | A token in that registry, owned by the deployer. It has its own `PermissionedResolver`. Both proxies come from `VerifiableFactory.deployProxy`. |
+| Records | `addr(60)` is the AgentVault. It also has ENSIP-26 `agent-context` (Markdown) and `agent-endpoint[web]`, plus `meigi.vault`, `meigi.registry` and `meigi.payees` = `payee.eth`. The resolver's initializer writes them. |
+| Agent key | Holds `ROLE_SET_TEXT` (`1<<4`) on the resource `keccak256("agent-status")` only, granted with `grantSetterRoles(setText(0x00, "agent-status", ""), agent)`. It can set `agent-status`. Setting `agent-context`, `agent-endpoint[web]` or `addr` reverts `EACUnauthorizedAccountRoles`. |
+
+```sh
+BROADCAST=1 script/ens/ens.sh agent-deploy          # prints AGENT_SUBREGISTRY=… and AGENT_RESOLVER=…
+export AGENT_SUBREGISTRY=0x… AGENT_RESOLVER=0x…    # AGENT_ADDRESS comes from .env
+ENS_LABEL=meigi ENS_SUBREGISTRY=$AGENT_SUBREGISTRY BROADCAST=1 script/ens/ens.sh register   # PAYEE_RESOLVER unset
+BROADCAST=1 script/ens/ens.sh agent-setup           # canonical parent, then ap.meigi.eth, then the agent's scoped role
+AGENT_STATUS=online BROADCAST=1 script/ens/ens.sh agent-status   # signed by AGENT_PRIVATE_KEY
+script/ens/ens.sh agent-check                       # read-only
+script/ens/agent-e2e.sh                             # the whole flow on a fork, plus eth_call denials and stock viem
+```
+
+- `agent-e2e.sh` uses a fresh parent label (`meigifork<random>`, or `AGENT_PARENT`) because meigi.eth is live on
+  Sepolia. It clears any leftover `AGENT_*` or `ENS_*` exports first.
+- To rotate the agent key, set the new `AGENT_ADDRESS` and `AGENT_PREVIOUS_ADDRESS=<old>`, then run
+  `agent-setup`. It grants the new key and revokes the old one.
+
+- The addresses of the factory and the two implementations are in `deployments/beta.env`. They come from
+  `ensdomains/contracts-v2` `deployments/sepolia` at commit `71a3b733`, the 2026-09-15 redeploy. The main branch
+  still lists the June set (root `0x11b5…`), which the canonical UniversalResolver no longer serves.
+- The resolver's setters take the DNS-encoded name, and records are keyed by its namehash.
+  `initialize(Grant[], bytes[] calls)` runs `calls` without permission checks. `grantRoles` is disabled, so
+  scoped roles go through `grantSetterRoles`.
+- A text key's scope is `keccak256(key)`. It holds on every name the resolver serves, and this one serves only
+  `ap.meigi.eth`.
+- ENSIP-25 and ENSIP-26 are drafts. `agent-status` is our own key.
 
 ## Verified ENSv2 facts
 

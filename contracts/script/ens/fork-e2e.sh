@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # End-to-end proof on a local anvil fork of Sepolia. It deploys the payee stack, seeds the demo payee,
-# registers payee.eth on each ENSv2 deployment, and resolves the payee through the UniversalResolver with
+# registers <ENS_LABEL>.eth on each ENSv2 deployment, and resolves the payee through the UniversalResolver with
 # forge and viem. It then re-points the name at a redeployed resolver, files a dispute and checks that the
 # payee now resolves to zero.
 # Nothing is sent to a real network and .env is never read. Signers come from a random mnemonic: anvil's
@@ -14,6 +14,8 @@ FORK_URL="${FORK_URL:-https://ethereum-sepolia-rpc.publicnode.com}"
 PORT="${ANVIL_PORT:-8546}"
 DEPLOYMENTS="${ENS_DEPLOYMENTS:-hackathon beta}"
 T_NUMBER=2011001234567
+# payee.eth itself is registered on Sepolia now, so the fork proof registers a fresh label by default.
+export ENS_LABEL="${ENS_LABEL:-payeefork$RANDOM}"
 
 step() { printf '\n==> %s\n' "$*"; }
 fail() {
@@ -52,13 +54,13 @@ viem_check() {
   local ur="" out
   [[ -d $MEIGI/apps/landing/node_modules/viem ]] || { echo "viem not installed; skipped" && return 0; }
   if [[ $1 != beta ]]; then ur="$(set -a && source "$HERE/deployments/$1.env" && echo "$ENS_UNIVERSAL_RESOLVER")"; fi
-  out="$(cd "$MEIGI/apps/landing" && VIEM_UR="$ur" node --input-type=module <"$HERE/check-viem.mjs")"
+  out="$(cd "$MEIGI/apps/landing" && VIEM_UR="$ur" ENS_NAME="t$T_NUMBER.$ENS_LABEL.eth" node --input-type=module <"$HERE/check-viem.mjs")"
   echo "$out"
   jq -e --arg want "$2" '((.address // "null") | ascii_downcase) == ($want | ascii_downcase)' <<<"$out" >/dev/null ||
     fail "viem resolved an unexpected address on $1"
 }
 
-step "Deploy PayeeRegistry and a PayeeResolver bound to payee.eth"
+step "Deploy PayeeRegistry and a PayeeResolver bound to $ENS_LABEL.eth"
 out="$("$HERE/ens.sh" deploy)" || fail "deploy failed: $out"
 PAYEE_REGISTRY="$(parse_addr PAYEE_REGISTRY "$out")" PAYEE_RESOLVER="$(parse_addr PAYEE_RESOLVER "$out")"
 [[ -n $PAYEE_REGISTRY && -n $PAYEE_RESOLVER ]] || fail "deploy printed no addresses: $out"
@@ -72,13 +74,13 @@ payout="$(cast call "$PAYEE_REGISTRY" "payoutOf(uint64)(address)" "$T_NUMBER" --
 grep -E "Registered T" <<<"$out"
 
 for d in $DEPLOYMENTS; do
-  step "Register payee.eth on the '$d' ENSv2 deployment, then resolve it through the UniversalResolver"
+  step "Register $ENS_LABEL.eth on the '$d' ENSv2 deployment, then resolve it through the UniversalResolver"
   ENS_DEPLOYMENT="$d" EXPECT_ADDR="$PAYEE_PAYOUT" "$HERE/ens.sh" register
   step "viem on '$d'"
   viem_check "$d" "$PAYEE_PAYOUT"
 done
 
-step "Redeploy only the resolver, then re-point payee.eth with set-resolver (the owner's ROLE_SET_RESOLVER)"
+step "Redeploy only the resolver, then re-point $ENS_LABEL.eth with set-resolver (the owner's ROLE_SET_RESOLVER)"
 out="$("$HERE/ens.sh" deploy)" || fail "resolver redeploy failed: $out"
 PAYEE_RESOLVER="$(parse_addr PAYEE_RESOLVER "$out")"
 [[ -n $PAYEE_RESOLVER ]] || fail "redeploy printed no resolver: $out"

@@ -27,12 +27,20 @@ contract CheckName is Script {
         string memory label = vm.envOr("ENS_LABEL", string("payee"));
         address resolver = ens.ethRegistry.getResolver(label);
         require(resolver != address(0), string.concat(label, ".eth has no resolver on this deployment"));
-        require(resolver == vm.envOr("PAYEE_RESOLVER", resolver), "the name's resolver is not PAYEE_RESOLVER");
-        IPayeeRegistry registry = IPayeeResolverView(resolver).registry();
+        // A subregistry could give `t<T>` its own resolver and override the wildcard, so a payee name has none.
         require(
-            address(registry) == vm.envOr("PAYEE_REGISTRY", address(registry)),
-            "the resolver reads another registry than PAYEE_REGISTRY"
+            ens.ethRegistry.getSubregistry(label) == address(0),
+            string.concat(label, ".eth has a subregistry")
         );
+        if (vm.envExists("PAYEE_RESOLVER")) {
+            require(resolver == vm.envAddress("PAYEE_RESOLVER"), "the name's resolver is not PAYEE_RESOLVER");
+        }
+        IPayeeRegistry registry = IPayeeResolverView(resolver).registry();
+        if (vm.envExists("PAYEE_REGISTRY")) {
+            require(
+                address(registry) == vm.envAddress("PAYEE_REGISTRY"), "the resolver reads another registry"
+            );
+        }
         uint64 tNumber = SafeCast.toUint64(vm.envOr("T_NUMBER", uint256(2011001234567)));
         string memory parent = string.concat(label, ".eth");
         console.log("UniversalResolver %s, resolver %s", address(ens.universalResolver), resolver);
@@ -49,7 +57,9 @@ contract CheckName is Script {
     ) private view {
         string memory name = string.concat("t", vm.toString(uint256(tNumber)), ".", parent);
         address expected = registry.payoutOf(tNumber); // zero unless the payee is active
-        require(vm.envOr("EXPECT_ADDR", expected) == expected, "the registry does not hold EXPECT_ADDR");
+        if (vm.envExists("EXPECT_ADDR")) {
+            require(vm.envAddress("EXPECT_ADDR") == expected, "the registry does not hold EXPECT_ADDR");
+        }
 
         (address resolved, address answeredBy) = _addr(ens, name);
         require(answeredBy == resolver, "the UniversalResolver used another resolver");
@@ -60,15 +70,25 @@ contract CheckName is Script {
         bytes memory expected60 = expected == address(0) ? bytes("") : abi.encodePacked(expected);
         require(keccak256(coin60) == keccak256(expected60), "addr(node, 60) disagrees with the registry");
 
-        string memory legalName = _text(ens, name, "name");
-        require(
-            keccak256(bytes(legalName)) == keccak256(bytes(registry.payeeOf(tNumber).legalName)),
-            "text(name) disagrees with the registry"
-        );
         console.log(name);
         console.log("  addr(60)      %s (registry payoutOf: %s)", resolved, expected);
-        console.log("  text(name)    %s", legalName);
+        console.log("  text(name)    %s", _checkLegalName(ens, name, registry, tNumber));
         console.log("  meigi.status  %s", _text(ens, name, "meigi.status"));
+    }
+
+    /// @dev The resolver publishes the legal name of an active payee only; a disputed one shows just its status.
+    function _checkLegalName(EnsV2 memory ens, string memory name, IPayeeRegistry registry, uint64 tNumber)
+        private
+        view
+        returns (string memory legalName)
+    {
+        IPayeeRegistry.PayeeView memory payee = registry.payeeOf(tNumber);
+        string memory published = payee.status == IPayeeRegistry.Status.Active ? payee.legalName : "";
+        legalName = _text(ens, name, "name");
+        require(
+            keccak256(bytes(legalName)) == keccak256(bytes(published)),
+            "text(name) disagrees with the registry"
+        );
     }
 
     function _checkFailsClosed(

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# payee.eth on ENSv2 (Sepolia). Usage: script/ens/ens.sh <deploy|seed|register|set-resolver|check>
+# payee.eth and the AP agent's namespace (ap.meigi.eth) on ENSv2 (Sepolia).
+# Usage: script/ens/ens.sh <deploy|seed|register|set-resolver|check|agent-deploy|agent-setup|agent-status|agent-check>
 # Transactions are only simulated unless BROADCAST=1. Keys and the RPC URL come from the environment or
 # meigi/.env and never appear on a command line; tool output is redacted. See README.md.
 set -euo pipefail
@@ -15,10 +16,12 @@ die() {
 
 is_local() { [[ $1 =~ ^https?://(127\.0\.0\.1|localhost)(:[0-9]+)?/?$ ]]; }
 
-# Exports the variables these scripts use from a dotenv file (not World or agent keys), skipping any that
+# Exports the variables these scripts use from a dotenv file (not World or vault keys), skipping any that
 # are already set. Tolerates CRLF, `export`, quotes and trailing comments.
 load_dotenv() {
   local line key value
+  # Only the agent variables these scripts use: the agent service keeps other AGENT_* secrets in the same file.
+  local agent_vars='^AGENT_(PRIVATE_KEY|ADDRESS|PREVIOUS_ADDRESS|SUBREGISTRY|RESOLVER|STATUS|PARENT|LABEL|ENDPOINT|VAULT|PAYEE_REGISTRY)$'
   local kv='^[[:space:]]*(export[[:space:]]+)?([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*=[[:space:]]*(.*)$'
   local quoted="^[\"']([^\"']*)[\"']"
   while IFS= read -r line || [[ -n $line ]]; do
@@ -26,7 +29,7 @@ load_dotenv() {
     [[ $line =~ $kv ]] || continue
     key="${BASH_REMATCH[2]}"
     value="${BASH_REMATCH[3]}"
-    [[ $key =~ ^(SEPOLIA_RPC_URL|(DEPLOYER|ATTESTER|PAYEE|ENS)_[A-Z0-9_]+)$ ]] || continue
+    [[ $key =~ ^(SEPOLIA_RPC_URL|(DEPLOYER|ATTESTER|PAYEE|ENS)_[A-Z0-9_]+)$ || $key =~ $agent_vars ]] || continue
     if [[ -n ${!key:-} ]]; then continue; fi
     if [[ $value =~ $quoted ]]; then
       value="${BASH_REMATCH[1]}"
@@ -68,7 +71,7 @@ run_cast() {
 }
 
 setup() {
-  local dotenv="${DOTENV:-$CONTRACTS/../.env}" rpc chain
+  local dotenv="${DOTENV:-$CONTRACTS/../.env}" rpc
   # Never load the real keys against a local RPC: a fork keeps chain id 11155111, so whatever is signed
   # there is also a valid Sepolia transaction.
   if [[ ${SKIP_DOTENV:-0} != 1 && -f $dotenv ]] && ! is_local "${RPC_URL:-}"; then load_dotenv "$dotenv"; fi
@@ -84,11 +87,14 @@ setup() {
   # forge reads FOUNDRY_ETH_RPC_URL and cast reads ETH_RPC_URL, so the URL stays out of argv.
   export FOUNDRY_ETH_RPC_URL="$rpc" ETH_RPC_URL="$rpc" ENS_DEPLOYMENT
   LOCAL_RPC=0
-  if is_local "$rpc"; then
-    LOCAL_RPC=1
-    # Keep a fork's artifacts out of contracts/broadcast/.../11155111.
-    if [[ -z ${FOUNDRY_BROADCAST:-} ]]; then FOUNDRY_BROADCAST="$(mktemp -d)" && export FOUNDRY_BROADCAST; fi
-  fi
+  if is_local "$rpc"; then LOCAL_RPC=1; fi
+}
+
+# Runs after scope_keys, so no child process ever sees a key its command does not sign with.
+check_rpc() {
+  local chain
+  # A fork keeps chain id 11155111: keep its artifacts out of contracts/broadcast/.../11155111.
+  if [[ $LOCAL_RPC == 1 && -z ${FOUNDRY_BROADCAST:-} ]]; then FOUNDRY_BROADCAST="$(mktemp -d)" && export FOUNDRY_BROADCAST; fi
   chain="$(run_cast chain-id)"
   [[ $chain == "$SEPOLIA" ]] || die "the RPC serves chain $chain, not Sepolia ($SEPOLIA)"
 }
@@ -96,14 +102,18 @@ setup() {
 # Gives each command only the key it signs with.
 scope_keys() {
   case "$1" in
-    check) unset DEPLOYER_PRIVATE_KEY ATTESTER_PRIVATE_KEY ;;
+    check | agent-check) unset DEPLOYER_PRIVATE_KEY ATTESTER_PRIVATE_KEY AGENT_PRIVATE_KEY ;;
     seed)
       require_key ATTESTER_PRIVATE_KEY
-      unset DEPLOYER_PRIVATE_KEY
+      unset DEPLOYER_PRIVATE_KEY AGENT_PRIVATE_KEY
+      ;;
+    agent-status)
+      require_key AGENT_PRIVATE_KEY
+      unset DEPLOYER_PRIVATE_KEY ATTESTER_PRIVATE_KEY
       ;;
     *)
       require_key DEPLOYER_PRIVATE_KEY
-      unset ATTESTER_PRIVATE_KEY
+      unset ATTESTER_PRIVATE_KEY AGENT_PRIVATE_KEY
       ;;
   esac
 }
@@ -137,7 +147,9 @@ wait_commitment_age() {
 
 cmd_register() {
   local out
-  : "${PAYEE_RESOLVER:?set PAYEE_RESOLVER}"
+  if [[ -n ${PAYEE_RESOLVER:-} && -n ${ENS_SUBREGISTRY:-} || -z ${PAYEE_RESOLVER:-}${ENS_SUBREGISTRY:-} ]]; then
+    die "set exactly one of PAYEE_RESOLVER (payee wildcard) or ENS_SUBREGISTRY (namespace)"
+  fi
   if [[ ${BROADCAST:-0} != 1 ]]; then
     forge_script script/ens/RegisterName.s.sol --sig "dryRun()"
     echo "Dry run only. Re-run with BROADCAST=1 to send the commit and register transactions."
@@ -157,7 +169,8 @@ cmd_register() {
     wait_commitment_age
     forge_script script/ens/RegisterName.s.sol --sig "register()"
   fi
-  cmd_check
+  # The payee check needs the PayeeResolver; a namespace (ENS_SUBREGISTRY only) is checked by agent-check.
+  if [[ -n ${PAYEE_RESOLVER:-} ]]; then cmd_check; fi
 }
 
 cmd_check() {
@@ -168,10 +181,13 @@ main() {
   local cmd="${1:-}"
   case "$cmd" in
     deploy | seed | register | set-resolver | check) ;;
-    *) die "usage: ens.sh <deploy|seed|register|set-resolver|check>" ;;
+    agent-deploy | agent-setup | agent-status | agent-check) ;;
+    *) die "usage: ens.sh <deploy|seed|register|set-resolver|check|agent-deploy|agent-setup|agent-status|agent-check>" ;;
   esac
   setup
+  if [[ $cmd == agent-* && $ENS_DEPLOYMENT != beta ]]; then die "agent-* commands target the Beta (ENS_DEPLOYMENT=beta)"; fi
   scope_keys "$cmd"
+  check_rpc
   echo "ENS deployment: $ENS_DEPLOYMENT, $([[ $LOCAL_RPC == 1 ]] && echo "local fork" || echo "remote RPC") of chain $SEPOLIA"
   case "$cmd" in
     deploy)
@@ -183,6 +199,10 @@ main() {
     register) cmd_register ;;
     set-resolver) forge_script script/ens/RegisterName.s.sol --sig "setResolver()" ;;
     check) cmd_check ;;
+    agent-deploy) forge_script script/ens/AgentNamespace.s.sol --sig "deploy()" ;;
+    agent-setup) forge_script script/ens/AgentNamespace.s.sol --sig "setup()" ;;
+    agent-status) forge_script script/ens/AgentNamespace.s.sol --sig "setStatus()" ;;
+    agent-check) (cd "$CONTRACTS" && forge script script/ens/CheckAgent.s.sol) 2>&1 | redact ;;
   esac
 }
 

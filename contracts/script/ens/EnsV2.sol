@@ -86,6 +86,9 @@ library EnsV2Lib {
     ///      resolver it finds on a parent name (ENSIP-10 wildcard), and then passes it the full DNS-encoded name.
     bytes4 internal constant EXTENDED_RESOLVER = 0x9061b923;
 
+    /// @dev ERC-165 id of IRegistry: getSubregistry(string) ^ getResolver(string) ^ getParent().
+    bytes4 internal constant REGISTRY = 0x51f67f40;
+
     /// @notice Loads the deployment and checks its wiring, so a wrong address table fails before any transaction.
     function load() internal view returns (EnsV2 memory d) {
         d.registrar = IETHRegistrar(VM.envAddress("ENS_REGISTRAR"));
@@ -100,6 +103,12 @@ library EnsV2Lib {
             IPermissionedRegistry(root).getSubregistry("eth") == address(d.ethRegistry),
             "ENS_REGISTRAR does not register under this root's .eth"
         );
+    }
+
+    /// @notice An optional address from the environment: zero when unset, and a revert (never a silent zero,
+    ///         which `vm.envOr` gives for a malformed value) when set but invalid.
+    function envAddressOrZero(string memory name) internal view returns (address) {
+        return VM.envExists(name) ? VM.envAddress(name) : address(0);
     }
 
     function labelId(string memory label) internal pure returns (uint256) {
@@ -125,6 +134,15 @@ library EnsV2Lib {
     function supportsExtendedResolver(address resolver) internal view returns (bool) {
         if (resolver.code.length == 0) return false;
         try IERC165(resolver).supportsInterface(EXTENDED_RESOLVER) returns (bool ok) {
+            return ok;
+        } catch {
+            return false;
+        }
+    }
+
+    function isRegistry(address registry) internal view returns (bool) {
+        if (registry.code.length == 0) return false;
+        try IERC165(registry).supportsInterface(REGISTRY) returns (bool ok) {
             return ok;
         } catch {
             return false;

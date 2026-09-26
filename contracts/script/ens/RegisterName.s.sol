@@ -6,17 +6,19 @@ import {Script, console} from "forge-std/Script.sol";
 import {EnsV2, EnsV2Lib} from "./EnsV2.sol";
 
 /// @notice Registers `<ENS_LABEL>.eth` (payee.eth) on ENSv2 with PAYEE_RESOLVER as its resolver and no
-///         subregistry: one wildcard resolver answers every `t<13 digits>.payee.eth`.
+///         subregistry: one wildcard resolver answers every `t<13 digits>.payee.eth`. With ENS_SUBREGISTRY
+///         instead of PAYEE_RESOLVER, it registers a namespace, e.g. meigi.eth for ap.meigi.eth.
 /// @dev Commit-reveal needs real time between two transactions, so `ens.sh register` runs `commit()`, waits
 ///      MIN_COMMITMENT_AGE (60s), then runs `register()`. `dryRun()` simulates the whole flow with a time warp
-///      and sends nothing. Env: DEPLOYER_PRIVATE_KEY, PAYEE_RESOLVER, ENS_SECRET (commit and register),
-///      optional ENS_LABEL, ENS_OWNER (the signer), ENS_DURATION (365 days), and deployments/<name>.env.
+///      and sends nothing. Env: DEPLOYER_PRIVATE_KEY, PAYEE_RESOLVER or ENS_SUBREGISTRY, ENS_SECRET (commit
+///      and register), optional ENS_LABEL, ENS_OWNER (the signer), ENS_DURATION (365 days), deployments/<name>.env.
 contract RegisterName is Script {
     struct Request {
         string label;
         address owner;
         bytes32 secret;
         address resolver;
+        address subregistry;
         uint64 duration;
     }
 
@@ -69,6 +71,7 @@ contract RegisterName is Script {
     ///         The signer needs ROLE_SET_RESOLVER on the name; the owner receives it at registration.
     function setResolver() external {
         (EnsV2 memory ens, uint256 pk, Request memory r) = _setup(false);
+        require(r.resolver != address(0), "Set PAYEE_RESOLVER");
         if (ens.ethRegistry.getResolver(r.label) == r.resolver) {
             console.log("%s.eth already uses %s", r.label, r.resolver);
             return;
@@ -96,7 +99,8 @@ contract RegisterName is Script {
         r.label = vm.envOr("ENS_LABEL", string("payee"));
         r.owner = vm.envOr("ENS_OWNER", signer);
         r.secret = vm.envOr("ENS_SECRET", bytes32(0));
-        r.resolver = vm.envAddress("PAYEE_RESOLVER");
+        r.resolver = EnsV2Lib.envAddressOrZero("PAYEE_RESOLVER");
+        r.subregistry = EnsV2Lib.envAddressOrZero("ENS_SUBREGISTRY");
         r.duration = SafeCast.toUint64(vm.envOr("ENS_DURATION", uint256(365 days)));
         require(
             !needSecret || r.secret != bytes32(0),
@@ -111,12 +115,30 @@ contract RegisterName is Script {
         require(
             r.duration >= ens.registrar.MIN_REGISTER_DURATION(), "ENS_DURATION is below the registrar minimum"
         );
+        _validateTargets(r);
+    }
+
+    /// @dev A name is either a payee wildcard (a resolver, no subregistry) or a namespace (a subregistry, no
+    ///      resolver), never both: a subregistry under payee.eth could register `t<T>` with its own resolver and
+    ///      override the PayeeRegistry-backed answer for that supplier.
+    function _validateTargets(Request memory r) private view {
         require(
-            EnsV2Lib.supportsExtendedResolver(r.resolver), "PAYEE_RESOLVER does not support IExtendedResolver"
+            (r.resolver == address(0)) != (r.subregistry == address(0)),
+            "Set exactly one of PAYEE_RESOLVER (payee wildcard) or ENS_SUBREGISTRY (namespace)"
         );
-        require(
-            EnsV2Lib.servesParent(r.resolver, r.label), "PAYEE_RESOLVER was deployed for another parent name"
-        );
+        if (r.resolver != address(0)) {
+            require(
+                EnsV2Lib.supportsExtendedResolver(r.resolver),
+                "PAYEE_RESOLVER does not support IExtendedResolver"
+            );
+            require(
+                EnsV2Lib.servesParent(r.resolver, r.label),
+                "PAYEE_RESOLVER was deployed for another parent name"
+            );
+        }
+        if (r.subregistry != address(0)) {
+            require(EnsV2Lib.isRegistry(r.subregistry), "ENS_SUBREGISTRY is not an ENSv2 registry");
+        }
     }
 
     /// @dev Makes reruns safe: a name we already own needs neither commit nor register.
@@ -128,6 +150,10 @@ contract RegisterName is Script {
             ens.ethRegistry.getResolver(r.label) == r.resolver,
             "Already registered with another resolver: run `ens.sh set-resolver`"
         );
+        require(
+            ens.ethRegistry.getSubregistry(r.label) == r.subregistry,
+            "Already registered with another subregistry"
+        );
         console.log("%s.eth is already registered to %s; nothing to do.", r.label, owner);
         return true;
     }
@@ -135,7 +161,8 @@ contract RegisterName is Script {
     /// @dev The registrar's own encoding: keccak256(abi.encode(label, owner, secret, subregistry, resolver,
     ///      duration, referrer)). The payment token is not part of the commitment.
     function _commitment(EnsV2 memory ens, Request memory r) private pure returns (bytes32) {
-        return ens.registrar.makeCommitment(r.label, r.owner, r.secret, address(0), r.resolver, r.duration, 0);
+        return
+            ens.registrar.makeCommitment(r.label, r.owner, r.secret, r.subregistry, r.resolver, r.duration, 0);
     }
 
     function _requireMatureCommitment(EnsV2 memory ens, bytes32 commitment) private view {
@@ -164,7 +191,14 @@ contract RegisterName is Script {
         }
         ens.registrar
             .register(
-                r.label, r.owner, r.secret, address(0), r.resolver, r.duration, address(ens.paymentToken), 0
+                r.label,
+                r.owner,
+                r.secret,
+                r.subregistry,
+                r.resolver,
+                r.duration,
+                address(ens.paymentToken),
+                0
             );
     }
 
@@ -172,7 +206,9 @@ contract RegisterName is Script {
         uint256 id = EnsV2Lib.labelId(r.label);
         require(ens.ethRegistry.getOwner(id) == r.owner, "owner mismatch after register");
         require(ens.ethRegistry.getResolver(r.label) == r.resolver, "resolver mismatch after register");
-        require(ens.ethRegistry.getSubregistry(r.label) == address(0), "unexpected subregistry");
+        require(
+            ens.ethRegistry.getSubregistry(r.label) == r.subregistry, "subregistry mismatch after register"
+        );
         require(
             ens.ethRegistry.hasRoles(id, EnsV2Lib.ROLE_SET_RESOLVER, r.owner), "owner lacks ROLE_SET_RESOLVER"
         );
