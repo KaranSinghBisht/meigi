@@ -13,6 +13,22 @@ Before launch we'd seek an FSA no-action letter (法令適用事前確認手続)
 It does **not** prove that the registrant represents the company. That binding, through the 商業登記電子証明書, is the
 production step (roadmap, item 1).
 
+## How a payout can change
+
+A payout changes only through a 72-hour public window: either the company's business key together with its World ID
+officers (each proof checked by our verifier, whose co-signature the registry verifies on-chain), or a governance
+ruling on a dispute. Nothing changes it instantly.
+- **The company's path.** The business key calls `requestPayoutChange` with an officer approval. The change lands
+  after 72h, and the controller, an attester or governance can cancel it until then.
+- **What the chain checks.** An officer approval is one attester's EIP-712 signature naming enough enrolled officer
+  ids. The verifier checks each officer's World ID proof off-chain; the contract can't (`OfficerQuorum.sol`).
+- **The dispute path.** An attester files a dispute, which freezes the payee at once: it pays nothing and resolves to
+  nothing. Governance then queues a ruling that can name any controller and payout, with no business key or
+  officers, and anyone can apply it after 72h. Governance can instead dismiss the dispute, which restores the
+  incumbent at once.
+- **A lost business key.** Officers can queue a new key, which waits 72h and which the current controller can cancel.
+  The new key then follows the company's path, another 72h.
+
 ## Threat model
 
 **First-claim squatting.**
@@ -41,14 +57,17 @@ production step (roadmap, item 1).
   - register unclaimed numbers;
   - freeze payees;
   - sign officer approvals that queue controller rotations.
-- *What covers it:* the key can't change a payout alone (that needs the controller). Rotations wait 72h in public,
-  and the controller, an attester or governance can cancel them. Revoking the attester is permanent and voids what
-  it queued.
+- *What covers it:* the key can't change a payout directly (that needs the controller). It would first have to
+  rotate the business key to one it holds, which waits 72h in public where the controller, an attester or
+  governance can cancel it, and then queue the change, another 72h. Revoking the attester is permanent and voids
+  whatever it queued that hasn't landed.
 - *What doesn't:* squats and freezes take effect at once.
 
 **EOA owners.**
 - An EOA owns the registry (attesters, dispute rulings), and an EOA owns `payee.eth`, which could re-point every name
   at once with no timelock.
+- The registry owner can add an attester, so on its own it could open a dispute and rule any payee over to a new
+  controller and payout. The ruling waits 72h in public, and the payee is frozen until then.
 - The x402 guard fails closed, because the registry, ENS and `payTo` must agree. Wallets that trust ENS alone
   wouldn't.
 
@@ -165,8 +184,8 @@ production step (roadmap, item 1).
    - Planned: an independent audit, formal verification of the timelock invariant, and a public bug bounty.
    - So far: three AI-assisted review rounds with proof-of-concept exploits, mutation-tested fixes, and 121 fuzzed
      Foundry tests. That is not a professional audit.
-6. **Limits on-chain.** The verifier already caps each World ID officer (3 companies, 1 open claim per number) and
-   each client IP per hour. Production adds three things:
+6. **Limits on-chain.** The verifier already caps each World ID officer at 1 open claim per company (an officer can
+   hold claims for up to 3 companies), and each client IP per hour. Production adds three things:
    - The next step: key officer limits on a World ID uniqueness nullifier for a fixed action. Enrollment adds a
      uniqueness proof for that action, whose nullifier is the same for one person every time, so the caps bind the
      person rather than the session. This needs the action in World's Developer Portal and a wizard change.

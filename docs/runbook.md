@@ -34,8 +34,8 @@ Demo fixtures, fictional companies marked as such in their on-chain evidence:
 - `T3999905000001` 合同会社ベイサイド・アドバイザリー: the fake-CEO example's payee. It is registered but deliberately
   **not** approved in the vault, so the agent holds it and a forced payment reverts `VendorNotApproved`
   (registered on 2026-09-26 in `0xdd058c9f…b5af`).
-- `T2010401000001` is **retired**. It was registered in error: the number belongs to a real company
-  (旭紙業株式会社). It is frozen by a dispute, so it pays nothing and resolves to nothing. Never reuse it.
+- `T2010401000001` is **frozen by a dispute** (on-chain status `Disputed`). It was registered in error: the number
+  belongs to a real company (旭紙業株式会社). So it pays nothing and resolves to nothing. Never reuse it.
 - Fixture numbers and names were checked against the nationwide NTA data (all 5,787,472 corporate-number records,
   closed included): none of these fixtures exists.
 

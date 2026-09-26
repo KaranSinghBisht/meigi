@@ -33,8 +33,9 @@ them. Japan comes first, but the design is global: any official business identif
 verifier already checks the global **LEI**. Meigi binds a T-number to **one payout address**:
 - **registered** only after an exact name match against the NTA corporate registry (法人番号), a DNS proof on a
   domain the registrant controls, and World ID officers;
-- **changed** only with the business key plus the same verified humans, after **72 hours in public**, where it
-  can be cancelled;
+- **changed** only through a **72-hour public window**: either the company's business key together with its World
+  ID officers (each proof checked by our verifier, whose co-signature the registry verifies on-chain), or a
+  governance ruling on a dispute. Nothing changes it instantly;
 - **enforced** on-chain when money moves.
 
 Registration doesn't yet prove that the registrant *represents* the company. That binding, through the
@@ -80,7 +81,7 @@ the vault reverts `PayeeMismatch` and names the registered company.
 
 | Piece | What it guarantees | Code |
 |---|---|---|
-| **PayeeRegistry** | T-number → one payout. A second claim freezes the number (dispute); it is never overwritten. Payout changes need the business key **and** an officer quorum, then wait 72h in public. The controller, attester or governance can cancel them. | [`contracts/src/registry`](contracts/src/registry) |
+| **PayeeRegistry** | T-number → one payout. A second claim freezes the number (dispute); it is never overwritten. A payout changes only after 72h in public: through the business key **and** its World ID officers (one attester signature on-chain, after our verifier checks each officer's proof), or through a governance ruling on a dispute. The controller, attester or governance can cancel a requested change. | [`contracts/src/registry`](contracts/src/registry) |
 | **PayeeResolver** (ENS) | `t<13 digits>.payee.eth` resolves to the active payout only. Unknown or disputed numbers resolve to nothing, and a queued change never resolves early. | [`contracts/src/ens`](contracts/src/ens) |
 | **AgentVault** | The agent's key can only pay owner-approved vendors, within caps, to the payout the owner pinned, which must still be the registry's. A swapped address reverts `PayeeMismatch`; a registry change reverts `VendorPayoutChanged`. | [`contracts/src/payments`](contracts/src/payments) |
 | **Verifier** | Exact match against the NTA bulk data after NFKC normalisation. Keybase-style DNS proof. World ID 4.0 officer sessions. Approvals whose World ID signal pins the exact change. **Global:** `GET /lei/:lei` verifies any company's LEI against GLEIF and links Japanese ones to their T-number. For example, Sony Group's LEI links to `T5010401067252`. | [`services/verifier`](services/verifier) |
@@ -105,8 +106,8 @@ the vault reverts `PayeeMismatch` and names the registered company.
     scripts: [`contracts/script/ens`](contracts/script/ens).
 - **World ID (IDKit 4.0).**
   - An officer enrolls once with an IDKit session.
-  - A payout change needs `proveSession` from the same human, with a signal that binds chain, registry,
-    T-number, action, target, nonce and deadline.
+  - A payout change the company requests needs `proveSession` from the same human, with a signal that binds
+    chain, registry, T-number, action, target, nonce and deadline.
   - The proof is verified server-side, then turned into an EIP-712 approval the contract checks.
   - Code: [`services/verifier/src/world/session.ts`](services/verifier/src/world/session.ts),
     [`services/verifier/src/routes/intents.ts`](services/verifier/src/routes/intents.ts),
@@ -247,7 +248,9 @@ These reviews were AI-assisted, not a professional audit.
 
 Roles, delays and the trust model are in [`contracts/README.md`](contracts/README.md). The agent is untrusted
 by design and holds no key. The signer (`services/signer`) holds it, signs only `payInvoice`, and above ¥150,000 only
-with a verified human's approval. The worst case is overpaying an approved vendor, up to that vendor's caps. The threat model, audit plan
+with a verified human's approval. The worst case is overpaying an approved vendor, up to that vendor's caps.
+Governance is trusted too: a ruling on a dispute can move a payout without the company, after the same 72 hours in
+public. The threat model, audit plan
 and production roadmap are in [`docs/trust-and-compliance.md`](docs/trust-and-compliance.md).
 
 ## Run it locally

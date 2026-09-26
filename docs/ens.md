@@ -24,7 +24,9 @@ anyone can check what it points to without trusting our app.
 - Registering the number is the only way to get an answer, and the registry decides who can.
 
 **The name follows a payout change, after the timelock.**
-- A payout change needs the company's business key and an officer quorum, then waits 72 hours in public.
+- A payout changes only through a 72-hour public window: either the company's business key together with its World
+  ID officers (each proof checked by our verifier, whose co-signature the registry verifies on-chain), or a
+  governance ruling on a dispute. Nothing changes it instantly.
 - The name keeps resolving to the old payout until the change lands, and switches exactly when it does.
 - A dispute cancels a queued change.
 
@@ -126,8 +128,9 @@ which is a view of the registry. So `ClaimedPayeeResolver` forwards `addr`, `nam
 and it never stores an address.
 
 **ENS's own example gives an agent a role on an address record. Why does ours hold only `agent-status`?** An agent that
-can swap an address is exactly the attack Meigi stops. Payout changes need the company's business key, an officer
-quorum and 72 hours in public. The agent's key only reports the agent's status.
+can swap an address is exactly the attack Meigi stops. A payout changes only through a 72-hour public window: the
+company's business key with its World ID officers, or a governance ruling on a dispute. The agent's key only reports
+the agent's status.
 
 **Token IDs change when roles change. Does that break anything?** No. Everything we do looks a name up by its label
 (`getOwner(labelId)`, `getResolver(label)`), and ENS clients resolve by name. Nothing stores a token ID.

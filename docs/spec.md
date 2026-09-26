@@ -12,14 +12,16 @@ belongs to the company the payer thinks it's paying.
 - So does a prompt injection hidden in an invoice, or a swapped `payTo` in an x402 402-response.
 
 Banks solved this for wires with Confirmation of Payee (UK since 2020; mandatory Verification of Payee in the
-EU since 2025-10-09). Stablecoins have nothing like it.
+euro area since 2025-10-09). Stablecoins have nothing like it.
 
 ## Idea
 
 Every Japanese business that issues qualified invoices already has a public, government-issued identifier:
 its **T-number** ("T" + 13-digit corporate number). Meigi binds each T-number to **one payout address**:
 - registered only after verification;
-- changed only by the company's same verified humans, after a public timelock;
+- changed only through a 72-hour public window: either the company's business key together with its World ID
+  officers (each proof checked by our verifier, whose co-signature the registry verifies on-chain), or a governance
+  ruling on a dispute. Nothing changes it instantly;
 - enforced on-chain at payment time.
 
 An AI agent can be fooled into wanting to pay the wrong address. It still can't: the chain refuses.
@@ -28,10 +30,10 @@ An AI agent can be fooled into wanting to pay the wrong address. It still can't:
 
 | Layer | What | Where |
 |---|---|---|
-| Registry | T-number → payout. Registration by an attester. Changes need the business key + a World ID officer quorum, then 72h in public, cancellable. A second claim → dispute (frozen), never overwrite. | `contracts/src/registry` |
+| Registry | T-number → payout. Registration by an attester. A payout changes only after 72h in public: the business key + a World ID officer quorum (on-chain, one attester signature naming the officers), cancellable; or a governance ruling on a dispute. A second claim → dispute (frozen), never overwrite. | `contracts/src/registry` |
 | ENS | `t<13 digits>.payee.eth` resolves through an ENSIP-10 wildcard resolver to the active payout only; disputed/unknown resolve to zero. | `contracts/src/ens` |
 | Enforcement | `AgentVault`: the agent key can only pay approved vendors, within caps, to the pinned registered payout. `PayRouter`: pay-by-T-number for any wallet. | `contracts/src/payments` |
-| Verifier | NTA exact-match (1.34M Tokyo corporations from the public bulk data), Keybase-style DNS proof, World ID 4.0 officer sessions, EIP-712 approvals whose World ID signal pins the exact change. | `services/verifier` |
+| Verifier | NTA exact-match (all 5.79M corporate-number records nationwide, 5.0M open, from the public bulk data), Keybase-style DNS proof, World ID 4.0 officer sessions, EIP-712 approvals whose World ID signal pins the exact change. | `services/verifier` |
 | AP agent | Invoice → deterministic extraction → System-1 triage (Jev / our fine-tuned Kev) → deterministic kernel → Intercepta screening → pay or hold, with an LLM-written explanation. Only the kernel can move money. | `services/agent` |
 | x402 guard | Before an agent signs an x402 payment, compare `payTo` to the registry and screen it. | `packages/x402-guard` |
 | Benchmark | PayeeBench-JA: calibrated System-1 triage for payment-redirection attempts; fine-tuned on a MacBook (MPS). | `bench/` |
@@ -40,9 +42,11 @@ An AI agent can be fooled into wanting to pay the wrong address. It still can't:
 
 See `contracts/README.md` ("Who can change what" and "Trust model"). In short:
 - the agent is untrusted by design;
-- attesters are trusted to verify World ID off-chain, but can't move money on their own;
-- governance acts behind the same timelock;
-- every money-moving change is public for 72h and cancellable.
+- attesters are trusted to verify World ID off-chain: on-chain, an officer quorum is one attester signature. An
+  attester alone can't change a payout directly: it would first have to queue a business-key rotation, which waits
+  72h and which the controller can cancel;
+- governance's dispute rulings wait out the same timelock, and can move a payout without the company;
+- every payout change is public for 72h before it lands, and can be stopped in that window.
 
 The contracts went through three independent review rounds, each by separate AI reviewers with
 proof-of-concept exploits:

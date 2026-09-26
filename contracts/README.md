@@ -26,11 +26,16 @@ payout address. Anything that pays through Meigi can only reach that address.
 - A queued change counts while its attester is trusted, or if it took effect before that attester was revoked. Revocation is permanent: a revoked address can never be re-enabled, so voided changes never come back, and changes that already took effect never flip back.
 - Nonces advance on every approval, cancel, dispute and rewrite, so a stale or phished approval can't be replayed later.
 - `renounceOwnership` is disabled on the registry and the vault.
+- On-chain, an "officer quorum" is one attester's EIP-712 signature naming enough enrolled officer ids. The attester
+  (the Meigi verifier) checks each officer's World ID proof off-chain; the contract can't (see `OfficerQuorum.sol`).
+- A payout changes only through a 72-hour public window: either the company's business key together with its World
+  ID officers (each proof checked by our verifier, whose co-signature the registry verifies on-chain), or a governance
+  ruling on a dispute. Nothing changes it instantly.
 
 ## Trust model (hackathon build)
 
-- **Attesters** are trusted to verify World ID proofs off-chain (IDKit v4 session proofs, cloud verification) and to sign officer approvals. On their own they can't change a payout: that also needs the business key, and every change waits out the public timelock. Production would verify World ID on-chain, with the approval's struct hash as the signal, and require k-of-n attesters.
-- **Governance** (the owner) manages attesters and resolves disputes, behind the same delay. Production: a multisig behind a timelock. Owner, attester, vault owner, agent and every controller use separate keys.
+- **Attesters** are trusted to verify World ID proofs off-chain (IDKit v4 session proofs, cloud verification) and to sign officer approvals. On their own they can't change a payout directly, since that needs the business key. The registry can't tell a real officer approval from one an attester signed alone, though, so a rogue attester could queue a business-key rotation (72h, which the controller can cancel) and then a payout change (another 72h). Revoking the attester voids whatever it queued that hasn't landed. Production would verify World ID on-chain, with the approval's struct hash as the signal, and require k-of-n attesters.
+- **Governance** (the owner) manages attesters and resolves disputes, behind the same delay. A ruling can name any controller and payout, with no business key or officers, so governance is trusted with every payee. Production: a multisig behind a timelock. Owner, attester, vault owner, agent and every controller use separate keys.
 - **The AI agent** is untrusted by design. Worst case: it overpays approved vendors up to their caps.
 - Caps use fixed 30-day windows, so up to 2× `capPerPeriod` can move around a window boundary.
 
