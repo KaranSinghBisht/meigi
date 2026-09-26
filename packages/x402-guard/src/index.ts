@@ -14,9 +14,12 @@ export {
 export {
   meigiPayeeDeclaration,
   meigiPayeeExtension,
+  registerMeigiGuard,
   requireMeigiPayee,
   screenUndeclaredPayee,
+  type GuardClient,
   type GuardOptions,
+  type MeigiGuardOptions,
 } from "./extension.js";
 export { ensResolver } from "./ens.js";
 export { interceptaScreen, type InterceptaOptions } from "./intercepta.js";

@@ -1,11 +1,13 @@
-import type { PaymentCreationContext } from "@x402/core/client";
+import type { BeforePaymentCreationHook, ClientExtension, PaymentCreationContext } from "@x402/core/client";
 import type { Address } from "viem";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   checkPayee,
   meigiPayeeDeclaration,
   meigiPayeeExtension,
+  registerMeigiGuard,
   requireMeigiPayee,
+  type GuardClient,
   type GuardDeps,
   type GuardVerdict,
 } from "../src/index.js";
@@ -81,5 +83,60 @@ describe("x402 hooks", () => {
     const hook = requireMeigiPayee();
     expect(await hook(context(REGISTERED))).toMatchObject({ abort: true });
     expect(await hook(context(REGISTERED, meigiPayeeDeclaration("T1010601051968")))).toBeUndefined();
+  });
+});
+
+/** A minimal fake x402Client: records what registerMeigiGuard registers, without needing the real SDK. */
+function fakeClient() {
+  const extensions: ClientExtension[] = [];
+  const beforeHooks: BeforePaymentCreationHook[] = [];
+  const client: GuardClient = {
+    registerExtension(extension) {
+      extensions.push(extension);
+      return client;
+    },
+    onBeforePaymentCreation(hook) {
+      beforeHooks.push(hook);
+      return client;
+    },
+  };
+  return { client, extensions, beforeHooks };
+}
+
+describe("registerMeigiGuard", () => {
+  it("always registers the declared-merchant extension, and returns the same client for chaining", () => {
+    const { client, extensions } = fakeClient();
+    expect(registerMeigiGuard(client, deps(), { undeclared: "refuse" })).toBe(client);
+    expect(extensions).toHaveLength(1);
+    expect(extensions[0]!.key).toBe("meigi-payee");
+  });
+
+  it('undeclared: "refuse" also registers requireMeigiPayee, which refuses an undeclared merchant', async () => {
+    const { client, beforeHooks } = fakeClient();
+    registerMeigiGuard(client, deps(), { undeclared: "refuse" });
+    expect(beforeHooks).toHaveLength(1);
+    expect(await beforeHooks[0]!(context(REGISTERED))).toMatchObject({ abort: true });
+  });
+
+  it("undeclared: UnverifiedPolicy registers screenUndeclaredPayee, capping an undeclared merchant instead of refusing it", async () => {
+    const { client, beforeHooks } = fakeClient();
+    registerMeigiGuard(client, deps(), { undeclared: { maxAmount: 10n ** 18n } });
+    expect(beforeHooks).toHaveLength(1);
+    const over = { ...context(REGISTERED), selectedRequirements: { ...context(REGISTERED).selectedRequirements, amount: (10n ** 19n).toString() } };
+    expect(await beforeHooks[0]!(over)).toMatchObject({ abort: true });
+  });
+
+  it("without an undeclared policy, registers only the extension and warns loudly instead of leaving a silent gap", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const { client, extensions, beforeHooks } = fakeClient();
+      registerMeigiGuard(client, deps());
+      expect(extensions).toHaveLength(1); // the declared-merchant half is still registered...
+      expect(beforeHooks).toHaveLength(0); // ...but nothing catches an undeclared merchant...
+      expect(warn).toHaveBeenCalledTimes(1); // ...and that gap is never silent.
+      expect(warn.mock.calls[0]![0]).toContain("no Meigi payee at all will be paid with NO check");
+    } finally {
+      warn.mockRestore();
+    }
   });
 });

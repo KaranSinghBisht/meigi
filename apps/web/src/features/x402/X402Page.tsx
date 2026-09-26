@@ -28,15 +28,17 @@ export default function X402Page() {
         className="x402__code"
       >
         <pre className="codeblock">
-          {`import { ensResolver, interceptaScreen, meigiPayeeExtension, registryReader, screenUndeclaredPayee } from '@meigi/x402-guard'
+          {`import { ensResolver, interceptaScreen, registerMeigiGuard, registryReader } from '@meigi/x402-guard'
 
-client
-  .registerExtension(meigiPayeeExtension({
-    network: 'eip155:11155111',
-    payee: registryReader(publicClient, registry),
-    resolveEns: ensResolver(publicClient),
-  }))
-  .onBeforePaymentCreation(screenUndeclaredPayee({ screen: interceptaScreen({ apiKey }), maxAmount: 50n * 10n ** 18n }))`}
+registerMeigiGuard(client, {
+  network: 'eip155:11155111',
+  payee: registryReader(publicClient, registry),
+  resolveEns: ensResolver(publicClient),
+}, {
+  // Merchants that declare a T-number are checked against the registry above. registerMeigiGuard also
+  // requires this: without it, a merchant that declares nothing would be paid with no check at all.
+  undeclared: { screen: interceptaScreen({ apiKey }), maxAmount: 50n * 10n ** 18n },
+})`}
         </pre>
         <p className="muted">
           <code>@meigi/x402-guard</code> is a workspace package in the Meigi repo; it's not published to npm yet.

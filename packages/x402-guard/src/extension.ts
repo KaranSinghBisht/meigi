@@ -74,3 +74,48 @@ export function meigiPayeeDeclaration(tNumber: string, options: { ens?: boolean 
   const ens = options.ens === false ? {} : { ens: `t${digits}.payee.eth` };
   return { [MEIGI_PAYEE_KEY]: { tNumber: `T${digits}`, ...ens } };
 }
+
+/** The minimal surface `registerMeigiGuard` needs from an x402 client - satisfied by the real `x402Client`. */
+export interface GuardClient {
+  registerExtension(extension: ClientExtension): unknown;
+  onBeforePaymentCreation(hook: BeforePaymentCreationHook): unknown;
+}
+
+export interface MeigiGuardOptions extends GuardOptions {
+  /**
+   * How to treat a merchant that declares no Meigi payee at all: `"refuse"` pairs with `requireMeigiPayee`
+   * (strict - refuse it outright); an `UnverifiedPolicy` pairs with `screenUndeclaredPayee` (screened and
+   * capped). Leave it out only if you understand the risk - see `registerMeigiGuard`'s own doc comment.
+   */
+  undeclared?: "refuse" | UnverifiedPolicy;
+}
+
+/**
+ * Registers both halves of the guard on one client. `meigiPayeeExtension`'s hook only ever runs for a merchant
+ * that *did* declare a Meigi payee - that is how `x402Client` invokes declared-extension hooks, gated on
+ * `paymentRequired.extensions[key]` being present. A merchant that declares nothing is invisible to it, so it
+ * needs the separate `requireMeigiPayee` / `screenUndeclaredPayee` hook registered too. Nothing in `@x402/core`
+ * enforces registering both, which is exactly the gap: call `client.registerExtension(meigiPayeeExtension(...))`
+ * alone (as written, or after a refactor drops the second half) and every undeclared merchant is paid with no
+ * check at all, silently.
+ *
+ * This is the one place that gap is caught: pass `undeclared: "refuse"` or an `UnverifiedPolicy`, and both
+ * halves are registered together. Leave `undeclared` out and you still get the extension only - same as
+ * calling `registerExtension` by hand - except now it's impossible to do by accident: a loud console warning
+ * fires every time, instead of a silent gap.
+ */
+export function registerMeigiGuard<C extends GuardClient>(client: C, deps: GuardDeps, options: MeigiGuardOptions = {}): C {
+  client.registerExtension(meigiPayeeExtension(deps, options));
+  if (options.undeclared === "refuse") {
+    client.onBeforePaymentCreation(requireMeigiPayee(options));
+  } else if (options.undeclared) {
+    client.onBeforePaymentCreation(screenUndeclaredPayee(options.undeclared, options));
+  } else {
+    console.warn(
+      "[meigi-guard] registerMeigiGuard() was called with no `undeclared` policy: any merchant that declares " +
+        'no Meigi payee at all will be paid with NO check. Pass undeclared: "refuse" to refuse such merchants, ' +
+        "or an UnverifiedPolicy ({ screen, maxAmount }) to screen and cap them instead.",
+    );
+  }
+  return client;
+}

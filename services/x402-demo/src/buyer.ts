@@ -1,11 +1,4 @@
-import {
-  ensResolver,
-  interceptaScreen,
-  meigiPayeeExtension,
-  registryReader,
-  screenUndeclaredPayee,
-  type GuardVerdict,
-} from "@meigi/x402-guard";
+import { ensResolver, interceptaScreen, registerMeigiGuard, registryReader, type GuardVerdict } from "@meigi/x402-guard";
 import { x402Client } from "@x402/core/client";
 import { toClientEvmSigner } from "@x402/evm";
 import { ExactEvmScheme } from "@x402/evm/exact/client";
@@ -49,13 +42,13 @@ export function guardedBuyer(config: Config) {
     const record = (v: GuardVerdict) => {
       verdict = v;
     };
-    const client = new x402Client()
-      .register(rail.network, new ExactEvmScheme(signer))
-      .setSpendControls({ allowedAssets: [{ network: rail.network, asset: rail.asset.address, maxAmountPerPayment: maxPerPayment }] })
-      .registerExtension(meigiPayeeExtension(guardDeps, { onVerdict: record }))
-      .onBeforePaymentCreation(
-        screenUndeclaredPayee({ screen: guardDeps.screen, maxAmount: yen(rail, UNVERIFIED_MAX_YEN) }, { onVerdict: record }),
-      );
+    const client = registerMeigiGuard(
+      new x402Client()
+        .register(rail.network, new ExactEvmScheme(signer))
+        .setSpendControls({ allowedAssets: [{ network: rail.network, asset: rail.asset.address, maxAmountPerPayment: maxPerPayment }] }),
+      guardDeps,
+      { onVerdict: record, undeclared: { screen: guardDeps.screen, maxAmount: yen(rail, UNVERIFIED_MAX_YEN) } },
+    );
     try {
       const response = await wrapFetchWithPayment(fetch, client)(url, init);
       const header = response.headers.get("PAYMENT-RESPONSE");
