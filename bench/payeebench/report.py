@@ -60,7 +60,7 @@ def _cell(q):
 
 
 HEADER = ["| Contender | " + " | ".join(f"{q} acc / F1" for q in QUESTION_IDS)
-          + " | Mean acc | ECE | Legit auto-cleared @1% budget: deployed (oracle) | p50 / p95 ms | $ per 1k |",
+          + " | Mean acc | ECE | Safe items auto-cleared @1% budget: deployed (oracle) | p50 / p95 ms | $ per 1k |",
           "|---|" + "---|" * (len(QUESTION_IDS) + 5)]
 
 

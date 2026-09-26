@@ -18,7 +18,7 @@ from .env import secret
 from .schema import QUESTION_IDS, QUESTIONS, option_keys, request_body
 
 log = logging.getLogger("payeebench.providers")
-JEV_USD_PER_M_INPUT = 0.042          # TypeSafe list price; output tokens are free
+JEV_USD_PER_M_INPUT = 0.042          # TypeSafe list price (docs.typesafe.ai/models.md); output tokens are free
 USER_AGENT = "payeebench/0.1"        # Cloudflare refuses urllib's default agent (error 1010)
 RETRYABLE = {408, 409, 429, 500, 502, 503, 504, 529}
 

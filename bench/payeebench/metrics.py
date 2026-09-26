@@ -27,23 +27,27 @@ def macro_f1(y, yhat, k):
     return float(np.mean(scores))
 
 
+def bin_index(conf, bins=BINS):
+    """Equal-width bin of each probability, computed on the decimal grid: comparing with np.linspace edges would drop a
+    stated 0.3, 0.6 or 0.7 (whose edge is 0.30000000000000004, ...) into the bin below. 1.0 goes in the top bin."""
+    return np.minimum(np.floor(np.round(np.asarray(conf) * bins, 9)).astype(int), bins - 1)
+
+
 def ece(conf, correct, bins=BINS):
-    edges = np.linspace(0, 1, bins + 1)
-    total = 0.0
-    for lo, hi in zip(edges[:-1], edges[1:]):
-        m = (conf >= lo) & ((conf < hi) if hi < 1 else (conf <= hi))
+    idx, total = bin_index(conf, bins), 0.0
+    for b in range(bins):
+        m = idx == b
         if m.any():
             total += m.mean() * abs(correct[m].mean() - conf[m].mean())
     return float(total)
 
 
 def reliability(conf, correct, bins=BINS):
-    edges = np.linspace(0, 1, bins + 1)
-    out = []
-    for lo, hi in zip(edges[:-1], edges[1:]):
-        m = (conf >= lo) & ((conf < hi) if hi < 1 else (conf <= hi))
+    idx, out = bin_index(conf, bins), []
+    for b in range(bins):
+        m = idx == b
         if m.any():
-            out.append({"lo": float(lo), "hi": float(hi), "n": int(m.sum()), "accuracy": float(correct[m].mean()), "confidence": float(conf[m].mean())})
+            out.append({"lo": b / bins, "hi": (b + 1) / bins, "n": int(m.sum()), "accuracy": float(correct[m].mean()), "confidence": float(conf[m].mean())})
     return out
 
 
@@ -61,7 +65,7 @@ def per_question(records, preds):
     return out, np.concatenate(conf_all), np.concatenate(ok_all)
 
 
-def _clear_groups(scores, unsafe):
+def clear_groups(scores, unsafe):
     """Descending distinct scores with cumulative cleared/unsafe counts (ties are cleared together)."""
     order = np.argsort(-scores, kind="stable")
     s, bad = scores[order], np.cumsum(unsafe[order])
@@ -71,7 +75,7 @@ def _clear_groups(scores, unsafe):
 
 def best_threshold(scores, unsafe, budget):
     """Lowest threshold whose cleared set has an unsafe share <= budget, or None when even the top group fails."""
-    thresholds, cleared, bad = _clear_groups(scores, unsafe)
+    thresholds, cleared, bad = clear_groups(scores, unsafe)
     ok = np.flatnonzero(bad <= budget * cleared)
     return float(thresholds[ok[-1]]) if len(ok) else None
 

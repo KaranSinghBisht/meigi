@@ -7,7 +7,15 @@ KEV_DIR="${KEV_DIR:-$BENCH/../../kev}"
 cd "$BENCH"
 mkdir -p runs/logs
 
-uv run python -m payeebench.build --out dataset      # NTA checks run when meigi/data/nta exists
+# Rebuild into a scratch folder and compare with the committed splits, which training always uses. The rebuild is byte
+# for byte identical only when meigi/data/nta exists: without it the name checks draw a different train/val split.
+check="$(mktemp -d)"
+uv run python -m payeebench.build --out "$check"
+for split in train val test; do
+  cmp -s "$check/$split.jsonl" "dataset/$split.jsonl" \
+    || echo "note: rebuilt $split.jsonl differs from dataset/ (NTA files missing?); training uses the committed dataset" >&2
+done
+rm -rf "$check"
 scripts/train_kev.sh payee-0.8b --shared_prefix 1 2>&1 | tee runs/logs/payee-0.8b.log
 # the released model with a temperature refitted on our validation split (a fair "calibrated zero-shot" arm)
 (cd "$KEV_DIR" && uv run python "$BENCH/scripts/calibrate_kev.py" --copy_from jaredpalmer/kev-0.8b \
