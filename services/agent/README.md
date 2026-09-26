@@ -208,6 +208,20 @@ Two MultiBaas deployments, one per chain:
   (`source: "rpc"`), as is every payment when MultiBaas is off. Before the transaction is mined it is `pending`.
 - **Retention:** a free plan keeps indexed events for 72 hours. Rows that have aged out of MultiBaas are still in
   the RPC logs, but this split doesn't fall back to them yet.
+- **Live evidence, a vault payment indexed by MultiBaas (2026-09-26):**
+  - **The payment:** the agent paid the one-off routine invoice `scripts/evidence/ms-2026-0926.ja.txt` (MS-2026-0926,
+    ¥33,000) on its own auto-clear path: p_safe 0.969, every kernel check passed, Intercepta scored the payout 0,
+    and there was no force and no approval. Tx `0x56efb5b859c26d0c07de1d3f4b5f9df3d6c3ec834f4605e86f1a57af3fe53eb8`,
+    block 11,784,298 (05:58:24 UTC), from the AgentVault to 株式会社メイギ商事's registered payout.
+  - **Settlement:** the lookup behind `GET /invoices/:id/settlement` finds the `InvoicePaid` in MultiBaas
+    (`source: "multibaas"`), and it matches the paid intent (T-number, amount, invoice reference). The endpoint
+    itself first answered `indexing`: MultiBaas's `GET /events` ignores `tx_hash`, and the lookup relied on it.
+    It now reads the saved query instead (2a68345).
+  - **Mining to indexed:** MultiBaas's row carries the block's own time. The row was already in the saved query at
+    the first check, but the broken lookup above meant its exact indexing moment wasn't captured. The closest
+    measurement is the x402 run earlier the same day: its transfers were queryable within about 30 s of mining.
+  - **What shows it:** `GET /payments` lists the payment with `source: "multibaas"` and the older ones from RPC. The
+    site's settlements panel shows "¥33,000 · Invoice paid by the AgentVault · indexed at block 11,784,298".
 - **Keys:** only this service holds the MultiBaas key; the dashboards read `/payments`.
 - **Not built yet:** the contract-call API and webhooks.
 
