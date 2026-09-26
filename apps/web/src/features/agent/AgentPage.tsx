@@ -15,7 +15,7 @@ export default function AgentPage() {
           <h1 className="agent__title">It reads every invoice. It only pays verified companies.</h1>
           <p className="agent__lede">
             {env.hosted
-              ? 'The agent may believe a scam. The vault only pays the address registered to the company. Below, real runs replayed from Sepolia.'
+              ? 'The agent may believe a scam. The vault only pays the address registered to the company. Below, replayed from real Sepolia runs: a bank-change scam, a human approval, and agents paying agents.'
               : 'Drop in an invoice, a supplier email or an x402 request. The agent may believe a scam. The vault only pays the address registered to the company.'}
           </p>
         </div>
