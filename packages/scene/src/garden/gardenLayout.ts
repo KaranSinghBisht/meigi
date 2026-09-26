@@ -169,7 +169,7 @@ export function gardenLayout(aspect: number, compact: boolean): GardenLayout {
   }
   const kochia = placeKochia(planter)
   const lavender = placeLavender(planter)
-  const cosmos = placeCosmos(planter, planter.compact ? 11000 : 22000)
+  const cosmos = placeCosmos(planter, 22000)
   const foliage = placeFoliage(planter, planter.compact ? 4000 : 7000)
   return {
     shore: planter.shore,

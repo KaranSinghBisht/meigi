@@ -52,8 +52,8 @@ const fragmentShader = /* glsl */ `
         col = mix(uStem, mix(uBloom, uBloomTip, smoothstep(h * 0.6, h, vUv.y)) * bud, spike);
       }
     }
-    if (cover < 0.45) discard;
-    gl_FragColor = vec4(col, 1.0);
+    if (cover < 0.3) discard;
+    gl_FragColor = vec4(col, smoothstep(0.3, 0.6, cover));
     ${OUTPUT_GLSL}
   }
 `
@@ -68,7 +68,7 @@ export function createLavenderMaterial(): ShaderMaterial {
     },
     vertexShader,
     fragmentShader,
-    alphaToCoverage: false,
+    alphaToCoverage: true,
   })
 }
 

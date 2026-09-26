@@ -91,12 +91,14 @@ const fragmentShader = /* glsl */ `
       return;
     }
     vec4 paint = texture2D(uPaint, vUv);
-    if (paint.a < mix(0.45, 0.03, uBokeh)) discard;
+    // Sharp heads cover the pixel over a narrow ramp (alpha to coverage under MSAA): smooth cut edges, and too narrow
+    // for a pale fringe. The bokeh row is truly blended.
+    if (paint.a < mix(0.3, 0.03, uBokeh)) discard;
     vec3 col = mix(petal(vTint, paint.r) * (0.8 + 0.2 * paint.r), uGold * (0.55 + 0.6 * paint.g), smoothstep(0.35, 0.7, paint.g));
     // Warm dawn grade, and light catching the petal edges.
     float edge = (1.0 - smoothstep(0.35, 0.95, paint.a)) * (1.0 - paint.g);
     col = col * uWarm * (0.86 + 0.14 * vFacing) + uRim * edge * 0.08;
-    float alpha = mix(1.0, paint.a * 0.7, uBokeh);
+    float alpha = mix(smoothstep(0.3, 0.6, paint.a), paint.a * 0.7, uBokeh);
     gl_FragColor = vec4(col, alpha);
     ${OUTPUT_GLSL}
   }
@@ -117,8 +119,7 @@ export function createCosmosMaterial(paint: Texture, bokeh: boolean): ShaderMate
     },
     vertexShader,
     fragmentShader,
-    // Opaque cutouts avoid pale MSAA fringes; the bokeh row remains softly blended.
-    alphaToCoverage: false,
+    alphaToCoverage: !bokeh,
     transparent: bokeh,
     depthWrite: !bokeh,
   })
