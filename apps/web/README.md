@@ -95,6 +95,29 @@ the repo root builds it this way, checks the bundle for secrets and deploys.
   visitors for local-network access.
 - Every `VITE_` value is public; the bundle holds no keys.
 
+### Settlements API (Curvegrid MultiBaas)
+
+- **What it is.** The landing Worker (`wrangler.landing.jsonc`, code in `worker/`) runs first for `/api/*`; every
+  other path is a static asset. `GET /api/settlements[?tNumber=T…]` reads Curvegrid MultiBaas server-side and
+  returns the Sepolia payments to registered payees, newest first:
+  - the vault's `InvoicePaid`;
+  - the router's `Paid`;
+  - direct mJPYC transfers (x402 sales) to the payees in `SETTLEMENT_PAYEES`.
+
+  The agent console's "Settlements · indexed by Curvegrid MultiBaas" panel (`src/features/settlements/`) shows
+  them, refreshed every 30 s.
+- **Secrets.** `MULTIBAAS_URL` and `MULTIBAAS_API_KEY` are Worker secrets, set once from `.env` (the commands are in
+  `wrangler.landing.jsonc`). They are never vars, never in the bundle, and never in a response.
+- **Safeguards:**
+  - Only an allow-list of MultiBaas calls is made.
+  - Answers are cached (45 s).
+  - Errors are a generic 503.
+- **Locally:**
+  1. Put the two values in a private env file outside the repo.
+  2. Run `npx wrangler dev --config wrangler.landing.jsonc --port 8795 --env-file <that file>`.
+  3. `pnpm dev` then proxies `/api` there.
+- **Tests:** `pnpm test:worker` (node:test). `pnpm typecheck` covers the Worker too.
+
 ## Screenshots
 
 ```sh

@@ -136,6 +136,9 @@ The details:
     - registered payees;
     - what each payee received;
     - the token's decimals, read through the contract call API.
+  - **The hosted site.** The meigi Worker answers `GET /api/settlements` from MultiBaas server-side, with the key
+    kept as a Worker secret. The agent console's "Settlements · indexed by Curvegrid MultiBaas" panel shows the
+    rows live: amount, payee (ENS name and T-number), tx and "indexed at block N".
 - **Setup:**
   1. Put `MULTIBAAS_URL` / `MULTIBAAS_API_KEY` (Sepolia) and `MULTIBAAS_AWAJI_URL` / `MULTIBAAS_AWAJI_API_KEY` in
      `.env`. Sepolia is linked with `pnpm --filter @meigi/agent multibaas:setup --from-block -100`.
@@ -150,7 +153,9 @@ The details:
   anvil.
 - **Code:** [`services/agent/src/multibaas`](services/agent/src/multibaas),
   [`services/agent/src/history`](services/agent/src/history),
-  [`services/agent/src/routes/payments-mizuhiki.ts`](services/agent/src/routes/payments-mizuhiki.ts).
+  [`services/agent/src/routes/payments-mizuhiki.ts`](services/agent/src/routes/payments-mizuhiki.ts),
+  [`apps/web/worker`](apps/web/worker) (the site's settlements API) and
+  [`apps/web/src/features/settlements`](apps/web/src/features/settlements) (the panel).
 - **Our experience with MultiBaas** (Sepolia, live since 2026-09-26):
   - **Time to the first indexed event:** under a minute. We linked from 100 blocks back and ran one x402
     purchase. Its three mJPYC `Transfer`s came back from the saved queries within a minute.
