@@ -156,7 +156,9 @@ async function run(browser, shot) {
   })
   page.on('pageerror', (error) => problems.push(`pageerror: ${error.message}`))
   if (shot.setup) await shot.setup(page)
-  await page.goto(`${base}${shot.path}`, { waitUntil: 'networkidle' })
+  // The start page keeps a connection busy (live counts, animation), so wait for load, then for a quiet network.
+  await page.goto(`${base}${shot.path}`, { waitUntil: 'load' })
+  await page.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {})
   await sceneReady(page)
   await settle(page, shot.ready)
   if (shot.after) await settle(page, shot.after)
