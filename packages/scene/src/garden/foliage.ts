@@ -43,14 +43,14 @@ const fragmentShader = /* glsl */ `
   varying float vFar;
   void main() {
     vec4 paint = texture2D(uClump, vUv);
-    if (paint.a < 0.02) discard;
+    if (paint.a < 0.45) discard;
     vec3 leaf = mix(uMoss, uSage, smoothstep(0.2, 0.8, vTint));
-    leaf = mix(leaf, uLavender, smoothstep(0.65, 1.0, vTint) * 0.55);
+    leaf = mix(leaf, uLavender, smoothstep(0.65, 1.0, vTint) * 0.25);
     // Tops catch the light; uTipLight tones that down where it would read as chalky hatching.
     vec3 col = leaf * (1.0 - 0.2 * uTipLight + 0.2 * uTipLight * paint.r) * (0.97 + 0.05 * paint.g);
-    col += uSunColor * 0.05 * uTipLight * smoothstep(0.75, 1.0, paint.r);
+    col += uSunColor * 0.015 * uTipLight * smoothstep(0.75, 1.0, paint.r);
     col = mix(col, uHaze, vFar * 0.5);
-    gl_FragColor = vec4(col, paint.a);
+    gl_FragColor = vec4(col, 1.0);
     ${OUTPUT_GLSL}
   }
 `
@@ -61,16 +61,16 @@ export function createFoliageMaterial(clump: Texture, tipLight: number): ShaderM
     uniforms: {
       uTime: { value: 0 },
       uClump: { value: clump },
-      uSage: { value: color('#8F977A') },
-      uMoss: { value: color('#737C63') },
-      uLavender: { value: color('#9D98A9') },
+      uSage: { value: color('#788B65') },
+      uMoss: { value: color('#4E6749') },
+      uLavender: { value: color('#8A947F') },
       uSunColor: { value: SUN_COLOR.clone() },
       uHaze: { value: color(HEX.horizon) },
       uTipLight: { value: tipLight },
     },
     vertexShader,
     fragmentShader,
-    alphaToCoverage: true,
+    alphaToCoverage: false,
   })
 }
 

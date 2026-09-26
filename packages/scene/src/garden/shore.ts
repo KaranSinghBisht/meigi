@@ -60,6 +60,8 @@ export interface Planter {
   readonly headroom: Headroom
   /** Kochia keep at least this far from the hero camera, so none looms in a corner */
   readonly domeKeepOff: number
+  /** Kochia centres in the hero view stay inside this |NDC x|, so none shows as a ball cut off at the side */
+  readonly domeSide: number
   /** Largest kochia radius */
   readonly domeMax: number
   /** Flowers closer than this to the hero camera form the out-of-focus front row */

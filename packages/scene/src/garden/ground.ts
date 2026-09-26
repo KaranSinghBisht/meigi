@@ -58,9 +58,9 @@ export function createGroundMaterial(shore: ShoreShape): ShaderMaterial {
     uniforms: {
       uShore: { value: new Vector4(shore.head, shore.side, shore.coveHalf, shore.bend) },
       uWobble: { value: shore.wobble },
-      uSage: { value: color('#A4AE96') },
-      uLavender: { value: color('#ADA6BE') },
-      uDamp: { value: color('#8C8A94') },
+      uSage: { value: color('#778568') },
+      uLavender: { value: color('#8A9079') },
+      uDamp: { value: color('#636F5C') },
       uStone: { value: color('#B7AEA4') },
       uHaze: { value: color(HEX.horizon) },
     },

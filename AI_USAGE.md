@@ -11,6 +11,8 @@ area.
 - Every sub-agent's brief and every later instruction is committed verbatim in [`docs/ai/briefs`](docs/ai/briefs).
   The specs are in `docs/`.
 - AI-assisted commits carry a `Co-Authored-By: Claude` trailer.
+- **OpenAI Codex** made one revision to the landing's garden (`packages/scene` planting and materials), run by
+  Karan. The `landing` sub-agent reviewed it, fixed three regressions and committed it.
 
 ## Who wrote what
 

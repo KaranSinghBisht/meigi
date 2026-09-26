@@ -31,13 +31,14 @@ export function createFoliageTexture(): DataTexture {
   for (let y = 0; y < SIZE; y++) {
     for (let x = 0; x < SIZE; x++) {
       const u = (x + 0.5) / SIZE
-      const v = 1 - (y + 0.5) / SIZE
+      // DataTexture rows start at UV y=0: roots belong in the first row.
+      const v = (y + 0.5) / SIZE
       const lean = (u - 0.5) * v * 1.6
-      const strands = valueNoise((u - lean * 0.5) * 70, v * 7) * 0.6 + valueNoise((u - lean) * 170, v * 18) * 0.4
+      const strands = valueNoise((u - lean * 0.5) * 32, v * 5) * 0.6 + valueNoise((u - lean) * 75, v * 12) * 0.4
       const crown = (0.55 + 0.45 * Math.cos((u - 0.5) * Math.PI * 1.6)) * (0.8 + 0.35 * valueNoise(u * 9, 2.3))
       const height = v / Math.max(crown, 0.05)
       const thinning = smooth(0.35, 1.0, height)
-      const cover = smooth(0.4 + 0.32 * thinning, 0.47 + 0.32 * thinning, strands) * smooth(1.0, 0.94, height) * smooth(0.0, 0.05, v)
+      const cover = smooth(0.27 + 0.38 * thinning, 0.43 + 0.32 * thinning, strands) * smooth(1.0, 0.94, height) * smooth(0.0, 0.05, v)
       const i = (y * SIZE + x) * 4
       data[i] = Math.round(Math.min(height, 1) * 255)
       data[i + 1] = Math.round(strands * 255)
