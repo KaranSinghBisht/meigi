@@ -17,13 +17,16 @@ from pathlib import Path
 
 BENCH = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BENCH))
-import analysis  # noqa: E402
-import frontier_text  # noqa: E402
-import names  # noqa: E402
-from names import BASE, BASE4, LLAMA, OURS, OURS4  # noqa: E402
-from payeebench import costs, metrics  # noqa: E402
-from payeebench.plots import MIN_BIN  # noqa: E402
-from payeebench.providers import JEV_USD_PER_M_INPUT  # noqa: E402
+import analysis
+import frontier_text
+import names
+import open_text
+import tables
+from names import BASE, BASE4, LLAMA, OURS, OURS4
+
+from payeebench import costs, metrics
+from payeebench.plots import MIN_BIN
+from payeebench.providers import JEV_USD_PER_M_INPUT
 
 OUT = BENCH / "paper" / "generated"
 QS = ("request_type", "new_destination", "pressure", "suspicion")
@@ -218,26 +221,6 @@ def method_numbers(res):
             "Confident": f"{analysis.CONFIDENT:.1f}"}
 
 
-def open_models_sentence():
-    """The recipe of the open-model fine-tunes, from their run records once they exist, else what is scheduled."""
-    runs = {n: BENCH / "results" / "runs" / f"{r}.json" for n, r in ((names.QWEN, "qwen3-4b-payee"), (names.GEMMA, "gemma-4-e2b-payee"),
-                                                                     (names.LLAMA3B, "llama-3.2-3b-payee"))}
-    done = {n: json.loads(p.read_text(encoding="utf-8")) for n, p in runs.items() if p.exists()}
-    if not done:
-        return ("Three more fine-tunes are scheduled on the same 600 items: Qwen3-4B-Base with the Kev recipe, and Gemma 4 E2B and "
-                "Llama 3.2 3B with LoRA in mlx-lm; their rows in Table~\\ref{tab:results} are pending.")
-    parts = []
-    for n, r in done.items():
-        rec = r.get("recipe", {})
-        lora = rec.get("lora_parameters", {})
-        detail = (f"rank {lora.get('rank')}, learning rate {rec.get('learning_rate'):g}, batch {rec.get('batch_size')}, "
-                  f"{r.get('epochs'):g} epochs" if lora else f"{r.get('optimizer_steps')} steps")
-        parts.append(f"{names.label(n)} ({detail}, {r['wall_seconds'] / 60:.0f} minutes)")
-    return ("We also fine-tuned open models on the same 600 items with the loss on the answer only: "
-            + frontier_text.join(parts) + ". The generative ones are scored by the likelihood of each option in the answer "
-            "JSON they were trained to write, left to right.")
-
-
 def run_numbers():
     small, big = load("results/runs/payee-0.8b.json"), load("results/runs/payee-4b.json")
     fg = load("results/runs/forgetting-transfer-v4.json")
@@ -252,81 +235,6 @@ def run_numbers():
         out.update({f"{key}Acc": f"{fg[name]['acc']:.3f}", f"{key}Ece": f"{fg[name]['ece']:.3f}", f"{key}Conf": pct(fg[name]["confident_error_rate"], 1)})
     out["FgN"] = str(fg["payee-0.8b"]["n"])
     return out
-
-
-def family_rows():
-    """Per family: items per split and the label combinations that occur; a star marks a convention label."""
-    stats = load("dataset/stats.json")
-    combos = {}
-    for split in ("train", "val", "test"):
-        for line in (BENCH / "dataset" / f"{split}.jsonl").read_text(encoding="utf-8").splitlines():
-            r = json.loads(line)
-            q = r["questions"]
-            combos.setdefault(r["_meta"]["family"], set()).add(
-                (q["request_type"]["label"], q["new_destination"]["label"], q["pressure"]["label"], q["suspicion"]["label"]))
-    short = {"routine_invoice": "routine", "payee_change": "change", "urgent_exec_request": "exec", "credit_note": "credit", "other": "other"}
-    rows = []
-    for fam in stats["train"]["families"]:
-        cs, star = sorted(combos[fam], key=str), analysis.CONVENTIONS.get(fam, ())
-        levels = sorted({c[3] for c in cs})
-        cells = {"request_type": "/".join(sorted({short[c[0]] for c in cs})),
-                 "new_destination": "/".join(sorted({"Y" if c[1] else "N" for c in cs}, reverse=True)),
-                 "pressure": "/".join(sorted({"Y" if c[2] else "N" for c in cs}, reverse=True)),
-                 "suspicion": "--".join(str(x) for x in levels[:: max(1, len(levels) - 1)])}
-        marked = [cells[q] + ("$^*$" if q in star else "") for q in QS]
-        n = "/".join(str(stats[s]["families"].get(fam, 0)) for s in ("train", "val", "test"))
-        rows.append(f"\\texttt{{{fam.replace('_', chr(92) + '_')}}} & {n} & " + " & ".join(marked) + " \\\\")
-    return rows
-
-
-GROUPS = (("kev", "Kev decision models, served locally"), ("sft", "Open generative models, LoRA SFT, local (ours)"),
-          ("llm", "Zero-shot LLM"), ("agent", "Claude models run as Claude Code agents (indicative)"))
-
-
-def group_of(name, status):
-    st = status.get(name, {})
-    if st.get("source") == "agent":
-        return "agent"
-    if st.get("source") == "sft" or name in (names.GEMMA, names.LLAMA3B):
-        return "sft"
-    return "llm" if st.get("kind") == "llm" else "kev"
-
-
-def result_row(name, s, status, ana):
-    q, dep = s["questions"], s["autoclear"].get("deployed")
-    oracle = pct(s["autoclear"]["oracle"]["legit_cleared"])
-    ac = f"{pct(dep['legit_cleared'])} ({dep['false_clears']}) / {oracle}" if dep and dep["threshold"] is not None else f"-- / {oracle}"
-    lat = f"{s['latency_ms']['p50']:,.0f}" if s["latency_ms"] else "--"
-    cost = "--" if s["usd_per_1k"] is None else names.usd(s["usd_per_1k"])
-    mark = "$^\\ddagger$" if names.is_agent(status, name) else ("$^\\dagger$" if name == LLAMA else "")
-    cells = [f"{q[k]['accuracy']:.3f}" for k in QS] + [f"{s['mean_accuracy']:.3f}", f"{s['ece']:.3f}",
-                                                       f"{ana['contenders'][name]['auroc_test']:.3f}", ac, lat, cost]
-    text = names.label(name).replace("+ val. temperature", "+ temp.\\ refit on val.")
-    return (f"\\textbf{{{text}}}" if name == OURS else text) + f"{mark} & " + " & ".join(cells) + " \\\\"
-
-
-def table_rows(res, status, ana):
-    """Table II body: one block per kind of contender, with a pending row for each planned fine-tune not yet scored."""
-    rows = []
-    for key, title in GROUPS:
-        members = [n for n in res["contenders"] if group_of(n, status) == key]
-        pending = [n for n in names.PLANNED if n not in res["contenders"] and group_of(n, status) == key]
-        if not members and not pending:
-            continue
-        rows += (["\\midrule"] if rows else []) + [f"\\multicolumn{{11}}{{@{{}}l}}{{\\emph{{{title}}}}} \\\\"]
-        rows += [result_row(n, res["contenders"][n], status, ana) for n in members]
-        rows += [f"{names.label(n)} & \\multicolumn{{10}}{{c}}{{\\emph{{pending: training scheduled}}}} \\\\" for n in pending]
-    return rows
-
-
-def external_rows(ana):
-    """Table III body: the AgentDojo-derived and benign-mail counts per local contender."""
-    rows = []
-    for name, e in ana["external"].items():
-        cells = [f"{e['injected_cleared']}", f"{e['in_scope']['new_dest']}", f"{e['in_scope']['susp2']}",
-                 f"{e['redirect']['new_dest']} / {e['redirect']['susp2']}", f"{e['pfn']['new_dest']}", f"{e['pfn']['susp2']}"]
-        rows.append(f"{names.label(name)} & " + " & ".join(cells) + " \\\\")
-    return rows
 
 
 def external_numbers(ana):
@@ -358,13 +266,14 @@ def main():
     keys = keys_for(res)
     numbers = {**dataset_numbers(ana), **contender_numbers(res, ana, keys), **detail_numbers(res, ana), **paired_numbers(ana, keys),
                **run_numbers(), **method_numbers(res), **external_numbers(ana), **validity_numbers(ana, keys),
-               "OpenModels": open_models_sentence(), **clear_gaps(ana), "LlamaBinPhrase": binary_phrase(ana)}
+               "OpenModels": open_text.sentence(), **clear_gaps(ana), "LlamaBinPhrase": binary_phrase(ana),
+               "OpenResults": open_text.results(res, ana), "OpenConclusion": open_text.conclusion(res, ana)}
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / "numbers.tex").write_text("% generated by paper/make_numbers.py from bench/results, bench/dataset and analysis.json; do not edit\n"
                                      + "".join(f"\\newcommand{{\\N{k}}}{{{v}}}\n" for k, v in sorted(numbers.items())), encoding="utf-8")
-    (OUT / "table_results.tex").write_text("\n".join(table_rows(res, status, ana)) + "\n", encoding="utf-8")
-    (OUT / "table_families.tex").write_text("\n".join(family_rows()) + "\n", encoding="utf-8")
-    (OUT / "table_external.tex").write_text("\n".join(external_rows(ana)) + "\n", encoding="utf-8")
+    (OUT / "table_results.tex").write_text("\n".join(tables.table_rows(res, status, ana)) + "\n", encoding="utf-8")
+    (OUT / "table_families.tex").write_text("\n".join(tables.family_rows()) + "\n", encoding="utf-8")
+    (OUT / "table_external.tex").write_text("\n".join(tables.external_rows(ana)) + "\n", encoding="utf-8")
     (OUT / "frontier.tex").write_text(frontier_text.render(res, status, ana), encoding="utf-8")
     log.info("wrote %d numbers, 2 tables and the frontier sentences to %s", len(numbers), OUT)
 

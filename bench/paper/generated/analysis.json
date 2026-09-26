@@ -477,6 +477,84 @@
         "pressure": 5,
         "suspicion": 6
       }
+    },
+    "llama-3.2-3b-payee (ours)": {
+      "auroc_test": 0.9156268568033273,
+      "auroc_val": 0.9924242424242424,
+      "safe_items": 51,
+      "held_items": 99,
+      "cleared_with_unsafe": {
+        "0": 10,
+        "1": 12,
+        "2": 12
+      },
+      "binary_suspicion_acc": 0.7666666666666667,
+      "binary_suspicion_mass_acc": 0.7266666666666667,
+      "within_one_level": 0.78,
+      "confident_errors": 2,
+      "ece_before_fix": 0.03286028292428566,
+      "convention_acc": 0.5333333333333333,
+      "other_acc": 0.9099099099099099,
+      "reminder_gentle": {
+        "n": 6,
+        "rated_3": 0,
+        "p3_min": null,
+        "p3_max": null,
+        "langs": {}
+      },
+      "injection_redirect": {
+        "n": 6,
+        "request_type": 5,
+        "new_destination": 6,
+        "pressure": 3,
+        "suspicion": 6
+      },
+      "deployed_bootstrap": {
+        "safe_cleared_ci": [
+          0.1568627450980392,
+          0.4
+        ],
+        "mean_held_cleared": 3.9916
+      }
+    },
+    "gemma-4-e2b-payee (ours)": {
+      "auroc_test": 0.9900970489205784,
+      "auroc_val": 0.9924242424242424,
+      "safe_items": 51,
+      "held_items": 99,
+      "cleared_with_unsafe": {
+        "0": 21,
+        "1": 38,
+        "2": 46
+      },
+      "binary_suspicion_acc": 0.9533333333333334,
+      "binary_suspicion_mass_acc": 0.9533333333333334,
+      "within_one_level": 0.9666666666666667,
+      "confident_errors": 25,
+      "ece_before_fix": 0.05002951442441253,
+      "convention_acc": 0.9333333333333333,
+      "other_acc": 0.8954954954954955,
+      "reminder_gentle": {
+        "n": 6,
+        "rated_3": 0,
+        "p3_min": null,
+        "p3_max": null,
+        "langs": {}
+      },
+      "injection_redirect": {
+        "n": 6,
+        "request_type": 6,
+        "new_destination": 5,
+        "pressure": 6,
+        "suspicion": 6
+      },
+      "deployed_bootstrap": {
+        "safe_cleared_ci": [
+          0.4727272727272727,
+          0.7407407407407407
+        ],
+        "mean_held_cleared": 0.9834
+      }
     }
   },
   "vs_ours": {
@@ -1890,6 +1968,320 @@
         "ci_families": [
           -0.95,
           -0.06934643143544536
+        ]
+      }
+    },
+    "llama-3.2-3b-payee (ours)": {
+      "all": {
+        "delta": 0.03666666666666667,
+        "answers": 600,
+        "ci_items": [
+          0.006666666666666667,
+          0.06666666666666667
+        ],
+        "ci_families": [
+          -0.02968831949300699,
+          0.0915904728227924
+        ],
+        "items_better": 44,
+        "items_worse": 22,
+        "sign_p": 0.00921048969455458
+      },
+      "without_conventions": {
+        "delta": 0.032432432432432434,
+        "answers": 555,
+        "ci_items": [
+          0.0053283606061751265,
+          0.059674502712477394
+        ],
+        "ci_families": [
+          -0.02528735632183908,
+          0.08255615020178972
+        ],
+        "items_better": 32,
+        "items_worse": 15,
+        "sign_p": 0.01862383661500644
+      },
+      "per_question": {
+        "request_type": {
+          "delta": 0.06,
+          "answers": 150,
+          "ci_items": [
+            0.0,
+            0.12
+          ],
+          "ci_families": [
+            -0.07194388489208632,
+            0.20130499345615616
+          ],
+          "items_better": 15,
+          "items_worse": 6,
+          "sign_p": 0.0783538818359375
+        },
+        "new_destination": {
+          "delta": -0.02666666666666667,
+          "answers": 150,
+          "ci_items": [
+            -0.06,
+            0.0
+          ],
+          "ci_families": [
+            -0.08943089430894309,
+            0.0
+          ],
+          "items_better": 1,
+          "items_worse": 5,
+          "sign_p": 0.21875
+        },
+        "pressure": {
+          "delta": 0.04,
+          "answers": 150,
+          "ci_items": [
+            -0.006666666666666667,
+            0.08666666666666667
+          ],
+          "ci_families": [
+            -0.04142628205128205,
+            0.1353447177265196
+          ],
+          "items_better": 10,
+          "items_worse": 4,
+          "sign_p": 0.1795654296875
+        },
+        "suspicion": {
+          "delta": 0.07333333333333333,
+          "answers": 150,
+          "ci_items": [
+            -0.006666666666666667,
+            0.15333333333333332
+          ],
+          "ci_families": [
+            -0.09375667735042735,
+            0.24666883116883115
+          ],
+          "items_better": 24,
+          "items_worse": 13,
+          "sign_p": 0.09887174959294498
+        }
+      },
+      "binary_suspicion": {
+        "delta": 0.06666666666666667,
+        "answers": 150,
+        "ci_items": [
+          -0.013333333333333334,
+          0.14666666666666667
+        ],
+        "ci_families": [
+          -0.12162455934195066,
+          0.2573110165118679
+        ],
+        "items_better": 25,
+        "items_worse": 15,
+        "sign_p": 0.1538599441628321
+      },
+      "binary_suspicion_mass": {
+        "delta": 0.10666666666666667,
+        "answers": 150,
+        "ci_items": [
+          0.02,
+          0.19333333333333333
+        ],
+        "ci_families": [
+          -0.09375,
+          0.30076149179767586
+        ],
+        "items_better": 31,
+        "items_worse": 15,
+        "sign_p": 0.02589608179323477
+      },
+      "auroc": {
+        "delta": 0.02812438106555759,
+        "ci_items": [
+          -0.012395758865585723,
+          0.07182847481474001
+        ],
+        "ci_families": [
+          -0.08445046532381438,
+          0.11787710637964538
+        ]
+      },
+      "cleared_0": {
+        "delta": 0.23529411764705882,
+        "ci_items": [
+          0.054521103896103915,
+          0.5510204081632653
+        ],
+        "ci_families": [
+          -0.30828619909502264,
+          0.6349206349206349
+        ]
+      },
+      "cleared_1": {
+        "delta": 0.37254901960784315,
+        "ci_items": [
+          0.07017543859649122,
+          0.5926082862523537
+        ],
+        "ci_families": [
+          -0.3657394310859657,
+          0.6585227272727269
+        ]
+      }
+    },
+    "gemma-4-e2b-payee (ours)": {
+      "all": {
+        "delta": 0.02,
+        "answers": 600,
+        "ci_items": [
+          -0.011666666666666667,
+          0.05333333333333334
+        ],
+        "ci_families": [
+          -0.04724542455841668,
+          0.08064766579843714
+        ],
+        "items_better": 33,
+        "items_worse": 28,
+        "sign_p": 0.6089207154048287
+      },
+      "without_conventions": {
+        "delta": 0.04684684684684685,
+        "answers": 555,
+        "ci_items": [
+          0.016333938294010888,
+          0.07829181494661921
+        ],
+        "ci_families": [
+          -0.0131827776743031,
+          0.10642004290412083
+        ],
+        "items_better": 33,
+        "items_worse": 15,
+        "sign_p": 0.013283281562245008
+      },
+      "per_question": {
+        "request_type": {
+          "delta": 0.06666666666666667,
+          "answers": 150,
+          "ci_items": [
+            0.006666666666666667,
+            0.13333333333333333
+          ],
+          "ci_families": [
+            -0.06957027300303337,
+            0.21239214601769907
+          ],
+          "items_better": 17,
+          "items_worse": 7,
+          "sign_p": 0.06391465663909912
+        },
+        "new_destination": {
+          "delta": -0.02,
+          "answers": 150,
+          "ci_items": [
+            -0.05333333333333334,
+            0.013333333333333334
+          ],
+          "ci_families": [
+            -0.0958904109589041,
+            0.031055900621118012
+          ],
+          "items_better": 2,
+          "items_worse": 5,
+          "sign_p": 0.453125
+        },
+        "pressure": {
+          "delta": 0.05333333333333334,
+          "answers": 150,
+          "ci_items": [
+            0.006666666666666667,
+            0.1
+          ],
+          "ci_families": [
+            -0.0503612236261411,
+            0.16564592462751968
+          ],
+          "items_better": 11,
+          "items_worse": 3,
+          "sign_p": 0.057373046875
+        },
+        "suspicion": {
+          "delta": -0.02,
+          "answers": 150,
+          "ci_items": [
+            -0.09333333333333334,
+            0.05333333333333334
+          ],
+          "ci_families": [
+            -0.18181818181818182,
+            0.12030741747986978
+          ],
+          "items_better": 15,
+          "items_worse": 18,
+          "sign_p": 0.7283324808813632
+        }
+      },
+      "binary_suspicion": {
+        "delta": -0.12,
+        "answers": 150,
+        "ci_items": [
+          -0.18666666666666668,
+          -0.06
+        ],
+        "ci_families": [
+          -0.2695050878815911,
+          -0.006755623072737183
+        ],
+        "items_better": 4,
+        "items_worse": 22,
+        "sign_p": 0.0005335211753845215
+      },
+      "binary_suspicion_mass": {
+        "delta": -0.12,
+        "answers": 150,
+        "ci_items": [
+          -0.19333333333333333,
+          -0.05333333333333334
+        ],
+        "ci_families": [
+          -0.2727272727272727,
+          0.006493506493506494
+        ],
+        "items_better": 6,
+        "items_worse": 24,
+        "sign_p": 0.001430906355381012
+      },
+      "auroc": {
+        "delta": -0.04634581105169344,
+        "ci_items": [
+          -0.083660400743648,
+          -0.016318488912422654
+        ],
+        "ci_families": [
+          -0.1752458620689655,
+          0.006541563706770191
+        ]
+      },
+      "cleared_0": {
+        "delta": 0.0196078431372549,
+        "ci_items": [
+          -0.5454974271012006,
+          0.32001886792452805
+        ],
+        "ci_families": [
+          -0.7068965517241379,
+          0.4625234521575978
+        ]
+      },
+      "cleared_1": {
+        "delta": -0.13725490196078433,
+        "ci_items": [
+          -0.5714285714285714,
+          0.33929413746630716
+        ],
+        "ci_families": [
+          -0.7394431209053007,
+          0.46843417553191463
         ]
       }
     }

@@ -22,12 +22,12 @@ import numpy as np
 
 BENCH = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BENCH))
-from payeebench import metrics  # noqa: E402
-from payeebench.evaluate import load_split  # noqa: E402
-from payeebench.injections import BYPASS, REDIRECT  # noqa: E402
-from payeebench.pools import FREE_MAIL  # noqa: E402
-from payeebench.report import load_predictions  # noqa: E402
-from payeebench.schema import MAX_SAFE_SUSPICION, QUESTION_IDS  # noqa: E402
+from payeebench import metrics
+from payeebench.evaluate import load_split
+from payeebench.injections import BYPASS, REDIRECT
+from payeebench.pools import FREE_MAIL
+from payeebench.report import load_predictions
+from payeebench.schema import MAX_SAFE_SUSPICION, QUESTION_IDS
 
 OUT = BENCH / "paper" / "generated" / "analysis.json"
 OURS, OURS4 = "payee-0.8b (ours)", "payee-4b (ours, 1 epoch)"

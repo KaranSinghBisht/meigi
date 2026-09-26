@@ -10,13 +10,22 @@ from pathlib import Path
 
 BENCH = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BENCH))
-import matplotlib  # noqa: E402
+import matplotlib
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
+import matplotlib.pyplot as plt
+import names
 
-import names  # noqa: E402
-from payeebench.plots import AXIS, GRID, INK, INK2, MIN_BIN, MUTED, colors_for, marker_for  # noqa: E402
+from payeebench.plots import (
+    AXIS,
+    GRID,
+    INK,
+    INK2,
+    MIN_BIN,
+    MUTED,
+    colors_for,
+    marker_for,
+)
 
 OUT = BENCH / "paper" / "figures"
 SKIP = {names.BASE_T}            # same answers as the released 0.8B; it stays in the table only
@@ -40,7 +49,7 @@ def forest(res, ana, colors):
     """Paired lead of payee-0.8b in mean accuracy over each contender: item-bootstrap (thick) and family-clustered
     (thin) 95% intervals."""
     rows = sorted((n for n in ana["vs_ours"] if n not in SKIP), key=lambda n: ana["vs_ours"][n]["all"]["delta"])
-    fig, ax = plt.subplots(figsize=(3.4, 0.45 + 0.155 * len(rows)))
+    fig, ax = plt.subplots(figsize=(3.4, 0.45 + 0.125 * len(rows)))
     for y, name in enumerate(rows):
         p = ana["vs_ours"][name]["all"]
         color, marker = style(name, colors)
@@ -50,7 +59,7 @@ def forest(res, ana, colors):
         ax.text(100 * p["ci_families"][1] + 0.8, y, names.signed(100 * p["delta"]), va="center", fontsize=6.5, color=INK)
     ax.axvline(0, color=INK2, linewidth=0.7, zorder=1)
     ax.set_yticks(range(len(rows)), [names.label(n) for n in rows])
-    ax.set_xlabel("Lead of payee-0.8b in mean accuracy (points)")
+    ax.set_xlabel("payee-0.8b's lead (accuracy points)")
     lo = min(100 * ana["vs_ours"][n]["all"]["ci_families"][0] for n in rows)
     hi = max(100 * ana["vs_ours"][n]["all"]["ci_families"][1] for n in rows)
     ax.set_xlim(min(lo - 1, -5), hi + 5)
@@ -73,19 +82,21 @@ def reliability_panel(ax, res, group, colors, title):
         ax.scatter(xs, ys, s=[(2.5 + 6 * (b["n"] / total) ** 0.5) ** 2 for b in bins], marker=marker, color=color,
                    edgecolors="white", linewidths=0.7, zorder=4)
     ax.set_xlim(0.2, 1.01); ax.set_ylim(0, 1.02)
-    ax.set_xlabel("Stated confidence (top answer, 4 questions pooled)"); ax.set_ylabel("Share correct")
+    ax.set_xlabel("Stated confidence (top answer)"); ax.set_ylabel("Share correct")
     ax.set_title(title, loc="left", fontsize=7.5, color=INK)
     frame(ax, "both")
-    ax.legend(loc="lower right", frameon=False, fontsize=5.8, handlelength=1.4, markerscale=1)
+    ax.legend(loc="center left", bbox_to_anchor=(1.02, 0.5), frameon=False, fontsize=5.8, handlelength=1.4, markerscale=1)
 
 
 def reliability(res, status, colors):
-    local = [n for n in res["contenders"] if n not in SKIP and status[n].get("kind", "systemone") == "systemone"]
-    llms = [n for n in res["contenders"] if status[n].get("kind") == "llm"]
-    fig, (a1, a2) = plt.subplots(1, 2, figsize=(7.0, 2.0))
-    reliability_panel(a1, res, local, colors, "(a) Kev models, served locally")
-    reliability_panel(a2, res, llms, colors, "(b) LLMs, zero-shot")
-    fig.tight_layout(pad=0.3, w_pad=1.5)
+    def local(n):
+        return status[n].get("kind", "systemone") == "systemone" or status[n].get("source") == "sft"
+    near = [n for n in res["contenders"] if n not in SKIP and local(n)]
+    far = [n for n in res["contenders"] if not local(n)]
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(7.0, 1.7))
+    reliability_panel(a1, res, near, colors, "(a) Local models: released Kev and our fine-tunes")
+    reliability_panel(a2, res, far, colors, "(b) LLMs, not fine-tuned")
+    fig.tight_layout(pad=0.3, w_pad=0.8)
     fig.savefig(OUT / "reliability.pdf")
     plt.close(fig)
 

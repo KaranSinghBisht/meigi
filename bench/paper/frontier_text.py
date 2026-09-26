@@ -72,9 +72,6 @@ def abstract(agents, ana):
 
 def results(agents, ana, res):
     ours = ana["contenders"][names.OURS]
-    first, rest = agents[0], agents[1:]
-    scores = f"{names.label(first)} scores {res['contenders'][first]['mean_accuracy']:.3f} mean accuracy" + (
-        ", " + join(f"{short(n)} {res['contenders'][n]['mean_accuracy']:.3f}" for n in rest) if rest else "")
     leads = []
     for n in agents:
         p = ana["vs_ours"][n]["all"]
@@ -88,7 +85,7 @@ def results(agents, ana, res):
     four = (f" Our 4B fine-tune is statistically tied with {group(tied4)} (its lead "
             f"{join(names.signed(100 * ana['vs_ours4'][n]['delta']) for n in tied4)} points; every interval contains zero)."
             if tied4 else "")
-    return (f"Run as agents on the label-free kit, {scores}. payee-0.8b's lead is "
+    return (f"Against the Claude models run as agents on the label-free kit, payee-0.8b's lead is "
             f"{join(leads)}{note}.{four} On the {ana['dataset']['convention_answers_test']} convention answers they score "
             f"{min(conv):.2f}--{max(conv):.2f} (payee-0.8b {ours['convention_acc']:.2f}), and on binary suspicion by top level "
             f"{min(binary):.3f}--{max(binary):.3f} (payee-0.8b {ours['binary_suspicion_acc']:.3f}).")
@@ -108,13 +105,12 @@ def routing(agents, ana):
     text = ""
     if top:
         c = ana["contenders"][top[0]]
-        text = (f"{group(top)} rank every safe test item above every one that should be held "
-                f"(AUROC 1.000): a threshold chosen on test would clear all {c['safe_items']} safe items and none of the "
-                f"{c['held_items']} others. ")
+        text = (f"{group(top)} rank every safe test item above every held one (AUROC 1.000), so a threshold chosen on "
+                f"test would clear all {c['safe_items']} safe items and none of the {c['held_items']} others. ")
     if rest:
-        text += " ".join(f"{names.label(n)} reaches {ana['contenders'][n]['auroc_test']:.3f} and clears "
-                         f"{ana['contenders'][n]['cleared_with_unsafe']['0']} with none held cleared." for n in rest) + " "
-    return text + "None of them has a validation run, so their deployed rate is unknown."
+        text += " ".join(f"{short(n)} reaches {ana['contenders'][n]['auroc_test']:.3f} (clearing "
+                         f"{ana['contenders'][n]['cleared_with_unsafe']['0']} with none held)." for n in rest) + " "
+    return text + "With no validation run, their deployed rate is unknown."
 
 
 def cost(agents, res):
@@ -123,9 +119,8 @@ def cost(agents, res):
         return ""
     return (f"At list price for the token counts Llama used on the same prompts, the Claude models would cost "
             f"\\${names.usd(rows[0][0])} ({short(rows[0][1])}) to \\${names.usd(rows[-1][0])} ({short(rows[-1][1])}) "
-            f"per 1,000 items~\\cite{{anthropic_pricing}}. These are estimates and probably low: Llama's output contains no "
-            f"reasoning, which these models can spend and are billed for (Opus 5.5 and Fable 5.1 always do), and their "
-            f"latency was not measured.")
+            f"per 1,000 items~\\cite{{anthropic_pricing}}, probably an underestimate: their billed reasoning tokens are not "
+            f"counted, and their latency was not measured.")
 
 
 def conclusion(agents, ana):
