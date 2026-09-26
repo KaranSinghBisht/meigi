@@ -61,9 +61,15 @@ Never share the QR code or session link from a screenshot: whoever completes it 
    - **We check:** the registry explorer shows the pending change and its countdown, but not the new address
      (it only resolves once the 72h timelock lands).
 8. **Cancel the queued payout change (alternative path c — also settles what to do with a real pending change).**
-   Back on `/change/T7999900000002`, pick **"Cancel the pending payout change."** One officer (Karan, Selfie
-   Check again) approves; the attester executes the cancellation on-chain directly — no wallet tx from Karan
-   this time.
+   On-chain, only the controller, an attester or governance can cancel (`PayeeRegistry._requireCanceller`) — not
+   any officer directly. Two ways to exercise that here; we use the second:
+   - Karan's controller wallet could call `cancelPayoutChange` itself, the same way it called
+     `requestPayoutChange` in step 7 — but our UI has no button for that today, only a raw `cast send`.
+   - **What we actually do:** back on `/change/T7999900000002`, pick **"Cancel the pending payout change."** This
+     is the verifier's `CancelPayoutChange` intent, whose approval threshold is hard-coded to 1 regardless of
+     the company's normal quorum (`services/verifier/src/routes/intents.ts`). Karan, the one enrolled officer,
+     approves with Selfie Check once more; the **attester** (not Karan's wallet) then calls `cancelPayoutChange`
+     on-chain — it's one of the three addresses the contract allows, same as the controller would be.
    - **We check:** the UI shows "Done. The attester executed it on-chain." with a tx hash, and the registry no
      longer shows a pending change.
 9. **Optional — leave a fresh pending change (Karan decides at run time).** If there's appetite for judges to
