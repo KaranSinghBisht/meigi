@@ -92,7 +92,8 @@ the vault reverts `PayeeMismatch` and names the registered company.
     `agent-status` (Enhanced Access Control), and it is the AgentVault's ENSIP-19 primary name.
   - The names survive changing keys. Payouts and business keys change behind a 72h public timelock, and
     `ens.sh agent-rotate` moves the agent to a new key without changing `ap.meigi.eth` (fork-tested).
-  - Anyone can check them with stock viem and no configuration. Scripts: [`contracts/script/ens`](contracts/script/ens).
+  - Anyone can check them with stock viem and no configuration. The story and evidence: [`docs/ens.md`](docs/ens.md);
+    scripts: [`contracts/script/ens`](contracts/script/ens).
 - **World ID (IDKit 4.0).**
   - An officer enrolls once with an IDKit session.
   - A payout change needs `proveSession` from the same human, with a signal that binds chain, registry,
