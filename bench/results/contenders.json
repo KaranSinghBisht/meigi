@@ -61,5 +61,37 @@
     "skipped_because": null,
     "at": "2026-09-25T21:36:44+00:00",
     "kind": "llm"
+  },
+  "claude-haiku-4.5 (agent)": {
+    "slug": "claude-haiku-4-5-agent",
+    "kind": "llm",
+    "ran": true,
+    "skipped_because": null,
+    "source": "agent",
+    "model": "claude-haiku-4-5"
+  },
+  "claude-sonnet-5 (agent)": {
+    "slug": "claude-sonnet-5-agent",
+    "kind": "llm",
+    "ran": true,
+    "skipped_because": null,
+    "source": "agent",
+    "model": "claude-sonnet-5"
+  },
+  "claude-opus-5.5 (agent)": {
+    "slug": "claude-opus-5-5-agent",
+    "kind": "llm",
+    "ran": true,
+    "skipped_because": null,
+    "source": "agent",
+    "model": "claude-opus-5-5"
+  },
+  "claude-fable-5.1 (agent)": {
+    "slug": "claude-fable-5-1-agent",
+    "kind": "llm",
+    "ran": true,
+    "skipped_because": null,
+    "source": "agent",
+    "model": "claude-fable-5-1"
   }
 }

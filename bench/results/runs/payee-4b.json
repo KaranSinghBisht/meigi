@@ -52,5 +52,30 @@
     "fp32 backbone, 2 epochs: swapped heavily on 48 GB, no step 10 after 12 min, stopped",
     "bf16 backbone, 2 epochs, no memory cap: 39 s/step at first, process footprint grew to 45 GB and swapped (70 s/step), stopped at step 30",
     "bf16 backbone, MPS cap 0.45 (16.9 GB): out of memory on the first step"
-  ]
+  ],
+  "trainable_params_millions": 33.8,
+  "lora_rank": 16,
+  "provenance": "trainable params from runs/logs/<run>.log (kev.train); LoRA rank from the checkpoint's adapter_config.json",
+  "trainer": {
+    "kev_commit": "f2bb629",
+    "init_snapshot": "139fdd94f1b6a6ad80cc15e08fcb99cac885a101",
+    "optimizer": "AdamW",
+    "weight_decay": 0.01,
+    "schedule": "OneCycleLR, pct_start 0.1",
+    "grad_clip_norm": 1.0,
+    "clipped_steps": 72,
+    "mean_grad_norm_by_epoch": [
+      5.36
+    ],
+    "loss": "mean cross-entropy over a record's questions",
+    "ord_w": 0.0,
+    "label_smoothing": 0.0,
+    "augmentation": {
+      "option_shuffle": "every epoch, choice questions with 3+ options",
+      "p_none": 0.1,
+      "p_none_distract": 0.12,
+      "p_distract": 0.15
+    },
+    "provenance": "runs/<run>/training_config.json and training_metrics.json (git-ignored checkpoint folder), kev/train.py at kev_commit"
+  }
 }
