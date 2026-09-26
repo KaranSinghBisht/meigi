@@ -142,8 +142,9 @@ At the Curvegrid workshop, Jeff Wentworth named three danger zones for agents th
 handles each:
 - **No private keys in the agent.**
   - The agent holds no key, and refuses to start if one is in its environment.
-  - A separate signer ([`services/signer`](services/signer), loopback only) holds the vault's agent key and signs
-    one call, `AgentVault.payInvoice`. It builds that call from typed fields and simulates it first.
+  - A separate signer ([`services/signer`](services/signer), loopback only) holds the agent's key and signs one
+    call, `payInvoice`, through the `MandateGate` that is now the vault's agent. It builds that call from typed fields
+    and simulates it first.
   - [`scripts/ap-stack.sh`](scripts/ap-stack.sh) runs both.
 - **Prompts aren't policy.** The LLM only proposes and explains. A deterministic kernel decides, and the vault
   re-checks the vendor, the payout and the caps on-chain.
