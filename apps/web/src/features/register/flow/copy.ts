@@ -7,7 +7,7 @@ export const COPY = {
   },
   wallets: {
     title: 'Which wallets will it use?',
-    lede: 'A business key that approves changes, and the one address every payment goes to.',
+    lede: 'A business key that requests changes, and the one address every payment goes to.',
   },
   domain: {
     title: 'Which domain does the company use?',
@@ -23,23 +23,25 @@ export const COPY = {
   },
   officers: {
     title: 'Who approves changes?',
-    lede: 'Every future payout change needs one of these same people.',
+    lede: 'Any payout change the company asks for needs these same people.',
   },
   review: {
     title: 'Check everything, then register',
     lede: "Meigi's attester writes this registration to the public registry on Sepolia. A number that's already claimed is frozen as disputed, never overwritten.",
   },
+  // A payout changes two ways, both behind the registry's 72-hour public window (PayeeRegistry.changeDelay):
+  // requestPayoutChange (business key + officers), or governance's resolveDispute then finalizeDispute.
   registered: {
     title: "You're registered.",
     lede: (ens: string) =>
-      `Payers who check ${ens} will only ever pay the address below. Changing it takes your business key, your officers and 72 hours in public.`,
+      `Payers who check ${ens} will only ever pay the address below. It changes only through a 72-hour public window: your business key with your officers, or a governance ruling on a dispute.`,
   },
   /** The replay's last screen speaks about the company, not to it: the viewer registered nothing. */
   registeredReplay: {
     title: "It's registered.",
     lede: (ens: string) =>
-      `Payers who check ${ens} will only ever pay the address below. Changing it takes the company's business key, its officers and 72 hours in public.`,
+      `Payers who check ${ens} will only ever pay the address below. It changes only through a 72-hour public window: the company's business key with its officers, or a governance ruling on a dispute.`,
     placeholderLede: (ens: string) =>
-      `Payers who check ${ens} pay only the address below. Its placeholder officer means no one can change it; a real company changes it with its business key, its officers and 72 hours in public.`,
+      `Payers who check ${ens} pay only the address below. With a placeholder officer the company can't change it; only a governance ruling on a dispute can, after a 72-hour public window.`,
   },
 } as const

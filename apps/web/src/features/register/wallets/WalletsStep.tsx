@@ -68,7 +68,7 @@ function ConnectedPayout({ account }: { readonly account: HexAddress | null }) {
     <div className="onboard-cell">
       {account ? <Address value={account} copy /> : <p className="muted">Connect your business wallet above first.</p>}
       <p className="new-wallet__note">
-        The simplest setup. A separate payout wallet keeps received funds apart from the key that approves changes.
+        The simplest setup. A separate payout wallet keeps received funds apart from the key that requests changes.
       </p>
     </div>
   )
@@ -136,7 +136,9 @@ export function WalletsStep({ onboarding }: { readonly onboarding: Onboarding })
         <h3 id="business-key-title" className="onboard-section__title">
           Business key
         </h3>
-        <p className="onboard-section__lede">It signs your domain proof, and every change after today.</p>
+        <p className="onboard-section__lede">
+          It signs your domain proof, and every change your company asks for later.
+        </p>
         <ControllerField />
       </section>
       <section className="onboard-section" aria-labelledby="payout-title">

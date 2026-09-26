@@ -4,7 +4,7 @@ import { Badge } from '../../../ui/components/Badge'
 import { Button } from '../../../ui/components/Button'
 import { Notice } from '../../../ui/components/Notice'
 
-/** The business key: the connected browser wallet, which signs the domain proof and every later change. */
+/** The business key (the connected wallet): it signs the domain proof and every change the company asks for. */
 export function ControllerField() {
   const wallet = useWallet()
   if (!wallet.provider) {

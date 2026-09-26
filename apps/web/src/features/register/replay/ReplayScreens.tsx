@@ -116,7 +116,9 @@ function WalletsScreen({ recording, actions }: ScreenProps) {
         <h3 id="replay-key" className="onboard-section__title">
           Business key
         </h3>
-        <p className="onboard-section__lede">It signs the domain proof, and every change after registration.</p>
+        <p className="onboard-section__lede">
+          It signs the domain proof, and every change the company asks for later.
+        </p>
         {source === 'wizard' ? (
           <div className="onboard-cell wallet-cell">
             <div className="wallet-cell__row">
@@ -193,7 +195,7 @@ function RepresentativeScreen({ recording, actions }: ScreenProps) {
 }
 
 const PLACEHOLDER_LEDE =
-  'Real companies enroll officers with World ID. This demo company has a placeholder officer no one can prove, so no one can change its payout.'
+  "Real companies enroll officers with World ID. This demo company has a placeholder officer no one can prove, so the company itself can't change its payout."
 
 function OfficersScreen({ recording, actions }: ScreenProps) {
   const placeholder = recording.officers.some((officer) => officer.proof === 'placeholder')
