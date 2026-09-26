@@ -4,6 +4,7 @@ import { cors } from "hono/cors";
 import type { AppDeps } from "./deps.js";
 import { handleError } from "./http.js";
 import { intentRoutes } from "./routes/intents.js";
+import { leiRoutes } from "./routes/lei.js";
 import { lookupRoutes } from "./routes/lookup.js";
 import { registrationRoutes } from "./routes/registrations.js";
 
@@ -14,6 +15,7 @@ export function createApp(deps: AppDeps) {
   app.onError(handleError);
   app.get("/health", (c) => c.json({ ok: true }));
   app.route("/", lookupRoutes(deps));
+  app.route("/", leiRoutes(deps));
   app.route("/registrations", registrationRoutes(deps));
   app.route("/intents", intentRoutes(deps));
   return app;

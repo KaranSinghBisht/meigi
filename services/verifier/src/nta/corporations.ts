@@ -16,6 +16,8 @@ export interface Corporation {
 
 export interface CorporationIndex {
   byNumber(digits: string): Corporation | null;
+  /** Open corporations whose name has this `nameKey` (at most 5); used to link a Japanese LEI to its T-number. */
+  byNameKey(key: string): Corporation[];
 }
 
 export type NameCheck =
@@ -53,28 +55,34 @@ interface CorporationRow {
   furigana: string;
 }
 
+const COLUMNS = "number, name, kind, pref, city, street, post_code, close_date, en_name, furigana";
+
+function toCorporation(row: CorporationRow): Corporation {
+  return {
+    number: row.number,
+    name: row.name,
+    kind: row.kind,
+    pref: row.pref,
+    city: row.city,
+    street: row.street,
+    postCode: row.post_code,
+    closeDate: row.close_date,
+    enName: row.en_name,
+    furigana: row.furigana,
+  };
+}
+
 export function openCorporationIndex(path: string): CorporationIndex {
   const db = new DatabaseSync(path, { readOnly: true });
-  const byNumber = db.prepare(
-    "SELECT number, name, kind, pref, city, street, post_code, close_date, en_name, furigana " +
-      "FROM corporations WHERE number = ?",
-  );
+  const byNumber = db.prepare(`SELECT ${COLUMNS} FROM corporations WHERE number = ?`);
+  const byNameKey = db.prepare(`SELECT ${COLUMNS} FROM corporations WHERE name_key = ? AND close_date = '' LIMIT 5`);
   return {
     byNumber(digits: string): Corporation | null {
       const row = byNumber.get(digits) as CorporationRow | undefined;
-      if (!row) return null;
-      return {
-        number: row.number,
-        name: row.name,
-        kind: row.kind,
-        pref: row.pref,
-        city: row.city,
-        street: row.street,
-        postCode: row.post_code,
-        closeDate: row.close_date,
-        enName: row.en_name,
-        furigana: row.furigana,
-      };
+      return row ? toCorporation(row) : null;
+    },
+    byNameKey(key: string): Corporation[] {
+      return (byNameKey.all(key) as unknown as CorporationRow[]).map(toCorporation);
     },
   };
 }

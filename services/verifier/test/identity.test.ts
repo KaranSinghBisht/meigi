@@ -32,7 +32,7 @@ const curvegrid: Corporation = {
   enName: "Curvegrid Inc.",
   furigana: "",
 };
-const index: CorporationIndex = { byNumber: (d) => (d === curvegrid.number ? curvegrid : null) };
+const index: CorporationIndex = { byNumber: (d) => (d === curvegrid.number ? curvegrid : null), byNameKey: () => [] };
 
 describe("NTA exact match", () => {
   it("only normalises width and whitespace", () => {

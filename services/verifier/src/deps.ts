@@ -1,4 +1,5 @@
 import type { DomainProofInput, DomainProofResult } from "./domain/proof.js";
+import type { LeiRegistry } from "./lei/lei.js";
 import type { CorporationIndex } from "./nta/corporations.js";
 import type { ChainPort } from "./registry/chain.js";
 import type { Store } from "./store/db.js";
@@ -16,6 +17,8 @@ export interface AppDeps {
     verify(result: unknown, signal?: string): Promise<VerifiedSession>;
   };
   domain: { verify(input: DomainProofInput): Promise<DomainProofResult> };
+  /** GLEIF's public LEI registry, for companies outside Japan. */
+  lei: LeiRegistry;
   origins: string[];
   now?: () => number; // unix seconds; injectable for tests
 }

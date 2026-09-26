@@ -1,7 +1,8 @@
 import { zeroAddress, type Address, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import type { AppDeps } from "../src/deps.js";
-import type { Corporation } from "../src/nta/corporations.js";
+import type { LeiRecord, LeiRegistry } from "../src/lei/lei.js";
+import { nameKey, type Corporation } from "../src/nta/corporations.js";
 import type { ChainPort, PayeeState, RegistrationArgs } from "../src/registry/chain.js";
 import { openStore } from "../src/store/db.js";
 import { officerIdFor, WorldVerificationError } from "../src/world/session.js";
@@ -23,6 +24,31 @@ export const curvegrid: Corporation = {
   enName: "Curvegrid Inc.",
   furigana: "",
 };
+
+/** A fictional LEI for Curvegrid (valid check digits, not issued by GLEIF), named as the NTA spells it. */
+export const CURVEGRID_LEI = "529900CURVEGRID00118";
+export const curvegridLei: LeiRecord = {
+  lei: CURVEGRID_LEI,
+  legalName: "Curvegrid株式会社",
+  language: "ja",
+  otherNames: ["Curvegrid Inc."],
+  jurisdiction: "JP",
+  country: "JP",
+  city: "渋谷区",
+  entityStatus: "ACTIVE",
+  registrationStatus: "ISSUED",
+  nextRenewalDate: "2027-01-01T00:00:00Z",
+};
+
+/** An in-memory GLEIF: known records, or a registry that is down. */
+export function fakeLei(records: Record<string, LeiRecord> = { [CURVEGRID_LEI]: curvegridLei }, down = false): LeiRegistry {
+  return {
+    async lookup(lei) {
+      if (down) throw new Error("GLEIF answered HTTP 503");
+      return records[lei] ?? null;
+    },
+  };
+}
 
 export function sessionId(tag: string): string {
   return `session_${tag.repeat(128).slice(0, 128)}`;
@@ -74,7 +100,10 @@ export class FakeChain implements ChainPort {
 
 export function fakeDeps(chain: FakeChain, clock: { now: number }): AppDeps {
   return {
-    corporations: { byNumber: (d) => (d === curvegrid.number ? curvegrid : null) },
+    corporations: {
+      byNumber: (d) => (d === curvegrid.number ? curvegrid : null),
+      byNameKey: (key) => (key === nameKey(curvegrid.name) ? [curvegrid] : []),
+    },
     store: openStore(":memory:"),
     chain,
     world: {
@@ -85,6 +114,7 @@ export function fakeDeps(chain: FakeChain, clock: { now: number }): AppDeps {
         return { sessionId: r.session_id, officerId: officerIdFor(r.session_id), sessionNullifier: r.responses[0]!.session_nullifier[0]! };
       },
     },
+    lei: fakeLei(),
     domain: { verify: async (input) => (input.domain === "curvegrid.co.jp" ? { ok: true, method: "dns" } : { ok: false, reason: "no_proof_found" }) },
     origins: ["http://localhost:5173"],
     now: () => clock.now,

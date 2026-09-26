@@ -2,6 +2,7 @@ import { serve } from "@hono/node-server";
 import { createApp } from "./app.js";
 import { loadConfig } from "./config.js";
 import { verifyDomainProof } from "./domain/proof.js";
+import { gleifRegistry } from "./lei/lei.js";
 import { openCorporationIndex } from "./nta/corporations.js";
 import { createChainPort } from "./registry/chain.js";
 import { openStore } from "./store/db.js";
@@ -21,6 +22,7 @@ const app = createApp({
     },
   },
   domain: { verify: (input) => verifyDomainProof(input) },
+  lei: gleifRegistry(),
   origins: config.APP_ORIGINS.split(",").map((origin) => origin.trim()),
 });
 
