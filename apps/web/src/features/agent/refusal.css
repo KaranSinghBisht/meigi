@@ -22,7 +22,7 @@
 
 .refusal__seal {
   transform: rotate(-8deg);
-  animation: stamp 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  animation: refusal-stamp 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) both;
 }
 
 /* The worded explanation can quote full 42-character addresses; on a phone those wrap instead of being cut off by
@@ -95,7 +95,7 @@
   }
 }
 
-@keyframes stamp {
+@keyframes refusal-stamp {
   from {
     opacity: 0;
     transform: rotate(-8deg) scale(1.8);
