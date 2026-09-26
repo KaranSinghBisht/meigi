@@ -1,6 +1,7 @@
-// Checks that every label CompanyNameRules.checkLabel accepts is already ENSIP-15-normal, so any client (viem's
-// normalize) reaches the issued name exactly as issued. It generates random labels by the same rule (1 to 32 of
-// [a-z0-9], single inner hyphens, no run of 13 digits), adds the demo labels, and prints one JSON line.
+// Checks that every label CompanyNameRules.checkLabel accepts is already ENSIP-15-normal, so a client that normalizes
+// per ENSIP-15 (viem's normalize here) reaches the issued name exactly as issued. It generates random labels by the
+// same rule (1 to 32 of [a-z0-9], single inner hyphens, no run of 13 digits), adds the demo labels, and prints one
+// JSON line.
 // Run it like check-viem.mjs: (cd apps/landing && node --input-type=module) < contracts/script/ens/check-labels-viem.mjs
 // Env: SAMPLES (default 5000).
 import { normalize } from 'viem/ens'

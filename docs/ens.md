@@ -53,15 +53,15 @@ reach.[^deployments]
 - Meigi can revoke a claim (`unregister`), for a disputed or retired company or a listing the company never accepted.
   The name keeps resolving through the wildcard, to the same payout.
 - `t6999900000003.payee.eth` went through this. Meigi listed it, the company never accepted it, and Meigi revoked it.
-  It still resolves through the wildcard in every client. The ENS app no longer lists it, because a revoked label
-  has no registry entry and the app lists only names that do.
+  It still resolves through the wildcard, as stock viem and ethers 6.17 show. The ENS app no longer lists it, because
+  a revoked label has no registry entry and the app lists only names that do.
 
 **No aliases.** An alias would be a second name for the same payout, and look-alike names are the attack Meigi exists
 to stop. The T-number name stays the only one.
 
 **Payout wallets carry their company's name.**
-- A payout wallet can take its payee's name as its primary name (ENSIP-19), so a wallet shows the company's name
-  next to the address.
+- A payout wallet can take its payee's name as its primary name (ENSIP-19), so an app that reads primary names can
+  show the company's name next to the address. Stock viem's `getEnsName` returns it.
 - The name must round-trip, so it stops showing if the registry moves the payout elsewhere.
 
 ## Agents: `meigi.eth`
@@ -97,7 +97,8 @@ to stop. The T-number name stays the only one.
   key, and the name stays the same. The fork proof now shows that refusal first, then unwires on the fork and rotates
   as before.
 
-**The vault's primary name is `ap.meigi.eth`**, so wallets show the agent's name instead of `0x87A7…793B`.
+**The vault's primary name is `ap.meigi.eth`**: for `0x87A7…793B`, stock viem's `getEnsName` and ethers 6.17's
+`lookupAddress` return the agent's name.
 
 ## Companies issue names to their own agents (live on the Beta since 2026-09-26)
 
@@ -114,7 +115,9 @@ are fictional fixtures, and their texts say so. Live now:
 | `ap.t4999900000005.payee.eth` | `0xa73b…BA68` | Agent | the AP agent of the buyer 株式会社ハルカ製作所 (T4999900000005): its mandate, until 2026-12-31 (see below) |
 
 Stock viem resolves every one of them to their texts and to no address. The AP agent's key `0xaBd2…6ac1` has no
-primary name.
+primary name. ENS's explorer shows each namespace as an ENSv2 permissioned subregistry:
+[t2011001234567.payee.eth](https://explorer.ens.dev/t2011001234567.payee.eth) has 3 subnames under `0x5063…9f95`,
+and [t4999900000005.payee.eth](https://explorer.ens.dev/t4999900000005.payee.eth) has 1 under `0x0f58…E434`.
 
 **An issued name is an identity, never a payee.**
 - It resolves no address. It has only text records:
@@ -191,9 +194,10 @@ Tests behind it:
 **The mandate: an ENS name the vault obeys** (live since 2026-09-26).
 [`MandateGate`](../contracts/src/payments/MandateGate.sol) at
 [`0x591d…83BF`](https://sepolia.etherscan.io/address/0x591dd2b2716b46740C665749A60209B7b22e83BF) is the AgentVault's
-agent. It passes `payInvoice` on only while `ap.t4999900000005.payee.eth` answers and the caller is its holder. The
-buyer revokes the name, and the agent's next payment is refused on-chain (`MandateNotLive`); it issues the name again,
-and payments continue. The vault still checks every payment itself. contracts-review passed the gate: 30 of 30 on a
+agent. It passes `payInvoice` on only while `ap.t4999900000005.payee.eth` answers and the caller is its holder. In the
+rehearsal below, the buyer revoked the name and the contract refused the agent's next payment with `MandateNotLive`
+(checked in simulation against the live vault; nothing was sent). The buyer issued the name again, and payments
+continued. The vault still checks every payment itself. contracts-review passed the gate: 30 of 30 on a
 fork in front of the live vault and against the live names, in its own harness kept outside the repo. The repo's
 fork test is [`MandateGateFork.t.sol`](../contracts/test/payments/MandateGateFork.t.sol).
 
@@ -205,7 +209,7 @@ The live rehearsal (Sepolia, 2026-09-26, ¥1,100 invoices to 株式会社メイ�
 | The vault's owner makes the gate its agent | [`0x7c61…31fe`](https://sepolia.etherscan.io/tx/0x7c61fe3bfaa38cda0025241ff88ee79b9911159b79c10c386a01e582939431fe) | `vault.agent()` = the gate |
 | A. The agent pays MS-2026-7201 through the gate | [`0xd1cc…db90`](https://sepolia.etherscan.io/tx/0xd1ccd8b78d90696732c288ecca07285fec019ae29bd5551bf70d3744f35adb90) | the vault's `InvoicePaid` to `0x9B4f…47e4` (agent audit #46) |
 | B. 株式会社ハルカ製作所 revokes `ap.t4999900000005.payee.eth` | [`0x5d0b…645e`](https://sepolia.etherscan.io/tx/0x5d0b277c4550950d405b497ed73d99566e9aa93f8f2fe6090f573ecdee5c645e) | `answers()` false, `holder()` 0x0 |
-| The agent tries MS-2026-7202 and 7203 | none | refused: the signer's simulation reverts `MandateNotLive` (agent audit #50, #51), and analysis holds `mandate_not_live`; the key's nonce stays at 6 and nothing is broadcast |
+| The agent tries MS-2026-7202 and 7203 | none | refused: the signer's simulation against the live vault reverts `MandateNotLive` (agent audit #50, #51), and analysis holds `mandate_not_live`; the key's nonce stays at 6 and nothing is broadcast |
 | C. The company issues `ap` to the agent's key again | [`0xfcf3…4216`](https://sepolia.etherscan.io/tx/0xfcf386a05eb2c9910fa0b841b465ec1fffc672a5db326e28f2d71268a04e4216) | `answers()` true, `holder()` the key |
 | D. The agent pays MS-2026-7204 | [`0xb49d…6a77`](https://sepolia.etherscan.io/tx/0xb49d32fe9341f062715988d66928f631bd7f5e23b8b8eb8e39a717c3a56e6a77) | the vault's `InvoicePaid` again, with no signer restart (agent audit #55) |
 
@@ -286,7 +290,7 @@ company's business key with its World ID officers, or a governance ruling on a d
 the agent's status.
 
 **Token IDs change when roles change. Does that break anything?** No. Everything we do looks a name up by its label
-(`getOwner(labelId)`, `getResolver(label)`), and ENS clients resolve by name. Nothing stores a token ID.
+(`getOwner(labelId)`, `getResolver(label)`), and resolution goes by name. Nothing stores a token ID.
 
 **Why not aliases, or "forever" names?** An alias is a second name for the same payout, which is the look-alike attack.
 A claim expires with `payee.eth`, which Meigi renews, so a claimed name can't outlive the namespace that vouches for
@@ -299,10 +303,11 @@ Live on Sepolia. ENS app: [app.ens.dev](https://app.ens.dev). Explorer: [explore
 | Claim | Evidence |
 |---|---|
 | `payee.eth` uses our wildcard resolver, plus a subregistry for claimed names | [explorer: payee.eth](https://explorer.ens.dev/payee.eth) · [PayeeResolver `0x096e…4A1e`](https://repo.sourcify.dev/11155111/0x096ebC07eE87fbb19FF920a5c81b2Ad5c9104A1e) (Sourcify) · claims registry [`0xcA03…D0B6`](https://sepolia.etherscan.io/address/0xcA0317C97C0f915faaD6D8F354110eA98bDeD0B6), attached in [`0xa878…22cd`](https://sepolia.etherscan.io/tx/0xa878ef9d35324c42ded75c30a68a115fefaf17c610f9f4aa10f404e34f5a22cd) |
-| Every registered number resolves with no configuration | `(cd apps/landing && RPC_URL=https://ethereum-sepolia-rpc.publicnode.com node --input-type=module) < contracts/script/ens/check-viem.mjs` (stock viem; ethers 6 `resolveName` agrees) |
+| Every registered number resolves with no configuration | `(cd apps/landing && RPC_URL=https://ethereum-sepolia-rpc.publicnode.com node --input-type=module) < contracts/script/ens/check-viem.mjs` (stock viem, with its default Sepolia Universal Resolver; ethers 6.17's `resolveName` agreed in a one-off check on 2026-09-26) |
 | Unknown and disputed numbers resolve to nothing | [`test_addr_failsClosed`](../contracts/test/ens/PayeeResolver.t.sol), [`test_text_disputedPayeePublishesOnlyItsStatus`](../contracts/test/ens/PayeeResolver.t.sol) |
 | A payout change resolves only after 72 hours, exactly when it lands | [`test_addr_switchesExactlyAtEffectiveAt`](../contracts/test/ens/PayeeResolver.t.sol), [`testFuzz_payoutChange_neverLandsEarly`](../contracts/test/registry/PayeeRegistry.t.sol); `changeDelay()` = 259200 on [PayeeRegistry](https://repo.sourcify.dev/11155111/0x205c977cF1f4Ed42e51a48759550eF40160A6396) |
 | A claimed company publishes its own profile | [app: t2011001234567.payee.eth](https://app.ens.dev/t2011001234567.payee.eth) (claim [`0xb60e…77e1`](https://sepolia.etherscan.io/tx/0xb60e778bd1355c662f2fbe18cd13a34d7b013005c8c7bb85a3472e14a9e077e1), url [`0xcbe9…3ccf`](https://sepolia.etherscan.io/tx/0xcbe90c90e03e07b0f2c4f58b13596f0904b1038db140cf1be4099c4e38b43ccf), avatar [`0x877c…0baa`](https://sepolia.etherscan.io/tx/0x877cafe13cd902dc10d400a81f34c9a8196e9633e401b160b7d7441db8dd0baa)) · [app: t8999900000001.payee.eth](https://app.ens.dev/t8999900000001.payee.eth) (claim [`0xe03d…612b`](https://sepolia.etherscan.io/tx/0xe03d70436822a74b9b69ce9b086ed9d6419ed95d15f3a23881c17e591870612b), profile [`0xcc8d…330b`](https://sepolia.etherscan.io/tx/0xcc8d1aa24780bcf540e7f50b50d13b6cae24c0ad0b76f6802daaa47c58de330b)) |
+| A claimed company issues names in its own ENSv2 subregistry | [explorer: t2011001234567.payee.eth](https://explorer.ens.dev/t2011001234567.payee.eth): permissioned registry `0x5063…9f95`, 3 subnames (`ap`, `keiri`, `zeirishi`) · [explorer: t4999900000005.payee.eth](https://explorer.ens.dev/t4999900000005.payee.eth): 1 subname, the mandate `ap` · transactions: [Companies issue names to their own agents](#companies-issue-names-to-their-own-agents-live-on-the-beta-since-2026-09-26) |
 | A claim can be revoked, and the name still resolves | `t6999900000003.payee.eth`: listed in [`0xf24f…5878`](https://sepolia.etherscan.io/tx/0xf24fa19c056654fe07f7d93d43ad5ebfc44ce5d3ecdb6814335cdcd9708d5878), revoked in [`0x0f3c…64bd`](https://sepolia.etherscan.io/tx/0x0f3c5d72bda2b2a894c97e779570eae8cfa44b11516465532754f4ea914364bd). Stock viem still returns 株式会社ミナトGPUクラウド and `0x4d6D…FD30`, through payee.eth's resolver |
 | A claim inherits `payee.eth`'s expiry | `ens.sh claim-check` prints and asserts it: all three live claims (t2011001234567, t8999900000001 and t4999900000005) expire at 1821898512, the same second as `payee.eth` |
 | A claimed name can't be transferred | `ens.sh claim-check`: the company's `unsafeTransfer` reverts `TransferDisallowed`, and its `safeTransferFrom` reverts too (ENSv2 requires `ROLE_CAN_TRANSFER_ADMIN`, and claims carry no roles) |
@@ -320,7 +325,7 @@ Live on Sepolia. ENS app: [app.ens.dev](https://app.ens.dev). Explorer: [explore
 ## Limits, stated plainly
 
 - **The ENS app lists only claimed names.** app.ens.dev and explorer.ens.dev show names that have a registry
-  entry. An unclaimed `t….payee.eth` resolves in viem, ethers and wallets, but those UIs say it doesn't exist. To
+  entry. An unclaimed `t….payee.eth` resolves in stock viem and ethers 6.17, but those UIs say it doesn't exist. To
   check one yourself:
   `(cd apps/landing && RPC_URL=https://ethereum-sepolia-rpc.publicnode.com ENS_NAME=t6999900000003.payee.eth node --input-type=module) < contracts/script/ens/check-viem.mjs`
 - **Meigi holds the root roles.** One key owns `payee.eth` and `meigi.eth` and administers the claims registry.

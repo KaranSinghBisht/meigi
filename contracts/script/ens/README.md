@@ -29,10 +29,10 @@ Its money records still come only from `PayeeResolver`.
 
 ## Which ENSv2 deployment
 
-| `ENS_DEPLOYMENT` | What | Resolves in default clients? |
+| `ENS_DEPLOYMENT` | What | Resolves with viem's defaults? |
 |---|---|---|
 | `hackathon` | The isolated hackathon testnet deployed 2026-09-03: root `0xe7f0…`, UR proxy `0xd26f…` | No. Clients must pass `universalResolverAddress: 0xd26f2040d083af1cd2962ba303f4bea0c4faf142` |
-| `beta` (default) | The official "Sepolia ENSv2 Beta" redeployed 2026-09-15: root `0x9703…` | Yes. The canonical Sepolia UR `0xeeee…eeee` is viem's default |
+| `beta` (default) | The official "Sepolia ENSv2 Beta" redeployed 2026-09-15: root `0x9703…` | Yes. The canonical Sepolia UR `0xeeee…eeee` is viem's default (ethers 6.17 resolves these names too) |
 
 The registrar ABI, commit window, minimum duration and fee are identical on both. One `PayeeResolver` can serve
 `payee.eth` on both deployments at the same time.
@@ -147,7 +147,7 @@ script/ens/agent-rotate-e2e.sh                      # key rotation on a fork of 
 
 ## AgentVault primary name (ENSIP-19, Beta only)
 
-Wallets and explorers show the AgentVault as `ap.meigi.eth` instead of `0x87A7…793B`.
+For the AgentVault `0x87A7…793B`, stock viem's `getEnsName` and ethers 6.17's `lookupAddress` return `ap.meigi.eth`.
 
 - On the Beta, `addr.reverse` still lives on v1, and `ENSV1Resolver` mirrors it into v2.
 - The vault is a contract, so it can't claim its own reverse record. The v2 `ReverseRegistrarAdapter` accepts the
@@ -219,10 +219,11 @@ script/ens/claim-e2e.sh                        # fork proof: impersonates payee.
 
 ## Payout wallets' primary names (ENSIP-19, Beta only)
 
-A payout wallet can carry its payee's name as its primary name, so a wallet shows 株式会社メイギ商事's name next to
-`0x9B4f…47e4`. The name must round-trip, so `PayoutName.s.sol` only runs while the registry lists the wallet as the
-payee's active payout. After a payout change the old wallet's reverse record stops round-tripping, and clients stop
-showing it.
+A payout wallet can carry its payee's name as its primary name, so an app that reads primary names can show
+株式会社メイギ商事's name, `t2011001234567.payee.eth`, next to `0x9B4f…47e4` (stock viem's `getEnsName` returns it). The
+name must round-trip, so `PayoutName.s.sol` only runs while the registry lists the wallet as the payee's active payout.
+After a payout change the old wallet's reverse record stops round-tripping, and a client that checks the round trip,
+as ENSIP-19 requires, stops showing it.
 
 ```sh
 T_NUMBER=2011001234567 PAYOUT_KEY=DEMO_VENDOR_PAYOUT_PRIVATE_KEY BROADCAST=1 script/ens/ens.sh payout-name

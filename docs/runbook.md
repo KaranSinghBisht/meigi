@@ -43,8 +43,8 @@ Demo fixtures, fictional companies marked as such in their on-chain evidence:
 ## ENS
 
 `payee.eth` is registered on both Sepolia ENSv2 deployments, and both point at the v2 PayeeResolver:
-- **ENSv2 Beta** (the official deployment; viem's default Sepolia Universal Resolver `0xeEeE…EeEe`). Any ENS
-  client resolves `t2011001234567.payee.eth` with no configuration.
+- **ENSv2 Beta** (the official deployment; viem's default Sepolia Universal Resolver `0xeEeE…EeEe`). Stock viem
+  and ethers 6.17 resolve `t2011001234567.payee.eth` with no configuration, and ENS's app and explorer show it.
 - **Hackathon deployment** (Universal Resolver proxy `0xd26f2040D083Af1cD2962ba303F4BEa0c4faf142`).
 
 Check: `EXPECT_ADDR=0x9B4fc8994FcF2d5FE08a82A9454B61AA14D647e4 contracts/script/ens/ens.sh check`
