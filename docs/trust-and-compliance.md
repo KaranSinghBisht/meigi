@@ -22,13 +22,18 @@ production step (roadmap, item 1).
   pinned payout independently would notice. The verifier also caps each World ID officer at 3 companies, and can
   hold new registrations in a public window where anyone can object (0h in the demo, 24–72h in production).
 - *What doesn't:* a company that never looks, a squatter with several humans, or payments made before a freeze.
-  The limits are the attester's off-chain policy; the contract doesn't enforce them.
+  The limits are the attester's off-chain policy; the contract doesn't enforce them. They are also keyed on the
+  enrolled World ID *session*, and the wizard opens a new session at each enrollment. So one person who starts
+  over is not linked to their earlier claims (roadmap, item 6).
 
 **Freeze griefing.**
 - Any claim that passes the same checks freezes the incumbent. Payments to it fail closed, so no money is
   misdirected, until governance dismisses the claim.
 - Each World ID officer can claim at most 3 companies, and each client IP can file 3 disputes an hour. An attacker
   with several humans or IPs can still freeze payees, and the caps are off-chain.
+- The verifier never files a second dispute against a payee that is already disputed (`already_disputed`). On-chain,
+  one would only drop governance's queued resolution and restart the freeze. Once a dispute is resolved, a new claim
+  can freeze the payee again, within the same limits.
 
 **The hot attester key.**
 - One attester signs with a key held in the verifier's environment. A thief could:
@@ -154,8 +159,12 @@ production step (roadmap, item 1).
    - So far: three AI-assisted review rounds with proof-of-concept exploits, mutation-tested fixes, and 95 fuzzed
      Foundry tests. That is not a professional audit.
 6. **Limits on-chain.** The verifier already caps each World ID officer (3 companies, 1 open claim per number) and
-   each client IP per hour. Production adds on-chain registration caps, and requires representative binding before
-   anyone can freeze an incumbent.
+   each client IP per hour. Production adds three things:
+   - The next step: key officer limits on a World ID uniqueness nullifier for a fixed action. Enrollment adds a
+     uniqueness proof for that action, whose nullifier is the same for one person every time, so the caps bind the
+     person rather than the session. This needs the action in World's Developer Portal and a wizard change.
+   - On-chain registration caps.
+   - Representative binding before anyone can freeze an incumbent.
 7. **Screening and status.**
    - Screen legal names against MOF's FEFTA list at registration and on each list update.
    - Read the qualified-invoice status from NTA data.
