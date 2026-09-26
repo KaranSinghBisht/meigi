@@ -283,7 +283,8 @@ The core contracts (registry and officer quorum, resolver, vault, router, mock J
 by separate AI reviewers, with proof-of-concept exploits:
 - 16 findings: 14 fixed, 2 documented as by design;
 - round 3 mutation-tested every fix;
-- 156 Foundry tests in all (two fork suites are skipped without an RPC), including fuzzing of the core guarantee.
+- 164 Foundry tests in all, including fuzzing of the core guarantee; 156 run without an RPC, and the 8 fork tests need
+  one.
 
 These reviews were AI-assisted, not a professional audit. Contract work after them (the ENS claim contract
 `ClaimedPayeeResolver`, and a resolver change that hides a disputed payee's name) has tests but no review round.
@@ -309,7 +310,7 @@ Needs Node ≥ 22.18, pnpm 11 and Foundry. The bench also needs Python with uv.
 git clone --depth 1 https://github.com/KaranSinghBisht/meigi && cd meigi
 pnpm install
 git submodule update --init --depth 1 contracts/lib/forge-std contracts/lib/openzeppelin-contracts
-cd contracts && forge test && cd ..                    # 156 tests (two fork suites are skipped without an RPC)
+cd contracts && forge test && cd ..                    # 156 pass; the 8 fork tests are skipped without an RPC
 pnpm -r test                                           # unit tests: agent, verifier, signer, x402 guard, AI proxy
 pnpm -r typecheck
 pnpm --filter @meigi/web test:worker                   # the site's Worker
