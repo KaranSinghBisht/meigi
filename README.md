@@ -19,7 +19,7 @@ control of a domain, and World ID officers enroll.
 - **Team:**
   - **Karan Singh Bisht**: GitHub [@KaranSinghBisht](https://github.com/KaranSinghBisht) · X
     [@karan_Bisht09](https://x.com/karan_Bisht09)
-  - **Adithya Prasanna Suriya Prakash**: X [@apsp2k5](https://x.com/apsp2k5)
+  - **Adithya Prasanna Suriya Prakash**: GitHub [@adithyaprasanna](https://github.com/adithyaprasanna) · X [@apsp2k5](https://x.com/apsp2k5)
 - **Event:** ETHGlobal Tokyo 2026, From Scratch track.
 
 A stablecoin payment goes to an address, and nothing checks that the address belongs to the company you mean
