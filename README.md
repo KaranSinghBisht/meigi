@@ -331,8 +331,9 @@ pnpm --filter @meigi/agent demo --force                # the BEC is refused (pay
 `pnpm --filter @meigi/web dev` serves the landing and the app on :5173 with no env vars. Its Settlements panel needs
 our MultiBaas key.
 
-**Our demo machine (needs our keys, which we don't publish).** These read secrets from a git-ignored `.env` at
-the repo root:
+**Our demo machine (needs our keys, which we don't publish).** Copy [`.env.example`](.env.example) to `.env`; the
+demo machine fills in the keys we don't publish. `scripts/ap-stack.sh` also needs `.env.signer`, whose names are at
+the end of `.env.example`.
 
 ```sh
 pnpm --filter @meigi/verifier start                    # :8787 (needs the NTA index: services/verifier/scripts/build_nta_index.py)
@@ -340,6 +341,9 @@ scripts/ap-stack.sh                                    # the signer :8796 (the o
 pnpm --filter @meigi/agent multibaas:setup --awaji     # index the Awaji contracts in Curvegrid MultiBaas
 pnpm --filter @meigi/x402-demo start                   # :8790, with funded buyer and facilitator keys
 ```
+
+Without World ID for Agents credentials, start the stack with `SIGNER_VERIFY_APPROVAL=0 scripts/ap-stack.sh`. The
+signer's own check of each approval is on by default, and it needs `WORLD_AGENTS_ISSUER` and `WORLD_AGENTS_CLIENT_ID`.
 
 Service ports, re-seeding and demo checks: [`docs/runbook.md`](docs/runbook.md). Public deploy:
 [`scripts/deploy-demo.sh`](scripts/deploy-demo.sh).
