@@ -133,6 +133,9 @@ export async function submitRegistration(id: string, threshold: number): Promise
   const response = await requestJson(url(`/registrations/${encodeURIComponent(id)}/submit`), {
     method: 'POST',
     body: { threshold },
+    // The verifier answers only once the registration is mined on Sepolia, which can take well past the default
+    // 20 s; timing out early would report a registration that actually succeeded as a failure.
+    timeoutMs: 120_000,
   })
   const body = record(response, 'submission')
   const outcome = str(body, 'outcome', 'submission')
