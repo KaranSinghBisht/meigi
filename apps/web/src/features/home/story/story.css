@@ -1,0 +1,152 @@
+/* The story under the poster: full-width beats, text and ASCII art side by side, no boxes. Each beat sits in a band
+   of mist (suyari-gasumi) that thins out at its edges, so the world shows between beats and the text always reads
+   on a pale ground. */
+.story {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  min-height: min(760px, 92vh);
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  align-items: center;
+  gap: clamp(24px, 5vw, 88px);
+  padding: clamp(56px, 10vh, 120px) max(var(--gutter), calc((100% - 1320px) / 2));
+}
+
+.story::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(250, 245, 251, 0) 0%,
+    rgba(250, 245, 251, 0.86) 22%,
+    rgba(250, 245, 251, 0.9) 50%,
+    rgba(250, 245, 251, 0.86) 78%,
+    rgba(250, 245, 251, 0) 100%
+  );
+  content: '';
+  pointer-events: none;
+}
+
+.story--reverse {
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+}
+
+.story--reverse .story__text {
+  order: 2;
+}
+
+.story__text {
+  display: grid;
+  gap: 20px;
+  align-content: center;
+}
+
+.story__headline {
+  font-size: clamp(34px, 3.6vw, 56px);
+  font-weight: var(--weight-strong);
+  letter-spacing: -0.045em;
+  line-height: 1.02;
+  text-wrap: balance;
+}
+
+.story__body {
+  max-width: 44ch;
+  color: var(--ink-soft);
+  font-size: var(--text-lg);
+  line-height: 1.6;
+}
+
+.story__tag {
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+.story__bracket {
+  margin-left: 8px;
+  color: var(--iris-deep);
+  white-space: nowrap;
+}
+
+.story__art {
+  position: relative;
+  height: min(560px, 64vh);
+}
+
+/* A glyph grid fills its column; its colours come from ascii/glyphs.ts. */
+.ascii {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* The closing beat: the statement set large and centred in the last band of mist, and the two ways in. */
+.closing {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  justify-items: center;
+  gap: clamp(28px, 5vh, 48px);
+  padding: clamp(96px, 18vh, 200px) var(--gutter) clamp(88px, 14vh, 160px);
+  text-align: center;
+}
+
+.closing::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(250, 245, 251, 0) 0%, rgba(250, 245, 251, 0.9) 30%, rgba(250, 245, 251, 0.92) 100%);
+  content: '';
+  pointer-events: none;
+}
+
+.closing__statement {
+  display: grid;
+  gap: 4px;
+  font-size: clamp(36px, 5.6vw, 88px);
+  font-weight: var(--weight-strong);
+  letter-spacing: -0.05em;
+  line-height: 1.02;
+  text-wrap: balance;
+}
+
+.closing__line--accent {
+  color: var(--iris-deep);
+}
+
+.closing__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 16px 32px;
+}
+
+.closing__link {
+  color: var(--ink);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-strong);
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 6px;
+}
+
+@media (max-width: 860px) {
+  .story,
+  .story--reverse {
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+  }
+
+  .story--reverse .story__text {
+    order: 0;
+  }
+
+  .story__art {
+    height: clamp(260px, 62vw, 420px);
+  }
+}
