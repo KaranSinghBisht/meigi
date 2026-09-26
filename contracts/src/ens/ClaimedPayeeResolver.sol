@@ -18,7 +18,7 @@ interface IExtendedResolver {
 ///         - `addr`, `addr(coinType)`, `name` and every `meigi.*` text are answered by the PayeeResolver, which reads
 ///           the PayeeRegistry (timelocked changes; disputed or unknown payees fail closed);
 ///         - every other text key (url, avatar, description, ...) comes from the company's own ENSv2
-///           PermissionedResolver, where the company holds ROLE_SET_TEXT.
+///           PermissionedResolver, where the company holds ROLE_SET_TEXT, and shows only while the payee is active.
 ///         No claim, profile or company key can change where a payment goes.
 contract ClaimedPayeeResolver is IERC165, Ownable2Step {
     bytes4 private constant EXTENDED_RESOLVER = 0x9061b923; // resolve(bytes,bytes)
@@ -60,9 +60,9 @@ contract ClaimedPayeeResolver is IERC165, Ownable2Step {
         if (selector == MULTICALL) return _multicall(name, data);
         if (selector == ADDR || selector == ADDR_COIN) return _fromRegistry(name, data, selector);
         if (selector != TEXT) revert UnsupportedRecord(selector);
-        (, string memory key) = abi.decode(data[4:], (bytes32, string));
+        (bytes32 node, string memory key) = abi.decode(data[4:], (bytes32, string));
         if (_isRegistryKey(bytes(key))) return _fromRegistry(name, data, selector);
-        return _profileText(name, data);
+        return _profileText(name, data, node);
     }
 
     function supportsInterface(bytes4 interfaceId) external pure returns (bool) {
@@ -85,14 +85,31 @@ contract ClaimedPayeeResolver is IERC165, Ownable2Step {
         }
     }
 
-    /// @dev A company profile never answers for the registry's keys, and a failing profile reads as empty.
-    function _profileText(bytes calldata name, bytes calldata data) private view returns (bytes memory) {
+    /// @dev A company profile never answers for the registry's keys, and a failing profile reads as empty. It shows
+    ///      only while the registry lists the payee as active: a dispute means competing claimants, so, as with the
+    ///      legal name, neither one's profile is presented as the company's.
+    function _profileText(bytes calldata name, bytes calldata data, bytes32 node)
+        private
+        view
+        returns (bytes memory)
+    {
         IExtendedResolver profile = profileOf[_tNumberOf(name)];
-        if (address(profile) == address(0)) return abi.encode("");
+        if (address(profile) == address(0) || !_isActive(name, node)) return abi.encode("");
         try profile.resolve(name, data) returns (bytes memory result) {
             return result;
         } catch {
             return abi.encode("");
+        }
+    }
+
+    /// @dev Asks the PayeeResolver, so the registry stays the only source of status. Any failure reads as inactive.
+    function _isActive(bytes calldata name, bytes32 node) private view returns (bool) {
+        try payees.resolve(name, abi.encodeWithSelector(TEXT, node, "meigi.status")) returns (
+            bytes memory result
+        ) {
+            return keccak256(result) == keccak256(abi.encode("active"));
+        } catch {
+            return false;
         }
     }
 

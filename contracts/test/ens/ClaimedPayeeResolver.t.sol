@@ -117,7 +117,7 @@ contract ClaimedPayeeResolverTest is MeigiFixture {
         );
         assertEq(abi.decode(broken.resolve(name, coin60), (bytes)).length, 0);
         assertEq(abi.decode(broken.resolve(name, legalName), (string)), "", "never the profile's claim");
-        assertEq(abi.decode(broken.resolve(name, url), (string)), URL, "the profile itself still reads");
+        assertEq(abi.decode(broken.resolve(name, url), (string)), "", "no status, so no profile either");
     }
 
     function testFuzz_addr_neverFollowsTheProfile(address evil) public {
@@ -137,7 +137,17 @@ contract ClaimedPayeeResolverTest is MeigiFixture {
         assertEq(_addr(LABEL), address(0));
         assertEq(_text(LABEL, "meigi.status"), "disputed");
         assertEq(_text(LABEL, "name"), "", "a disputed payee publishes only its status");
-        assertEq(_text(LABEL, "url"), URL, "the company's own profile is unaffected");
+        assertEq(_text(LABEL, "url"), "", "nor its profile: there are competing claimants");
+    }
+
+    function test_text_profileReturnsOnceTheDisputeIsResolved() public {
+        _dispute();
+        vm.prank(governance);
+        registry.resolveDispute(_registration(VENDOR, payout, 1));
+        vm.warp(block.timestamp + CHANGE_DELAY);
+        registry.finalizeDispute(VENDOR);
+        assertEq(_text(LABEL, "url"), URL);
+        assertEq(_addr(LABEL), payout);
     }
 
     function test_text_profileKeysComeFromTheCompany() public view {
@@ -161,6 +171,7 @@ contract ClaimedPayeeResolverTest is MeigiFixture {
         bytes memory foreign = abi.encodePacked(uint8(14), LABEL, uint8(3), "eth", uint8(0)); // t...eth
         bytes memory call = abi.encodeWithSignature("text(bytes32,string)", bytes32(0), "url");
         assertEq(abi.decode(claimed.resolve(foreign, call), (string)), "", "wrong parent");
+        assertEq(_text("t8999900000001", "url"), "", "a profile for an unregistered T-number never shows");
         vm.prank(governance);
         claimed.setProfile(VENDOR, IExtendedResolver(address(0)));
         assertEq(_text(LABEL, "url"), "", "cleared profile");
