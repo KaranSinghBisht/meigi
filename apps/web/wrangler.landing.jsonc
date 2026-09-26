@@ -24,6 +24,15 @@
     "SETTLEMENT_TOKEN": "0xEcA2B093682a46B14b143474d188A120bA2d0EC2",
     // The x402 research agent's wallet (services/x402-demo): mJPYC is mintable, so only its transfers count.
     // Required, like SETTLEMENT_TOKEN.
-    "X402_BUYER": "0x708106dcdee19be75ffcd5df20cbb1b6b3089882"
-  }
+    "X402_BUYER": "0x708106dcdee19be75ffcd5df20cbb1b6b3089882",
+    // "Ask the ledger": questions for everyone per UTC day. Workers AI's free allocation is shared with the AP
+    // agent's own LLM calls, so this stays well under it.
+    "ASK_DAILY_CAP": "50"
+  },
+  // "Ask the ledger" (POST /api/ask): Workers AI as a binding (no key), 3 questions a minute per IP, and the daily
+  // cap counted by one SQLite-backed Durable Object.
+  "ai": { "binding": "AI" },
+  "ratelimits": [{ "name": "ASK_LIMITER", "namespace_id": "1701", "simple": { "limit": 3, "period": 60 } }],
+  "durable_objects": { "bindings": [{ "name": "ASK_QUOTA", "class_name": "AskQuota" }] },
+  "migrations": [{ "tag": "ask-quota-v1", "new_sqlite_classes": ["AskQuota"] }]
 }
