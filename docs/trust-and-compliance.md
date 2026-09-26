@@ -103,6 +103,25 @@ production step (roadmap, item 1).
 - An AI agent can't weigh a warning, so the AgentVault and the x402 guard hard-fail. People paying from a wallet
   should get a VoP-style advisory mode: warn, and allow an override.
 
+## For exchanges and wallets
+
+- **The rules today.**
+  - When an exchange sends crypto or electronic payment instruments to a wallet no other provider manages, no
+    travel-rule notice goes out. It must still record the beneficiary's name and the address (APTCP Ordinance
+    Art. 24 items 8(ハ) and 9(ハ)) [5].
+  - FSA guidelines and JVCEA rules also expect it to research the wallet's attributes (through the customer or its
+    own investigation), screen the beneficiary's name, and stop transfers it judges suspicious [17]–[20].
+  - The FSA and NPA's August 2026 request adds pre-registered withdrawal destinations, checked for links to fraud
+    [21].
+- **Where Meigi fits.** A customer may say a destination is a company's payout. The exchange can then confirm that
+  the address is the registered, undisputed payout for that T-number, record the exact registered name, and hold the
+  withdrawal on a mismatch. Wallets can run the same check before signing. It's a check the payer runs, not a gate
+  on the network.
+- **What it doesn't do.**
+  - It doesn't satisfy the travel rule.
+  - It doesn't replace the exchange's own collection, screening and risk assessment.
+  - It covers only registered companies, and their registration doesn't yet prove representation.
+
 ## Production roadmap
 
 1. **Representative binding.**
@@ -124,8 +143,10 @@ production step (roadmap, item 1).
    - METI doesn't guarantee accuracy [16], so a match supports a registration and a missing URL counts for nothing.
 3. **An on-chain pending window.** The verifier's objection window (above) moves into the registry, so a new number
    resolves to nothing until its window ends.
-4. **Keys.**
-   - k-of-n attesters with HSM or MPC custody.
+4. **Attesters and keys.**
+   - Attesters as stewards: k-of-n regulated parties that already verify companies (banks, exchanges, stablecoin
+     issuers, accounting firms), plus the company itself through its 商業登記電子証明書. Each keeps its key in an HSM or
+     MPC, and each can be revoked. The registry stays a public good that anyone reads through ENS.
    - The registry owner and `payee.eth` on a multisig behind a 72h timelock.
    - DNSSEC validation from several vantage points.
 5. **Assurance.**
@@ -158,3 +179,11 @@ production step (roadmap, item 1).
 15. gBizINFO API: https://content.info.gbiz.go.jp/api/index.html
 16. gBizINFO data sources and API terms: https://help.info.gbiz.go.jp/hc/ja/articles/4795050523806,
     https://help.info.gbiz.go.jp/hc/ja/articles/4999421139102
+17. FSA, supervisory guidelines for crypto-asset exchange service providers, II-2-1-4-2 ⑾:
+    https://www.fsa.go.jp/common/law/guide/kaisya/16.pdf
+18. FSA, supervisory guidelines for EPI service providers, II-2-1-2-2 ⑾: https://www.fsa.go.jp/common/law/guide/kaisya/17.pdf
+19. JVCEA, AML/CFT rules for crypto-asset exchange, Arts. 30–31:
+    https://jvcea.or.jp/cms2026/wp-content/uploads/2025/12/D16_1301_20251114.pdf
+20. JVCEA, AML/CFT rules for EPI business, Arts. 30–31: https://jvcea.or.jp/cms2026/wp-content/uploads/2026/06/3301_202606.pdf
+21. FSA and NPA, request to crypto-asset exchanges (6 Aug 2026), measure ④:
+    https://www.fsa.go.jp/news/r8/sonota/20260806/20260806.pdf
