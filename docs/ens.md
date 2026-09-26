@@ -85,6 +85,32 @@ to stop. The T-number name stays the only one.
 
 **The vault's primary name is `ap.meigi.eth`**, so wallets show the agent's name instead of `0x87A7…793B`.
 
+## Resolver partitioning: no role crosses names
+
+A PermissionedResolver scopes a setter role by record key, not by name: the role's resource is `keccak256(key)`. So a
+role reaches every name that one instance serves. ENS's answer (Example 5 in "Exploring subnames in ENSv2") is that
+the resolver instance is the trust boundary. Meigi deploys one instance per name through the VerifiableFactory.
+
+We checked each instance on-chain on 2026-09-26, reading its `Linked` events and role grants. Each instance links
+exactly one name:
+
+| Name | Its records live on | Who can write there |
+|---|---|---|
+| `meigi.eth` | [`0xE4B2…D406`](https://sepolia.etherscan.io/address/0xE4B229dD0e5119043Aa3c897Ae11Cc765DbFD406) | Meigi only |
+| `ap.meigi.eth` | [`0x047A…5716`](https://sepolia.etherscan.io/address/0x047A1B0E18fc4092706F7696ffeCF61625865716) | Meigi; the agent key, `agent-status` only |
+| `t2011001234567.payee.eth` | [`0xb698…EAf2`](https://sepolia.etherscan.io/address/0xb69807CdeD29d8F11b9E4dB83d7B5EfE7158EAf2) (profile text) | Meigi; the company, text only |
+| `t8999900000001.payee.eth` | [`0xb241…AeAe`](https://sepolia.etherscan.io/address/0xb24114377D3F7424316ff0dAE032C728C505AeAe) (profile text) | Meigi; the company, text only |
+
+- **The agent's `agent-status` role reaches no other name,** because `ap.meigi.eth` is the only name its instance
+  serves.
+- **A company's text role reaches no other company.** `ClaimedPayeeResolver` reads a claimed name's profile only from
+  that company's own instance (`profileOf(tNumber)`).
+- **Money records live on none of these instances.** PayeeResolver computes them from the registry on every lookup.
+- **Revoked `t6999900000003` left an instance (`0x6277…27f4`) that links no name,** and nothing reads it.
+
+One fixture detail: our two fictional companies share one demo key as their registered controller. That key edits
+both profiles because it controls each company, not because a resolver is shared.
+
 ## Payments check ENS
 
 - The x402 guard resolves a merchant's declared `t….payee.eth` with stock viem before the buyer signs.
