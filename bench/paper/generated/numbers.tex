@@ -282,9 +282,9 @@
 \newcommand{\NNTotal}{850}
 \newcommand{\NNTrain}{600}
 \newcommand{\NNVal}{100}
-\newcommand{\NOpenConclusion}{, and a Gemma 4 E2B fine-tuned on the same items is statistically tied with it}
-\newcommand{\NOpenModels}{We also fine-tuned instruction-tuned open models on the same 600 items with LoRA in mlx-lm~\cite{mlxlm2026} (rank 8, learning rate $2\times10^{-5}$, effective batch 4, loss on the answer JSON only): Gemma 4 E2B~\cite{google2026gemma4e2b} for 1 epoch to fit the overnight window (4 minutes) and Llama 3.2 3B~\cite{meta2024llama32} for 2 epochs (10 minutes). Each option is scored by its likelihood in that JSON, left to right. Qwen3-4B with the Kev recipe was not run: the overnight GPU window closed first (future work).}
-\newcommand{\NOpenResults}{ Of the open models, our Gemma 4 E2B fine-tune is statistically tied with payee-0.8b in accuracy (payee-0.8b's lead +2.0, CI [−1.2, +5.3]) but ranks safe against held items better (AUROC 0.990 against 0.944; the family-clustered interval contains zero); our Llama 3.2 3B fine-tune is less accurate (+3.7, [+0.7, +6.7]; the family-clustered interval contains zero).}
+\newcommand{\NOpenConclusion}{, and a Gemma 4 E2B fine-tuned on the same items is statistically tied with it in accuracy and ranks safe against held items better (item-level; the family-clustered interval includes zero)}
+\newcommand{\NOpenModels}{We also fine-tuned instruction-tuned open models on the same 600 items with LoRA in mlx-lm~\cite{mlxlm2026} (rank 8, learning rate $2\times10^{-5}$, effective batch 4, loss on the answer JSON only): Gemma 4 E2B~\cite{google2026gemma4e2b} for 1 epoch (4 minutes) to fit the overnight window and Llama 3.2 3B~\cite{meta2024llama32} for 2 epochs (10 minutes). Each option is scored by its likelihood in that JSON, left to right. Qwen3-4B with the Kev recipe was not run: the overnight GPU window closed first (future work).}
+\newcommand{\NOpenResults}{ Of the open models, our Gemma 4 E2B fine-tune is statistically tied with payee-0.8b in accuracy (payee-0.8b's lead +2.0, CI [−1.2, +5.3]) but ranks safe against held items better (AUROC 0.990 against 0.944; difference CI [−0.084, −0.016], though the family-clustered interval [−0.175, +0.007] contains zero); our Llama 3.2 3B fine-tune is less accurate (+3.7, [+0.7, +6.7]; the family-clustered interval contains zero).}
 \newcommand{\NOpusAuroc}{1.000}
 \newcommand{\NOpusBinSusp}{1.000}
 \newcommand{\NOpusBinSuspMass}{1.000}

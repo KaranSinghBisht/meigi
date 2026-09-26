@@ -371,15 +371,16 @@ PayeeBench-JA is synthetic and self-built: it measures how well a model learns o
 detection in real mail with OCR noise, threads and attachments. The test set is small and clustered: intervals are
 several points wide, family-clustered ones about twice as wide, and one or two items decide the \NBudget{} auto-clear
 figure. The test split was reused: the models were trained on an earlier build that differs only in identifiers,
-every model was scored once per build, the 4B was trained after the 0.8B's results were known, and the 0.8B was chosen
-on test. Each model was trained once, with one seed. The frontier rows are agents with context, reasoning and a shell,
+every model was scored once per build, the 4B was trained after the 0.8B's results were known and Gemma 4 E2B after
+Llama 3.2 3B's, and the 0.8B was chosen on test. Each model was trained once, with one seed; a first Llama 3.2 3B run at a
+higher learning rate diverged and was stopped unscored. The frontier rows are agents with context, reasoning and a shell,
 run once, with no latency and an estimated cost. TypeSafe's hosted System-1 model, Jev~\cite{typesafe_models}, was not
 evaluated.
 
 \textbf{Audit.} An AI auditing agent re-derived the headline numbers with independent code and found one bug, fixed
 throughout: a probability exactly on a bin edge fell into the lower bin, understating Llama's ECE
 (\NLlamaEceBeforeFix{}, now \NLlamaEce{}). Its other findings narrowed our claims and made the agent rows indicative. A
-second AI review recomputed the headline numbers, frontier rows included; the open-model rows came after it.
+second AI review recomputed the headline numbers, frontier rows included, and a third the open-model rows.
 
 \section{Conclusion}
 On PayeeBench-JA, a 0.8B decision model fine-tuned on \NNTrain{} synthetic items in \NTrainMin{} minutes on a laptop

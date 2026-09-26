@@ -36,8 +36,8 @@ def recipe(rec):
 
 def duration(name, run):
     epochs = run["epochs"]
-    return (f"{plain(name)}~\\cite{{{CITES[name]}}} for {epochs:g} epoch{'' if epochs == 1 else 's'}"
-            f"{SHORT_BECAUSE.get(name, '')} ({run['wall_seconds'] / 60:.0f} minutes)")
+    return (f"{plain(name)}~\\cite{{{CITES[name]}}} for {epochs:g} epoch{'' if epochs == 1 else 's'} "
+            f"({run['wall_seconds'] / 60:.0f} minutes){SHORT_BECAUSE.get(name, '')}")
 
 
 def sentence():
@@ -71,9 +71,20 @@ def clause(name, ana, first):
     if rank != "tied":
         conj = "but" if (rank == "ahead") != (verdict == "ahead") else "and"
         text += (f" {conj} ranks safe against held items {'better' if rank == 'ahead' else 'worse'} "
-                 f"(AUROC {ana['contenders'][name]['auroc_test']:.3f} against {ana['contenders'][names.OURS]['auroc_test']:.3f}"
-                 f"{FAMILY_NOTE if frontier_text.family_disagrees(auc) else ''})")
+                 f"(AUROC {ana['contenders'][name]['auroc_test']:.3f} against {ana['contenders'][names.OURS]['auroc_test']:.3f}; "
+                 f"difference CI {interval(auc['ci_items'])}{family_interval(auc)})")
     return text
+
+
+def interval(pair, digits=3):
+    return f"[{names.signed(pair[0], digits)}, {names.signed(pair[1], digits)}]"
+
+
+def family_interval(pair):
+    """The family-clustered interval of an AUROC difference, when it disagrees with the item-level one."""
+    if not frontier_text.family_disagrees(pair):
+        return ""
+    return f", though the family-clustered interval {interval(pair['ci_families'])} contains zero"
 
 
 def results(res, ana):
@@ -87,7 +98,13 @@ def conclusion(res, ana):
     close = [n for n in names.PLANNED if n in res["contenders"] and frontier_text.verdict(ana["vs_ours"][n]["all"]) != "behind"]
     if not close:
         return ""
-    words = [f"a {plain(n)} fine-tuned on the same items is "
-             + ("statistically tied with it" if frontier_text.verdict(ana["vs_ours"][n]["all"]) == "tied" else "more accurate")
-             for n in close]
+    words = []
+    for n in close:
+        acc, auc = ana["vs_ours"][n]["all"], ana["vs_ours"][n]["auroc"]
+        text = f"a {plain(n)} fine-tuned on the same items is " + (
+            "statistically tied with it in accuracy" if frontier_text.verdict(acc) == "tied" else "more accurate")
+        if frontier_text.verdict(auc) == "ahead":
+            caveat = "; the family-clustered interval includes zero" if frontier_text.family_disagrees(auc) else ""
+            text += f" and ranks safe against held items better (item-level{caveat})"
+        words.append(text)
     return ", and " + frontier_text.join(words)
