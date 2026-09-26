@@ -7,7 +7,7 @@ This small process holds the AgentVault's agent key and signs one call for it: `
   unknown fields are refused, so arbitrary calldata can't get through.
 - **Simulated first, every time.** `/pay` re-simulates inside the nonce lock and broadcasts only if that passes. An
   invoice whose payment is in flight is never sent twice.
-- **Its own rule, whatever the agent decided.** Above `SIGNER_HUMAN_ABOVE_YEN` (¥50,000), it signs only with a World ID
+- **Its own rule, whatever the agent decided.** Above `SIGNER_HUMAN_ABOVE_YEN` (¥150,000), it signs only with a World ID
   for Agents approval: an Orb-level ID token, at most `SIGNER_APPROVAL_MAX_AGE_S` (10 minutes) old, from the
   configured issuer and client. The agent forwards the approving token once, when a verified human has released the
   hold.

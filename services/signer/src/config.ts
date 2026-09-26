@@ -16,7 +16,7 @@ const schema = z.object({
   VAULT_ADDRESS: address,
   SIGNER_HOST: z.enum(["127.0.0.1", "::1"]).default("127.0.0.1"), // loopback only: the agent is its one caller
   SIGNER_PORT: z.coerce.number().int().min(1).max(65535).default(8796),
-  SIGNER_HUMAN_ABOVE_YEN: z.coerce.number().int().positive().default(50_000), // above this, a human's approval
+  SIGNER_HUMAN_ABOVE_YEN: z.coerce.number().int().positive().default(150_000), // above this, a human's approval
   SIGNER_APPROVAL_MAX_AGE_S: z.coerce.number().int().positive().default(600), // how fresh that approval must be
   WORLD_AGENTS_ISSUER: z.string().optional(), // when set, an approval must come from this issuer
   WORLD_AGENTS_CLIENT_ID: z.string().optional(), // and be for this client

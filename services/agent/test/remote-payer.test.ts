@@ -23,8 +23,8 @@ function setup(overrides: Partial<SignerPayer> = {}) {
   const app = createSignerApp({
     payer,
     token: TOKEN,
-    policy: { ceilingUnits: 50_000n * 10n ** 18n, ceilingYen: 50_000, maxAgeS: 600, now: () => NOW },
-    info: { agent: "0xa73b6418AadCd5C548eEfF828C31081cAe7FBA68", vault: "0x87A798CD92dE1340B1b761dd45196AC82bEF793B", chainId: 11155111, humanAboveYen: 50_000 },
+    policy: { ceilingUnits: 150_000n * 10n ** 18n, ceilingYen: 150_000, maxAgeS: 600, now: () => NOW },
+    info: { agent: "0xa73b6418AadCd5C548eEfF828C31081cAe7FBA68", vault: "0x87A798CD92dE1340B1b761dd45196AC82bEF793B", chainId: 11155111, humanAboveYen: 150_000 },
   });
   const fetcher = ((input: string, init?: RequestInit) => app.request(input.replace("http://127.0.0.1:8796", ""), init)) as typeof fetch;
   let polls = 0;
@@ -64,9 +64,9 @@ describe("the agent's remote payer against the signer", () => {
 
   it("gets the signer's refusal above its ceiling as an outcome, and forwards an approval", async () => {
     const { remote, sent } = setup();
-    expect(await remote.send(call(55_000))).toEqual({ ok: "refused", message: "The signer refused: a payment above ¥50,000 needs a verified human's approval." });
+    expect(await remote.send(call(160_000))).toEqual({ ok: "refused", message: "The signer refused: a payment above ¥150,000 needs a verified human's approval." });
     expect(sent).toEqual([]);
-    const outcome = await remote.send(call(55_000, { idToken: idToken({ acr: ORB_ACR, auth_time: NOW - 5 }) }));
+    const outcome = await remote.send(call(160_000, { idToken: idToken({ acr: ORB_ACR, auth_time: NOW - 5 }) }));
     expect(outcome).toMatchObject({ ok: true });
     expect(sent).toHaveLength(1);
   });
@@ -80,7 +80,7 @@ describe("the agent's remote payer against the signer", () => {
 
   it("reads the signer's identity, and fails with SignerUnavailable on a wrong token", async () => {
     const { remote } = setup();
-    expect(await remote.health()).toEqual({ agent: "0xa73b6418AadCd5C548eEfF828C31081cAe7FBA68", vault: "0x87A798CD92dE1340B1b761dd45196AC82bEF793B", chainId: 11155111, humanAboveYen: 50_000 });
+    expect(await remote.health()).toEqual({ agent: "0xa73b6418AadCd5C548eEfF828C31081cAe7FBA68", vault: "0x87A798CD92dE1340B1b761dd45196AC82bEF793B", chainId: 11155111, humanAboveYen: 150_000 });
     const { app } = setup();
     const stranger = createRemotePayer({ url: "http://127.0.0.1:8796", token: "wrong".repeat(10), fetch: ((i: string, init?: RequestInit) => app.request(i.replace("http://127.0.0.1:8796", ""), init)) as typeof fetch });
     await expect(stranger.simulate(call(1_000))).rejects.toMatchObject({ name: "SignerUnavailable", message: "the signer answered 401" });

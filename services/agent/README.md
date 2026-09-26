@@ -16,7 +16,7 @@ Every document goes through these layers. Only the kernel, and then the vault it
 | Kernel | Re-checks everything `payInvoice` checks against one chain snapshot. Every reason names the registered company. | `src/kernel/` |
 | Screening | Intercepta (Web3 Antivirus) quick-scan of the addresses involved. | `src/screening/` |
 | Human approval | A hold that is a judgement call (pressure, System-1's hold, the auto-clear budget) can be released by a verified human who proves with World App, freshly, for this one payment (World ID for Agents). | `src/approval/` |
-| Payment | Always simulates first; a simulated revert is decoded into a sentence and never broadcast. The signer signs, and applies its own ceiling: above ¥50,000 only with a verified human's approval. | `src/chain/remote-payer.ts`, `src/analysis/pay.ts`, `services/signer` |
+| Payment | Always simulates first; a simulated revert is decoded into a sentence and never broadcast. The signer signs, and applies its own ceiling: above ¥150,000 only with a verified human's approval. | `src/chain/remote-payer.ts`, `src/analysis/pay.ts`, `services/signer` |
 | Settlement | What was paid and received, from Curvegrid MultiBaas's event index (RPC logs as the fallback). | `src/multibaas/`, `src/history/`, `src/routes/payments.ts` |
 
 ## Endpoints
@@ -310,7 +310,7 @@ All settings come from the environment; see `.env.example`.
 | Triage | `TRIAGE_BACKENDS=systemone,proxy`, `SYSTEMONE_URL=http://127.0.0.1:8102/v1/systemone`, `TRIAGE_MIN_P_SAFE=0.9`, `TRIAGE_REQUIRED=true` |
 | LLM | `LLM_PROVIDER=local` (the default for demos: a model on this machine behind an OpenAI-compatible API, `LOCAL_LLM_URL=http://127.0.0.1:11434/v1`, `LOCAL_LLM_MODEL=llama3.1:8b`, `LOCAL_LLM_TIMEOUT_MS=60000`), `proxy` (Llama 3.3 via `AI_PROXY_URL/v1/chat` with `AI_PROXY_TOKEN`), `anthropic` (`ANTHROPIC_API_KEY`, `claude-haiku-4-5`), `workers-ai` or `none` |
 | Screening | `INTERCEPTA_API_KEY` (optional), `INTERCEPTA_CACHE_PATH=../../data/agent/intercepta-cache.json`, `INTERCEPTA_MAX_CALLS=900`, `INTERCEPTA_TOXIC_THRESHOLD=50` |
-| Judgement holds | `TRIAGE_MAX_PRESSURE=0.5`, `AUTO_CLEAR_MAX_YEN` (unset: the signer's ceiling, ¥50,000, is the budget) |
+| Judgement holds | `TRIAGE_MAX_PRESSURE=0.5`, `AUTO_CLEAR_MAX_YEN` (unset: the signer's ceiling, ¥150,000, is the budget) |
 | Signer | `AGENT_ADDRESS`, `SIGNER_URL=http://127.0.0.1:8796`, `SIGNER_TOKEN` (the same value as in `.env.signer`) |
 | Audit log | `AUDIT_LOG_PATH` (default `../../data/agent/audit-<CHAIN_ID>.jsonl`, relative to services/agent) |
 | Settlement history | `MULTIBAAS_URL` and `MULTIBAAS_API_KEY` (the agent's chain), `MULTIBAAS_AWAJI_URL` and `MULTIBAAS_AWAJI_API_KEY` (Mizuhiki Awaji); each pair both or neither, https only. `HISTORY_FROM_BLOCK` (RPC log scans; default 11781105 on Sepolia, 0 elsewhere) |
