@@ -1,8 +1,7 @@
 # Landing page spec: "Sakasa Fuji" (逆さ富士)
 
 The first ten seconds of the demo video and the showcase link. It leads into the main app, which lives at a
-separate URL. Layout ideas were inspired by the *hyper* landing (HackMIT 2026). All code and assets here are
-our own, written from scratch.
+separate URL. All code and assets here are our own, written from scratch.
 
 ## The idea in one line
 
