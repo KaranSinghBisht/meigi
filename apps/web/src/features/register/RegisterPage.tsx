@@ -1,39 +1,33 @@
-import { Link } from 'react-router'
-import { FIXTURE_T_NUMBER } from '../../lib/chain/tNumber'
-import { DemoMachine } from '../../ui/demo/DemoMachine'
-import { ServiceGate } from '../../ui/demo/ServiceGate'
+import { useSearchParams } from 'react-router'
+import { useServiceStatus } from '../../lib/hooks/useServiceStatus'
+import { Spinner } from '../../ui/components/Spinner'
+import { RegisterReplay } from './replay/RegisterReplay'
 import { OnboardingWizard } from './wizard/OnboardingWizard'
-import { ProgressRail } from './wizard/ProgressRail'
 import './register.css'
 
-/** The public site: registering needs the verifier, which signs as the attester on the demo machine. */
-function RegisterHosted() {
-  return (
-    <div className="onboard onboard--preview window cells">
-      <ProgressRail current={-1} />
-      <div className="onboard__stage">
-        <DemoMachine
-          service="verifier"
-          what="Registering a company"
-          why="it checks the NTA registry, the DNS proof and each officer's World ID, then writes the payee as the attester"
-        >
-          <p>
-            The result is public:{' '}
-            <Link to={`/registry/${FIXTURE_T_NUMBER}`}>see a registered payee live in the registry →</Link>
-          </p>
-        </DemoMachine>
+/**
+ * The live wizard when the verifier can be reached (localhost, the booth); otherwise a replay of a real registration
+ * in the same window. The same check ServiceGate makes, with no wording of its own. `?replay` shows the replay anyway.
+ */
+function RegisterGate() {
+  const status = useServiceStatus('verifier')
+  const [params] = useSearchParams()
+  if (params.has('replay')) return <RegisterReplay />
+  if (status === 'checking') {
+    return (
+      <div className="register__checking">
+        <Spinner label="Loading" />
       </div>
-    </div>
-  )
+    )
+  }
+  return status === 'up' ? <OnboardingWizard /> : <RegisterReplay />
 }
 
 export default function RegisterPage() {
   return (
     <div className="register">
       <h1 className="sr-only">Register your company on Meigi</h1>
-      <ServiceGate service="verifier" fallback={<RegisterHosted />}>
-        <OnboardingWizard />
-      </ServiceGate>
+      <RegisterGate />
     </div>
   )
 }

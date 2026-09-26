@@ -170,28 +170,12 @@
   font-weight: var(--weight-strong);
 }
 
-/* The hosted site: the steps as a preview beside the note that the verifier runs on the demo machine. */
-.onboard--preview {
-  min-height: 0;
-}
-
-.onboard--preview .onboard__stage {
+/* While the page checks whether the verifier can be reached (on the hosted site, a moment). */
+.register__checking {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-content: center;
-}
-
-/* The note is a cell of this window: no fill, light, blur or padding of its own. */
-.onboard--preview .demo-machine {
-  padding: 0;
-  background: none;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-  box-shadow: none;
-}
-
-.onboard--preview .demo-machine::before {
-  display: none;
+  min-height: 40vh;
+  place-items: center;
+  color: var(--ink-soft);
 }
 
 /* The window folds when it is narrow, whatever makes it so: a phone, a tablet, or the sidebar beside it. */
