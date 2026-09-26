@@ -16,8 +16,8 @@ const STATUS: readonly { readonly id: string; readonly tone: Tone; readonly labe
   { id: 'hold', tone: 'hold', label: 'Held' },
   { id: 'refused', tone: 'bad', label: 'Refused by the vault' },
   { id: 'draft', tone: 'info', label: 'Draft reply ready for review' },
-  { id: 'human', tone: 'hold', label: 'Waiting for a verified human' },
-  { id: 'approved', tone: 'ok', label: 'Approved by a verified human' },
+  { id: 'human', tone: 'hold', label: 'Waiting for World ID approval' },
+  { id: 'approved', tone: 'ok', label: 'Approved with World ID' },
   { id: 'paid', tone: 'ok', label: 'Paid' },
   { id: 'x402', tone: 'ink', label: 'Guarding x402 payments' },
 ]

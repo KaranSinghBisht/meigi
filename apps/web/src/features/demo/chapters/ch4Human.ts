@@ -1,4 +1,4 @@
-// Chapter 4 (0:58–1:22): a genuine but urgent invoice is held for a person; a verified human approves it through
+// Chapter 4 (0:58–1:22): a genuine but urgent invoice is held for a person; a human approves it through
 // World ID for Agents, and only then does the vault pay.
 
 import type { BuildCtx, ChapterDef } from '../engine/types'
@@ -100,8 +100,8 @@ export const chapter4: ChapterDef = {
   duration: 24,
   captions: [
     { at: 0, text: 'A real invoice, but it pushes for speed (至急).' },
-    { at: 9.4, text: 'The agent asks a verified human through World ID.' },
-    { at: 12.2, text: 'One fresh human proof, bound to this invoice, single-use.' },
+    { at: 9.4, text: 'The agent asks a human to approve with World ID for Agents, on World’s sandbox.' },
+    { at: 12.2, text: 'One fresh World ID proof, bound to this invoice, single-use.' },
     { at: 16.2, text: 'Only now does it pay, still through the vault’s checks.' },
   ],
   build(c) {

@@ -78,7 +78,7 @@ function DecisionCard() {
     <Card name="u-card-decision" title="3 · Decision" meta="a person decides">
       <p className="pverdict">
         <Chip tone="hold">HOLD</Chip>
-        <span className="pverdict__line">for a verified human</span>
+        <span className="pverdict__line">until a human approves with World ID</span>
       </p>
       <ol className="preasons">
         {URGENT.holds.map((reason) => (
@@ -87,7 +87,9 @@ function DecisionCard() {
           </li>
         ))}
       </ol>
-      <p className="pcard__note">A verified human may release these holds. Nothing is paid until then.</p>
+      <p className="pcard__note">
+        A human approving through World ID for Agents may release these holds. Nothing is paid until then.
+      </p>
     </Card>
   )
 }
@@ -114,14 +116,15 @@ function WorldIdCard() {
       <div className="pworld__status">
         <p className="pcard__row pworld__wait" data-d="u-world-wait">
           <Spinner />
-          <span>Waiting for a verified human</span>
+          <span>Waiting for a human to approve this payment with World ID</span>
         </p>
         <p className="pcard__row pworld__ok" data-d="u-world-ok" data-enter="">
           <HankoMark glyphs="承認" tone="jade" size={36} />
           <span>
             <b>Approved by the enrolled approver</b>
             <span className="pcard__note">
-              acr {APPROVAL.acr} · amr {APPROVAL.amr} · fresh auth_time · single-use, bound to {URGENT.invoice}
+              Sandbox token: acr {APPROVAL.acr} · amr {APPROVAL.amr} · fresh auth_time · single-use, bound to{' '}
+              {URGENT.invoice}
             </span>
           </span>
         </p>

@@ -1,11 +1,11 @@
-// Chapter 4: a genuine but urgent invoice, the agent's real reading of it, and the real payment a verified human
+// Chapter 4: a genuine but urgent invoice, the agent's real reading of it, and the real payment a human
 // approved through World ID for Agents.
 //
 // The invoice is services/agent/scripts/demo-invoices/07-urgent-invoice.ja.txt under the number the paid
 // transaction used: its InvoicePaid invoiceRef is keccak256("T2011001234567|MS-2026-0940"). The analysis is the
 // local agent's answer for that exact text (Sepolia, 2026-09-26). It was recorded after the payment, so its kernel
 // now also says "already paid": the chapter shows the reading and the triage, and of the verdict only the holds a
-// verified human may release (triage and pressure), which is what the approval released before the payment.
+// human may release through World ID for Agents (triage and pressure), which is what the approval released before the payment.
 
 import { parseAnalysis } from '../../../lib/api/agentParse'
 import { shortAddress, shortHash } from '../../../lib/chain/format'

@@ -101,9 +101,9 @@ with no code change.
 
 | t | Browser | Agent panel | Caption |
 |---|---|---|---|
-| 1:22 | A new mail: 【至急】ご請求書送付のお知らせ from the real `meigi-shoji.example`, with a PDF chip; the invoice is MS-2026-0940, the number the paid tx's invoiceRef commits to | Read → Triage: pressure high → **Hold for a verified human** | "A real invoice, but it pushes for speed (至急)." |
-| 1:28 | — | The World ID for Agents card: QR code, link and user code; "Waiting for a verified human" | "The agent asks a verified human through World ID." |
-| 1:32 | A phone mock slides in beside the browser: World ID approve screen → Face check → **Approved** | The card goes green: "Approved by the enrolled approver · orb-v3 · fresh" | "One fresh human proof, bound to this invoice, single-use." |
+| 1:22 | A new mail: 【至急】ご請求書送付のお知らせ from the real `meigi-shoji.example`, with a PDF chip; the invoice is MS-2026-0940, the number the paid tx's invoiceRef commits to | Read → Triage: pressure high → **Hold until a human approves with World ID** | "A real invoice, but it pushes for speed (至急)." |
+| 1:28 | — | The World ID for Agents card: QR code, link and user code; "Waiting for a human to approve this payment with World ID" | "The agent asks a human to approve with World ID for Agents, on World's sandbox." |
+| 1:32 | A neutral approver's screen slides in beside the browser: World ID approve screen → "World ID proof: a fresh proof, from a sandbox identity" (World's sandbox uses test identities, so no face check is shown) → **Approved** | The card goes green: "Approved by the enrolled approver · Sandbox token: acr orb-v3 · fresh" | "One fresh World ID proof, bound to this invoice, single-use." |
 | 1:38 | — | Pay → chain log: `payInvoice` → **Paid ¥55,000 to 0x9B4f…47e4** · tx `0xf15571d7…0c48` (real Sepolia) | "Only now does it pay, still through the vault's checks." |
 | 1:43 | The mail gets a green "Paid" label | — | — |
 
