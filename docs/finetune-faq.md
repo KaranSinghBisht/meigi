@@ -65,7 +65,7 @@ No test item was used for training, calibration, threshold choice or any recipe 
 - **Hard negatives** a naive model gets wrong: an announced, legitimate bank change; an urgent overdue notice to the
   same account; an office relocation notice.
 - **Leakage guards:** test uses test-only layouts, phrasings and entities. It shares 0 companies, people or accounts
-  with train, and 0 of 90 template choices. Nearest-neighbour text similarity is 0.16 for test, against 0.48 for
+  with train, and 0 of 90 template choices. Nearest-neighbour text similarity is 0.16 for test, against 0.47 for
   validation.
 - **Every identifier is provably fictional:** T-numbers use registry office 9999, which no corporation has. Company
   names are checked against all 5.79M NTA corporate-number records (closed included), and phone numbers use exchanges

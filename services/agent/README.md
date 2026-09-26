@@ -358,7 +358,7 @@ p_safe = P(routine_invoice or credit_note) × P(no new destination) × P(suspici
 ```
 
 A document auto-clears when `p_safe ≥ TRIAGE_MIN_P_SAFE`. PayeeBench's thresholds for payee-0.8b at a 1% error
-budget are 0.880 (deployed) and 0.903 (oracle). A System-1 `credit_note` answer always blocks payment.
+budget are 0.884 (deployed) and 0.905 (oracle). A System-1 `credit_note` answer always blocks payment.
 
 ### Where Intercepta is called
 
