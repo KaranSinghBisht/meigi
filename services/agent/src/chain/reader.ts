@@ -20,6 +20,7 @@ export interface ReaderOptions {
   registry: Address; // must equal vault.registry()
   token?: Address; // if set, must equal vault.token()
   gate?: Address; // MANDATE_GATE_ADDRESS: the vault's agent may be this MandateGate instead of the key
+  mandate?: { principal: bigint; label: string }; // MANDATE_PRINCIPAL and MANDATE_LABEL: what the gate must enforce
 }
 
 interface Contracts {
@@ -154,13 +155,16 @@ async function loadContracts(opts: ReaderOptions): Promise<Contracts> {
   const [decimals, symbol, mandateName] = await Promise.all([
     opts.client.readContract({ ...token, functionName: "decimals" }),
     opts.client.readContract({ ...token, functionName: "symbol" }),
-    opts.gate ? gateMandateName(opts.client, opts.gate, opts.vault) : Promise.resolve(null),
+    opts.gate ? gateMandateName(opts.client, opts.gate, opts.vault, opts.mandate) : Promise.resolve(null),
   ]);
   return { registry, token: { address: tokenAddress, symbol, decimals }, mandateName };
 }
 
-/** The gate's mandate name, once: its label and principal never change. The gate must forward to our vault. */
-async function gateMandateName(client: PublicClient, gate: Address, vault: Address): Promise<string> {
+/**
+ * The gate's mandate name, once: its label and principal never change. The gate must forward to our vault, and
+ * enforce the configured company's mandate: a gate for another principal could still name this key.
+ */
+async function gateMandateName(client: PublicClient, gate: Address, vault: Address, expected?: { principal: bigint; label: string }): Promise<string> {
   const g = { address: gate, abi: mandateGateAbi } as const;
   const [gateVault, label, principal] = await Promise.all([
     client.readContract({ ...g, functionName: "vault" }),
@@ -168,7 +172,11 @@ async function gateMandateName(client: PublicClient, gate: Address, vault: Addre
     client.readContract({ ...g, functionName: "principal" }),
   ]);
   if (getAddress(gateVault) !== getAddress(vault)) throw new ConfigMismatchError(`MANDATE_GATE_ADDRESS forwards to ${gateVault}, not VAULT_ADDRESS ${vault}`);
-  return `${label}.t${principal.toString().padStart(13, "0")}.payee.eth`;
+  const name = `${label}.t${principal.toString().padStart(13, "0")}.payee.eth`;
+  if (!expected || expected.principal !== principal || expected.label !== label) {
+    throw new ConfigMismatchError(`MANDATE_GATE_ADDRESS enforces ${name}, not the configured MANDATE_LABEL / MANDATE_PRINCIPAL`);
+  }
+  return name;
 }
 
 /**

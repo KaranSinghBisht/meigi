@@ -10,7 +10,9 @@ const GATE = "0x6a7e000000000000000000000000000000000002" as Address;
 const OTHER = "0x0000000000000000000000000000000000000bad" as Address;
 
 const direct = (over: Partial<RouteFacts> = {}): RouteFacts => ({ key: KEY, vault: VAULT, owner: OWNER, vaultAgent: KEY, viaGate: false, gate: null, ...over });
-const gated = (over: Partial<RouteFacts> = {}): RouteFacts => direct({ viaGate: true, gate: GATE, vaultAgent: GATE, gateVault: VAULT, holder: KEY, ...over });
+const MANDATE = { principal: 4999900000005n, label: "ap" };
+const gated = (over: Partial<RouteFacts> = {}): RouteFacts =>
+  direct({ viaGate: true, gate: GATE, mandate: MANDATE, vaultAgent: GATE, gateVault: VAULT, gatePrincipal: 4999900000005n, gateLabel: "ap", holder: KEY, ...over });
 
 describe("where the signer sends payInvoice", () => {
   it("pays the vault directly by default, while its agent is this key", () => {
@@ -33,10 +35,17 @@ describe("where the signer sends payInvoice", () => {
     expect(() => routeOf(gated({ gate: null }))).toThrow(/needs MANDATE_GATE_ADDRESS/u);
   });
 
+  it("refuses a gate that enforces another company's mandate, even one that names this key", () => {
+    expect(() => routeOf(gated({ gatePrincipal: 6999900000003n }))).toThrow(/enforces the mandate ap\.t6999900000003, not ap\.t4999900000005/u);
+    expect(() => routeOf(gated({ gateLabel: "treasury" }))).toThrow(/enforces the mandate treasury\.t4999900000005/u);
+    expect(() => routeOf(gated({ mandate: undefined }))).toThrow(/needs MANDATE_PRINCIPAL/u);
+  });
+
   it("is off by default in the config, and on only with a gate address", () => {
     const required = { AGENT_PRIVATE_KEY: `0x${"11".repeat(32)}`, SIGNER_TOKEN: "t".repeat(64), SEPOLIA_RPC_URL: "http://127.0.0.1:8545", VAULT_ADDRESS: VAULT };
     expect(loadConfig(required).SIGNER_VIA_GATE).toBe("0");
     expect(() => loadConfig({ ...required, SIGNER_VIA_GATE: "1" })).toThrow(ConfigError);
-    expect(loadConfig({ ...required, SIGNER_VIA_GATE: "1", MANDATE_GATE_ADDRESS: GATE }).SIGNER_VIA_GATE).toBe("1");
+    expect(() => loadConfig({ ...required, SIGNER_VIA_GATE: "1", MANDATE_GATE_ADDRESS: GATE })).toThrow(/MANDATE_PRINCIPAL/u);
+    expect(loadConfig({ ...required, SIGNER_VIA_GATE: "1", MANDATE_GATE_ADDRESS: GATE, MANDATE_PRINCIPAL: "4999900000005" })).toMatchObject({ SIGNER_VIA_GATE: "1", MANDATE_LABEL: "ap" });
   });
 });

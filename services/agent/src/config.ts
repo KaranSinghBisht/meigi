@@ -27,6 +27,8 @@ const schema = z
     // and a payment needs the buyer company's mandate to answer. 0, the default: the vault's agent is AGENT_ADDRESS.
     SIGNER_VIA_GATE: z.enum(["0", "1"]).default("0"),
     MANDATE_GATE_ADDRESS: optional(address),
+    MANDATE_PRINCIPAL: optional(z.string().regex(/^\d{13}$/u)), // the buyer company whose mandate the gate must enforce
+    MANDATE_LABEL: z.string().regex(/^[a-z0-9-]{1,63}$/u).default("ap"),
     VENDOR_T_NUMBERS: z.string().default("2011001234567"),
     AGENT_PORT: z.coerce.number().int().positive().default(8788),
     AGENT_HOST: z.string().default("127.0.0.1"), // 0.0.0.0 to serve the LAN (then set AGENT_API_TOKEN)
@@ -93,6 +95,7 @@ const schema = z
     };
     require("ANTHROPIC_API_KEY", env.LLM_PROVIDER === "anthropic" && !env.ANTHROPIC_API_KEY);
     require("MANDATE_GATE_ADDRESS", env.SIGNER_VIA_GATE === "1" && !env.MANDATE_GATE_ADDRESS, "required by SIGNER_VIA_GATE=1");
+    require("MANDATE_PRINCIPAL", env.SIGNER_VIA_GATE === "1" && !env.MANDATE_PRINCIPAL, "required by SIGNER_VIA_GATE=1");
     require("AI_PROXY_URL", env.LLM_PROVIDER === "proxy" && !env.AI_PROXY_URL);
     require("AI_PROXY_TOKEN", env.LLM_PROVIDER === "proxy" && !env.AI_PROXY_TOKEN);
     // The account is on Workers Paid, and only workers/ai-proxy keeps a daily budget. So the two paths that call

@@ -78,8 +78,9 @@ describe("paying through the buyer company's ENS mandate", () => {
   it("is off unless SIGNER_VIA_GATE=1, which needs the gate's address", () => {
     const env = { SEPOLIA_RPC_URL: "http://127.0.0.1:8547", AGENT_ADDRESS: AGENT, SIGNER_TOKEN: "s".repeat(64), REGISTRY_ADDRESS: `0x${"22".repeat(20)}`, VAULT_ADDRESS: `0x${"33".repeat(20)}` };
     expect(loadConfig(env).SIGNER_VIA_GATE).toBe("0");
-    expect(() => loadConfig({ ...env, SIGNER_VIA_GATE: "1" })).toThrow("MANDATE_GATE_ADDRESS");
-    expect(loadConfig({ ...env, SIGNER_VIA_GATE: "1", MANDATE_GATE_ADDRESS: GATE })).toMatchObject({ SIGNER_VIA_GATE: "1", MANDATE_GATE_ADDRESS: GATE });
+    expect(() => loadConfig({ ...env, SIGNER_VIA_GATE: "1" })).toThrow("MANDATE_GATE_ADDRESS, MANDATE_PRINCIPAL");
+    const on = { ...env, SIGNER_VIA_GATE: "1", MANDATE_GATE_ADDRESS: GATE, MANDATE_PRINCIPAL: "4999900000005" };
+    expect(loadConfig(on)).toMatchObject({ SIGNER_VIA_GATE: "1", MANDATE_GATE_ADDRESS: GATE, MANDATE_LABEL: "ap" });
   });
 
   it("shows the mandate in GET /vault, and counts its holder as authorised", async () => {

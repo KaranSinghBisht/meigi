@@ -28,7 +28,10 @@ export interface RouteFacts {
   vaultAgent: Address;
   viaGate: boolean; // SIGNER_VIA_GATE=1
   gate: Address | null; // MANDATE_GATE_ADDRESS, required when viaGate
+  mandate?: { principal: bigint; label: string }; // MANDATE_PRINCIPAL and MANDATE_LABEL: the mandate this gate must enforce
   gateVault?: Address; // gate.vault(), read only when viaGate
+  gatePrincipal?: bigint; // gate.principal()
+  gateLabel?: string; // gate.label()
   holder?: Address; // gate.holder(): the key the mandate authorises, zero while it doesn't answer
 }
 
@@ -46,6 +49,12 @@ export function routeOf(facts: RouteFacts): Route {
   if (!facts.gateVault || !same(facts.gateVault, facts.vault)) {
     throw new RouteError(`MANDATE_GATE_ADDRESS forwards to ${facts.gateVault ?? "an unknown vault"}, not the vault ${facts.vault}`);
   }
+  // A gate deployed for another company's mandate could still name this key: it must enforce the configured one.
+  if (!facts.mandate) throw new RouteError("SIGNER_VIA_GATE=1 needs MANDATE_PRINCIPAL (and MANDATE_LABEL)");
+  if (facts.gatePrincipal !== facts.mandate.principal || facts.gateLabel !== facts.mandate.label) {
+    const got = `${facts.gateLabel ?? "?"}.t${facts.gatePrincipal ?? "?"}`;
+    throw new RouteError(`MANDATE_GATE_ADDRESS enforces the mandate ${got}, not ${facts.mandate.label}.t${facts.mandate.principal} (MANDATE_LABEL, MANDATE_PRINCIPAL)`);
+  }
   const holder = facts.holder ?? zeroAddress;
   if (!same(holder, facts.key)) {
     const why = same(holder, zeroAddress) ? "doesn't answer (revoked, expired or frozen)" : `authorises ${holder}`;
@@ -55,14 +64,24 @@ export function routeOf(facts: RouteFacts): Route {
 }
 
 /** Reads the facts the route depends on. */
-export async function readRoute(client: PublicClient, key: Address, vault: Address, via: { viaGate: boolean; gate: Address | null }): Promise<Route> {
+export interface RouteSettings {
+  viaGate: boolean;
+  gate: Address | null;
+  mandate?: { principal: bigint; label: string };
+}
+
+export async function readRoute(client: PublicClient, key: Address, vault: Address, settings: RouteSettings): Promise<Route> {
   const at = { address: vault, abi: agentVaultAbi } as const;
   const [vaultAgent, owner] = await Promise.all([client.readContract({ ...at, functionName: "agent" }), client.readContract({ ...at, functionName: "owner" })]);
-  const { viaGate, gate } = via;
-  const facts: RouteFacts = { key, vault, owner, vaultAgent, viaGate, gate };
-  if (viaGate && gate) {
-    const g = { address: gate, abi: mandateGateAbi } as const;
-    [facts.gateVault, facts.holder] = await Promise.all([client.readContract({ ...g, functionName: "vault" }), client.readContract({ ...g, functionName: "holder" })]);
+  const facts: RouteFacts = { key, vault, owner, vaultAgent, ...settings };
+  if (settings.viaGate && settings.gate) {
+    const g = { address: settings.gate, abi: mandateGateAbi } as const;
+    [facts.gateVault, facts.gatePrincipal, facts.gateLabel, facts.holder] = await Promise.all([
+      client.readContract({ ...g, functionName: "vault" }),
+      client.readContract({ ...g, functionName: "principal" }),
+      client.readContract({ ...g, functionName: "label" }),
+      client.readContract({ ...g, functionName: "holder" }),
+    ]);
   }
   return routeOf(facts);
 }

@@ -42,8 +42,9 @@ This small process holds the AgentVault's agent key and signs one call for it: `
   arguments) only while that name answers and is held by this key.
   - With `SIGNER_VIA_GATE=1` and `MANDATE_GATE_ADDRESS`, the signer sends `payInvoice` to the gate, still typed fields
     only and simulated first.
-  - The startup check is strict: the gate must be the vault's agent, forward to this vault, and name this key as
-    the mandate's holder. Otherwise the signer refuses to start. Once it is running, a revoked mandate comes back
+  - The startup check is strict. The gate must be the vault's agent, forward to this vault, enforce the configured
+    mandate (`MANDATE_PRINCIPAL`, `MANDATE_LABEL`, default `ap`; a gate for another company could still name this
+    key), and name this key as the mandate's holder. Otherwise the signer refuses to start. Once it is running, a revoked mandate comes back
     as `MandateNotLive`, which the agent shows as a hold.
   - With the default `SIGNER_VIA_GATE=0`, the vault's agent must be this key. The rollback is
     `vault.setAgent(<this key>)`, `SIGNER_VIA_GATE=0`, and a restart.

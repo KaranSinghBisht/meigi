@@ -18,6 +18,8 @@ const schema = z.object({
   // 0, the default: pay the vault directly, as its agent.
   SIGNER_VIA_GATE: z.enum(["0", "1"]).default("0"),
   MANDATE_GATE_ADDRESS: address.optional(),
+  MANDATE_PRINCIPAL: z.string().regex(/^\d{13}$/u, "must be the company's 13-digit T-number").optional(), // the buyer company whose mandate the gate must enforce
+  MANDATE_LABEL: z.string().regex(/^[a-z0-9-]{1,63}$/u).default("ap"), // the mandate's label: ap.t<principal>.payee.eth
   SIGNER_HOST: z.enum(["127.0.0.1", "::1"]).default("127.0.0.1"), // loopback only: the agent is its one caller
   SIGNER_PORT: z.coerce.number().int().min(1).max(65535).default(8796),
   SIGNER_HUMAN_ABOVE_YEN: z.coerce.number().int().positive().default(150_000), // above this, a human's approval
@@ -50,7 +52,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     throw new ConfigError(problems.join("; "));
   }
   const config = parsed.data;
-  if (config.SIGNER_VIA_GATE === "1" && !config.MANDATE_GATE_ADDRESS) throw new ConfigError("SIGNER_VIA_GATE=1 needs MANDATE_GATE_ADDRESS");
+  if (config.SIGNER_VIA_GATE === "1" && (!config.MANDATE_GATE_ADDRESS || !config.MANDATE_PRINCIPAL)) {
+    throw new ConfigError("SIGNER_VIA_GATE=1 needs MANDATE_GATE_ADDRESS and MANDATE_PRINCIPAL");
+  }
   if (config.SIGNER_VERIFY_APPROVAL === "1") {
     if (!config.WORLD_AGENTS_ISSUER || !config.WORLD_AGENTS_CLIENT_ID) {
       throw new ConfigError("SIGNER_VERIFY_APPROVAL=1 needs WORLD_AGENTS_ISSUER and WORLD_AGENTS_CLIENT_ID");

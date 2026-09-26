@@ -9,7 +9,7 @@ import { createPublicClient, http, parseEventLogs, type Hex, type PublicClient }
 import { foundry } from "viem/chains";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { hasFoundry } from "../../scripts/stack/anvil.js";
-import { deployMandate, type MandateWorld } from "../../scripts/stack/mandate.js";
+import { deployMandate, PRINCIPAL, type MandateWorld } from "../../scripts/stack/mandate.js";
 import { agentEnv, signerEnv, startLocalStack, type LocalStack } from "../../scripts/stack/stack.js";
 import { createApp } from "../../src/app.js";
 import { loadConfig } from "../../src/config.js";
@@ -36,7 +36,7 @@ describe.skipIf(!hasFoundry())("paying through the ENS mandate on anvil", () => 
     stack = await startLocalStack({ port: Number(process.env.ANVIL_PORT ?? 8557) });
     world = await deployMandate(stack);
     dir = mkdtempSync(join(tmpdir(), "meigi-mandate-it-"));
-    const gated = { SIGNER_VIA_GATE: "1", MANDATE_GATE_ADDRESS: world.gate };
+    const gated = { SIGNER_VIA_GATE: "1", MANDATE_GATE_ADDRESS: world.gate, MANDATE_PRINCIPAL: PRINCIPAL.toString() };
     const started = await startSigner(loadSignerConfig({ ...signerEnv(stack, { port: 8798, token: TOKEN }), ...gated }));
     signer = await new Promise<ServerType>((resolve) => {
       const server = serve({ fetch: started.app.fetch, port: 0, hostname: "127.0.0.1" }, () => resolve(server));
@@ -112,7 +112,11 @@ describe.skipIf(!hasFoundry())("paying through the ENS mandate on anvil", () => 
     const off = { ...signerEnv(stack, { port: 8798, token: TOKEN }), MANDATE_GATE_ADDRESS: world.gate }; // SIGNER_VIA_GATE defaults to 0
     await expect(startSigner(loadSignerConfig(off))).rejects.toThrow(/set SIGNER_VIA_GATE=1/u);
     await world.revoke();
-    const gated = { SIGNER_VIA_GATE: "1", MANDATE_GATE_ADDRESS: world.gate };
+    const gated = { SIGNER_VIA_GATE: "1", MANDATE_GATE_ADDRESS: world.gate, MANDATE_PRINCIPAL: PRINCIPAL.toString() };
+    const otherCompany = { ...signerEnv(stack, { port: 8798, token: TOKEN }), ...gated, MANDATE_PRINCIPAL: "6999900000003" };
+    await expect(startSigner(loadSignerConfig(otherCompany))).rejects.toThrow(/enforces the mandate ap\.t4999900000005/u);
+    const agentConfig = loadConfig({ ...agentEnv(stack, { url: "http://127.0.0.1:1", token: TOKEN }), ...gated, MANDATE_PRINCIPAL: "6999900000003", LLM_PROVIDER: "none", INTERCEPTA_CACHE_PATH: join(dir, "i2.json"), AUDIT_LOG_PATH: join(dir, "a2.jsonl") });
+    await expect(buildDeps(agentConfig).init()).rejects.toThrow(/enforces ap\.t4999900000005\.payee\.eth, not the configured/u);
     await expect(startSigner(loadSignerConfig({ ...signerEnv(stack, { port: 8798, token: TOKEN }), ...gated }))).rejects.toThrow(/doesn't answer/u);
     await world.issue();
   });

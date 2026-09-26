@@ -68,7 +68,11 @@ export async function startSigner(config: Config, options: StartOptions = {}): P
   const vault = { address: config.VAULT_ADDRESS as Address, abi: agentVaultAbi } as const;
   const gate = config.MANDATE_GATE_ADDRESS ? getAddress(config.MANDATE_GATE_ADDRESS) : null;
   const [route, token] = await Promise.all([
-    readRoute(publicClient, account.address, vault.address, { viaGate: config.SIGNER_VIA_GATE === "1", gate }).catch((error: unknown) => {
+    readRoute(publicClient, account.address, vault.address, {
+      viaGate: config.SIGNER_VIA_GATE === "1",
+      gate,
+      ...(config.MANDATE_PRINCIPAL ? { mandate: { principal: BigInt(config.MANDATE_PRINCIPAL), label: config.MANDATE_LABEL } } : {}),
+    }).catch((error: unknown) => {
       throw error instanceof RouteError ? new RoleError(error.message) : error;
     }),
     publicClient.readContract({ ...vault, functionName: "token" }),
