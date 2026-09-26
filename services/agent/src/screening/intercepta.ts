@@ -59,9 +59,14 @@ export type Screening =
   | { status: "unavailable"; message: "screening unavailable"; reason: string }
   | { status: "not_configured"; message: "screening not configured"; reason: string };
 
+export interface ScreenOptions {
+  /** Ask Intercepta again even when a clean result is cached (a flagged one always stands). */
+  fresh?: boolean;
+}
+
 export interface ScreeningPort {
   enabled: boolean;
-  screen(addresses: Address[]): Promise<Screening>;
+  screen(addresses: Address[], options?: ScreenOptions): Promise<Screening>;
 }
 
 export interface InterceptaOptions {
@@ -79,7 +84,7 @@ export interface InterceptaOptions {
 export function createIntercepta(opts: InterceptaOptions): ScreeningPort {
   return {
     enabled: Boolean(opts.apiKey),
-    async screen(addresses) {
+    async screen(addresses, options = {}) {
       if (!opts.apiKey) return { status: "not_configured", message: "screening not configured", reason: "no INTERCEPTA_API_KEY is configured" };
       const unique = [...new Set(addresses)];
       const limit = opts.maxPerRequest ?? 3;
@@ -87,7 +92,7 @@ export function createIntercepta(opts: InterceptaOptions): ScreeningPort {
       const results: ScanResult[] = [];
       const errors = unique.slice(limit).map((address) => ({ address, error: `not screened: over ${limit} addresses per document` }));
       for (const address of distinct) {
-        const outcome = await scanOne(opts, opts.apiKey, address);
+        const outcome = await scanOne(opts, opts.apiKey, address, options.fresh ?? false);
         if ("error" in outcome) errors.push({ address, error: outcome.error });
         else results.push(outcome);
       }
@@ -97,13 +102,13 @@ export function createIntercepta(opts: InterceptaOptions): ScreeningPort {
   };
 }
 
-async function scanOne(opts: InterceptaOptions, apiKey: string, address: Address): Promise<ScanResult | { error: string }> {
+async function scanOne(opts: InterceptaOptions, apiKey: string, address: Address, fresh: boolean): Promise<ScanResult | { error: string }> {
   const cached = opts.cache.get(address);
   const threshold = opts.toxicThreshold ?? DEFAULT_TOXIC_THRESHOLD;
   if (cached) {
     const hit = result(address, cached, true, threshold);
     const age = (opts.now ?? Date.now)() - Date.parse(cached.checkedAt);
-    if (hit.flagged || age < (opts.cleanTtlMs ?? CLEAN_TTL_MS)) return hit;
+    if (hit.flagged || (!fresh && age < (opts.cleanTtlMs ?? CLEAN_TTL_MS))) return hit;
   }
   if (opts.cache.calls() >= opts.maxCalls) return { error: `the ${opts.maxCalls}-call screening budget is used up` };
   opts.cache.recordCall();

@@ -48,6 +48,8 @@ export async function payAnalysis(
   const simulated = await deps.payer.simulate(call);
   if (!simulated.ok) return reverted(deps, stored, simulated.revert, forced);
   if (forced) return held(stored, [forcePassed(stored)]); // force never sends
+  const flagged = await screenPayout(deps, stored, simulated.payout);
+  if (flagged) return held(stored, [flagged]);
   const pending = (txHash: Hex): PayResult => ({ status: "pending", txHash, forced, message: "Sent; waiting for the block. Pay again to check." });
   const sent = await deps.payer.send({ ...call, ...(approval ? { approval } : {}) }, (txHash) => record(pending(txHash)));
   if (sent.ok === "pending") return pending(sent.txHash);
@@ -102,6 +104,25 @@ async function reverted(deps: AppDeps, stored: StoredAnalysis, raw: RawRevert, f
 
 function held(stored: StoredAnalysis, reasons: Reason[]): PayResult {
   return { status: "held", reasons, explanation: stored.view.explanation };
+}
+
+/**
+ * The address the vault would pay, screened again right before sending. The verdict may be minutes old, and a flag
+ * raised since then must hold the payment: a flagged result, or no answer at all, holds it. Skipped only when
+ * screening isn't configured, as at analysis.
+ */
+async function screenPayout(deps: AppDeps, stored: StoredAnalysis, payout: Address): Promise<Reason | null> {
+  if (!deps.screening.enabled) return null;
+  const screened = await deps.screening.screen([payout], { fresh: true });
+  if (screened.status === "not_configured") return null;
+  const payee = stored.view.kernel.payee;
+  const about = { layer: "screening" as const, severity: "block" as const, tNumber: payee?.tNumber ?? stored.view.extracted.tNumber, legalName: payee?.legalName ?? null };
+  const hit = screened.status === "ok" ? screened.results.find((r) => r.flagged) : undefined;
+  if (hit) return { ...about, code: "screening_flagged", message: `Intercepta now flags ${payout} (toxic score ${hit.toxicScore}), so nothing was sent.` };
+  if (screened.status !== "ok" || screened.errors.length > 0) {
+    return { ...about, code: "screening_unavailable", message: `${payout} could not be screened again before sending, so nothing was sent.` };
+  }
+  return null;
 }
 
 /** The signer applied its own rule (a ceiling only a fresh human approval lifts) and sent nothing. */
