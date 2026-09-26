@@ -111,16 +111,30 @@ export function requireSignal(result: unknown, signal: string): void {
 export type OfficerCredential = "proof_of_human" | "selfie";
 export const OFFICER_CREDENTIALS: readonly OfficerCredential[] = ["proof_of_human", "selfie"];
 
+/** IDKit's own numeric credential-issuer schema id per credential label (`@worldcoin/idkit-core`'s response
+ * types: 1 = proof_of_human, 11 = selfie - passport is 9303 and mnc is 9310, neither accepted here). Checked
+ * alongside `identifier` in `requireCredential` so the human-readable label and its numeric schema id must
+ * agree, rather than trusting the label alone. */
+const ISSUER_SCHEMA_ID: Readonly<Record<OfficerCredential, number>> = { proof_of_human: 1, selfie: 11 };
+
 /**
  * Requires every credential in the proof to be one this verifier accepts for officers, so a client can't swap in a
- * weaker credential than the deployment chose. World verifies the proof itself; this checks what was proven.
+ * weaker credential than the deployment chose. World verifies the proof itself; this checks what was proven,
+ * pinning both the credential label (`identifier`) and its numeric schema id (`issuer_schema_id`) so a proof
+ * can't carry an allowed label next to a schema id that doesn't match it.
  */
 export function requireCredential(result: unknown, allowed: ReadonlySet<string>): void {
   const responses = (result as { responses?: unknown } | null)?.responses;
-  const identifiers = Array.isArray(responses)
-    ? responses.map((response) => (response as { identifier?: unknown })?.identifier)
-    : [];
-  if (identifiers.length === 0 || identifiers.some((id) => typeof id !== "string" || !allowed.has(id))) {
+  const items = Array.isArray(responses) ? responses : [];
+  const valid =
+    items.length > 0 &&
+    items.every((response) => {
+      const identifier = (response as { identifier?: unknown })?.identifier;
+      if (typeof identifier !== "string" || !allowed.has(identifier)) return false;
+      const issuerSchemaId = (response as { issuer_schema_id?: unknown })?.issuer_schema_id;
+      return issuerSchemaId === ISSUER_SCHEMA_ID[identifier as OfficerCredential];
+    });
+  if (!valid) {
     throw new WorldVerificationError("credential_not_allowed", "this World ID credential is not accepted for officers");
   }
 }

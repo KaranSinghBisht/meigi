@@ -64,7 +64,9 @@ export function selfieProof(session: string, nullifier: string, signal: string, 
   return {
     session_id: session,
     signal,
-    responses: [{ identifier: "selfie", sybil_score: sybilScore, session_nullifier: [nullifier, "0x0"] }],
+    responses: [
+      { identifier: "selfie", issuer_schema_id: 11, sybil_score: sybilScore, session_nullifier: [nullifier, "0x0"] },
+    ],
   };
 }
 
@@ -73,7 +75,7 @@ export function orbProof(session: string, nullifier: string, signal: string) {
   return {
     session_id: session,
     signal,
-    responses: [{ identifier: "proof_of_human", session_nullifier: [nullifier, "0x0"] }],
+    responses: [{ identifier: "proof_of_human", issuer_schema_id: 1, session_nullifier: [nullifier, "0x0"] }],
   };
 }
 
