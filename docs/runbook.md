@@ -63,25 +63,32 @@ Selfie Check and starts a matching web server on :5190. It prints the click path
 so replacing the hand-started verifier needs `--yes`.
 
 **Verifier anti-squatting limits.** A T-number and its exact legal name are public, so the verifier limits how
-much one human or one client can claim. Contracts are unchanged; fictional fixtures (office 9999) are exempt from
-the per-human limits and the window.
-- **Per World ID officer** (the enrolled session): officer of at most 3 companies, and at most 1 open registration
-  per T-number (`officer_limit`, `duplicate_open_registration`, both 409). An unsubmitted registration expires after
-  `VERIFIER_OPEN_REGISTRATION_HOURS` (24); after that it no longer counts and can't be submitted (410).
-- **Per client IP**, per hour (429 `rate_limited` with `Retry-After`; 0 turns a limit off):
-  - `VERIFIER_RATE_REGISTRATIONS_PER_HOUR` (10) counts new registrations;
+much one human or one client can claim. Contracts are unchanged. Fictional fixtures (office 9999) are exempt from
+all of this, so demos repeat.
+- **Per World ID officer:** at most 3 companies (`officer_limit`) and 8 officers per company (`too_many_officers`).
+  At most one claim per T-number that is open, queued, held or disputed (`duplicate_open_registration`). All are
+  409. An unsubmitted registration expires after `VERIFIER_OPEN_REGISTRATION_HOURS` (24). After that it no longer
+  counts, and submitting it answers 410.
+  - **Limit:** these are keyed on the enrolled World ID *session*. The wizard creates a new session at every
+    enrollment, so a person who starts over is not tied to their earlier sessions.
+  - **Fix:** tie the limits to the person with a World ID uniqueness proof (a fixed action) at enrollment.
+- **No repeat disputes:** a payee that is already disputed on-chain gets no second dispute (409 `already_disputed`).
+  A second dispute would only drop governance's queued resolution and restart the freeze.
+- **Per client IP, per hour** (429 `rate_limited` with `Retry-After`; 0 turns a limit off):
+  - `VERIFIER_RATE_REGISTRATIONS_PER_HOUR` (10) counts new registrations, including failed NTA matches;
   - `VERIFIER_RATE_DISPUTES_PER_HOUR` (3) counts disputes filed;
   - `VERIFIER_RATE_OBJECTIONS_PER_HOUR` (10) counts objections.
-  Behind a reverse proxy you run, set `VERIFIER_TRUST_PROXY=1` so the IP comes from `CF-Connecting-IP` or
-  `X-Forwarded-For`.
+  Behind exactly one reverse proxy of ours (e.g. cloudflared or nginx), set `VERIFIER_TRUST_PROXY=1`: the IP is
+  then the rightmost `X-Forwarded-For` entry, the one our proxy appended.
 - **Public pending window:** `VERIFIER_PENDING_HOURS` defaults to 0, so the demo submits at once. Use 24-72 in
   production. When it is set:
   - a non-fixture registration that passes every check is queued, and submit answers 202 `pending_public_window`;
   - the queue is listed at `GET /registrations/pending` (no officer data or wallets);
   - anyone can flag a queued registration with `POST /registrations/:publicId/object` (`{ reason, contact? }`),
-    and a flagged one waits for manual review;
+    and a flagged one is held for manual review;
   - the attester submits the rest once their window passes.
-  Objections are in the `objections` table of `VERIFIER_DB_PATH`.
+  Review held registrations with `pnpm --filter @meigi/verifier exec tsx scripts/review-pending.ts` (`list`,
+  `release <publicId>`, `reject <publicId>`).
 
 The AI proxy (Workers AI chat + Jev) is deployed at `https://meigi-ai-proxy.karanbishttt.workers.dev`
 (`workers/ai-proxy`) and needs `AI_PROXY_TOKEN`.
