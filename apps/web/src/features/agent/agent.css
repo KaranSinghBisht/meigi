@@ -301,6 +301,20 @@
   }
 }
 
+.vault__ens--ok {
+  color: var(--jade-deep);
+  font-weight: 600;
+}
+
+.vault__ens--muted {
+  color: var(--ink-muted);
+}
+
+.vault__ens--bad {
+  color: var(--seal-deep);
+  font-weight: 600;
+}
+
 .vault__pending {
   color: var(--amber-deep);
   font-weight: 600;
