@@ -10,8 +10,8 @@
 #   company names: ns-deploy | ns-fund | ns-agent | ns-open | ns-attach | ns-issue | ns-status | ns-check |
 #                  ns-detach (rollback). Text-only names a company issues under its payee name (CompanyNamespace).
 #   agent mandate: mandate-register | mandate-open | mandate-attach | mandate-issue | mandate-revoke |
-#                  mandate-deploy | mandate-wire | mandate-unwire (rollback) | mandate-check. The vault pays only
-#                  while the buyer's ap.t<T>.payee.eth answers (MandateGate).
+#                  mandate-fund | mandate-deploy | mandate-wire | mandate-unwire (rollback) | mandate-check. The
+#                  vault pays only while the buyer's ap.t<T>.payee.eth answers (MandateGate).
 # Transactions are only simulated unless BROADCAST=1. Keys and the RPC URL come from the environment or
 # meigi/.env and never appear on a command line; tool output is redacted. See README.md.
 set -euo pipefail
@@ -290,7 +290,7 @@ main() {
     claim-deploy | claim-attach | claim-detach | claim | claim-profile | claim-check | claim-revoke) ;;
     payout-name) ;;
     ns-deploy | ns-fund | ns-agent | ns-open | ns-attach | ns-issue | ns-status | ns-check | ns-detach) ;;
-    mandate-register | mandate-open | mandate-attach | mandate-issue | mandate-revoke) ;;
+    mandate-register | mandate-open | mandate-attach | mandate-issue | mandate-revoke | mandate-fund) ;;
     mandate-deploy | mandate-wire | mandate-unwire | mandate-check) ;;
     *) die "usage: ens.sh <command>; see the header of this file" ;;
   esac

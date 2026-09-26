@@ -21,7 +21,8 @@ interface IMandateClaims {
 ///           Then `ens.sh claim` with T_NUMBER=4999900000005 claims its name.
 ///         - `open()`, the company: creates its namespace; `attach()`, deployer: attaches it to the claimed name.
 ///         - `issue()`, the company: issues (or re-issues) `ap` to MANDATE_HOLDER (default AGENT_ADDRESS) until
-///           MANDATE_EXPIRY (default 2026-12-31T23:59:59Z). `revoke()`, the company: revokes it.
+///           MANDATE_EXPIRY (default 2026-12-31T23:59:59Z). `revoke()`, the company: revokes it. `fund()`, deployer:
+///           gas for the company's key, up to MANDATE_FUND_WEI (default 0.01 ether).
 ///         - `deploy()`, deployer: the gate. `wire()` / `unwire()`, the vault's owner: makes the gate, or the agent key
 ///           again, the vault's agent.
 ///         - `check()`: read-only.
@@ -90,6 +91,22 @@ contract Mandate is Script {
         _names().revoke(HARUKA, LABEL);
         vm.stopBroadcast();
         console.log("revoked %s", _full());
+    }
+
+    /// @dev Tops the company's key up to MANDATE_FUND_WEI for the gas of revoke() and issue(); sends nothing if it
+    ///      already has that much.
+    function fund() external {
+        address company = _names().registry().payeeOf(HARUKA).controller;
+        uint256 target = vm.envOr("MANDATE_FUND_WEI", uint256(0.01 ether));
+        if (company.balance >= target) {
+            console.log("company key %s already has %s wei", company, company.balance);
+            return;
+        }
+        EnsV2Lib.startBroadcast("DEPLOYER_PRIVATE_KEY", "DEPLOYER_ADDRESS");
+        (bool ok,) = company.call{value: target - company.balance}("");
+        vm.stopBroadcast();
+        require(ok, "funding failed");
+        console.log("company key %s: %s wei", company, company.balance);
     }
 
     /// @dev Fails before broadcasting anything unless the new gate serves exactly the live vault, CompanyNamespace,
