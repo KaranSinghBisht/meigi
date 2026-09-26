@@ -36,6 +36,11 @@ const whole = (value: string | null) => (value !== null && /^\d+$/.test(value) ?
 const counted = (value: unknown) => (typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : 0)
 const isObject = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null
 
+/** Whether storage already holds a later day than `day` (ISO days compare as strings). */
+function isLater(stored: unknown, day: string): boolean {
+  return isObject(stored) && typeof stored.day === 'string' && DAY.test(stored.day) && stored.day > day
+}
+
 /** What storage holds for `day`, read field by field (an older version may have written it), else an empty day. */
 function todayOf(stored: unknown, day: string): Day {
   if (!isObject(stored) || stored.day !== day) return { day, total: 0, byAsker: {}, neurons: 0 }
@@ -83,12 +88,24 @@ export class AskQuota {
     const url = new URL(request.url)
     const day = url.searchParams.get('day') ?? ''
     if (!DAY.test(day)) return new Response(null, { status: 400 })
-    const today = todayOf(await this.state.storage.get<unknown>(KEY), day)
+    const stored = await this.state.storage.get<unknown>(KEY)
+    if (isLater(stored, day)) return this.late(url.pathname)
+    const today = todayOf(stored, day)
     if (url.pathname === '/peek') return this.peek(today, url.searchParams)
     if (request.method !== 'POST') return new Response(null, { status: 400 })
     if (url.pathname === '/refund') return this.refund(today, url.searchParams.get('asker') ?? '')
     const ask = url.pathname === '/take' ? askIn(url.searchParams) : null
     return ask ? this.take(today, ask) : new Response(null, { status: 400 })
+  }
+
+  /**
+   * A request from a day that has ended, landing after the next day began (it started before 00:00 UTC). Writing it
+   * would put yesterday's counters over today's, so nothing is written: no question is taken or given back.
+   */
+  private late(path: string): Response {
+    if (path === '/refund') return Response.json({ refunded: false })
+    if (path === '/peek') return Response.json({ open: false })
+    return Response.json({ taken: false, reason: 'paused' } satisfies Taken)
   }
 
   private peek(today: Day, params: URLSearchParams): Response {

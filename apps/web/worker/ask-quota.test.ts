@@ -74,6 +74,26 @@ describe('AskQuota', () => {
     assert.deepEqual(quota.stored(), { day: DAY, total: 3, byAsker: { [A]: 2, [B]: 1 }, neurons: 50 })
   })
 
+  it('never lets a request from a day that has ended overwrite the next day', async () => {
+    const quota = namespace()
+    const tomorrow = '2026-09-27'
+    const at = (day: string, asker: string) => ({ day, asker, cap: 1, askerCap: 1, ...ROOMY })
+    assert.deepEqual(await takeQuota(quota, at(tomorrow, A)), { taken: true }) // the new day is full
+    const before = quota.stored()
+    assert.deepEqual(await takeQuota(quota, at(DAY, B)), { taken: false, reason: 'paused' }) // started at 23:59:59
+    await refundQuota(quota, { day: DAY, asker: A })
+    assert.equal(await open(quota, DAY, 1), false)
+    assert.deepEqual(quota.stored(), before)
+    assert.equal(await open(quota, tomorrow, 1), false)
+    assert.deepEqual(await takeQuota(quota, at(tomorrow, B)), { taken: false, reason: 'paused' })
+  })
+
+  it('starts a day over a record whose day it cannot read', async () => {
+    const quota = namespace({ day: 'garbage', total: 99, byAsker: {}, neurons: 99 })
+    assert.equal(await open(quota, DAY, 1), true)
+    assert.deepEqual(await takeQuota(quota, { day: DAY, asker: A, cap: 1, askerCap: 1, ...ROOMY }), { taken: true })
+  })
+
   it('refuses a malformed day, cap or asker', async () => {
     const quota = namespace()
     const stub = quota.get(quota.idFromName('ask-the-ledger'))
