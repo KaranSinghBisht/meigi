@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { zeroAddress } from "viem";
 import { formatTokenYen, registeredName } from "../chain/format.js";
 import type { ChainPort } from "../chain/types.js";
 import type { AppDeps } from "../deps.js";
@@ -18,7 +19,9 @@ export function vaultRoutes(deps: AppDeps) {
       owner: info.owner,
       agent: info.agent,
       vaultAgent: info.vaultAgent,
-      agentAuthorized: info.agent.toLowerCase() === info.vaultAgent.toLowerCase(),
+      // This key is the vault's agent, directly or as the holder of a live ENS mandate that the gate honours.
+      agentAuthorized: [info.vaultAgent, info.mandate?.holder].some((a) => a?.toLowerCase() === info.agent.toLowerCase()),
+      mandate: info.mandate ? { gate: info.mandate.gate, name: info.mandate.name, holder: info.mandate.holder, live: info.mandate.holder !== zeroAddress } : null,
       token: info.token,
       balance: { units: info.balance.toString(), display: formatTokenYen(info.balance, decimals) },
       paused: info.paused,

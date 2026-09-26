@@ -31,7 +31,17 @@ export interface Snapshot {
   payee: PayeeState;
   vendor: VendorState;
   invoicePaid: bigint;
-  vault: { paused: boolean; agent: Address; balance: bigint };
+  vault: { paused: boolean; agent: Address; balance: bigint; mandate?: Mandate };
+}
+
+/**
+ * The buyer company's ENS mandate for this agent (MandateGate), read when the vault's agent is the configured gate.
+ * `holder` is the key the mandate authorises, or the zero address while the name doesn't answer.
+ */
+export interface Mandate {
+  gate: Address;
+  name: string; // e.g. ap.t4999900000005.payee.eth
+  holder: Address;
 }
 
 export interface TokenInfo {
@@ -46,7 +56,8 @@ export interface VaultInfo {
   registry: Address;
   token: TokenInfo;
   agent: Address; // the key this service signs with
-  vaultAgent: Address; // the agent the vault accepts
+  vaultAgent: Address; // the agent the vault accepts: this key, or the MandateGate in front of it
+  mandate: Mandate | null; // when the vault's agent is the configured gate
   owner: Address;
   paused: boolean;
   balance: bigint;

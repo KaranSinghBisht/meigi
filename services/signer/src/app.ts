@@ -18,6 +18,8 @@ export interface SignerInfo {
   vault: Address;
   chainId: number;
   humanAboveYen: number;
+  via?: "vault" | "gate"; // where payInvoice goes: the vault, or its MandateGate
+  gate?: Address | null;
 }
 
 export interface SignerDeps {

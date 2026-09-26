@@ -35,12 +35,23 @@ This small process holds the AgentVault's agent key and signs one call for it: `
     genuine, fresh, unspent and from an approver, but not which payment the human was shown: the agent binds that.
 - **Localhost and a shared secret.** It listens on 127.0.0.1:8796 only. Every route but `/health` needs
   `Authorization: Bearer <SIGNER_TOKEN>`, compared in constant time.
-- **The right key.** At startup it checks on-chain that its key is the vault's agent and not the owner (the owner may
-  pay an invoice twice).
+- **The right key.** At startup it checks on-chain that its key isn't the vault's owner (the owner may pay an invoice
+  twice), and that it is the vault's agent, directly or through the ENS mandate (below).
+- **An ENS mandate (prepared, off until the gate is live).** The buyer company can issue its AP agent a name,
+  `ap.t<company>.payee.eth`, and make the `MandateGate` the vault's agent. The gate forwards `payInvoice` (same
+  arguments) only while that name answers and is held by this key.
+  - With `MANDATE_GATE_ADDRESS` set and the vault's agent equal to it, the signer sends `payInvoice` to the gate,
+    still typed fields only and simulated first. At startup it checks that the gate forwards to this vault and that
+    the mandate names this key. A mandate that doesn't answer yet is a warning: payments come back as
+    `MandateNotLive`.
+  - While the vault's agent is the key itself, it pays the vault directly, whatever `MANDATE_GATE_ADDRESS` says.
+    So the rollback is `vault.setAgent(<this key>)` plus a restart.
+  - `/health` says which route is in use (`via: "vault" | "gate"`, `gate`). The vault still emits `InvoicePaid`, so
+    receipts and indexing are unchanged.
 
 | Method | Path | Body | Returns |
 |---|---|---|---|
-| GET | `/health` | | `{ ok, agent, vault, chainId, humanAboveYen, verifiesApproval }` (no token) |
+| GET | `/health` | | `{ ok, agent, vault, chainId, humanAboveYen, via, gate, verifiesApproval }` (no token) |
 | POST | `/simulate` | `{ tNumber, payout, amount, invoiceRef }` | `{ ok: true, payout, signer }` or `{ ok: false, revert: { data }, signer }` |
 | POST | `/pay` | the same, plus `approval?: { idToken }` | `{ ok: true, txHash, signer, simulation, approval? }` as soon as it's broadcast (`approval: { verified, approverId }` when Phase 2 verified one; `inFlight: true` and no approval when it answers with the invoice's transaction already sent), `{ ok: false, revert, signer }`, or `403 human_approval_required` |
 | GET | `/receipt/:txHash` | | `{ receipt: { txHash, status, blockNumber } \| null }` |

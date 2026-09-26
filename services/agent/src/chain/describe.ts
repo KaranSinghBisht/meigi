@@ -41,7 +41,14 @@ const SENTENCES: Record<string, Sentence> = {
   InvalidTNumber: () => "That is not a valid T-number.",
   ERC20InsufficientBalance: (a, _, yen) => `The vault holds ${yen(a.balance)}, but this payment needs ${yen(a.needed)}.`,
   Error: (a) => `The transaction would revert: ${String(a.reason)}.`,
+  MandateNotLive: (a) =>
+    `The agent's ENS mandate ${String(a.label)}.t${String(a.principal).padStart(13, "0")}.payee.eth doesn't answer: the buyer company revoked, froze or let it expire, so the agent may not pay.`,
+  NotMandateHolder: (a) => `The ENS mandate names ${short(a.holder)}, not this agent's key ${short(a.caller)}.`,
+  PrincipalNotActive: (a) => `The buyer company T${String(a.principal).padStart(13, "0")} is not active in the registry (disputed), so its mandate can't pay.`,
 };
+
+/** The MandateGate's own refusals: the buyer company's mandate, not the invoice, stopped the payment. */
+export const MANDATE_ERRORS: ReadonlySet<string> = new Set(["MandateNotLive", "NotMandateHolder", "PrincipalNotActive"]);
 
 export async function describeRevert(revert: RawRevert, ctx: DescribeContext): Promise<DecodedRevert> {
   const raw = namedArgs(revert);

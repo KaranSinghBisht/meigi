@@ -23,6 +23,9 @@ const schema = z
     REGISTRY_ADDRESS: address,
     VAULT_ADDRESS: address,
     TOKEN_ADDRESS: optional(address),
+    // The ENS MandateGate in front of the vault. In play only while the vault's agent is this gate; the rollback,
+    // vault.setAgent(<the key>), needs no change here.
+    MANDATE_GATE_ADDRESS: optional(address),
     VENDOR_T_NUMBERS: z.string().default("2011001234567"),
     AGENT_PORT: z.coerce.number().int().positive().default(8788),
     AGENT_HOST: z.string().default("127.0.0.1"), // 0.0.0.0 to serve the LAN (then set AGENT_API_TOKEN)

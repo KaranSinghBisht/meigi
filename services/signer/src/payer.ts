@@ -1,4 +1,4 @@
-import { agentVaultAbi } from "@meigi/abi";
+import { agentVaultAbi, mandateGateAbi } from "@meigi/abi";
 import {
   BaseError,
   ContractFunctionRevertedError,
@@ -43,11 +43,14 @@ export interface SignerPayer {
 export interface PayerOptions {
   publicClient: PublicClient;
   walletClient: WalletClient<Transport, Chain, Account>;
-  vault: Address;
+  target: Address; // the vault, or the MandateGate in front of it (route.ts): the same payInvoice either way
 }
 
+// The gate's payInvoice has the vault's signature, plus its own errors (MandateNotLive, NotMandateHolder, …).
+const PAY_ABI = [...agentVaultAbi, ...mandateGateAbi.filter((item) => item.type === "error")] as const;
+
 /**
- * The agent key's only capability: `AgentVault.payInvoice`, simulated first, every time. Sends are serialised so two
+ * The agent key's only capability: `payInvoice` on the vault (or its MandateGate), simulated first, every time. Sends are serialised so two
  * payments never race for a nonce, and an invoice whose payment is in flight is never sent twice: the same send
  * answers with the transaction already sent.
  */
@@ -78,8 +81,8 @@ export function createPayer(opts: PayerOptions): SignerPayer {
 async function simulate(opts: PayerOptions, call: PayCall) {
   try {
     const { request, result } = await opts.publicClient.simulateContract({
-      address: opts.vault,
-      abi: agentVaultAbi,
+      address: opts.target,
+      abi: PAY_ABI,
       functionName: "payInvoice",
       args: [call.tNumber, call.expectedPayout, call.amount, call.invoiceRef],
       account: opts.walletClient.account,

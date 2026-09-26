@@ -14,6 +14,9 @@ const schema = z.object({
   SEPOLIA_RPC_URL: z.url(),
   CHAIN_ID: z.coerce.number().int().positive().default(11155111),
   VAULT_ADDRESS: address,
+  // The ENS MandateGate in front of the vault. Used only while the vault's agent is this gate; unset, or with the
+  // vault's agent set back to the key, the signer pays the vault directly.
+  MANDATE_GATE_ADDRESS: address.optional(),
   SIGNER_HOST: z.enum(["127.0.0.1", "::1"]).default("127.0.0.1"), // loopback only: the agent is its one caller
   SIGNER_PORT: z.coerce.number().int().min(1).max(65535).default(8796),
   SIGNER_HUMAN_ABOVE_YEN: z.coerce.number().int().positive().default(150_000), // above this, a human's approval

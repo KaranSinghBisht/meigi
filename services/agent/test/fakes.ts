@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { zeroAddress, type Address, type Hex } from "viem";
 import { AnalysisStore } from "../src/analysis/store.js";
 import { DEFAULT_HOLD_POLICY } from "../src/analysis/verdict.js";
-import type { ChainPort, PayCall, PayerPort, PayeeState, RawRevert, SendOutcome, Snapshot, VendorState } from "../src/chain/types.js";
+import type { ChainPort, Mandate, PayCall, PayerPort, PayeeState, RawRevert, SendOutcome, Snapshot, VendorState } from "../src/chain/types.js";
 import type { AppDeps } from "../src/deps.js";
 import { LlmError, type ExplanationFacts, type LlmPort, type Proposal } from "../src/llm/types.js";
 import type { Screening, ScreeningPort } from "../src/screening/intercepta.js";
@@ -68,6 +68,7 @@ export class FakeChain implements ChainPort {
   vendors = new Map<bigint, VendorState>([[T_MEIGI, approvedVendor()]]);
   paid = new Map<string, bigint>();
   vaultState = { paused: false, agent: AGENT, balance: yen(10_000_000) };
+  mandate: Mandate | null = null; // the configured MandateGate's mandate; in play when vaultState.agent is its gate
   down = false;
 
   async token() {
@@ -85,8 +86,11 @@ export class FakeChain implements ChainPort {
       payee: await this.payee(tNumber),
       vendor: this.vendors.get(tNumber) ?? noVendor,
       invoicePaid: this.paid.get(`${tNumber}:${invoiceRef}`) ?? 0n,
-      vault: { ...this.vaultState },
+      vault: { ...this.vaultState, ...(this.gated() ? { mandate: this.mandate! } : {}) },
     };
+  }
+  private gated() {
+    return this.mandate !== null && this.mandate.gate.toLowerCase() === this.vaultState.agent.toLowerCase();
   }
   async vendor(tNumber: bigint) {
     return { payee: await this.payee(tNumber), vendor: this.vendors.get(tNumber) ?? noVendor, timestamp: NOW };
@@ -100,6 +104,7 @@ export class FakeChain implements ChainPort {
       token: await this.token(),
       agent: AGENT,
       vaultAgent: this.vaultState.agent,
+      mandate: this.gated() ? this.mandate : null,
       owner: "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC" as Address,
       paused: this.vaultState.paused,
       balance: this.vaultState.balance,

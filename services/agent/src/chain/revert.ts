@@ -1,12 +1,12 @@
-import { agentVaultAbi, mockJPYCAbi, payeeRegistryAbi } from "@meigi/abi";
+import { agentVaultAbi, mandateGateAbi, mockJPYCAbi, payeeRegistryAbi } from "@meigi/abi";
 import { decodeErrorResult, type Abi, type DecodeErrorResultReturnType } from "viem";
 import type { RawRevert } from "./types.js";
 
 /**
- * Every custom error a payment can surface: the vault's own, the registry's (via PayeeGuard), and the
- * token's (SafeERC20 bubbles e.g. ERC20InsufficientBalance up unchanged).
+ * Every custom error a payment can surface: the vault's own, the registry's (via PayeeGuard), the token's
+ * (SafeERC20 bubbles e.g. ERC20InsufficientBalance up unchanged), and the MandateGate's when the agent pays through it.
  */
-const ERRORS: Abi = ([...agentVaultAbi, ...payeeRegistryAbi, ...mockJPYCAbi] as Abi).filter((item) => item.type === "error");
+const ERRORS: Abi = ([...agentVaultAbi, ...payeeRegistryAbi, ...mockJPYCAbi, ...mandateGateAbi] as Abi).filter((item) => item.type === "error");
 
 /** Decodes raw revert data (as the signer returns it) against every Meigi ABI. */
 export function decodeRaw(data: `0x${string}`): RawRevert {

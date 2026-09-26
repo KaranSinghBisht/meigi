@@ -1,5 +1,5 @@
 import { zeroAddress, type Address, type Hex } from "viem";
-import { describeRevert, type DecodedRevert } from "../chain/describe.js";
+import { describeRevert, MANDATE_ERRORS, type DecodedRevert } from "../chain/describe.js";
 import { registeredName } from "../chain/format.js";
 import type { PayCall, PaymentReceipt, RawRevert } from "../chain/types.js";
 import type { AppDeps } from "../deps.js";
@@ -46,7 +46,7 @@ export async function payAnalysis(
   if (intent.amount <= 0n) return held(stored, notPayable(stored, intent));
   const call = callOf(intent);
   const simulated = await deps.payer.simulate(call);
-  if (!simulated.ok) return reverted(deps, stored, simulated.revert, forced);
+  if (!simulated.ok) return (await mandateHold(deps, stored, simulated.revert)) ?? reverted(deps, stored, simulated.revert, forced);
   if (forced) return held(stored, [forcePassed(stored)]); // force never sends
   const flagged = await screenPayout(deps, stored, simulated.payout);
   if (flagged) return held(stored, [flagged]);
@@ -54,7 +54,7 @@ export async function payAnalysis(
   const sent = await deps.payer.send({ ...call, ...(approval ? { approval } : {}) }, (txHash) => record(pending(txHash)));
   if (sent.ok === "pending") return pending(sent.txHash);
   if (sent.ok === "refused") return held(stored, [signerRefusal(stored, sent.message)]);
-  if (!sent.ok) return reverted(deps, stored, sent.revert, forced);
+  if (!sent.ok) return (await mandateHold(deps, stored, sent.revert)) ?? reverted(deps, stored, sent.revert, forced);
   return mined(deps, stored, sent.receipt, forced, simulated.payout);
 }
 
@@ -123,6 +123,28 @@ async function screenPayout(deps: AppDeps, stored: StoredAnalysis, payout: Addre
     return { ...about, code: "screening_unavailable", message: `${payout} could not be screened again before sending, so nothing was sent.` };
   }
   return null;
+}
+
+/**
+ * The MandateGate refused: the buyer company's ENS mandate for this agent doesn't answer (revoked, expired, frozen),
+ * names another key, or the company is disputed. That is a hold about the agent's authority, not the invoice, and
+ * nothing was sent.
+ */
+async function mandateHold(deps: AppDeps, stored: StoredAnalysis, raw: RawRevert): Promise<PayResult | null> {
+  if (!MANDATE_ERRORS.has(raw.name)) return null;
+  const { decimals } = await deps.chain.token();
+  const error = await describeRevert(raw, { decimals, nameOf: async () => null });
+  const payee = stored.view.kernel.payee;
+  const reason: Reason = {
+    code: raw.name === "MandateNotLive" ? "mandate_not_live" : raw.name === "NotMandateHolder" ? "not_mandate_holder" : "mandate_principal_not_active",
+    severity: "block",
+    layer: "kernel",
+    tNumber: payee?.tNumber ?? stored.view.extracted.tNumber,
+    legalName: payee?.legalName ?? null,
+    message: error.sentence,
+    revert: raw.name,
+  };
+  return held(stored, [reason]);
 }
 
 /** The signer applied its own rule (a ceiling only a fresh human approval lifts) and sent nothing. */

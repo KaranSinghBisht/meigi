@@ -1,4 +1,4 @@
-import type { Address } from "viem";
+import { zeroAddress, type Address } from "viem";
 import { distinctShort, formatTokenYen, isoTime, payeeLabel, registeredName, shortAddress } from "../chain/format.js";
 import type { Snapshot } from "../chain/types.js";
 import type { X402Details } from "../extract/types.js";
@@ -28,10 +28,7 @@ export const pass = (code: string, message: string): CheckResult => ({ code, ok:
 export const fail = (code: string, message: string, revert?: string): CheckResult => ({ code, ok: false, severity: "block", message, revert });
 
 const CHECKS: Check[] = [
-  ({ snapshot, agent }) =>
-    snapshot.vault.agent.toLowerCase() === agent.toLowerCase()
-      ? null
-      : fail("not_agent", `This service signs as ${agent}, but the vault's agent is ${snapshot.vault.agent}.`, "NotAgent"),
+  agentMayPay,
   ({ snapshot }) =>
     snapshot.vault.paused ? fail("vault_paused", "The vault owner has paused all payments.", "EnforcedPause") : null,
   ({ intent }) =>
@@ -48,6 +45,23 @@ const CHECKS: Check[] = [
   pendingChange,
   documentChecks,
 ];
+
+/**
+ * The vault's agent is this key, or the MandateGate in front of it. Through the gate the buyer company's ENS mandate
+ * must answer and name this key, or the gate refuses (MandateNotLive, NotMandateHolder) and the agent holds instead.
+ */
+function agentMayPay({ snapshot, agent }: KernelInput): CheckResult | null {
+  const { mandate } = snapshot.vault;
+  if (snapshot.vault.agent.toLowerCase() === agent.toLowerCase()) return null;
+  if (!mandate) return fail("not_agent", `This service signs as ${agent}, but the vault's agent is ${snapshot.vault.agent}.`, "NotAgent");
+  if (mandate.holder.toLowerCase() === zeroAddress) {
+    return fail("mandate_not_live", `The agent's ENS mandate ${mandate.name} doesn't answer: the buyer company revoked, froze or let it expire, so the agent may not pay.`, "MandateNotLive");
+  }
+  if (mandate.holder.toLowerCase() !== agent.toLowerCase()) {
+    return fail("not_mandate_holder", `The ENS mandate ${mandate.name} names ${mandate.holder}, not this service's key ${agent}.`, "NotMandateHolder");
+  }
+  return pass("mandate_live", `The agent's ENS mandate ${mandate.name} answers, and names this service's key.`);
+}
 
 export function runChecks(input: KernelInput): CheckResult[] {
   const label = payeeLabel(input.intent.tNumber, registeredName(input.snapshot.payee));

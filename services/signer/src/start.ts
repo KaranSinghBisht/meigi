@@ -7,6 +7,7 @@ import { foundry, sepolia } from "viem/chains";
 import { createSignerApp } from "./app.js";
 import { ConfigError, type Config } from "./config.js";
 import { createPayer } from "./payer.js";
+import { readRoute, RouteError, type Via } from "./route.js";
 import { approversFrom, createApprovalVerifier, type ApprovalVerifier } from "./verify.js";
 
 /** services/signer: relative paths in the config resolve here, whatever the working directory. */
@@ -20,6 +21,8 @@ export interface StartedSigner {
   app: ReturnType<typeof createSignerApp>;
   agent: Address;
   verifiesApproval: boolean;
+  via: Via; // "gate" when the vault's agent is the MandateGate
+  warning: string | null;
 }
 
 export interface StartOptions {
@@ -52,8 +55,9 @@ function chainFor(chainId: number): Chain {
 }
 
 /**
- * Builds the signer from its configuration, after checking on-chain that its key is the vault's agent and not the
- * owner (the owner may pay an invoice twice). Reads the token's decimals to turn the yen ceiling into units.
+ * Builds the signer from its configuration, after checking on-chain that its key is not the owner (the owner may pay
+ * an invoice twice) and is the vault's agent, directly or through the MandateGate (route.ts). Reads the token's
+ * decimals to turn the yen ceiling into units.
  */
 export async function startSigner(config: Config, options: StartOptions = {}): Promise<StartedSigner> {
   const now = options.now ?? (() => Math.floor(Date.now() / 1000));
@@ -63,17 +67,17 @@ export async function startSigner(config: Config, options: StartOptions = {}): P
   const publicClient = createPublicClient({ chain, transport }) as PublicClient;
   const walletClient = createWalletClient({ chain, transport, account });
   const vault = { address: config.VAULT_ADDRESS as Address, abi: agentVaultAbi } as const;
-  const [agent, owner, token] = await Promise.all([
-    publicClient.readContract({ ...vault, functionName: "agent" }),
-    publicClient.readContract({ ...vault, functionName: "owner" }),
+  const gate = config.MANDATE_GATE_ADDRESS ? getAddress(config.MANDATE_GATE_ADDRESS) : null;
+  const [route, token] = await Promise.all([
+    readRoute(publicClient, account.address, vault.address, gate).catch((error: unknown) => {
+      throw error instanceof RouteError ? new RoleError(error.message) : error;
+    }),
     publicClient.readContract({ ...vault, functionName: "token" }),
   ]);
-  if (getAddress(account.address) === getAddress(owner)) throw new RoleError("AGENT_PRIVATE_KEY is the vault owner's key; the signer holds the agent key only");
-  if (getAddress(account.address) !== getAddress(agent)) throw new RoleError(`AGENT_PRIVATE_KEY is ${account.address}, but the vault's agent is ${agent}`);
   const decimals = await publicClient.readContract({ address: token, abi: erc20Abi, functionName: "decimals" });
   const verifier = verifierFor(config, now, options.fetch);
   const app = createSignerApp({
-    payer: createPayer({ publicClient, walletClient, vault: vault.address }),
+    payer: createPayer({ publicClient, walletClient, target: route.target }),
     token: config.SIGNER_TOKEN,
     policy: {
       ceilingUnits: BigInt(config.SIGNER_HUMAN_ABOVE_YEN) * 10n ** BigInt(decimals),
@@ -83,8 +87,8 @@ export async function startSigner(config: Config, options: StartOptions = {}): P
       issuer: config.WORLD_AGENTS_ISSUER,
       clientId: config.WORLD_AGENTS_CLIENT_ID,
     },
-    info: { agent: account.address, vault: vault.address, chainId: config.CHAIN_ID, humanAboveYen: config.SIGNER_HUMAN_ABOVE_YEN },
+    info: { agent: account.address, vault: vault.address, chainId: config.CHAIN_ID, humanAboveYen: config.SIGNER_HUMAN_ABOVE_YEN, via: route.via, gate: route.gate },
     verifier,
   });
-  return { app, agent: account.address, verifiesApproval: verifier !== undefined };
+  return { app, agent: account.address, verifiesApproval: verifier !== undefined, via: route.via, warning: route.warning };
 }
