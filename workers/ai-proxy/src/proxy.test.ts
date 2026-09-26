@@ -48,6 +48,7 @@ describe("the daily budget", () => {
     assert.equal(measured({ usage: { prompt_tokens: 1_000_000, completion_tokens: 0 } }), 26_668);
     assert.equal(measured({ usage: { prompt_tokens: 0, completion_tokens: 1_000_000 } }), 204_805);
     assert.equal(measured({ choices: [] }), null);
+    assert.equal(measured({ usage: { prompt_tokens: 42, completion_tokens: 2, neurons: 1.529652714729309 } }), 2); // as Workers AI reports it
     assert.equal(worstCase(64 * 1024, 1024), 1958); // the largest call the proxy takes
   });
 

@@ -20,11 +20,12 @@ export function worstCase(bodyBytes: number, maxTokens: number): number {
   return Math.ceil(bodyBytes * NEURONS_PER_INPUT_TOKEN + maxTokens * NEURONS_PER_OUTPUT_TOKEN);
 }
 
-/** What a chat call cost, from the usage Workers AI reports; null when it reports none. */
+/** What a chat call cost: the neurons Workers AI reports, else its tokens at the rates above; null without usage. */
 export function measured(result: unknown): number | null {
   const usage = result && typeof result === "object" ? (result as { usage?: unknown }).usage : undefined;
   if (!usage || typeof usage !== "object") return null;
-  const { prompt_tokens: input, completion_tokens: output } = usage as Record<string, unknown>;
+  const { neurons, prompt_tokens: input, completion_tokens: output } = usage as Record<string, unknown>;
+  if (typeof neurons === "number" && Number.isFinite(neurons) && neurons >= 0) return Math.ceil(neurons);
   if (typeof input !== "number" || typeof output !== "number" || input < 0 || output < 0) return null;
   return Math.ceil(input * NEURONS_PER_INPUT_TOKEN + output * NEURONS_PER_OUTPUT_TOKEN);
 }
