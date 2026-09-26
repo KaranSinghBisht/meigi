@@ -52,6 +52,20 @@ tripping through our verifier — most of it spent on the two friction points be
   for every real `IDKitErrorCodes` value we weren't covering (about half were unmapped), and a "no answer from
   World ID yet, try again or cancel" state after 2.5 minutes of silence, since World ID failing without
   relaying anything back through the bridge was itself a real gap in our own UX.
+- **Confirmed: scan with the iPhone Camera app, not from inside World App's own scanner.** A later registration
+  attempt tonight (~19:23 JST) failed the same generic way when Karan scanned our QR using World App's own
+  in-app scanner: "Something went wrong. There was a temporary issue verifying you." Scanning the identical QR
+  with the plain iPhone Camera app instead — which opens the `world.org/verify` universal link in the separate
+  World ID app rather than World App handling it internally — worked cleanly: both a decline and a real approval
+  completed, enrolling officer `0xdcf809aa…118b6f` with Orb. This matched what we'd found independently before
+  confirming it live: a real connector URI opened on desktop redirects to a page naming the World ID app
+  specifically, not World App, and World App's own App Store listing defers verification to a separate
+  "World ID - Proof of Human" app rather than describing scanning or session mechanics itself.
+- **`verification_rejected` was misclassified as an error.** Declining (via the working Camera-app route)
+  surfaced this code, which our own mapping showed as a red alert ("World ID rejected the verification.")
+  instead of a calm decline, same night. World's own error-codes doc calls it a "Legacy rejection code (older
+  bridge/app behavior). Handle same as `user_rejected`." Fixed the same night (`d0da955`): it now reads
+  "Declined. Nothing was added/approved." like every other decline path.
 - **PENDING:** team-lead's brief for this file mentions an `integrity_verification_failed` probe as something to
   include. I couldn't find it anywhere in the repo (code, logs, or docs) and don't have direct experience with
   it myself, so I'm not writing a cause for it without evidence. Whoever hit it: send me the context (what
@@ -98,8 +112,9 @@ separate:
   set by that same production launch script): whichever an officer happens to hold clears the bar, since Selfie
   Check is already the floor there, not a ceiling. That's a production-only addition, not a standing default: the
   verifier's own code default (`services/verifier/src/config.ts`) is narrower, `proof_of_human` only, which is
-  what staging and sandbox runs get unless overridden. [PENDING confirmation once his run reaches this step:
-  Karan's officer used Orb.]
+  what staging and sandbox runs get unless overridden. **Confirmed:** Karan's officers, both tonight's abandoned
+  attempt and the final recorded run, enrolled with Orb (`officerId` `0x8b843464…fd8d90`, then `0xdcf809aa…118b6f`)
+  - real production `proof_of_human` proofs, no Selfie Check involved in either.
 - An **N-of-M quorum**, where several independent identities must each be genuinely unique humans (not just
   genuinely the same session-holder each time), should require Orb — that's exactly the case Selfie Check's
   weaker Sybil-resistance isn't built for. Gating on Selfie Check's own `sybil_score` (a real field on its
