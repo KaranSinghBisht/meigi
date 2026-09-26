@@ -104,7 +104,7 @@
 .agent__results {
   display: grid;
   gap: 16px;
-  scroll-margin-top: 84px;
+  scroll-margin-top: var(--shell-top, 88px);
 }
 
 .decision {

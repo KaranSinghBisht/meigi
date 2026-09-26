@@ -299,10 +299,10 @@
    last row fades out instead of being cut by the window's edge. */
 .feed-panel {
   position: sticky;
-  top: 88px;
+  top: var(--shell-top, 88px);
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - 112px);
+  max-height: calc(100vh - var(--shell-top, 88px) - 24px);
   overflow: hidden;
 }
 
