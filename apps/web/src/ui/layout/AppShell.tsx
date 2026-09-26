@@ -37,7 +37,7 @@ export function RouteFallback() {
 
 /**
  * "/" is the landing hero: only the world and its overlay. Every other page is the app: the glass sidebar (or, below
- * 1280 px, the compact bar) beside the page. Entering from the hero, the app's chrome fades in.
+ * 1280 px, the compact bar) beside the page. Entering from the hero, the sidebar slides in as the glide lands.
  */
 function useShellMode() {
   const { pathname, state } = useLocation()
