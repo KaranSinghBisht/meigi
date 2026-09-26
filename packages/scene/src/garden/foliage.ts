@@ -37,6 +37,7 @@ const fragmentShader = /* glsl */ `
   uniform vec3 uLavender;
   uniform vec3 uSunColor;
   uniform vec3 uHaze;
+  uniform float uTipLight;
   varying vec2 vUv;
   varying float vTint;
   varying float vFar;
@@ -45,15 +46,17 @@ const fragmentShader = /* glsl */ `
     if (paint.a < 0.02) discard;
     vec3 leaf = mix(uMoss, uSage, smoothstep(0.2, 0.8, vTint));
     leaf = mix(leaf, uLavender, smoothstep(0.65, 1.0, vTint) * 0.55);
-    vec3 col = leaf * (0.8 + 0.2 * paint.r) * (0.97 + 0.05 * paint.g);
-    col += uSunColor * 0.05 * smoothstep(0.75, 1.0, paint.r);
+    // Tops catch the light; uTipLight tones that down where it would read as chalky hatching.
+    vec3 col = leaf * (1.0 - 0.2 * uTipLight + 0.2 * uTipLight * paint.r) * (0.97 + 0.05 * paint.g);
+    col += uSunColor * 0.05 * uTipLight * smoothstep(0.75, 1.0, paint.r);
     col = mix(col, uHaze, vFar * 0.5);
     gl_FragColor = vec4(col, paint.a);
     ${OUTPUT_GLSL}
   }
 `
 
-export function createFoliageMaterial(clump: Texture): ShaderMaterial {
+/** `tipLight` scales the light on the clump tops (1 full, lower on phones, where clumps are big on screen). */
+export function createFoliageMaterial(clump: Texture, tipLight: number): ShaderMaterial {
   return new ShaderMaterial({
     uniforms: {
       uTime: { value: 0 },
@@ -63,6 +66,7 @@ export function createFoliageMaterial(clump: Texture): ShaderMaterial {
       uLavender: { value: color('#9D98A9') },
       uSunColor: { value: SUN_COLOR.clone() },
       uHaze: { value: color(HEX.horizon) },
+      uTipLight: { value: tipLight },
     },
     vertexShader,
     fragmentShader,

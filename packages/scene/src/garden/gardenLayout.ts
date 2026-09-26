@@ -1,3 +1,4 @@
+import { Vector3 } from 'three'
 import { seededRandom } from '../shared/noise'
 import { SHORE_TALL, SHORE_WIDE, TALL_ROOM, WIDE_ROOM, drift, fits, heroCamera, inland, type Planter, type ShoreShape } from './shore'
 
@@ -78,6 +79,20 @@ interface Blooms {
 }
 
 /**
+ * Now and then a small, sharp blush head beside a soft front-row one: detail
+ * between the phone's pills. `blush` is its own sequence, so these extra heads
+ * leave the rest of the planting exactly as it was.
+ */
+function addBlush(planter: Planter, blooms: Blooms, near: Vector3, radius: number, blush: () => number): void {
+  if (blush() > 0.45) return
+  const at = new Vector3(near.x + (blush() - 0.5) * 0.14, 0, near.z + (blush() - 0.5) * 0.14)
+  const lift = 0.14 + blush() * 0.22
+  if (!fits(planter, at, lift + radius * 0.5)) return
+  blooms.flowers.push(at.x, at.z, lift, radius * 0.5)
+  blooms.looks.push(0.3 + blush() * 0.16, blush(), 0)
+}
+
+/**
  * Cosmos heads in drifts, floating just over the bedding. Heads shrink
  * towards the hero camera (so the front ones never loom); the nearest row
  * goes to the out-of-focus layer, and only the front edge shows short stems.
@@ -85,6 +100,7 @@ interface Blooms {
 function placeCosmos(planter: Planter, tries: number): Blooms {
   const { random, camera, nearRow } = planter
   const blooms: Blooms = { flowers: [], looks: [], bokeh: [], bokehLook: [] }
+  const blush = seededRandom(20260929)
   for (let i = 0; i < tries; i++) {
     const at = inland(planter, (random() * 2 - 1) * BLOOM, 0.16 + Math.pow(random(), planter.bedFalloff) * 3.7)
     if (random() > 0.1 + 0.9 * drift(at.x, at.z, 7)) continue
@@ -95,6 +111,7 @@ function placeCosmos(planter: Planter, tries: number): Blooms {
     const lift = out ? 0.12 + 0.26 * random() : height
     const radius = (0.026 + random() * 0.016) * Math.min(Math.max(away / (nearRow * 1.35), 0.5), 1) * (out ? 1.4 : 1)
     if ((out && random() > planter.frontRow) || !fits(planter, at, lift + radius)) continue
+    if (out && planter.compact) addBlush(planter, blooms, at, radius, blush)
     const stem = !out && away < nearRow + 1.3 ? 0.02 + random() * 0.03 : 0
     const look = [Math.pow(random(), 0.85), random(), stem]
     if (out) {

@@ -47,7 +47,7 @@ function useGardenResources(aspect: number, compact: boolean) {
     () => ({
       ground: { geometry: createGroundGeometry(layout.shore), material: createGroundMaterial(layout.shore) },
       kochia: { geometry: createKochiaGeometry(layout.kochiaTint, compact), material: createKochiaMaterial() },
-      foliage: { geometry: createFoliageGeometry(layout.foliage, layout.foliageShade), material: createFoliageMaterial(clump) },
+      foliage: { geometry: createFoliageGeometry(layout.foliage, layout.foliageShade), material: createFoliageMaterial(clump, compact ? 0.4 : 1) },
       lavender: { geometry: createLavenderGeometry(layout.lavender), material: createLavenderMaterial() },
       cosmos: { geometry: createCosmosGeometry(layout.cosmos, layout.cosmosLook, !compact), material: createCosmosMaterial(sharp, false) },
       bokeh: { geometry: createCosmosGeometry(layout.bokeh, layout.bokehLook, false), material: createCosmosMaterial(bokeh, true) },
