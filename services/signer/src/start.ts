@@ -21,8 +21,7 @@ export interface StartedSigner {
   app: ReturnType<typeof createSignerApp>;
   agent: Address;
   verifiesApproval: boolean;
-  via: Via; // "gate" when the vault's agent is the MandateGate
-  warning: string | null;
+  via: Via; // "gate" with SIGNER_VIA_GATE=1: payInvoice goes through the MandateGate
 }
 
 export interface StartOptions {
@@ -69,7 +68,7 @@ export async function startSigner(config: Config, options: StartOptions = {}): P
   const vault = { address: config.VAULT_ADDRESS as Address, abi: agentVaultAbi } as const;
   const gate = config.MANDATE_GATE_ADDRESS ? getAddress(config.MANDATE_GATE_ADDRESS) : null;
   const [route, token] = await Promise.all([
-    readRoute(publicClient, account.address, vault.address, gate).catch((error: unknown) => {
+    readRoute(publicClient, account.address, vault.address, { viaGate: config.SIGNER_VIA_GATE === "1", gate }).catch((error: unknown) => {
       throw error instanceof RouteError ? new RoleError(error.message) : error;
     }),
     publicClient.readContract({ ...vault, functionName: "token" }),
@@ -90,5 +89,5 @@ export async function startSigner(config: Config, options: StartOptions = {}): P
     info: { agent: account.address, vault: vault.address, chainId: config.CHAIN_ID, humanAboveYen: config.SIGNER_HUMAN_ABOVE_YEN, via: route.via, gate: route.gate },
     verifier,
   });
-  return { app, agent: account.address, verifiesApproval: verifier !== undefined, via: route.via, warning: route.warning };
+  return { app, agent: account.address, verifiesApproval: verifier !== undefined, via: route.via };
 }

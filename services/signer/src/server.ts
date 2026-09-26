@@ -20,6 +20,5 @@ try {
 const { config, signer } = started;
 serve({ fetch: signer.app.fetch, port: config.SIGNER_PORT, hostname: config.SIGNER_HOST }, (info) => {
   const approval = signer.verifiesApproval ? "verified here (phase 2)" : "claims checked (phase 1)";
-  if (signer.warning) log(`warning: ${signer.warning}`);
   log(`meigi signer listening on http://${config.SIGNER_HOST}:${info.port} (chain ${config.CHAIN_ID}, agent ${signer.agent}, human approval above ¥${config.SIGNER_HUMAN_ABOVE_YEN.toLocaleString("en-US")}, ${approval}, via the ${signer.via})`);
 });

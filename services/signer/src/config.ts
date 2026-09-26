@@ -14,8 +14,9 @@ const schema = z.object({
   SEPOLIA_RPC_URL: z.url(),
   CHAIN_ID: z.coerce.number().int().positive().default(11155111),
   VAULT_ADDRESS: address,
-  // The ENS MandateGate in front of the vault. Used only while the vault's agent is this gate; unset, or with the
-  // vault's agent set back to the key, the signer pays the vault directly.
+  // 1: pay through the ENS MandateGate at MANDATE_GATE_ADDRESS, which must already be the vault's agent (route.ts).
+  // 0, the default: pay the vault directly, as its agent.
+  SIGNER_VIA_GATE: z.enum(["0", "1"]).default("0"),
   MANDATE_GATE_ADDRESS: address.optional(),
   SIGNER_HOST: z.enum(["127.0.0.1", "::1"]).default("127.0.0.1"), // loopback only: the agent is its one caller
   SIGNER_PORT: z.coerce.number().int().min(1).max(65535).default(8796),
@@ -49,6 +50,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     throw new ConfigError(problems.join("; "));
   }
   const config = parsed.data;
+  if (config.SIGNER_VIA_GATE === "1" && !config.MANDATE_GATE_ADDRESS) throw new ConfigError("SIGNER_VIA_GATE=1 needs MANDATE_GATE_ADDRESS");
   if (config.SIGNER_VERIFY_APPROVAL === "1") {
     if (!config.WORLD_AGENTS_ISSUER || !config.WORLD_AGENTS_CLIENT_ID) {
       throw new ConfigError("SIGNER_VERIFY_APPROVAL=1 needs WORLD_AGENTS_ISSUER and WORLD_AGENTS_CLIENT_ID");

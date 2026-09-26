@@ -3,6 +3,7 @@ import { encodeErrorResult, zeroAddress, type Address } from "viem";
 import { describe, expect, it } from "vitest";
 import { analyzeDocument } from "../src/analysis/analyze.js";
 import { payAnalysis } from "../src/analysis/pay.js";
+import { loadConfig } from "../src/config.js";
 import { createApp } from "../src/app.js";
 import { describeRevert } from "../src/chain/describe.js";
 import { decodeRaw } from "../src/chain/revert.js";
@@ -72,6 +73,13 @@ describe("paying through the buyer company's ENS mandate", () => {
     expect((await describeRevert(other, ctx)).sentence).toMatch(/names 0x0000…0Bad, not this agent's key/u);
     const disputed = decodeRaw(encodeErrorResult({ abi: mandateGateAbi, errorName: "PrincipalNotActive", args: [4999900000005n] }));
     expect((await describeRevert(disputed, ctx)).sentence).toContain("T4999900000005 is not active");
+  });
+
+  it("is off unless SIGNER_VIA_GATE=1, which needs the gate's address", () => {
+    const env = { SEPOLIA_RPC_URL: "http://127.0.0.1:8547", AGENT_ADDRESS: AGENT, SIGNER_TOKEN: "s".repeat(64), REGISTRY_ADDRESS: `0x${"22".repeat(20)}`, VAULT_ADDRESS: `0x${"33".repeat(20)}` };
+    expect(loadConfig(env).SIGNER_VIA_GATE).toBe("0");
+    expect(() => loadConfig({ ...env, SIGNER_VIA_GATE: "1" })).toThrow("MANDATE_GATE_ADDRESS");
+    expect(loadConfig({ ...env, SIGNER_VIA_GATE: "1", MANDATE_GATE_ADDRESS: GATE })).toMatchObject({ SIGNER_VIA_GATE: "1", MANDATE_GATE_ADDRESS: GATE });
   });
 
   it("shows the mandate in GET /vault, and counts its holder as authorised", async () => {

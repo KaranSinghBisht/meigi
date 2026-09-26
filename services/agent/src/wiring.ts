@@ -47,7 +47,7 @@ export function buildDeps(config: Config) {
     agent,
     registry: config.REGISTRY_ADDRESS as Address,
     token: config.TOKEN_ADDRESS as Address | undefined,
-    ...(config.MANDATE_GATE_ADDRESS ? { gate: getAddress(config.MANDATE_GATE_ADDRESS) } : {}),
+    ...(config.SIGNER_VIA_GATE === "1" && config.MANDATE_GATE_ADDRESS ? { gate: getAddress(config.MANDATE_GATE_ADDRESS) } : {}),
   });
   const triageBackends = createTriageBackends(config);
   const llm = createLlm(config);

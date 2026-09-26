@@ -37,15 +37,16 @@ This small process holds the AgentVault's agent key and signs one call for it: `
   `Authorization: Bearer <SIGNER_TOKEN>`, compared in constant time.
 - **The right key.** At startup it checks on-chain that its key isn't the vault's owner (the owner may pay an invoice
   twice), and that it is the vault's agent, directly or through the ENS mandate (below).
-- **An ENS mandate (prepared, off until the gate is live).** The buyer company can issue its AP agent a name,
+- **An ENS mandate (prepared, off: `SIGNER_VIA_GATE=0`).** The buyer company can issue its AP agent a name,
   `ap.t<company>.payee.eth`, and make the `MandateGate` the vault's agent. The gate forwards `payInvoice` (same
   arguments) only while that name answers and is held by this key.
-  - With `MANDATE_GATE_ADDRESS` set and the vault's agent equal to it, the signer sends `payInvoice` to the gate,
-    still typed fields only and simulated first. At startup it checks that the gate forwards to this vault and that
-    the mandate names this key. A mandate that doesn't answer yet is a warning: payments come back as
-    `MandateNotLive`.
-  - While the vault's agent is the key itself, it pays the vault directly, whatever `MANDATE_GATE_ADDRESS` says.
-    So the rollback is `vault.setAgent(<this key>)` plus a restart.
+  - With `SIGNER_VIA_GATE=1` and `MANDATE_GATE_ADDRESS`, the signer sends `payInvoice` to the gate, still typed fields
+    only and simulated first.
+  - The startup check is strict: the gate must be the vault's agent, forward to this vault, and name this key as
+    the mandate's holder. Otherwise the signer refuses to start. Once it is running, a revoked mandate comes back
+    as `MandateNotLive`, which the agent shows as a hold.
+  - With the default `SIGNER_VIA_GATE=0`, the vault's agent must be this key. The rollback is
+    `vault.setAgent(<this key>)`, `SIGNER_VIA_GATE=0`, and a restart.
   - `/health` says which route is in use (`via: "vault" | "gate"`, `gate`). The vault still emits `InvoicePaid`, so
     receipts and indexing are unchanged.
 
