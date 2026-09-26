@@ -22,6 +22,12 @@ describe("requireCredential", () => {
     expect(codeOf(() => requireCredential(result("passport"), ORB_OR_SELFIE))).toBe("credential_not_allowed");
   });
 
+  it("accepts a mocked Orb (proof_of_human) response when the deployment allows either", () => {
+    // The live production config as of Karan's run: WORLD_OFFICER_CREDENTIALS=selfie,proof_of_human - Selfie
+    // Check is the minimum, but an officer who happens to be Orb-verified is accepted too.
+    expect(codeOf(() => requireCredential(result("proof_of_human"), ORB_OR_SELFIE))).toBeNull();
+  });
+
   it("refuses proofs with no responses, a missing identifier, or any disallowed credential", () => {
     expect(codeOf(() => requireCredential({ responses: [] }, ORB_OR_SELFIE))).toBe("credential_not_allowed");
     expect(codeOf(() => requireCredential({}, ORB_OR_SELFIE))).toBe("credential_not_allowed");

@@ -145,8 +145,10 @@ if [[ "$MODE" == "stop" ]]; then
 fi
 
 if [[ "$MODE" == "production" ]]; then
-  start_verifier "production" "selfie" "1"
-  start_web "production" "selfie"
+  # Selfie Check is the minimum for an officer; Orb (proof_of_human) is accepted too, and satisfies it (both
+  # sides already support "any of" a comma-separated list - this was the config, not new code).
+  start_verifier "production" "selfie,proof_of_human" "1"
+  start_web "production" "selfie,proof_of_human"
 else
   start_verifier "" "" ""
   start_web "" ""

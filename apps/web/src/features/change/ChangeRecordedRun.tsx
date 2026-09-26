@@ -28,7 +28,9 @@ function OfficerRow({
           <span className="muted" title="A risk signal from World, not a uniqueness verdict.">
             Selfie Check · sybil score {sybilScore}
           </span>
-        ) : null}
+        ) : (
+          <span className="muted">Orb</span>
+        )}
       </span>
       <span className="approvals__ok">✓ approved with World ID</span>
     </li>

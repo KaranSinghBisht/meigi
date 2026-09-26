@@ -26,11 +26,12 @@ export function OfficerList({ officers }: { readonly officers: readonly OfficerE
           ) : (
             <Badge tone="neutral">Placeholder officer</Badge>
           )}
-          {officer.sybilScore != null ? (
+          {officer.proof === 'world-id' && officer.sybilScore != null ? (
             <span className="muted" title="A risk signal from World, not a uniqueness verdict.">
               Selfie Check · sybil score {officer.sybilScore}
             </span>
           ) : null}
+          {officer.proof === 'world-id' && officer.sybilScore === null ? <span className="muted">Orb</span> : null}
         </li>
       ))}
     </ol>

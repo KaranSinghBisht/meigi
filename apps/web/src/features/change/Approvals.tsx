@@ -38,7 +38,9 @@ function OfficerRows({ flow }: { readonly flow: IntentFlow }) {
                 <span className="muted" title="A risk signal from World, not a uniqueness verdict.">
                   Selfie Check · sybil score {session.sybilScore}
                 </span>
-              ) : null}
+              ) : (
+                <span className="muted">Orb</span>
+              )}
             </span>
             {done ? (
               <span className="approvals__ok">✓ approved with World ID</span>

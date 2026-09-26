@@ -46,21 +46,22 @@ export interface WidgetOutcome {
 }
 
 const WIDGET_ERRORS: Record<string, string> = {
-  verification_rejected: 'World App rejected the verification.',
-  credential_unavailable: "This World ID doesn't hold the proof-of-human credential.",
-  connection_failed: "Couldn't connect to World App. Try again.",
+  verification_rejected: 'World ID rejected the verification.',
+  connection_failed: "Couldn't connect to World ID. Try again.",
   timeout: 'World ID timed out. Try again.',
   max_verifications_reached: 'This World ID has reached its verification limit for this app.',
-  invalid_rp_signature: "World App didn't accept the verifier's signature. Check the RP id and signing key.",
-  unknown_rp: "World App doesn't know this RP id. Check VITE_WORLD_RP_ID.",
+  invalid_rp_signature: "World ID didn't accept the verifier's signature. Check the RP id and signing key.",
+  unknown_rp: "World ID doesn't know this RP id. Check VITE_WORLD_RP_ID.",
   duplicate_nonce: 'That request was already used. Try again.',
   rp_signature_expired: 'The request expired before it was completed. Try again.',
   malformed_request: 'World ID rejected the request as malformed.',
 }
 
-/** Choosing not to prove is the person's own decision, not something broken: shown calmly, not as an alert. */
+/** Choosing not to prove, or not holding a requested credential, is the person's own situation, not something
+ * broken: shown calmly, not as an alert. */
 const WIDGET_CALM: Record<string, string> = {
-  user_rejected: 'Declined in World App. Nothing changed — try again when you\'re ready.',
+  user_rejected: 'Declined in World ID. Nothing changed — try again when you\'re ready.',
+  credential_unavailable: "This credential isn't available on your World ID. Nothing changed.",
   cancelled: 'Cancelled. Nothing changed — try again when you\'re ready.',
 }
 

@@ -5,7 +5,7 @@ import type { ConstraintNode } from '@worldcoin/idkit'
 import { env, type OfficerCredential } from '../env/env'
 
 export const CREDENTIAL_NAMES: Record<OfficerCredential, string> = {
-  proof_of_human: 'proof of human',
+  proof_of_human: 'Orb',
   selfie: 'Selfie Check',
 }
 
