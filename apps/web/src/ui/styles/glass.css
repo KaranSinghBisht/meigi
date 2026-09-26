@@ -12,6 +12,8 @@
   /* Controls on the world. */
   --lg-lens: rgba(255, 255, 255, 0.07);
   --lg-lens-strong: rgba(255, 255, 255, 0.12);
+  /* The landing's dock pills sit over the garden's brightest beds: a little more white under the same lens. */
+  --lg-pill: rgba(255, 255, 255, 0.3);
   --lg-blur-lens: blur(9px) saturate(1.6) brightness(1.14);
   /* Windows: heavy frost, very little white. The blur turns the world behind into soft colour fields and lifts
      them a little, so small ink text stays AA without a milky fill. */
@@ -80,11 +82,17 @@
   --lg-depth: 0 0 transparent;
 }
 
-/* The torii station fills the view with saturated vermilion right behind the page: its windows are a little denser
-   there so small text stays AA (measured on real pixels). */
+/* Two stations put strong colour right behind the page, so their windows are denser and small text stays AA
+   (measured on real pixels): the torii's saturated vermilion, and on the shore the garden's green lawn and red
+   kochia, which fill the lower half of the view. */
 :root:has(.scene-layer[data-station='torii']) {
   --lg-window: rgba(255, 255, 255, 0.34);
   --lg-window-dense: rgba(255, 255, 255, 0.4);
+}
+
+:root:has(.scene-layer[data-station='shore']) {
+  --lg-window: rgba(255, 255, 255, 0.46);
+  --lg-window-dense: rgba(255, 255, 255, 0.52);
 }
 
 /* The glass plate: headings and short copy that sit straight on the world. */
@@ -256,6 +264,7 @@ html.lg-refract .lg-lens {
   :root:has(.scene-layer[data-station]) {
     --lg-lens: #f6f3fa;
     --lg-lens-strong: #ffffff;
+    --lg-pill: #ffffff;
     --lg-window: #fbf9fd;
     --lg-window-dense: #ffffff;
     --lg-cell: #ffffff;

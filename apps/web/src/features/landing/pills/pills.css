@@ -6,8 +6,9 @@
   padding: 0 20px;
   border: 0;
   border-radius: 999px;
-  /* Clear glass over the garden, lit by its sheen; the lens blur lifts the flowers enough for the ink to stay AA. */
-  background: var(--lg-sheen), var(--lg-lens);
+  /* Glass over the garden's bright beds, lit by its sheen: a little white under the lens blur keeps the ink AA over
+     the pink drifts and the red kochia. */
+  background: var(--lg-sheen), var(--lg-pill);
   -webkit-backdrop-filter: var(--lg-blur-lens);
   backdrop-filter: var(--lg-blur-lens);
   box-shadow: var(--lg-shadow-control);
@@ -28,7 +29,7 @@
 }
 
 .landing .pill:hover {
-  background: var(--lg-sheen-lift), var(--lg-lens-strong);
+  background: var(--lg-sheen-lift), var(--lg-pill);
 }
 
 .landing .pill:active {
