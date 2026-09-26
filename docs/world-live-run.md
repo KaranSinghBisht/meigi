@@ -47,7 +47,7 @@ Never share the QR code or session link from a screenshot: whoever completes it 
       ID," open the QR/session, then **cancel from inside the World ID app itself** (decline, or back out) once.
       - **We check:** the panel closes and shows a plain, calm line — "Cancelled. Nothing changed — try again
         when you're ready." — not a red error. This is `apps/web/src/lib/world/rpContext.ts`'s `widgetOutcome()`
-        (fixed for this run in `80fd408`: `user_rejected`/`cancelled` now render as a muted status line, not an
+        (fixed for this run in `44424ea`: `user_rejected`/`cancelled` now render as a muted status line, not an
         alert).
       - Tap the same button again immediately: it must start a fresh request with no leftover state.
    2. **The wrong human (alternative path b) — deferred.** Adithya is out until tonight, so this happens later as
