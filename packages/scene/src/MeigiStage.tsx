@@ -3,6 +3,7 @@ import { Canvas, type RootState } from '@react-three/fiber'
 import { useCallback, useState, type CSSProperties } from 'react'
 import { CameraRig } from './camera/CameraRig'
 import { Foothills } from './fuji/Foothills'
+import { Garden } from './garden/Garden'
 import { Fuji } from './fuji/Fuji'
 import { Lake } from './lake/Lake'
 import { Mist } from './mist/Mist'
@@ -57,6 +58,7 @@ function SceneContents({ station, animate, drift, interactive, multisampling }: 
       <Fuji />
       <Foothills />
       <Torii />
+      <Garden animate={animate} />
       <Lake station={settled} animate={animate} interactive={interactive} />
       <Mist station={settled} animate={animate} />
       <Sakura station={settled} animate={animate} />

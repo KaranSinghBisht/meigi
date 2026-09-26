@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { VIEW, fujiSilhouette, fujiSnowCap, ridge } from './fallbackPaths'
+import { GardenLayer } from './GardenLayer'
 import './fallback.css'
 
 function Defs() {
@@ -26,6 +27,10 @@ function Defs() {
       <filter id="fb-ripple" x="0" y="0" width="100%" height="100%">
         <feTurbulence type="fractalNoise" baseFrequency="0.004 0.09" numOctaves="2" seed="5" />
         <feDisplacementMap in="SourceGraphic" scale="18" xChannelSelector="R" yChannelSelector="G" />
+      </filter>
+      <filter id="fb-fluff" x="-10%" y="-10%" width="120%" height="120%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.09" numOctaves="2" seed="11" />
+        <feDisplacementMap in="SourceGraphic" scale="9" xChannelSelector="R" yChannelSelector="G" />
       </filter>
     </defs>
   )
@@ -86,6 +91,7 @@ export function FallbackScene() {
       <g transform="translate(0 1300) scale(1 -1)" opacity="0.5" filter="url(#fb-ripple)">
         <Torii />
       </g>
+      <GardenLayer />
     </svg>
   )
 }

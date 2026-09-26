@@ -58,9 +58,9 @@ export function stationPose(station: Station, aspect: number): StationPose {
     case 'fuji':
       return pose(new Vector3(0, 11, -30), new Vector3(0, 92, -900), fov * 0.8)
     case 'lake':
-      return pose(new Vector3(2, 0.75, -6), new Vector3(0, 3, -400), fov * 1.1)
+      return pose(new Vector3(0.6, 0.75, -7.2), new Vector3(0, 3, -400), fov * 1.1)
     case 'shore':
-      return pose(new Vector3(0, 3.4, 32), new Vector3(0, 18, -900), fov * 1.3)
+      return pose(new Vector3(0, 2.0, 3.6), new Vector3(0, 10, -900), fov * 1.2)
     case 'torii':
       return pose(new Vector3(torii.x + 1.5, 1.9, torii.z + 11), new Vector3(torii.x - 1, 3.4, torii.z - 60), fov * 1.15)
     case 'sky':
