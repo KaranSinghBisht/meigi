@@ -59,8 +59,8 @@ Nothing was broadcast:
 
 ## 2. The enrolled approver approves, and it pays (22:16-22:17 JST)
 
-Karan then approved in the enrolled desktop Brave. The new attempt is bound to the same analysis (the same
-`bindingSha256`):
+Karan then approved in the enrolled desktop Brave (sandbox code `RMHB9-MFQB4`). The new attempt is bound to the
+same analysis (the same `bindingSha256`):
 
 ```json
 {"seq": 80, "at": "2026-09-26T13:16:47.352Z", "event": "approval.started", "approvalId": "0fb6f067-541d-4211-9bc9-fe29d6f900c8",
