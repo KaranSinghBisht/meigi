@@ -1,6 +1,8 @@
 # Fine-tuning Q&A (for judges)
 
-Every number here comes from [`bench/README.md`](../bench/README.md) and [`bench/results/RESULTS.md`](../bench/results/RESULTS.md).
+Every number here comes from [`bench/README.md`](../bench/README.md), [`bench/results/RESULTS.md`](../bench/results/RESULTS.md) and
+the paper's statistics ([`bench/paper/generated/analysis.json`](../bench/paper/generated/analysis.json)); the full write-up is
+[`bench/paper/paper.pdf`](../bench/paper/paper.pdf).
 
 ## "Why fine-tune a model at all?"
 
@@ -18,15 +20,17 @@ That model has to be:
 
 Off the shelf, nothing fit:
 - **The released Kev models** (small open System-1 models) are poor at the question that matters most, suspicion,
-  with 0.39 accuracy. They're also miscalibrated, with ECE 0.13, so at a 1% error budget they auto-clear 0% of
-  legitimate invoices. A human would have to look at everything.
-- **A big LLM** (Llama 3.3 70B) scores 0.815, takes 2 s per document, and is the most gullible to injected
-  instructions: 0.29 on invoices hiding a "pay this account instead" instruction.
+  with about 0.4 accuracy, and under-confident (ECE 0.12–0.13). At a 1% error budget the released 0.8B auto-clears
+  none of the safe documents and the released 4B 16%, so a human would look at almost everything.
+- **A big LLM** (Llama 3.3 70B) scores 0.815 on our labels and takes 2 s per document (including the network). It
+  ranks safe against risky documents at least as well as our fine-tune, but it misses most "pay this account
+  instead" instructions hidden in invoices: it flags the new destination on 2 of 6.
 
 **Our fine-tune** (`payee-0.8b`) scores:
-- 0.918 mean accuracy;
+- 0.918 mean accuracy on our labels;
 - ECE 0.024;
-- 45% of legitimate invoices auto-cleared at a 1% error budget;
+- 45% of the safe documents (23 of 51) auto-cleared at a 1% error budget, with one that should have been held let
+  through; one or two items decide that rate (31–59% when the test items are resampled);
 - 39 ms per document, on a laptop.
 
 **And it never moves money.** It only decides which invoices a human must look at. Paying the right company is
@@ -34,13 +38,14 @@ enforced by the deterministic kernel and the chain: the vault reverts `PayeeMism
 
 ## "What did you fine-tune?"
 
+- **Method:** supervised fine-tuning (cross-entropy on our labels), not reinforcement learning.
 - **Base:** Kev-0.8B (`jaredpalmer/kev-0.8b`, Apache-2.0). It's built on `Qwen/Qwen3.5-0.8B-Base` with a LoRA adapter
   (rank 16) and a pointer head that answers typed questions (choice, yes/no, 0–3 score) with probabilities.
 - **What trains:** the LoRA adapter and the head, 11.3M parameters. The 0.8B backbone stays frozen.
 - **Data:** the 600 training items of PayeeBench-JA, our own benchmark.
 - **Calibration:** one temperature (T = 1.23), fitted on the 100 validation items.
 - **Also tried:** a 4B version. It scored +2.0 points, which isn't significant (p = 0.11), at four times the
-  latency, so we ship the 0.8B.
+  latency, so we ship the 0.8B. The 4B does rank safe against risky documents better (AUROC 0.986 vs 0.944).
 
 ## "How did you fine-tune it?"
 
@@ -48,12 +53,14 @@ enforced by the deterministic kernel and the chain: the vault reverts `PayeeMism
 |---|---|
 | trainer | Kev's own trainer (`kev.train`), starting from the released checkpoint (`scripts/train_kev.sh`) |
 | hardware | our MacBook (M5 Max, 48 GB), PyTorch on MPS, fp32 |
-| recipe | 2 epochs, lr 2e-5 (OneCycle), batch 1 × grad-accumulation 8 = 150 optimizer steps, max state 512 tokens |
+| recipe | 2 epochs, AdamW, lr 2e-5 (OneCycle), batch 1 × grad-accumulation 8 = 150 optimizer steps, gradient clipping at 1.0 (active on 148 steps), Kev's option-shuffle and none-of-the-above augmentation, max state 512 tokens |
 | time | **39 minutes**, plus 3 minutes to fit the temperature |
 | serving | MLX bf16 through `kev.serve` on localhost; the agent calls `/v1/systemone` |
 | 4B | 62 min for 1 epoch. The released recipe didn't fit in 48 GB, so we used a bf16 frozen backbone, gradient checkpointing and a 26 GB MPS memory cap |
 
-No test item was used for training, calibration, threshold choice or any recipe decision.
+No test item was used for training, calibration or threshold choice. The test split was read more than once,
+though: every model was scored on it once per dataset build, the 4B was trained after the 0.8B's test results were
+known, and we chose to ship the 0.8B on the test comparison.
 
 ## "What's the benchmark?"
 
@@ -76,50 +83,58 @@ No test item was used for training, calibration, threshold choice or any recipe 
 - **ECE** (calibration);
 - **the auto-clear rate at a 1% error budget**, with the threshold chosen on validation, as deployed. This is the
   number the product cares about.
-- how many unsafe items got through;
+- how many items that should have been held got through;
 - p50/p95 latency;
 - cost per 1,000 items.
 
 ## "What are the results?"
 
-Test split, 150 items and 600 answers, each model scored once:
+Test split, 150 items and 600 answers:
 
-| model | mean acc | suspicion | ECE | legit auto-cleared @1% | p50 |
-|---|---|---|---|---|---|
-| Kev-0.8B released | 0.747 | 0.393 | 0.134 | 0% | 38 ms |
-| Kev-4B released | 0.795 | 0.413 | 0.120 | 16% | 169 ms |
-| Llama 3.3 70B | 0.815 | 0.560 | 0.076 | (not run on validation) | 2,047 ms |
-| **payee-0.8b (ours)** | **0.918** | **0.787** | **0.024** | **45%** | **39 ms** |
-| payee-4b (ours) | 0.938 | 0.813 | 0.016 | 67% | 165 ms |
+| model | mean acc | suspicion | ECE | AUROC of P(safe) | safe items auto-cleared @1% | p50 |
+|---|---|---|---|---|---|---|
+| Kev-0.8B released | 0.747 | 0.393 | 0.134 | 0.843 | 0% | 38 ms |
+| Kev-4B released | 0.795 | 0.413 | 0.120 | 0.969 | 16% | 169 ms |
+| Llama 3.3 70B | 0.815 | 0.560 | 0.092 | 0.986 | (not run on validation) | 2,047 ms |
+| **payee-0.8b (ours)** | **0.918** | **0.787** | **0.024** | 0.944 | **45%** | **39 ms** |
+| payee-4b (ours) | 0.938 | 0.813 | 0.016 | 0.986 | 67% | 165 ms |
 
-- **Against the released 0.8B:** +17.2 points (95% CI +14.2 to +20.2, McNemar p = 1e-25).
-- **Against Kev-4B:** +12.3 points.
-- **Against Llama 3.3 70B:** +10.3 points, 50 times faster.
+- **Against the released 0.8B:** +17.2 points (95% CI +14.2 to +20.2; better on 91 items, worse on 6, sign test
+  p = 1.3e-20).
+- **Against Kev-4B:** +12.3 points (CI +9.3 to +15.5).
+- **Against Llama 3.3 70B:** +10.3 points (CI +6.7 to +14.2), 50 times faster. But the lead is in following our
+  labels, not in spotting fraud: it's +7.0 without the 45 answers whose label follows one of our conventions, the two
+  are tied on the safe-versus-risky suspicion split, and Llama ranks safe above risky documents at least as well
+  (AUROC 0.986 vs 0.944).
 
 ## Questions to expect, and honest answers
 
 - **"Isn't the data synthetic?"**
-  - Yes. The test split uses new layouts, phrasings and entities, but the same world model. Real mail is messier:
-    OCR noise, threads, attachments.
+  - Yes, and self-built. The test split uses new layouts, phrasings and entities, but the same world model. Real
+    mail is messier: OCR noise, threads, attachments.
+  - Labels nearly follow from the item's family: answering each test item with its family's usual labels would
+    score 0.973. So the benchmark measures how well a model learns our families and conventions.
   - Next step: evaluate on real, consented invoices and set the production threshold there, with a margin.
 - **"Did it forget general skills?"**
   - Accuracy held on Kev's own out-of-domain suite (0.651 → 0.637).
   - Calibration there got worse (ECE 0.049 → 0.225).
   - So we serve the fine-tune only for these four questions.
 - **"Why not just use GPT or Claude?"**
-  - Cost and latency on every document.
+  - We tried. Run as Claude Code agents (indicative: each read many items in one session, not one call per item),
+    Claude Sonnet 5 ties our 0.8B, and Opus 5.5 and Fable 5.1 are about 3 points ahead and tie our 4B. Sonnet, Opus
+    and Fable also separate safe from risky documents perfectly on our test split.
+  - Cost and latency on every document: an estimated $1.3–$13 per 1,000 documents at list price, against $0.00013 of
+    electricity for our 0.8B, or about $0.0035 on a rented GPU.
   - Privacy: business invoices shouldn't leave the machine.
-  - An LLM that reads the document can be steered by it; Llama scored 0.29 on hidden-instruction invoices.
+  - An LLM that reads the document can be steered by it; Llama flagged the new destination on only 2 of 6
+    hidden-instruction invoices.
   - Our agent does use an LLM, but only to propose (deliberately gullible) and to explain. The kernel and the chain
     decide.
 - **"What about Jev?"** Not run: its hosted endpoint needed credits we didn't have. The harness is ready
   (`--remote jev-worker`).
 - **"What does it get wrong?"**
-  - It let one unsafe item through: an invoice whose 振込先 moved to another bank under the same account name. That's
-    literal comparison, which System-1 models are weak at by design, and it's exactly what the kernel's exact registry
-    match catches.
-  - The remaining misses are the 0/1 suspicion boundary on new reminder phrasings, and level 2 vs 3 on polite scams.
-
-**One line for stage:** "We fine-tuned a 0.8B model on this MacBook in 39 minutes. It beats a 70B LLM at spotting
-payment-redirection scams, at 39 ms, and its confidence is honest enough to let half the legitimate invoices through
-untouched. But it still can't move money: only the chain can."
+  - It let one document through that should have been held: an invoice whose 振込先 moved to another bank under the
+    same account name. That's literal comparison, which System-1 models are weak at by design, and it's exactly what
+    the kernel's exact registry match catches.
+  - Confident false alarms: it rated 4 of the 6 benign Japanese gentle reminders "very likely a scam" (0.49 to 0.93).
+  - Level 2 vs 3 on polite scams.
