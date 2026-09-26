@@ -1,3 +1,5 @@
+import { useEffect } from 'react'
+import { useLocation } from 'react-router'
 import { env } from '../../lib/env/env'
 import { HankoMark } from '../../ui/brand/HankoMark'
 import { ExternalLinkButton } from '../../ui/components/Button'
@@ -34,7 +36,23 @@ function TalkToUs() {
 }
 
 /** Meigi as a product: static copy over the world, at the shore. */
+/**
+ * A link like /business#withdrawal-check lands on its section. It waits a frame, so it runs after the app shell's own
+ * scroll-to-top for a new page.
+ */
+function useHashTarget() {
+  const { hash } = useLocation()
+  useEffect(() => {
+    if (!hash) return
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView({ block: 'start' })
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [hash])
+}
+
 export default function BusinessPage() {
+  useHashTarget()
   return (
     <div className="biz">
       <header className="page-head">

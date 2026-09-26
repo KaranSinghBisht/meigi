@@ -48,7 +48,7 @@ export function Exchanges() {
           </p>
         </div>
       </div>
-      <div className="biz-exchange__check">
+      <div id="withdrawal-check" className="biz-exchange__check">
         <WithdrawalCheck />
       </div>
     </section>
