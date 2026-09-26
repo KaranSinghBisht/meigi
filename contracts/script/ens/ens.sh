@@ -80,9 +80,12 @@ run_cast() {
 
 setup() {
   local dotenv="${DOTENV:-$CONTRACTS/../.env}" rpc
+  # The agent key lives in .env.signer (only services/signer and this script read it), not in .env.
+  local signer_env="${DOTENV_SIGNER:-$CONTRACTS/../.env.signer}"
   # Never load the real keys against a local RPC: a fork keeps chain id 11155111, so whatever is signed
   # there is also a valid Sepolia transaction.
   if [[ ${SKIP_DOTENV:-0} != 1 && -f $dotenv ]] && ! is_local "${RPC_URL:-}"; then load_dotenv "$dotenv"; fi
+  if [[ ${SKIP_DOTENV:-0} != 1 && -f $signer_env ]] && ! is_local "${RPC_URL:-}"; then load_dotenv "$signer_env"; fi
   ENS_DEPLOYMENT="${ENS_DEPLOYMENT:-beta}" # the official Beta: what default ENS clients resolve
   [[ $ENS_DEPLOYMENT =~ ^[a-z0-9_-]+$ && -f $HERE/deployments/$ENS_DEPLOYMENT.env ]] ||
     die "unknown ENS_DEPLOYMENT '$ENS_DEPLOYMENT' (see $HERE/deployments)"
