@@ -43,7 +43,7 @@ export const PRODUCTS: readonly Product[] = [
   {
     kanji: '学習',
     name: 'Custom triage models',
-    body: 'We fine-tune a small model on your own AP history, and it runs on your hardware. For example, our 0.8B model beat Llama 3.3 70B on the held-out templates of our own benchmark (PayeeBench-JA), at 39 ms p50, trained in 39 minutes on a MacBook.',
+    body: 'We fine-tune a small model on your own AP history, and it runs on your hardware: ours was trained in 39 minutes on a MacBook and routes each item in about 40 ms. It never decides a payment; the registry match does.',
     model: 'Setup + annual license',
   },
 ]
