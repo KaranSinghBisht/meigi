@@ -5,41 +5,12 @@ import { Panel } from '../../ui/components/Panel'
 import { Spinner } from '../../ui/components/Spinner'
 import { EventFeed } from './EventFeed'
 import { PayeeCard } from './PayeeCard'
+import { PayeeFinder } from './PayeeFinder'
 import { StaleNote } from './StaleNote'
-import { TNumberSearch } from './TNumberSearch'
 import { usePayee } from './usePayee'
 import { useRegistryFeed, type RegistryFeed } from './useRegistryFeed'
 import '../../ui/layout/layout.css'
 import './registry.css'
-
-function Directory({ feed, current }: { readonly feed: RegistryFeed; readonly current: string | null }) {
-  const navigate = useNavigate()
-  const entries = [...feed.directory.entries()]
-  if (entries.length === 0) return null
-  return (
-    <div className="directory">
-      <p className="eyebrow">Registered on Sepolia</p>
-      <ul className="directory__list">
-        {entries.map(([tNumber, name]) => (
-          <li key={tNumber}>
-            <button
-              type="button"
-              className="directory__chip"
-              aria-pressed={tNumber === current}
-              title={name}
-              onClick={() => navigate(`/registry/${tNumber}`)}
-            >
-              <span className="jp directory__name" lang="ja">
-                {name}
-              </span>
-              <span className="mono directory__t">{tNumber}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
-  )
-}
 
 function PayeeSlot({ tNumber }: { readonly tNumber: string | null }) {
   const { state, refresh } = usePayee(tNumber)
@@ -107,8 +78,7 @@ export default function RegistryPage() {
       </header>
       <div className="registry__grid">
         <Panel className="registry__lookup" aria-label="Look up a payee">
-          <TNumberSearch initial={current ?? ''} onSubmit={(t) => navigate(`/registry/${t.display}`)} />
-          <Directory feed={feed} current={current} />
+          <PayeeFinder feed={feed} current={current} onOpen={(t) => navigate(`/registry/${t.display}`)} />
           <div className="payee-slot">
             {invalid ? (
               <Notice tone="danger" title={`"${params.tNumber}" is not a T-number.`}>

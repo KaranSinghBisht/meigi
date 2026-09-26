@@ -1,0 +1,158 @@
+/* Find a payee: one search box, then every registered payee in a list that scrolls inside itself (about six rows
+   show) and fades only at the edge that hides more, so the page never grows with the registry. */
+.finder {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.finder__search {
+  display: flex;
+  gap: 8px;
+}
+
+.finder__search .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.finder__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.finder__count {
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.finder__list {
+  --fade-top: 0px;
+  --fade-bottom: 0px;
+  max-height: calc(6 * 44px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: var(--radius-md);
+  background: var(--lg-cell);
+  box-shadow: var(--lg-highlight);
+  scrollbar-width: thin;
+}
+
+.finder__list[data-more-above='true'] {
+  --fade-top: 32px;
+}
+
+.finder__list[data-more-below='true'] {
+  --fade-bottom: 32px;
+}
+
+.finder__list:is([data-more-above='true'], [data-more-below='true']) {
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    transparent,
+    #000 var(--fade-top),
+    #000 calc(100% - var(--fade-bottom)),
+    transparent
+  );
+  mask-image: linear-gradient(
+    180deg,
+    transparent,
+    #000 var(--fade-top),
+    #000 calc(100% - var(--fade-bottom)),
+    transparent
+  );
+}
+
+.finder__row + .finder__row {
+  box-shadow: 0 -1px 0 var(--lg-hairline);
+}
+
+/* One row per payee: a status dot, the registered name, the T-number (never cut). */
+.finder__item {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: var(--text-md);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s var(--ease-out);
+}
+
+.finder__item:hover {
+  background: var(--lg-cell-strong);
+}
+
+.finder__item:focus-visible {
+  outline-offset: -2px;
+}
+
+.finder__item[aria-current='true'] {
+  background: rgba(125, 110, 214, 0.18);
+}
+
+.finder__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--jade);
+}
+
+.finder__item--disputed .finder__dot {
+  background: var(--vermilion);
+}
+
+.finder__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.finder__item--disputed .finder__name {
+  color: var(--ink-soft);
+}
+
+.finder__t {
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+}
+
+.finder__empty {
+  padding: 16px;
+  border-radius: var(--radius-md);
+  background: var(--lg-cell);
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 520px) {
+  .finder__search {
+    flex-direction: column;
+  }
+
+  /* Stacked, the field keeps its own height instead of growing from zero. */
+  .finder__search .input {
+    flex: none;
+  }
+
+  .finder__item {
+    grid-template-columns: 8px minmax(0, 1fr);
+    row-gap: 0;
+    padding: 8px 16px;
+  }
+
+  .finder__t {
+    grid-column: 2;
+  }
+}

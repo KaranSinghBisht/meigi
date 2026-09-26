@@ -8,6 +8,13 @@ const TIMESTAMPED = 40
 /** Public RPCs are load-balanced: a lagging node can miss the newest blocks, so each poll rescans a few. */
 const OVERLAP = 6n
 
+/** One registered T-number as the logs tell it. A disputed one's name is withheld, as everywhere else. */
+export interface DirectoryPayee {
+  readonly tNumber: string
+  readonly name: string | null
+  readonly status: 'active' | 'disputed'
+}
+
 export interface RegistryFeed {
   readonly status: 'loading' | 'ready' | 'error'
   /** Newest first. */
@@ -15,8 +22,10 @@ export interface RegistryFeed {
   readonly times: ReadonlyMap<bigint, Date>
   readonly lastBlock: bigint | null
   readonly error: string | null
-  /** Registered payees seen in the logs: T-number → legal name. */
+  /** Active registered payees seen in the logs: T-number → legal name. */
   readonly directory: ReadonlyMap<string, string>
+  /** Every registered T-number, newest registration first, with its status. */
+  readonly payees: readonly DirectoryPayee[]
 }
 
 function newestFirst(a: FeedEvent, b: FeedEvent): number {
@@ -87,21 +96,35 @@ function useBlockTimes(events: readonly FeedEvent[]): ReadonlyMap<bigint, Date> 
   return times
 }
 
+/** Walks the logs oldest first: who registered, and who is frozen by a dispute right now. */
+function directoryOf(events: readonly FeedEvent[]) {
+  const names = new Map<string, string>()
+  const order: string[] = []
+  const frozen = new Set<string>()
+  for (const event of [...events].reverse()) {
+    if (event.name === 'PayeeRegistered' && event.legalName) {
+      if (!names.has(event.tNumber)) order.push(event.tNumber)
+      names.set(event.tNumber, event.legalName)
+    }
+    if (event.name === 'ClaimDisputed') frozen.add(event.tNumber)
+    if (event.name === 'DisputeResolved' || event.name === 'DisputeDismissed') frozen.delete(event.tNumber)
+  }
+  const payees: DirectoryPayee[] = order
+    .reverse()
+    .map((tNumber) =>
+      frozen.has(tNumber)
+        ? { tNumber, name: null, status: 'disputed' }
+        : { tNumber, name: names.get(tNumber) ?? null, status: 'active' },
+    )
+  // A frozen payee's name never leaves this function: the feed and the list show only its status.
+  for (const tNumber of frozen) names.delete(tNumber)
+  return { directory: names as ReadonlyMap<string, string>, payees }
+}
+
 export function useRegistryFeed(): RegistryFeed {
   const { events, lastBlock, error, loaded } = useFeedPolling()
   const times = useBlockTimes(events)
-  const directory = useMemo(() => {
-    const names = new Map<string, string>()
-    const frozen = new Set<string>()
-    for (const event of [...events].reverse()) {
-      if (event.name === 'PayeeRegistered' && event.legalName) names.set(event.tNumber, event.legalName)
-      if (event.name === 'ClaimDisputed') frozen.add(event.tNumber)
-      if (event.name === 'DisputeResolved' || event.name === 'DisputeDismissed') frozen.delete(event.tNumber)
-    }
-    // Frozen payees aren't offered as examples; searching one still shows its disputed status.
-    for (const tNumber of frozen) names.delete(tNumber)
-    return names
-  }, [events])
+  const { directory, payees } = useMemo(() => directoryOf(events), [events])
   const status = !loaded ? 'loading' : error && events.length === 0 ? 'error' : 'ready'
-  return { status, events, times, lastBlock, error, directory }
+  return { status, events, times, lastBlock, error, directory, payees }
 }

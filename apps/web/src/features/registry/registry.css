@@ -1,9 +1,10 @@
+/* The lookup and the live feed fill the page column as one balanced pair, however wide the screen: no gap opens
+   between them, and the feed is exactly as tall as the lookup beside it. */
 .registry__grid {
   display: grid;
-  grid-template-columns: minmax(0, 560px) minmax(0, 420px);
-  justify-content: space-between;
-  gap: 20px;
-  align-items: start;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: 24px;
+  align-items: stretch;
 }
 
 .registry__lookup {
@@ -24,74 +25,6 @@
 
 .tsearch__input {
   flex: 1;
-}
-
-.directory {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 8px;
-}
-
-.directory__list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.directory__chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: var(--control-chip);
-  padding: 0 12px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--lg-cell-strong);
-  box-shadow: var(--lg-shadow-control);
-  cursor: pointer;
-  transition:
-    background-color 0.2s var(--ease-out),
-    border-color 0.2s var(--ease-out);
-}
-
-/* A long company name gives way to an ellipsis; the chip stays one line and the T-number stays whole. */
-.directory__list > li {
-  min-width: 0;
-  max-width: 100%;
-}
-
-.directory__chip {
-  max-width: 100%;
-}
-
-.directory__name {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.directory__t {
-  flex: none;
-}
-
-.directory__chip:hover {
-  background: var(--lg-sheen-lift), var(--lg-cell-strong);
-}
-
-.directory__chip:focus-visible {
-  border-radius: 999px;
-}
-
-/* Selected: a lilac fill, like a selected date. */
-.directory__chip[aria-pressed='true'] {
-  background: rgba(125, 110, 214, 0.2);
-  color: var(--iris-deep);
-}
-
-.directory__t {
-  color: var(--ink-muted);
-  font-size: var(--text-sm);
 }
 
 .payee-slot {
@@ -295,18 +228,18 @@
   white-space: nowrap;
 }
 
-/* On wide screens the feed stays in view: its header holds still and the events scroll under a soft fade, so the
-   last row fades out instead of being cut by the window's edge. */
+/* The feed takes the lookup window's height, not its own: `contain: size` keeps its events from growing the row. Its
+   header holds still and the events scroll under a soft fade, so the last row fades out instead of being cut. */
 .feed-panel {
-  position: sticky;
-  top: var(--shell-top, 88px);
   display: flex;
+  min-height: 480px;
   flex-direction: column;
-  max-height: calc(100vh - var(--shell-top, 88px) - 24px);
   overflow: hidden;
+  contain: size;
 }
 
 .feed-panel > .feed {
+  flex: 1;
   min-height: 0;
   padding-bottom: 24px;
   overflow-y: auto;
@@ -320,16 +253,11 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
+  /* One column: the feed has its own height and still scrolls inside itself. */
   .feed-panel {
-    position: static;
-    max-height: none;
-  }
-
-  .feed-panel > .feed {
-    padding-bottom: 0;
-    overflow: visible;
-    -webkit-mask-image: none;
-    mask-image: none;
+    height: 560px;
+    min-height: 0;
+    contain: none;
   }
 }
 
