@@ -132,6 +132,9 @@ importers:
       playwright:
         specifier: ^1.63.0
         version: 1.63.0
+      tsx:
+        specifier: ^4.21.0
+        version: 4.23.15
       typescript:
         specifier: ^7.0.2
         version: 7.0.2
