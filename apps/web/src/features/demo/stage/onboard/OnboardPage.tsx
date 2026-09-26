@@ -1,5 +1,5 @@
 import { HankoMark } from '../../../../ui/brand/HankoMark'
-import { ONBOARD_SKIPPED, ONBOARD_STEPS } from '../../content/onboard'
+import { ONBOARD_COPY, ONBOARD_SKIPPED, ONBOARD_STEPS } from '../../content/onboard'
 import { OfficersScreen, RegisteredScreen, ReviewScreen } from './OnboardFinish'
 import { CompanyScreen, DomainScreen, RepresentationScreen, WalletsScreen } from './OnboardScreens'
 import './onboard.css'
@@ -33,14 +33,19 @@ function Rail() {
   )
 }
 
-/** Chapter 0's page in the browser: Meigi's own /register, where a company binds its T-number to one payout. */
+/**
+ * Chapter 0's page in the browser: Meigi's own /register, replaying a registration as the hosted replay does, with
+ * its one honest line at the top saying what this is.
+ */
 export function OnboardPage() {
   return (
     <div className="onb" data-d="onboard-page">
       <header className="onb__top">
         <HankoMark size={24} />
         <span className="onb__brand">meigi.</span>
-        <span className="onb__crumb">Register a business</span>
+        <p className="onb__bar">
+          <b>{ONBOARD_COPY.bar.strong}</b> · {ONBOARD_COPY.bar.rest}
+        </p>
       </header>
       <section className="onb__window">
         <Rail />

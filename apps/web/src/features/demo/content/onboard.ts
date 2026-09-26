@@ -1,49 +1,48 @@
-// Chapter 0: 株式会社メイギ商事 joins Meigi. The wizard is a replica of /register; every value it lands on is the
-// company's real registration on Sepolia, read from the registry's PayeeRegistered event (registry
-// 0x205c977cF1f4Ed42e51a48759550eF40160A6396, from block 11781105) and officersOf(2011001234567).
-//
-// The company is a fictional fixture (not in the NTA index), registered by contracts/script/seed-demo.sh: no
-// domain proof, a placeholder officer keccak("meigi-demo-fixture-officer") that no one can prove, and fixture
-// evidence keccak("demo-fixture:fictional-vendor:not-an-NTA-company"). The chapter says so wherever it matters.
+// Chapter 0: a company joins Meigi, shown as /register's own replay shows it. Everything here is derived from
+// RECORDING (content/onboardRecording), and the copy is /register's, verbatim (register/flow/copy.ts, the step
+// components and replay/ReplayScreens.tsx), so the replica and the site never drift.
 
 import { shortAddress, shortHash } from '../../../lib/chain/format'
+import { RECORDING, type PayoutMode } from './onboardRecording'
 
-const TX = '0x277c211583a26ed34ca3b40fdb695dfef0b6b19df8a700e44857a1e4a78dd2dc'
 const REGISTRY = '0x205c977cF1f4Ed42e51a48759550eF40160A6396'
-const CONTROLLER = '0xc33a9cD6662D39E190855c43a459CBcB938e4638'
-const PAYOUT = '0x9B4fc8994FcF2d5FE08a82A9454B61AA14D647e4'
-const EVIDENCE = '0xf8b96e6b0387f0ec42ba9d83575afbfe17774918210bba7a834f3b562e3248ae'
-const OFFICER = '0xe2218d9c34f8b3b3f15371bc96c1aa16f2f491f96ab37edad6030481b829a3ad'
-const T_NUMBER = 'T2011001234567'
+const APP_HOST = 'meigi.karanbishttt.workers.dev'
+
+const rec = RECORDING
+const ens = `${rec.company.tNumber.toLowerCase()}.payee.eth`
+const placeholder = rec.officers.some((officer) => officer.proof === 'placeholder')
 
 export const ONBOARD = {
-  tNumber: T_NUMBER,
-  legalName: '株式会社メイギ商事',
-  ens: `${T_NUMBER.toLowerCase()}.payee.eth`,
+  /** `seed`: registered by the seed script, shown without clicks. `wizard`: a real run, shown click by click. */
+  seeded: rec.source === 'seed',
+  tNumber: rec.company.tNumber,
+  query: rec.company.query,
+  legalName: rec.company.legalName,
+  fixture: rec.company.fixture,
+  note: rec.company.note,
+  address: rec.company.address,
+  ens,
   registry: REGISTRY,
   registryShort: shortAddress(REGISTRY),
-  controller: CONTROLLER,
-  controllerShort: shortAddress(CONTROLLER),
-  payout: PAYOUT,
-  payoutShort: shortAddress(PAYOUT),
-  evidenceShort: shortHash(EVIDENCE),
-  officerShort: shortHash(OFFICER),
-  officers: 1,
-  txHash: TX,
-  txShort: shortHash(TX),
-  block: 11_781_118,
-  /** The block's time: 2026-09-26 03:49:12 JST. */
-  at: new Date('2026-09-25T18:49:12Z'),
+  controllerShort: shortAddress(rec.controller),
+  payoutShort: shortAddress(rec.payout.address),
+  payoutMode: rec.payout.mode ?? null,
+  domain: rec.domain,
+  officers: rec.officers.map((officer) => ({
+    short: shortHash(officer.id),
+    proof: officer.proof,
+    sybilScore: officer.sybilScore ?? null,
+  })),
+  placeholder,
+  threshold: rec.threshold,
+  evidenceShort: shortHash(rec.evidence),
+  txShort: shortHash(rec.txHash),
+  block: rec.block,
+  at: new Date(rec.at),
   /** The public payee page the registered payee card's QR code opens. */
-  payeeUrl: `https://meigi.karanbishttt.workers.dev/registry/${T_NUMBER}`,
-  appHost: 'meigi.karanbishttt.workers.dev',
+  payeeUrl: `https://${APP_HOST}/registry/${rec.company.tNumber}`,
+  appHost: APP_HOST,
 } as const
-
-/**
- * Steps passed but not done, which the rail marks "–" as /register does: representation (not built for anyone
- * yet), and for this fictional fixture its domain and its placeholder officer. 1-based.
- */
-export const ONBOARD_SKIPPED: readonly number[] = [3, 4, 5]
 
 /** The wizard's seven screens, as the real progress rail names them (register/flow/steps.ts). */
 export const ONBOARD_STEPS = [
@@ -57,10 +56,26 @@ export const ONBOARD_STEPS = [
 ] as const
 
 /**
- * Each screen's question and lede, verbatim from /register (register/flow/copy.ts, and for this demo company
- * representative/RepresentativeStep.tsx and COPY.registeredReplay), so the replica never drifts.
+ * Steps passed but not done, which the rail marks "–" as /register does (1-based): representation always (not built
+ * for anyone yet), a demo company's domain, and placeholder officers.
  */
+export const ONBOARD_SKIPPED: readonly number[] = [
+  ...(rec.domain.method === 'fixture' ? [3] : []),
+  4,
+  ...(placeholder ? [5] : []),
+]
+
+const PROVEN_BY: Record<string, string> = { dns: 'a signed DNS TXT record', 'well-known': 'a signed file at /.well-known/meigi.json' }
+
+/** Each screen's question and lede, and the lines around them, verbatim from /register. */
 export const ONBOARD_COPY = {
+  /** The replay's one honest line (RegisterReplay.tsx, BarNote). */
+  bar: rec.source === 'wizard'
+    ? { strong: 'Replay of a real registration on Sepolia', rest: 'registering your own company opens with the beta' }
+    : {
+        strong: 'How the wizard presents a registration',
+        rest: `${rec.company.legalName} is a demo company our seed script registered on Sepolia`,
+      },
   company: {
     title: 'Which company is joining?',
     lede: 'Enter its T-number, the qualified invoice number, or paste its LEI. Meigi fills in the rest from the National Tax Agency registry.',
@@ -68,35 +83,79 @@ export const ONBOARD_COPY = {
   wallets: {
     title: 'Which wallets will it use?',
     lede: 'A business key that approves changes, and the one address every payment goes to.',
+    keyLede: 'It signs the domain proof, and every change after registration.',
+    payoutLede: 'The only address payers who check Meigi will send money to.',
   },
-  domain: {
-    title: 'No domain to prove',
-    lede: 'A fictional company has no real domain, so Meigi skips this step and records it as fictional.',
-  },
+  domain: domainCopy(),
   representative: {
     title: 'Prove you represent the company',
     lede: "Controlling a domain doesn't make someone the company. Its registered representative will sign for it.",
   },
-  /** Step 4's note for a demo company, which proves none of what a real registration does. */
-  representativeDemo: {
-    title: 'A demo company is fictional: it has no NTA record and no domain to prove.',
-    detail:
-      "A real company's registration proves an exact NTA name match, domain control and World ID officers today. In production it also proves the signer represents the company.",
-  },
+  /** Step 4's note: a demo company proves none of what a real registration does (RepresentativeStep.tsx). */
+  representativeNote: rec.company.fixture
+    ? {
+        title: 'A demo company is fictional: it has no NTA record and no domain to prove.',
+        detail:
+          "A real company's registration proves an exact NTA name match, domain control and World ID officers today. In production it also proves the signer represents the company.",
+      }
+    : {
+        title: 'Today, registration proves an exact NTA name match, domain control and World ID officers.',
+        detail: 'In production it also proves the signer represents the company.',
+      },
   officers: {
     title: 'Who approves changes?',
-    lede: 'Real companies enroll officers with World ID. This demo company has a placeholder officer no one can prove, so no one can change its payout.',
+    lede: placeholder
+      ? 'Real companies enroll officers with World ID. This demo company has a placeholder officer no one can prove, so no one can change its payout.'
+      : 'Every future payout change needs one of these same people.',
   },
   review: {
     title: 'Check everything, then register',
     lede: "Meigi's attester writes this registration to the public registry on Sepolia. A number that's already claimed is frozen as disputed, never overwritten.",
   },
-  /** About the company, not to it (no one here registered anything), and true to its placeholder officer. */
+  /** The replay speaks about the company, not to it (COPY.registeredReplay). */
   registered: {
     title: "It's registered.",
-    lede: `Payers who check ${ONBOARD.ens} pay only the address below. Its placeholder officer means no one can change it; a real company changes it with its business key, its officers and 72 hours in public.`,
+    lede: placeholder
+      ? `Payers who check ${ens} pay only the address below. Its placeholder officer means no one can change it; a real company changes it with its business key, its officers and 72 hours in public.`
+      : `Payers who check ${ens} will only ever pay the address below. Changing it takes the company's business key, its officers and 72 hours in public.`,
   },
 } as const
+
+function domainCopy(): { readonly title: string; readonly lede: string; readonly notice: string | null } {
+  if (rec.source === 'seed') {
+    return {
+      title: 'No domain to prove',
+      lede: 'Our seed script registered this demo company without a domain proof: nothing was signed and no DNS record was added.',
+      notice: null,
+    }
+  }
+  if (rec.domain.method === 'fixture') {
+    return {
+      title: 'No domain to prove',
+      lede: 'A fictional company has no real domain, so Meigi skips this step and records it as fictional.',
+      notice: `${rec.company.note ? `${rec.company.note} ` : ''}There's nothing to sign and no DNS record to add.`,
+    }
+  }
+  const how = PROVEN_BY[rec.domain.method] ?? 'a signed record'
+  return {
+    title: 'Your domain is proven',
+    lede: `${rec.domain.name ?? 'The domain'} is proven.`,
+    notice: `The business key signed the challenge, published as ${how}.`,
+  }
+}
+
+/** The payout choice as the wizard names it (wallets/PayoutChoice.tsx). */
+export const PAYOUT_CHOICE: Readonly<Record<PayoutMode, string>> = {
+  create: 'Create a new wallet',
+  connected: 'Use my business wallet',
+  paste: 'Paste an address',
+}
+
+/** The review's officers line (ReplayScreens.tsx, officersText). */
+export function officersText(): string {
+  const n = rec.officers.length
+  return placeholder ? `${n} placeholder ${n === 1 ? 'officer' : 'officers'}` : `${n} verified ${n === 1 ? 'human' : 'humans'}`
+}
 
 /** How a registrant will prove they act for the company: not built for anyone yet, so both are shown disabled. */
 export const REPRESENTATION_METHODS = [

@@ -4,16 +4,47 @@ import { ONBOARD } from '../../content/onboard'
 import { Chip } from '../panel/parts'
 import './registry.css'
 
-const ROWS: readonly { readonly id: string; readonly label: string; readonly value: string; readonly note?: string }[] =
-  [
-    { id: 'tnumber', label: 'T-number', value: ONBOARD.tNumber, note: ONBOARD.legalName },
-    { id: 'ens', label: 'ENS name', value: ONBOARD.ens },
-    { id: 'controller', label: 'Business key', value: ONBOARD.controllerShort, note: 'approves changes' },
-    { id: 'payout', label: 'Payout address', value: ONBOARD.payoutShort, note: 'the one address paid' },
-    { id: 'domain', label: 'Domain', value: 'skipped', note: 'fictional demo company' },
-    { id: 'officers', label: 'Officers', value: ONBOARD.officerShort, note: 'placeholder officer (demo company)' },
-    { id: 'evidence', label: 'Evidence', value: ONBOARD.evidenceShort, note: 'fixture evidence (fictional company)' },
-  ]
+interface Row {
+  readonly id: string
+  readonly label: string
+  readonly value: string
+  readonly note?: string
+}
+
+const DOMAIN_NOTE: Readonly<Record<string, string>> = {
+  dns: 'proven (signed DNS record)',
+  'well-known': 'proven (signed .well-known file)',
+}
+
+function domainRow(): Row {
+  const { name, method } = ONBOARD.domain
+  if (method === 'fixture') return { id: 'domain', label: 'Domain', value: 'skipped', note: 'fictional demo company' }
+  return { id: 'domain', label: 'Domain', value: name ?? 'none', note: DOMAIN_NOTE[method] ?? 'proven' }
+}
+
+function officersRow(): Row {
+  const [first] = ONBOARD.officers
+  const n = ONBOARD.officers.length
+  const value = n === 1 && first ? first.short : `${n} officers`
+  const note = ONBOARD.placeholder ? 'placeholder officer (demo company)' : `World ID ${n === 1 ? 'officer' : 'officers'}`
+  return { id: 'officers', label: 'Officers', value, note }
+}
+
+/** What the registry holds for the company, from the recorded registration (its event and officersOf). */
+const ROWS: readonly Row[] = [
+  { id: 'tnumber', label: 'T-number', value: ONBOARD.tNumber, note: ONBOARD.legalName },
+  { id: 'ens', label: 'ENS name', value: ONBOARD.ens },
+  { id: 'controller', label: 'Business key', value: ONBOARD.controllerShort, note: 'approves changes' },
+  { id: 'payout', label: 'Payout address', value: ONBOARD.payoutShort, note: 'the one address paid' },
+  domainRow(),
+  officersRow(),
+  {
+    id: 'evidence',
+    label: 'Evidence',
+    value: ONBOARD.evidenceShort,
+    note: ONBOARD.seeded ? 'fixture evidence (fictional company)' : 'hash of the verification bundle',
+  },
+]
 
 /** Chapter 0's side panel: what the registry on Sepolia will hold for this company, filling in step by step. */
 export function RegistryPanel() {

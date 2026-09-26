@@ -5,7 +5,7 @@
   inset: 0;
   z-index: 2;
   display: grid;
-  grid-template-rows: 44px minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
   padding: 0 16px 16px;
   background: linear-gradient(170deg, var(--sky-top) 0%, var(--sky-mid) 55%, var(--sky-low) 100%);
   color: var(--ink);
@@ -16,6 +16,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  min-height: 44px;
+  padding: 6px 0;
   font-size: 13px;
 }
 
@@ -25,9 +27,21 @@
   letter-spacing: -0.02em;
 }
 
-.onb__crumb {
+/* The replay's one honest line: what this page is, and how the company was registered. */
+.onb__bar {
+  flex: 1;
+  min-width: 0;
   margin-left: 8px;
-  color: var(--ink-muted);
+  padding: 6px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.onb__bar b {
+  color: var(--ink);
 }
 
 .onb__window {
@@ -204,7 +218,7 @@
 
 .onb__record,
 .onb__wallet,
-.onb__officer,
+.onb__officers,
 .onb__review {
   width: 100%;
   border-radius: 12px;
@@ -286,4 +300,14 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+}
+
+/* Phones: the honest line takes the brand's width, so it stays two lines and leaves the screens their room. */
+.dstage__design--portrait .onb__brand {
+  display: none;
+}
+
+.dstage__design--portrait .onb__bar {
+  padding: 5px 10px;
+  font-size: 11.5px;
 }

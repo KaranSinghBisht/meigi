@@ -40,10 +40,42 @@
   font-size: 13px;
 }
 
-.onb__officer {
+.onb__officers {
   display: grid;
-  gap: 8px;
+  overflow: hidden;
+}
+
+.onb__officer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
   padding: 12px 14px;
+  font-size: 13px;
+}
+
+.onb__officer[data-enter] {
+  transform: translateY(6px);
+}
+
+.onb__record-note,
+.onb__wallet-lede {
+  color: var(--ink-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.onb__threshold {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink-soft);
+  font-size: 12.5px;
+}
+
+.onb__tx {
+  color: var(--ink-muted);
+  font-size: 12.5px;
 }
 
 .onb__skip {
@@ -208,13 +240,14 @@
   justify-self: start;
 }
 
-/* Phones: each wallet is one row (label, then its button or result), without the explanatory note. */
+/* Phones: each wallet is one row (label, then its button or result), without the explanatory lede; the review
+   and the last screen keep their record and leave the extra lines to the registry panel beside. */
 .dstage__design--portrait .onb__wallet {
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
 }
 
-.dstage__design--portrait .onb__wallet .onb__wallet-label span {
+.dstage__design--portrait :is(.onb__wallet-lede, .onb__threshold, .onb__tx) {
   display: none;
 }
 
