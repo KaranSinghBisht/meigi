@@ -57,7 +57,10 @@ export interface MailHeaders {
 }
 
 const header = (lines: readonly string[], name: string): string =>
-  lines.find((line) => line.startsWith(`${name}:`))?.slice(name.length + 1).trim() ?? ''
+  lines
+    .find((line) => line.startsWith(`${name}:`))
+    ?.slice(name.length + 1)
+    .trim() ?? ''
 
 /** Reads the RFC 822-style head of a recorded email: "From: Name <addr>", To, Subject, Date, then a blank line. */
 export function splitMail(document: string): { readonly headers: MailHeaders; readonly body: string } {

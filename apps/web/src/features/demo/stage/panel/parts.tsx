@@ -4,7 +4,15 @@ import type { ReactNode } from 'react'
 
 export type Tone = 'ink' | 'hold' | 'ok' | 'bad' | 'info' | 'muted'
 
-export function Chip({ tone, name, children }: { readonly tone: Tone; readonly name?: string; readonly children: ReactNode }) {
+export function Chip({
+  tone,
+  name,
+  children,
+}: {
+  readonly tone: Tone
+  readonly name?: string
+  readonly children: ReactNode
+}) {
   return (
     <span className={`dchip dchip--${tone}`} data-d={name}>
       <i aria-hidden="true" />
@@ -35,7 +43,15 @@ export function Card({ name, title, meta, children, className }: CardProps) {
 }
 
 /** Text that types in without moving anything around it: an invisible copy holds its final size. */
-export function Typed({ name, text, className }: { readonly name: string; readonly text: string; readonly className?: string }) {
+export function Typed({
+  name,
+  text,
+  className,
+}: {
+  readonly name: string
+  readonly text: string
+  readonly className?: string
+}) {
   return (
     <span className={className ? `typed ${className}` : 'typed'}>
       <span className="typed__ghost" aria-hidden="true">
@@ -71,7 +87,15 @@ export function Bar({ name, label, value, fill, tone = 'hold' }: BarProps) {
   )
 }
 
-export function Field({ label, name, children }: { readonly label: string; readonly name: string; readonly children: ReactNode }) {
+export function Field({
+  label,
+  name,
+  children,
+}: {
+  readonly label: string
+  readonly name: string
+  readonly children: ReactNode
+}) {
   return (
     <div className="pfield">
       <dt>{label}</dt>
@@ -89,11 +113,13 @@ interface SceneProps {
   readonly id: string
   readonly steps: readonly string[]
   readonly hidden?: boolean
+  /** What the feed shows before its first card. */
+  readonly idle?: ReactNode
   readonly children: ReactNode
 }
 
 /** One run in the panel: its pipeline steps along the top and a feed of cards that scrolls as they arrive. */
-export function Scene({ id, steps, hidden = false, children }: SceneProps) {
+export function Scene({ id, steps, hidden = false, idle, children }: SceneProps) {
   return (
     <section className="pscene" data-d={`scene-${id}`} data-enter={hidden ? '' : undefined}>
       <ol className="psteps">
@@ -105,6 +131,11 @@ export function Scene({ id, steps, hidden = false, children }: SceneProps) {
         ))}
       </ol>
       <div className="pfeed" data-d={`${id}-view`}>
+        {idle ? (
+          <div className="pidle" data-d={`${id}-idle`}>
+            {idle}
+          </div>
+        ) : null}
         <div className="pfeed__stack" data-d={`${id}-stack`}>
           {children}
         </div>

@@ -44,9 +44,7 @@ export function Phone() {
             ✓
           </span>
           <p className="dphone__title">Approved</p>
-          <p className="dphone__hint">
-            {APPROVAL.acr} · single-use
-          </p>
+          <p className="dphone__hint">{APPROVAL.acr} · single-use</p>
         </section>
       </div>
     </div>

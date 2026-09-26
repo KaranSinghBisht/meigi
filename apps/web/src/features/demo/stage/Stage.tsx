@@ -8,12 +8,16 @@ import './stage.css'
 /** The stage is laid out once at a design size and scaled to fit, like a video frame. */
 export const DESIGN = {
   landscape: { width: 1280, height: 720 },
-  portrait: { width: 420, height: 940 },
+  portrait: { width: 420, height: 860 },
 } as const
 
 export type StageMode = keyof typeof DESIGN
 
-function useFit(frameRef: RefObject<HTMLDivElement | null>, designRef: RefObject<HTMLDivElement | null>, mode: StageMode) {
+function useFit(
+  frameRef: RefObject<HTMLDivElement | null>,
+  designRef: RefObject<HTMLDivElement | null>,
+  mode: StageMode,
+) {
   useLayoutEffect(() => {
     const frame = frameRef.current
     const design = designRef.current
@@ -48,11 +52,13 @@ export const Stage = memo(function Stage({ mode, designRef, onPanelHover }: Stag
   return (
     <div className="dstage" ref={frameRef}>
       <div className={`dstage__design dstage__design--${mode}`} ref={designRef} style={{ width, height }}>
-        <div className="dstage__slot dstage__slot--browser" aria-hidden="true">
+        <div className="dstage__slot dstage__slot--browser" data-d="slot-browser" data-enter="" aria-hidden="true">
           <BrowserWindow />
         </div>
         <div
           className="dstage__slot dstage__slot--panel"
+          data-d="slot-panel"
+          data-enter=""
           aria-hidden="true"
           onPointerEnter={() => onPanelHover(true)}
           onPointerLeave={() => onPanelHover(false)}

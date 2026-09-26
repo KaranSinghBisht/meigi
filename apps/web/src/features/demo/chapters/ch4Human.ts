@@ -62,6 +62,7 @@ function approve(c: BuildCtx): void {
   show(c, 'phone-done', 14.3, { scale: 1, duration: 0.35 })
   hide(c, 'u-world-wait', 14.5, { duration: 0.2 })
   rise(c, 'u-world-ok', 14.6)
+  status(c, 'human', 'approved', 14.6)
   stepDone(c, 'urgent', 5, 14.6)
 }
 
@@ -72,7 +73,7 @@ function pay(c: BuildCtx): void {
   const paid = logLine(c, 'paid', sent + 0.3, 60)
   logLine(c, 'block', paid + 0.15, 70)
   card(c, 'urgent', 'u-card-paid', paid - 0.2)
-  status(c, 'human', 'paid', paid - 0.2)
+  status(c, 'approved', 'paid', paid - 0.2)
   stepDone(c, 'urgent', 6, paid)
   show(c, 'row-urgent-paid', 20.4, { scale: 1 })
   show(c, 'msg-urgent-paid', 20.5, { scale: 1 })

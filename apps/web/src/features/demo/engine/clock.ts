@@ -110,6 +110,12 @@ export class DemoClock {
     if (chapter) this.seek(chapter.start)
   }
 
+  /** Reduced motion: shows the beat the playhead is in, fully drawn. */
+  snapToStep(): void {
+    const time = this.script.steps[stepAt(this.script, this.time)]
+    if (time !== undefined) this.seek(time)
+  }
+
   /** Reduced motion: moves one beat, drawn in its final state. */
   step(delta: 1 | -1): void {
     const { steps } = this.script

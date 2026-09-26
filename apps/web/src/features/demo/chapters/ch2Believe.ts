@@ -41,7 +41,7 @@ function decide(c: BuildCtx, from: number): void {
   card(c, 'bec', 'bec-card-decision', from + 1.7)
   status(c, 'reading', 'hold', from + 1.8)
   typeIn(c, 'bec-explain', from + 2.6, 110)
-  feed(c, 'bec', 'bec-card-decision', from + 5.6, 1.2)
+  feed(c, 'bec', 'bec-card-decision', from + 4.4, 2.2, 'end')
 }
 
 export const chapter2: ChapterDef = {

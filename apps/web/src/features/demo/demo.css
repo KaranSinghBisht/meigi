@@ -1,11 +1,12 @@
 /* The demo player and its full-screen page. */
 .dplayer {
-  --demo-font:
-    'Inter Tight', 'Noto Sans JP', 'Hiragino Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --demo-font: 'Inter Tight', 'Noto Sans JP', 'Hiragino Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
+    sans-serif;
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto auto;
+  grid-template-rows: minmax(0, 1fr) auto;
   gap: 12px;
   min-width: 0;
+  container: dplayer / inline-size;
 }
 
 .dplayer:focus-visible {
@@ -25,7 +26,7 @@
 }
 
 .dplayer--embed.dplayer--portrait .dstage {
-  aspect-ratio: 420 / 940;
+  aspect-ratio: 420 / 860;
 }
 
 .dplayer--full {
@@ -37,6 +38,11 @@
   border-radius: var(--radius-lg);
   background: var(--lg-window-dense);
   color: var(--seal-deep);
+}
+
+.dplayer__footer {
+  display: grid;
+  gap: 12px;
 }
 
 /* One caption at a time, in the bar under the stage. */
@@ -106,7 +112,14 @@
   }
 
   .dplayer--full .dstage {
-    aspect-ratio: 420 / 940;
+    aspect-ratio: 420 / 860;
+  }
+
+  /* Captions and controls stay in view while the stage scrolls under them. */
+  .dplayer--full .dplayer__footer {
+    position: sticky;
+    bottom: 8px;
+    z-index: 5;
   }
 
   .dcaptions__line {

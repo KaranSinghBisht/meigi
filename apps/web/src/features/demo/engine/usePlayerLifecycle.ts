@@ -23,7 +23,9 @@ export function usePlayerLifecycle(clock: DemoClock, rootRef: RefObject<HTMLElem
   useEffect(() => clock.start(), [clock])
 
   useEffect(() => {
-    if (reduced) clock.setPlaying(false)
+    if (!reduced) return
+    clock.setPlaying(false)
+    clock.snapToStep()
   }, [clock, reduced])
 
   useEffect(() => {

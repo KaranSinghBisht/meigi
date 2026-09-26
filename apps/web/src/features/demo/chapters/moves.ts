@@ -57,7 +57,11 @@ export function cursorTo(c: BuildCtx, target: Target, at: number, move: CursorMo
 }
 
 export function click(c: BuildCtx, at: number): void {
-  c.tl.to(c.el('cursor-arrow'), { scale: 0.82, duration: 0.09, yoyo: true, repeat: 1, ease: 'power1.inOut' }, pos(c, at))
+  c.tl.to(
+    c.el('cursor-arrow'),
+    { scale: 0.82, duration: 0.09, yoyo: true, repeat: 1, ease: 'power1.inOut' },
+    pos(c, at),
+  )
   c.tl.fromTo(
     c.el('cursor-ripple'),
     { scale: 0.3, autoAlpha: 0.6 },
@@ -88,14 +92,24 @@ export function fly(c: BuildCtx, ghost: string, from: Target, to: Target, at: nu
   show(c, target, at + duration - 0.1, { duration: 0.25 })
 }
 
-/** Scrolls a panel feed so `card` sits at the bottom of its view (or at the top, if it is taller). */
-export function feed(c: BuildCtx, scene: string, card: string, at: number, duration = 0.6): void {
+/**
+ * Scrolls a panel feed so `card` sits at the bottom of its view, or at the top if it is taller than the view.
+ * "end" always shows its bottom: for reading down a tall card.
+ */
+export function feed(
+  c: BuildCtx,
+  scene: string,
+  card: string,
+  at: number,
+  duration = 0.6,
+  align: 'fit' | 'end' = 'fit',
+): void {
   const view = c.el(`${scene}-view`)
   const element = c.el(card)
   const offset = (): number => {
     const pad = 12
     const bottom = element.offsetTop + element.offsetHeight + pad - view.clientHeight
-    return Math.max(0, Math.min(bottom, element.offsetTop - pad))
+    return Math.max(0, align === 'end' ? bottom : Math.min(bottom, element.offsetTop - pad))
   }
   c.tl.to(c.el(`${scene}-stack`), { y: () => -offset(), duration, ease: 'power3.inOut' }, pos(c, at))
 }
@@ -152,7 +166,11 @@ export function logLine(c: BuildCtx, id: string, at: number, cps = 70): number {
   const line = c.el(`log-${id}`)
   c.tl.to(
     c.el('log-stack'),
-    { y: () => -Math.max(0, line.offsetTop + line.offsetHeight - view.clientHeight), duration: 0.35, ease: 'power2.out' },
+    {
+      y: () => -Math.max(0, line.offsetTop + line.offsetHeight - view.clientHeight),
+      duration: 0.35,
+      ease: 'power2.out',
+    },
     pos(c, at),
   )
   rise(c, line, at, { duration: 0.25 })

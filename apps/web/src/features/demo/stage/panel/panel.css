@@ -116,6 +116,27 @@
   mask-image: linear-gradient(180deg, transparent 0, #000 14px, #000 calc(100% - 10px), transparent);
 }
 
+.pidle {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 6px;
+  padding: 0 40px;
+  text-align: center;
+}
+
+.pidle__title {
+  font-size: var(--text-md);
+  font-weight: var(--weight-strong);
+}
+
+.pidle__text {
+  color: var(--ink-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .pfeed__stack {
   position: relative;
   display: grid;

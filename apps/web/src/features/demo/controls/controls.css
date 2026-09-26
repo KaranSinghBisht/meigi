@@ -100,7 +100,8 @@
   color: #fff;
 }
 
-@media (max-width: 1180px) {
+/* Sized by the player, not the window: the embed is narrower than the page. */
+@container dplayer (max-width: 1180px) {
   .dchip-btn:not([aria-current='step']) .dchip-btn__t {
     display: none;
   }
@@ -110,9 +111,22 @@
   }
 }
 
-@media (max-width: 719px) {
+.dcontrols__narrow {
+  display: none;
+}
+
+@container dplayer (max-width: 719px) {
   .dcontrols {
     justify-content: space-between;
+  }
+
+  .dcontrols__wide,
+  .dcontrols__fullscreen {
+    display: none;
+  }
+
+  .dcontrols__narrow {
+    display: inline;
   }
 
   .dchips {

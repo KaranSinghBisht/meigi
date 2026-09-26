@@ -31,7 +31,11 @@ function TriageCard() {
   if (triage.status !== 'ok') return null
   const { requestType, suspicion } = triage
   return (
-    <Card name="bec-card-triage" title="2 · Triage" meta={`${triage.model ?? triage.backend} · 0.8B · ${triage.latencyMs} ms`}>
+    <Card
+      name="bec-card-triage"
+      title="2 · Triage"
+      meta={`${triage.model ?? triage.backend} · 0.8B · ${triage.latencyMs} ms`}
+    >
       <div className="pbars">
         <Bar
           name="bec-bar-type"
@@ -39,7 +43,12 @@ function TriageCard() {
           value={percent(requestType.confidence)}
           fill={requestType.confidence}
         />
-        <Bar name="bec-bar-dest" label="new destination" value={triage.newDestination.toFixed(2)} fill={triage.newDestination} />
+        <Bar
+          name="bec-bar-dest"
+          label="new destination"
+          value={triage.newDestination.toFixed(2)}
+          fill={triage.newDestination}
+        />
         <Bar
           name="bec-bar-susp"
           label="suspicion"
@@ -91,7 +100,8 @@ function KernelCard() {
             <span className="pcheck__label">{checkLabel(check.code)}</span>
             {check.ok ? null : (
               <span className="pcheck__detail">
-                <span className="mono ptoken">{BEC.ens}</span> → <span className="mono ptoken">{BEC.registeredShort}</span>
+                <span className="mono ptoken">{BEC.ens}</span> →{' '}
+                <span className="mono ptoken">{BEC.registeredShort}</span>
                 <span className="pcheck__msg">{check.message}</span>
               </span>
             )}
@@ -118,7 +128,12 @@ function ScreeningCard() {
 function DecisionCard() {
   const blocking = BEC.blocking
   return (
-    <Card name="bec-card-decision" title="6 · Decision" meta={`${blocking.length} blocking reasons`} className="pcard--decision">
+    <Card
+      name="bec-card-decision"
+      title="6 · Decision"
+      meta={`${blocking.length} blocking reasons`}
+      className="pcard--decision"
+    >
       <p className="pverdict">
         <Chip tone="hold">HOLD</Chip>
         <span className="pverdict__line">
@@ -136,17 +151,17 @@ function DecisionCard() {
         <span className="pcard__note">In the model's words ({modelName(analysis.explanation.model)}):</span>
         <Typed name="bec-explain" text={analysis.explanation.text} />
       </p>
-      <p className="pforce">
+      <div className="pforce">
         <span className="btn btn--accent btn--sm" data-d="bec-force">
           Let the agent pay anyway
         </span>
-      </p>
-      <div className="pseal" data-d="bec-seal" data-enter="">
-        <HankoMark glyphs="拒否" size={52} />
-        <span className="pseal__text">
-          <b>{outcome.error.name}</b>
-          Refused by the vault. {outcome.broadcast ? 'The transaction reverted.' : 'Nothing was broadcast.'}
-        </span>
+        <div className="pseal" data-d="bec-seal" data-enter="">
+          <HankoMark glyphs="拒否" size={44} />
+          <span className="pseal__text">
+            <b>{outcome.error.name}</b>
+            Refused by the vault. {outcome.broadcast ? 'The transaction reverted.' : 'Nothing was broadcast.'}
+          </span>
+        </div>
       </div>
     </Card>
   )

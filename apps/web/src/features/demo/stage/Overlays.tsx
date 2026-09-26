@@ -10,12 +10,12 @@ export function Cursor() {
       <span className="dcursor__ripple" data-d="cursor-ripple" />
       <span className="dcursor__arrow" data-d="cursor-arrow">
         <svg viewBox="0 0 20 28" aria-hidden="true">
-        <path
-          d="M2 2v20.5l5.6-5.2 3.6 8.2 3.4-1.5-3.5-8h7.6L2 2Z"
-          fill="#111"
-          stroke="#fff"
-          strokeWidth="1.6"
-          strokeLinejoin="round"
+          <path
+            d="M2 2v20.5l5.6-5.2 3.6 8.2 3.4-1.5-3.5-8h7.6L2 2Z"
+            fill="#111"
+            stroke="#fff"
+            strokeWidth="1.6"
+            strokeLinejoin="round"
           />
         </svg>
       </span>

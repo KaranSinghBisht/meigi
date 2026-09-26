@@ -32,7 +32,11 @@ function Outcome({ purchase }: { readonly purchase: X402Purchase }) {
 
 function PurchaseCard({ purchase, index }: { readonly purchase: X402Purchase; readonly index: number }) {
   return (
-    <Card name={`x-card-${purchase.id}`} title={`${index + 1} · ${purchase.merchant}`} meta={`${purchase.item} · ${purchase.price}`}>
+    <Card
+      name={`x-card-${purchase.id}`}
+      title={`${index + 1} · ${purchase.merchant}`}
+      meta={`${purchase.item} · ${purchase.price}`}
+    >
       <p className="pcard__row">
         {purchase.declared ? (
           <span className="mono ptoken">{purchase.declared.ens}</span>

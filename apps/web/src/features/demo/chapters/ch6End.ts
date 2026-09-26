@@ -9,8 +9,10 @@ export const chapter6: ChapterDef = {
   duration: 8,
   captions: [{ at: 0, text: 'Pay companies, not addresses.' }],
   build(c) {
-    c.tl.to(c.el('browser-dim'), { autoAlpha: 1, duration: 0.6 }, c.t0)
-    show(c, 'end', 0.3, { scale: 1, duration: 0.7 })
-    hide(c, 'end', 7.3, { duration: 0.6 })
+    hide(c, 'cursor', 0)
+    hide(c, 'slot-browser', 0.1, { duration: 0.6 })
+    hide(c, 'slot-panel', 0.2, { duration: 0.6 })
+    show(c, 'end', 0.6, { scale: 1, duration: 0.8 })
+    hide(c, 'end', 7.2, { duration: 0.7 })
   },
 }

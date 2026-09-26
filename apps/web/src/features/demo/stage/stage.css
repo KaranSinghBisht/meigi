@@ -46,21 +46,21 @@
   top: 10px;
   left: 10px;
   width: 400px;
-  height: 452px;
+  height: 400px;
 }
 
 .dstage__design--portrait .dstage__slot--panel {
-  top: 474px;
+  top: 420px;
   left: 10px;
   width: 400px;
-  height: 456px;
+  height: 430px;
 }
 
 .dstage__design--portrait .dstage__slot--phone {
-  top: 48px;
-  left: 176px;
-  width: 196px;
-  height: 400px;
+  top: 36px;
+  left: 190px;
+  width: 180px;
+  height: 360px;
 }
 
 /* Only the panel listens (hovering it pauses the story), and the end card's links. */

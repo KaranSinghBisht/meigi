@@ -6,11 +6,14 @@ import { card, click, cursorTo, fly, hide, light, scrollTo, show, status, step }
 const READ_ORDER = ['tNumber', 'amount', 'address', 'invoice'] as const
 
 function arrive(c: BuildCtx): void {
+  show(c, 'slot-browser', 0, { duration: 0.7 })
+  show(c, 'slot-panel', 0.15, { duration: 0.7 })
   c.tl.set(c.el('cursor'), { x: 560, y: 470 }, c.t0)
   show(c, 'cursor', 0.6)
   c.tl.to(c.el('slot-bec'), { height: 'auto', duration: 0.6, ease: 'power3.out' }, c.t0 + 3)
   show(c, 'inbox-count', 3.2)
   status(c, 'idle', 'new', 3.1)
+  hide(c, 'bec-idle', 3.1)
   c.tl.to(c.el('panel'), { '--pulse': 1, duration: 0.35, yoyo: true, repeat: 3, ease: 'sine.inOut' }, c.t0 + 3.1)
 }
 

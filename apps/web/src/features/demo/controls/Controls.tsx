@@ -59,7 +59,12 @@ function Transport({ clock, snap, script, reduced }: Pick<ControlsProps, 'clock'
         <span className="dcontrols__count">
           {snap.step + 1} / {script.steps.length}
         </span>
-        <Button variant="primary" size="sm" onClick={() => clock.step(1)} disabled={snap.step >= script.steps.length - 1}>
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={() => clock.step(1)}
+          disabled={snap.step >= script.steps.length - 1}
+        >
           Next
         </Button>
       </div>
@@ -111,15 +116,18 @@ export function Controls({ clock, snap, script, reduced, variant, captionsOn, on
             ×{snap.speed}
           </Button>
         )}
-        <Button variant="ghost" size="sm" aria-pressed={captionsOn} onClick={onCaptions}>
-          {captionsOn ? 'Captions on' : 'Captions off'}
+        <Button variant="ghost" size="sm" aria-pressed={captionsOn} aria-label="Captions" onClick={onCaptions}>
+          <span className="dcontrols__wide">{captionsOn ? 'Captions on' : 'Captions off'}</span>
+          <span className="dcontrols__narrow" aria-hidden="true">
+            CC
+          </span>
         </Button>
         {variant === 'embed' ? (
           <Link className="btn btn--ghost btn--sm" to="/demo">
             Full screen <span aria-hidden="true">↗</span>
           </Link>
         ) : (
-          <Button variant="ghost" size="sm" onClick={() => void enterFullscreen()}>
+          <Button variant="ghost" size="sm" className="dcontrols__fullscreen" onClick={() => void enterFullscreen()}>
             Full screen
           </Button>
         )}

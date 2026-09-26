@@ -9,7 +9,9 @@ gsap.registerPlugin(TextPlugin)
 
 function lookups(stage: HTMLElement): Pick<BuildCtx, 'el' | 'all'> {
   const all = (name: string): HTMLElement[] =>
-    Array.from(stage.querySelectorAll(`[data-d="${name}"]`)).filter((node): node is HTMLElement => node instanceof HTMLElement)
+    Array.from(stage.querySelectorAll(`[data-d="${name}"]`)).filter(
+      (node): node is HTMLElement => node instanceof HTMLElement,
+    )
   const el = (name: string): HTMLElement => {
     const [found] = all(name)
     if (!found) throw new Error(`the demo stage has no element named "${name}"`)

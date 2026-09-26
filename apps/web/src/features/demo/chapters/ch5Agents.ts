@@ -31,7 +31,8 @@ function termLine(c: BuildCtx, line: TermLine, at: number): number {
   c.tl.to(
     c.el('term-lines'),
     {
-      y: () => -Math.max(0, row.offsetTop + row.offsetHeight + 16 - (view instanceof HTMLElement ? view.clientHeight : 400)),
+      y: () =>
+        -Math.max(0, row.offsetTop + row.offsetHeight + 16 - (view instanceof HTMLElement ? view.clientHeight : 400)),
       duration: 0.3,
       ease: 'power2.out',
     },

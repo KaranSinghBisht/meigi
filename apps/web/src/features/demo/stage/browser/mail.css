@@ -239,19 +239,34 @@
 }
 
 /* Phones: the list above the open message, no label rail. */
-.dstage__design--portrait .mail__main {
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: 150px minmax(0, 1fr);
-  padding: 0 8px 8px;
+.dstage__design--portrait .mail {
+  grid-template-rows: minmax(0, 1fr);
 }
 
-.dstage__design--portrait .mail__rail,
-.dstage__design--portrait .mail__search {
+.dstage__design--portrait .mail__main {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: 104px minmax(0, 1fr);
+  padding: 8px;
+}
+
+.dstage__design--portrait :is(.mail__rail, .mail__top, .mail__listbar) {
   display: none;
 }
 
-.dstage__design--portrait .mail__top {
-  justify-content: space-between;
+.dstage__design--portrait .mail__list {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.dstage__design--portrait .msg {
+  padding: 12px 14px 0;
+}
+
+.dstage__design--portrait .msg__subject {
+  font-size: 14px;
+}
+
+.dstage__design--portrait .msg__from {
+  margin: 8px 0 6px;
 }
 
 .dstage__design--portrait .compose {

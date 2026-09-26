@@ -57,7 +57,14 @@ export function DemoPlayer({ variant = 'embed' }: DemoPlayerProps) {
 
   useJapaneseFont()
   usePlayerLifecycle(clock, rootRef, reduced)
-  useDemoTimeline({ stageRef: designRef, clock, script: SCRIPT, designWidth: DESIGN[mode].width, portrait, onError: setError })
+  useDemoTimeline({
+    stageRef: designRef,
+    clock,
+    script: SCRIPT,
+    designWidth: DESIGN[mode].width,
+    portrait,
+    onError: setError,
+  })
   const onKey = useKeys(clock, reduced, toggleCaptions)
 
   useEffect(() => {
@@ -91,16 +98,18 @@ export function DemoPlayer({ variant = 'embed' }: DemoPlayerProps) {
       ) : (
         <Stage mode={mode} designRef={designRef} onPanelHover={onPanelHover} />
       )}
-      {captionsOn ? <Captions script={SCRIPT} index={snap.caption} announce={reduced} /> : null}
-      <Controls
-        clock={clock}
-        snap={snap}
-        script={SCRIPT}
-        reduced={reduced}
-        variant={variant}
-        captionsOn={captionsOn}
-        onCaptions={toggleCaptions}
-      />
+      <div className="dplayer__footer">
+        {captionsOn ? <Captions script={SCRIPT} index={snap.caption} announce={reduced} /> : null}
+        <Controls
+          clock={clock}
+          snap={snap}
+          script={SCRIPT}
+          reduced={reduced}
+          variant={variant}
+          captionsOn={captionsOn}
+          onCaptions={toggleCaptions}
+        />
+      </div>
     </div>
   )
 }

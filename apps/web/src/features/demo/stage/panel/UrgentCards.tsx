@@ -37,9 +37,18 @@ function ReadCard() {
 function TriageCard() {
   const needs = triage.minPSafe ?? 0.9
   return (
-    <Card name="u-card-triage" title="2 · Triage" meta={`${triage.model ?? triage.backend} · 0.8B · ${triage.latencyMs} ms`}>
+    <Card
+      name="u-card-triage"
+      title="2 · Triage"
+      meta={`${triage.model ?? triage.backend} · 0.8B · ${triage.latencyMs} ms`}
+    >
       <div className="pbars">
-        <Bar name="u-bar-pressure" label="pressure to pay fast" value={percent(triage.pressure)} fill={triage.pressure} />
+        <Bar
+          name="u-bar-pressure"
+          label="pressure to pay fast"
+          value={percent(triage.pressure)}
+          fill={triage.pressure}
+        />
         <Bar
           name="u-bar-safe"
           label={`routine and safe (needs ${needs.toFixed(2)})`}
@@ -108,7 +117,10 @@ function WorldIdCard() {
   return (
     <Card name="u-card-world" title="5 · World ID for Agents" meta="device flow · sandbox IdP" className="pcard--world">
       <div className="pworld">
-        <span className="pworld__qr">{qr.src ? <img src={qr.src} alt="" width={96} height={96} /> : null}</span>
+        <span className="pworld__qr">
+          {qr.src ? <img src={qr.src} alt="" width={96} height={96} /> : null}
+          {qr.failed ? <span className="pcard__note">QR unavailable</span> : null}
+        </span>
         <div className="pworld__body">
           <p className="mono pworld__link">{APPROVAL.link}</p>
           <p className="pworld__code">
@@ -117,21 +129,23 @@ function WorldIdCard() {
               ••••-••••
             </span>
           </p>
-          <p className="pcard__row pworld__wait" data-d="u-world-wait">
-            <Spinner />
-            <span>Waiting for a verified human</span>
-          </p>
         </div>
       </div>
-      <p className="pcard__row pworld__ok" data-d="u-world-ok" data-enter="">
-        <HankoMark glyphs="承認" tone="jade" size={36} />
-        <span>
-          <b>Approved by the enrolled approver</b>
-          <span className="pcard__note">
-            acr {APPROVAL.acr} · amr {APPROVAL.amr} · fresh auth_time · single-use, bound to {URGENT.invoice}
+      <div className="pworld__status">
+        <p className="pcard__row pworld__wait" data-d="u-world-wait">
+          <Spinner />
+          <span>Waiting for a verified human</span>
+        </p>
+        <p className="pcard__row pworld__ok" data-d="u-world-ok" data-enter="">
+          <HankoMark glyphs="承認" tone="jade" size={36} />
+          <span>
+            <b>Approved by the enrolled approver</b>
+            <span className="pcard__note">
+              acr {APPROVAL.acr} · amr {APPROVAL.amr} · fresh auth_time · single-use, bound to {URGENT.invoice}
+            </span>
           </span>
-        </span>
-      </p>
+        </p>
+      </div>
     </Card>
   )
 }

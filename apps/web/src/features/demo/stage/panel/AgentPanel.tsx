@@ -18,6 +18,7 @@ const STATUS: readonly { readonly id: string; readonly tone: Tone; readonly labe
   { id: 'refused', tone: 'bad', label: 'Refused by the vault' },
   { id: 'draft', tone: 'info', label: 'Draft reply ready for review' },
   { id: 'human', tone: 'hold', label: 'Waiting for a verified human' },
+  { id: 'approved', tone: 'ok', label: 'Approved by a verified human' },
   { id: 'paid', tone: 'ok', label: 'Paid' },
   { id: 'x402', tone: 'ink', label: 'Guarding x402 payments' },
 ]
@@ -45,6 +46,17 @@ function Head() {
         ))}
       </div>
     </header>
+  )
+}
+
+function Idle() {
+  return (
+    <>
+      <p className="pidle__title">Watching the inbox</p>
+      <p className="pidle__text">
+        Each new mail is read here first. Money moves only through the AgentVault, and only to a registered payout.
+      </p>
+    </>
   )
 }
 
@@ -82,7 +94,7 @@ export function AgentPanel() {
     <aside className="apanel" data-d="panel">
       <Head />
       <div className="apanel__scenes">
-        <Scene id="bec" steps={['Read', 'Triage', 'Belief', 'Kernel', 'Screen', 'Decide']}>
+        <Scene id="bec" steps={['Read', 'Triage', 'Belief', 'Kernel', 'Screen', 'Decide']} idle={<Idle />}>
           <BecCards />
         </Scene>
         <Scene id="urgent" steps={['Read', 'Triage', 'Kernel', 'Decide', 'Human', 'Pay']} hidden>
