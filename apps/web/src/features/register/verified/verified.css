@@ -143,17 +143,20 @@
   font-size: var(--text-sm);
 }
 
+/* A narrower stage puts the QR under the facts (the payout stays whole); a phone stacks the facts too. */
 @container onboard (max-width: 600px) {
   .payee-card {
     grid-template-columns: minmax(0, 1fr);
     padding: 20px;
   }
 
-  .payee-card__facts {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   .payee-card__qr {
     justify-self: start;
+  }
+}
+
+@container onboard (max-width: 420px) {
+  .payee-card__facts {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
