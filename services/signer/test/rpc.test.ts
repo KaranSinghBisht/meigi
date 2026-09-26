@@ -71,6 +71,35 @@ describe("the signer's RPCs when both are refusing", () => {
   });
 });
 
+describe("a primary that is back", () => {
+  it("is tried first again once it answers as the last resort, instead of waiting out the minute", async () => {
+    let primaryCalls = 0;
+    let backupCalls = 0;
+    const once403 = createServer((req, res) => {
+      let raw = "";
+      req.on("data", (chunk) => (raw += chunk));
+      req.on("end", () => {
+        primaryCalls += 1;
+        if (primaryCalls === 1) return void res.writeHead(403).end("error code: 1020");
+        const { id } = JSON.parse(raw) as { id: number };
+        res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify({ jsonrpc: "2.0", id, result: "0x40" }));
+      });
+    });
+    const counted403 = createServer((_req, res) => ((backupCalls += 1), void res.writeHead(403).end("error code: 1020")));
+    await Promise.all([once403, counted403].map((s) => new Promise<void>((resolve) => s.listen(0, "127.0.0.1", () => resolve()))));
+    try {
+      const client = createPublicClient({ chain: sepolia, transport: rpcTransports([urlOf(once403), urlOf(counted403)]).transport });
+      expect(await client.getBlockNumber({ cacheTime: 0 })).toBe(64n); // 403 benches it, the backup refuses, the last resort answers
+      expect(backupCalls).toBe(1);
+      expect(await client.getBlockNumber({ cacheTime: 0 })).toBe(64n);
+      expect(backupCalls).toBe(1); // the bench was lifted: the primary answered first, the backup wasn't asked
+    } finally {
+      once403.close();
+      counted403.close();
+    }
+  });
+});
+
 describe("the fallback URL setting", () => {
   const required = {
     AGENT_PRIVATE_KEY: `0x${"11".repeat(32)}`,

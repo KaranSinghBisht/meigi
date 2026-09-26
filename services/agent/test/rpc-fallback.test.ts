@@ -71,6 +71,23 @@ describe("reading Sepolia through a fallback RPC", () => {
     }
   });
 
+  it("tries a primary first again once it answers as the last resort", async () => {
+    let calls = 0;
+    const back = server(({ id }) => ((calls += 1), calls === 1 ? { status: 403 } : { status: 200, json: { jsonrpc: "2.0", id, result: "0x40" } }));
+    const refusing = server(() => ({ status: 403 }));
+    await Promise.all([back.s, refusing.s].map((s) => new Promise<void>((resolve) => s.listen(0, "127.0.0.1", () => resolve()))));
+    try {
+      const { publicClient } = createClients(urlOf(back.s), 11155111, urlOf(refusing.s));
+      expect(await publicClient.getBlockNumber({ cacheTime: 0 })).toBe(64n);
+      expect(refusing.hits).toHaveLength(1);
+      expect(await publicClient.getBlockNumber({ cacheTime: 0 })).toBe(64n);
+      expect(refusing.hits).toHaveLength(1); // the bench was lifted: the fallback wasn't asked again
+    } finally {
+      back.s.close();
+      refusing.s.close();
+    }
+  });
+
   it("fails without one, as before", async () => {
     const { publicClient } = createClients(urlOf(primary.s), 11155111);
     await expect(publicClient.getBlockNumber()).rejects.toThrow();

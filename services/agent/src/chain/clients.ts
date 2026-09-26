@@ -17,24 +17,37 @@ function isTransportError(error: unknown): boolean {
 }
 
 /**
- * The primary RPC. After a transport failure it answers at once with one for BENCH_MS, so the fallback takes over
- * and a hung RPC costs one timeout, not one per read. The same logic guards the signer (services/signer/src/rpc.ts);
- * the agent doesn't import the signer's code.
+ * The primary RPC's bench. `benched` wraps the first-choice copy: after a transport failure it answers at once with one
+ * for BENCH_MS, so the fallback takes over and a hung RPC costs one timeout, not one per read. `lifting` wraps the
+ * last-resort copy: when that answers, the bench is lifted. The same logic guards the signer
+ * (services/signer/src/rpc.ts); the agent doesn't import the signer's code.
  */
-export function benched(url: string, transport: Transport, now: () => number = Date.now): Transport {
+export function bench(url: string, now: () => number = Date.now) {
   let until = 0;
-  return (params) => {
-    const inner = transport(params);
-    const request = (async (args: Parameters<typeof inner.request>[0]) => {
-      if (now() < until) throw new HttpRequestError({ url, details: "skipped: it failed within the last minute" });
-      try {
-        return await inner.request(args);
-      } catch (error) {
-        if (isTransportError(error)) until = now() + BENCH_MS;
-        throw error;
-      }
-    }) as typeof inner.request;
-    return { ...inner, request };
+  const wrap = (transport: Transport, call: (inner: ReturnType<Transport>, args: Parameters<ReturnType<Transport>["request"]>) => Promise<unknown>): Transport => {
+    return (params) => {
+      const inner = transport(params);
+      const request = ((...args: Parameters<typeof inner.request>) => call(inner, args)) as typeof inner.request;
+      return { ...inner, request };
+    };
+  };
+  return {
+    benched: (transport: Transport) =>
+      wrap(transport, async (inner, args) => {
+        if (now() < until) throw new HttpRequestError({ url, details: "skipped: it failed within the last minute" });
+        try {
+          return await inner.request(...args);
+        } catch (error) {
+          if (isTransportError(error)) until = now() + BENCH_MS;
+          throw error;
+        }
+      }),
+    lifting: (transport: Transport) =>
+      wrap(transport, async (inner, args) => {
+        const answer = await inner.request(...args);
+        until = 0;
+        return answer;
+      }),
   };
 }
 
@@ -46,11 +59,12 @@ export function benched(url: string, transport: Transport, now: () => number = D
  */
 export function rpcTransport(rpcUrl: string, fallbackUrl?: string): Transport {
   if (!fallbackUrl) return http(rpcUrl, { batch: true, timeout: 15_000 });
+  const primary = bench(rpcUrl);
   return fallback(
     [
-      benched(rpcUrl, http(rpcUrl, { batch: true, timeout: PRIMARY_TIMEOUT_MS, retryCount: 0 })),
+      primary.benched(http(rpcUrl, { batch: true, timeout: PRIMARY_TIMEOUT_MS, retryCount: 0 })),
       http(fallbackUrl, { batch: true, timeout: 8_000, retryCount: 0 }),
-      http(rpcUrl, { batch: true, timeout: 8_000, retryCount: 0 }), // the last resort: the primary, even while benched
+      primary.lifting(http(rpcUrl, { batch: true, timeout: 8_000, retryCount: 0 })), // the last resort: the primary, even while benched
     ],
     { retryCount: 0 },
   );

@@ -27,21 +27,37 @@ export function wasSkipped(error: unknown): boolean {
   return error instanceof BaseError && error.walk((e) => e instanceof Skipped) !== null;
 }
 
-/** The primary: while benched after a transport failure it answers at once with Skipped. */
-export function benched(url: string, transport: Transport, now: () => number = Date.now): Transport {
+/**
+ * The primary's bench. `benched` wraps the first-choice copy: after a transport failure it answers at once with
+ * Skipped for BENCH_MS. `lifting` wraps the last-resort copy of the same RPC: when that answers, the bench is lifted,
+ * so a primary that is back doesn't wait behind a slow fallback for the rest of the minute.
+ */
+export function bench(url: string, now: () => number = Date.now) {
   let until = 0;
-  return (params) => {
-    const inner = transport(params);
-    const request = (async (args: Parameters<typeof inner.request>[0]) => {
-      if (now() < until) throw new Skipped(url);
-      try {
-        return await inner.request(args);
-      } catch (error) {
-        if (isTransportError(error)) until = now() + BENCH_MS;
-        throw error;
-      }
-    }) as typeof inner.request;
-    return { ...inner, request };
+  const wrap = (transport: Transport, call: (inner: ReturnType<Transport>, args: Parameters<ReturnType<Transport>["request"]>) => Promise<unknown>): Transport => {
+    return (params) => {
+      const inner = transport(params);
+      const request = ((...args: Parameters<typeof inner.request>) => call(inner, args)) as typeof inner.request;
+      return { ...inner, request };
+    };
+  };
+  return {
+    benched: (transport: Transport) =>
+      wrap(transport, async (inner, args) => {
+        if (now() < until) throw new Skipped(url);
+        try {
+          return await inner.request(...args);
+        } catch (error) {
+          if (isTransportError(error)) until = now() + BENCH_MS;
+          throw error;
+        }
+      }),
+    lifting: (transport: Transport) =>
+      wrap(transport, async (inner, args) => {
+        const answer = await inner.request(...args);
+        until = 0;
+        return answer;
+      }),
   };
 }
 
@@ -52,10 +68,11 @@ export function rpcTransports(urls: readonly [string, ...string[]]): { transport
     const only = http(primaryUrl, { timeout: 15_000 });
     return { transport: only, each: [only] };
   }
+  const primary = bench(primaryUrl);
   const each = [
-    benched(primaryUrl, http(primaryUrl, { timeout: PRIMARY_TIMEOUT_MS, retryCount: 0 })),
+    primary.benched(http(primaryUrl, { timeout: PRIMARY_TIMEOUT_MS, retryCount: 0 })),
     http(fallbackUrl, { timeout: 8_000, retryCount: 0 }),
-    http(primaryUrl, { timeout: 8_000, retryCount: 0 }), // the last resort: the primary, even while benched
+    primary.lifting(http(primaryUrl, { timeout: 8_000, retryCount: 0 })), // the last resort: the primary, even while benched
   ];
   return { transport: fallback(each, { retryCount: 0 }), each };
 }

@@ -149,6 +149,21 @@ describe("the agent with its signer stopped", () => {
     expect(wire.pays).toBe(1); // the later Pays only looked up the receipt
   });
 
+  it("says an approval is used up when the signer stops during an approved /pay", async () => {
+    const h = await approvalHarness();
+    const { call } = agent(failingAt("/pay", null), { approvals: h.approvals });
+    const analysis = (await call("POST", "/invoices/analyze", { text: demo("07-urgent-invoice.ja.txt") })).body;
+    h.idp.token = [pending, approvedWith(await h.idp.sign({ auth_time: h.idp.clock.now + 7 }))];
+    const started = await call("POST", `/invoices/${analysis.id}/approval`, {});
+    await h.approvals.settled(started.body.attemptId);
+
+    const lost = await call("POST", `/invoices/${analysis.id}/pay`, { approvalId: started.body.attemptId });
+    expect(lost.status).toBe(503);
+    expect(lost.body.message).toBe(
+      "The signer stopped answering during the payment, so it may have been sent. Once it answers, pay again with a new approval (this one is used up): the vault refuses a second payment of this invoice.",
+    );
+  });
+
   it("never asks for a new approval to read the receipt of an approved payment that was sent", async () => {
     const h = await approvalHarness();
     const { call, wire } = agent(failingAt("/receipt/", null), { approvals: h.approvals });
