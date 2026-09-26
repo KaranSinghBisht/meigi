@@ -15,15 +15,11 @@
 
 .merchant {
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
 .merchant .panel__header {
   margin-bottom: 0;
-}
-
-.merchant .btn {
-  justify-self: start;
 }
 
 .merchant__body {
@@ -31,13 +27,14 @@
   font-size: var(--text-md);
 }
 
-.merchant__result:empty {
-  display: none;
+.merchant__facts {
+  margin: 0;
 }
 
-.purchase {
-  display: grid;
-  gap: 8px;
+.merchant__price {
+  color: var(--ink);
+  font-weight: var(--weight-strong);
+  font-size: var(--text-md);
 }
 
 .screen-card {
@@ -115,7 +112,7 @@
   overflow-wrap: anywhere;
 }
 
-/* Each row of merchants is one window: a header, then the two merchants as divided cells. */
+/* Each row of merchants is one window: a header, then the merchants as divided cells. */
 .x402__row {
   display: grid;
   overflow: hidden;
@@ -148,18 +145,15 @@
   }
 }
 
-.merchant__progress {
-  color: var(--ink-soft);
-  font-size: var(--text-md);
-}
-
 .x402__hosted {
   display: grid;
   gap: 16px;
 }
 
-/* Package names and paths in the copy stay whole. */
-.x402 p > code {
+/* Package names, paths and tx hashes stay whole. */
+.x402 p > code,
+.step-card__declared .mono,
+.step-card__payto .mono {
   white-space: nowrap;
 }
 
@@ -168,4 +162,53 @@
   overflow-x: auto;
   overflow-wrap: normal;
   white-space: pre;
+}
+
+.agent-run {
+  display: grid;
+  gap: 12px;
+}
+
+.agent-run__lede {
+  color: var(--ink-soft);
+  font-size: var(--text-md);
+}
+
+.agent-run__summary {
+  color: var(--ink);
+  font-weight: var(--weight-strong);
+}
+
+.agent-run__steps {
+  display: grid;
+  gap: 16px;
+}
+
+.step-card {
+  display: grid;
+  gap: 8px;
+  padding-top: 16px;
+}
+
+.step-card:first-child {
+  padding-top: 0;
+}
+
+.step-card + .step-card {
+  border-top: 1px solid var(--lg-hairline);
+}
+
+.step-card__label {
+  font-weight: var(--weight-strong);
+  font-size: var(--text-md);
+}
+
+.step-card__declared,
+.step-card__payto {
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+
+.step-card__note {
+  color: var(--ink-muted);
 }

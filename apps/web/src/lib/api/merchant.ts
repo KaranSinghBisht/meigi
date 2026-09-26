@@ -1,70 +1,90 @@
-// Client for the x402 demo (services/x402-demo): a guarded buyer agent purchases from an honest merchant or
-// from the same merchant with a swapped payTo. Each call returns the guard's verdict and any settlement.
+// Client for the x402 demo's research-agent scenario (services/x402-demo): a buying agent needs 2 GPU-minutes
+// and a dataset slice, and tries a compromised look-alike and an undeclared source along the way. Each step
+// shows what the 402 declared, what ENS and the registry each say, and what the guard decided.
 
 import { env } from '../env/env'
 import { joinUrl, requestJson } from './http'
-import { isRecord, optStr, record, type Json } from './parse'
+import { isRecord, optNum, optStr, record, str } from './parse'
 
-/** Merchants that declare a Meigi payee (their T-number) … */
-export type DeclaredKind = 'honest' | 'compromised'
-/** … and merchants with no Meigi record, where Intercepta screening of payTo alone decides. */
-export type UndeclaredKind = 'unverified' | 'unverified-flagged'
-export type MerchantKind = DeclaredKind | UndeclaredKind
+export interface Declared {
+  readonly tNumber: string
+  readonly ens: string | null
+}
 
-export interface GuardVerdictView {
-  readonly ok: boolean
-  /** Paid without a Meigi record: a small amount, after screening cleared payTo. */
-  readonly unverified: boolean
-  readonly code: string | null
-  readonly reason: string | null
-  readonly tNumber: string | null
-  readonly legalName: string | null
+export interface ScreeningView {
+  readonly flagged: boolean
+  readonly summary: string
+}
+
+export interface ScenarioStep {
+  readonly label: string
+  readonly method: string
+  readonly path: string
+  readonly amountAtomic: string | null
+  readonly declared: Declared | null
+  readonly resolvedEns: string | null
+  readonly registryPayout: string | null
   readonly payTo: string | null
-  readonly screening: { readonly flagged: boolean; readonly summary: string } | null
-}
-
-export interface Purchase {
-  readonly verdict: GuardVerdictView | null
-  readonly paid: boolean
+  readonly screening: ScreeningView | null
+  readonly outcome: 'settled' | 'refused'
+  readonly reason: string | null
   readonly txHash: string | null
-  readonly data: unknown
 }
 
-function parseVerdict(value: unknown): GuardVerdictView | null {
+export interface ScenarioResult {
+  readonly startedAt: string
+  readonly steps: readonly ScenarioStep[]
+  readonly settledCount: number
+  readonly refusedCount: number
+  readonly spentAtomic: string
+}
+
+function parseDeclared(value: unknown): Declared | null {
   if (!isRecord(value)) return null
-  const screening = isRecord(value.screening)
-    ? { flagged: value.screening.flagged === true, summary: optStr(value.screening, 'summary') ?? '' }
-    : null
+  const tNumber = optStr(value, 'tNumber')
+  return tNumber ? { tNumber, ens: optStr(value, 'ens') } : null
+}
+
+function parseScreening(value: unknown): ScreeningView | null {
+  return isRecord(value) ? { flagged: value.flagged === true, summary: optStr(value, 'summary') ?? '' } : null
+}
+
+function parseStep(value: unknown): ScenarioStep {
+  const body = record(value, 'scenario step')
   return {
-    ok: value.ok === true,
-    unverified: value.unverified === true,
-    code: optStr(value, 'code'),
-    reason: optStr(value, 'reason'),
-    tNumber: optStr(value, 'tNumber'),
-    legalName: optStr(value, 'legalName'),
-    payTo: optStr(value, 'payTo'),
-    screening,
+    label: str(body, 'label', 'scenario step'),
+    method: str(body, 'method', 'scenario step'),
+    path: str(body, 'path', 'scenario step'),
+    amountAtomic: optStr(body, 'amountAtomic'),
+    declared: parseDeclared(body.declared),
+    resolvedEns: optStr(body, 'resolvedEns'),
+    registryPayout: optStr(body, 'registryPayout'),
+    payTo: optStr(body, 'payTo'),
+    screening: parseScreening(body.screening),
+    outcome: body.outcome === 'settled' ? 'settled' : 'refused',
+    reason: optStr(body, 'reason'),
+    txHash: optStr(body, 'txHash'),
   }
 }
 
-/** x402 settlement (`PAYMENT-RESPONSE`) or a `payment` object: either carries the transaction hash. */
-function txHashOf(body: Json): string | null {
-  for (const key of ['settlement', 'payment']) {
-    const item = body[key]
-    if (!isRecord(item)) continue
-    const hash = optStr(item, 'transaction') ?? optStr(item, 'txHash')
-    if (hash && /^0x[0-9a-fA-F]{64}$/.test(hash)) return hash
+export function parseScenarioResult(value: unknown): ScenarioResult {
+  const body = record(value, 'research agent run')
+  const steps = Array.isArray(body.steps) ? body.steps.map(parseStep) : []
+  const settled = steps.filter((s) => s.outcome === 'settled').length
+  return {
+    startedAt: str(body, 'startedAt', 'research agent run'),
+    steps,
+    settledCount: optNum(body, 'settledCount') ?? settled,
+    refusedCount: optNum(body, 'refusedCount') ?? steps.length - settled,
+    spentAtomic: optStr(body, 'spentAtomic') ?? '0',
   }
-  return null
 }
 
-export async function runPurchase(kind: MerchantKind): Promise<Purchase> {
-  const body = record(await requestJson(joinUrl(env.merchantUrl, `/demo/${kind}`), { timeoutMs: 90_000 }), 'purchase')
-  const txHash = txHashOf(body)
-  return {
-    verdict: parseVerdict(body.verdict),
-    paid: body.paid === true || txHash !== null,
-    txHash,
-    data: body.data ?? null,
-  }
+/** Runs the whole scenario against the local x402 demo: several signed payments, ~20-40 seconds. */
+export async function runResearchAgent(): Promise<ScenarioResult> {
+  const body = await requestJson(joinUrl(env.merchantUrl, '/scenario/research-agent'), {
+    method: 'POST',
+    timeoutMs: 120_000,
+  })
+  return parseScenarioResult(body)
 }

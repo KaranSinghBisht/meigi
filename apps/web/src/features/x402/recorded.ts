@@ -1,41 +1,91 @@
-// Two real purchases by the guarded buyer agent on Sepolia, replayed on the hosted site. The honest one
-// settled on-chain (10 mJPYC to 株式会社フジデータ's registered payout, block 11781441); the compromised one was
-// refused by the guard before anything was signed, so it has no transaction.
+// One real research-agent run on Sepolia, replayed on the hosted site: 2 GPU-minutes and a dataset slice
+// settled, a compromised GPU mirror and an undeclared scrape were both refused before signing.
 
-import type { DeclaredKind, Purchase } from '../../lib/api/merchant'
+import type { ScenarioResult } from '../../lib/api/merchant'
 
-export const RECORDED_AT = new Date('2026-09-25T19:57:00Z')
+export const RECORDED_AT = new Date('2026-09-26T03:46:40.101Z')
 
-const MERCHANT = { tNumber: 'T8999900000001', legalName: '株式会社フジデータ' } as const
+const MINATO = { tNumber: 'T6999900000003', ens: 't6999900000003.payee.eth' } as const
+const MINATO_PAYOUT = '0x4d6D5528f4a4c9E404130Fab23F5FA5DDcaffD30'
+const FUJI = { tNumber: 'T8999900000001', ens: 't8999900000001.payee.eth' } as const
+const FUJI_PAYOUT = '0x0C1d13e3CC82f3a6e0694D3EDe031595Ce32578D'
+const SCAMMER_PAYOUT = '0xdCa52b5FA181a3307eCa852935BD40e3E0096d5b'
 
-export const RECORDED_PURCHASES: Record<DeclaredKind, Purchase> = {
-  honest: {
-    verdict: {
-      ok: true,
-      unverified: false,
-      code: null,
+export const RECORDED_RUN: ScenarioResult = {
+  startedAt: RECORDED_AT.toISOString(),
+  settledCount: 3,
+  refusedCount: 2,
+  spentAtomic: '50000000000000000000',
+  steps: [
+    {
+      label: 'GPU-minute 1 of 2, from Minato GPU Cloud',
+      method: 'POST',
+      path: '/compute/minato/gpu-minute',
+      amountAtomic: '15000000000000000000',
+      declared: MINATO,
+      resolvedEns: MINATO_PAYOUT,
+      registryPayout: MINATO_PAYOUT,
+      payTo: MINATO_PAYOUT,
+      screening: null,
+      outcome: 'settled',
       reason: null,
-      ...MERCHANT,
-      payTo: '0x0C1d13e3CC82f3a6e0694D3EDe031595Ce32578D',
-      screening: null,
+      txHash: '0x24b128e8301d079fa0aa7717406cd968f6fe64c3b7f2d613b1dfc8d61103b3f1',
     },
-    paid: true,
-    txHash: '0xf3c298960b9abac5466f4aa6e59f9a9ba4b73de703df3468d72f18049077b0df',
-    data: null,
-  },
-  compromised: {
-    verdict: {
-      ok: false,
-      unverified: false,
-      code: 'payto_mismatch',
-      reason: "payTo 0xdCa5…6d5b is not 株式会社フジデータ (T8999900000001)'s registered payout 0x0C1d…578D",
-      tNumber: null,
-      legalName: null,
-      payTo: null,
+    {
+      label: 'GPU-minute 2 of 2, from Minato GPU Cloud',
+      method: 'POST',
+      path: '/compute/minato/gpu-minute',
+      amountAtomic: '15000000000000000000',
+      declared: MINATO,
+      resolvedEns: MINATO_PAYOUT,
+      registryPayout: MINATO_PAYOUT,
+      payTo: MINATO_PAYOUT,
       screening: null,
+      outcome: 'settled',
+      reason: null,
+      txHash: '0xce9c6cf82c02403711036b488c99cf80c6cab24731f4b60dcde5eea661572a34',
     },
-    paid: false,
-    txHash: null,
-    data: null,
-  },
+    {
+      label: 'A dataset slice from Fuji Data',
+      method: 'GET',
+      path: '/data/fuji/dataset/invoice-ocr-2026-09',
+      amountAtomic: '20000000000000000000',
+      declared: FUJI,
+      resolvedEns: FUJI_PAYOUT,
+      registryPayout: FUJI_PAYOUT,
+      payTo: FUJI_PAYOUT,
+      screening: null,
+      outcome: 'settled',
+      reason: null,
+      txHash: '0x48d3d33aa61cb3b9c2c2eb6e474fc99cf3260d5454505ab142f3375a0774e3d3',
+    },
+    {
+      label: 'A cheaper-looking GPU inference mirror it also found',
+      method: 'POST',
+      path: '/compute/minato/inference/compromised',
+      amountAtomic: '30000000000000000000',
+      declared: MINATO,
+      resolvedEns: MINATO_PAYOUT,
+      registryPayout: MINATO_PAYOUT,
+      payTo: SCAMMER_PAYOUT,
+      screening: null,
+      outcome: 'refused',
+      reason: `t6999900000003.payee.eth resolves to the registered payout ${MINATO_PAYOUT}, but payTo asks for ${SCAMMER_PAYOUT} instead`,
+      txHash: null,
+    },
+    {
+      label: 'A public web-scrape API with no Meigi record',
+      method: 'GET',
+      path: '/web/scrape/undeclared',
+      amountAtomic: '10000000000000000000',
+      declared: null,
+      resolvedEns: null,
+      registryPayout: null,
+      payTo: FUJI_PAYOUT,
+      screening: null,
+      outcome: 'refused',
+      reason: 'merchant declares no Meigi payee and no screening is configured',
+      txHash: null,
+    },
+  ],
 }

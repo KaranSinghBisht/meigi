@@ -1,39 +1,26 @@
+import { MERCHANT_LISTINGS } from './merchants'
 import { MerchantCard } from './MerchantCard'
+import { ResearchAgentRun } from './ResearchAgentRun'
 import './x402.css'
 
-/** Both kinds of merchant, live against the local x402 demo. */
+/** The marketplace: who's selling, then a research agent buying from them live. */
 export function LiveMerchants() {
   return (
     <>
-      <section className="x402__row window" aria-labelledby="declared-title">
+      <section className="x402__row window" aria-labelledby="listings-title">
         <div className="x402__row-head">
-          <h2 id="declared-title" className="x402__row-title">
-            Merchants that declare a Meigi payee
+          <h2 id="listings-title" className="x402__row-title">
+            Who's selling
           </h2>
-          <p className="x402__row-lede">
-            The registry decides: payTo must be the declared company's registered payout.
-          </p>
+          <p className="x402__row-lede">Each declares its T-number and ENS name in the 402 response.</p>
         </div>
         <div className="x402__grid cells">
-          <MerchantCard kind="honest" />
-          <MerchantCard kind="compromised" />
+          {MERCHANT_LISTINGS.map((listing) => (
+            <MerchantCard key={listing.id} listing={listing} />
+          ))}
         </div>
       </section>
-      <section className="x402__row window" aria-labelledby="undeclared-title">
-        <div className="x402__row-head">
-          <h2 id="undeclared-title" className="x402__row-title">
-            Merchants with no Meigi record
-          </h2>
-          <p className="x402__row-lede">
-            No T-number to check, so the agent pays these only small amounts (up to 50 mJPYC), and only after Intercepta
-            screens payTo. Here Intercepta alone decides.
-          </p>
-        </div>
-        <div className="x402__grid cells">
-          <MerchantCard kind="unverified" />
-          <MerchantCard kind="unverified-flagged" />
-        </div>
-      </section>
+      <ResearchAgentRun />
     </>
   )
 }

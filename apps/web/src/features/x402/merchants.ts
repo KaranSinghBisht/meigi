@@ -1,41 +1,40 @@
-import type { MerchantKind } from '../../lib/api/merchant'
-
-export interface MerchantCopy {
+/** The marketplace listing: static copy for each merchant card (not fetched — it doesn't change). */
+export interface MerchantListing {
+  readonly id: string
   readonly title: string
-  readonly eyebrow: string
+  readonly kind: string
+  readonly tNumber: string | null
+  readonly ens: string | null
+  readonly price: string
   readonly body: string
-  readonly button: string
-  readonly progress: string
 }
 
-export const MERCHANTS: Record<MerchantKind, MerchantCopy> = {
-  honest: {
-    title: 'Honest merchant',
-    eyebrow: 'payTo = registered payout',
-    body: "The 402 response asks the agent to pay the merchant's registered payout, and declares its T-number.",
-    button: 'Buy from honest merchant',
-    progress:
-      'The guard checks payTo against the registry, then the buyer signs and the facilitator settles on Sepolia. This takes 10–20 seconds.',
+export const MERCHANT_LISTINGS: readonly MerchantListing[] = [
+  {
+    id: 'minato',
+    title: 'Minato GPU Cloud',
+    kind: 'GPU compute',
+    tNumber: 'T6999900000003',
+    ens: 't6999900000003.payee.eth',
+    price: '30 mJPYC / inference call · 15 mJPYC / GPU-minute',
+    body: 'On-demand H100 inference and GPU-minutes, billed per call over x402.',
   },
-  compromised: {
-    title: 'Compromised merchant',
-    eyebrow: 'payTo swapped',
-    body: "Same merchant, same T-number, but its server was hacked and the 402's payTo now points at the attacker.",
-    button: 'Buy from compromised merchant',
-    progress: 'The guard checks payTo against the registry before anything is signed…',
+  {
+    id: 'fuji',
+    title: 'Fuji Data',
+    kind: 'Training data',
+    tNumber: 'T8999900000001',
+    ens: 't8999900000001.payee.eth',
+    price: '20 mJPYC / slice',
+    body: 'Invoice-OCR training data, sold per slice.',
   },
-  unverified: {
-    title: 'Unverified merchant',
-    eyebrow: 'no Meigi record · clean payTo',
-    body: 'A merchant with no T-number to check. The agent pays it only small amounts, and only after Intercepta screens payTo and finds it clean.',
-    button: 'Buy from unverified merchant',
-    progress: 'Intercepta screens payTo; only a clean result lets the agent sign a small payment…',
+  {
+    id: 'scrape',
+    title: 'Public web scrape',
+    kind: 'No Meigi record',
+    tNumber: null,
+    ens: null,
+    price: '10 mJPYC / call',
+    body: 'No T-number to check: an agent judges this one only by screening payTo, and only for small amounts.',
   },
-  'unverified-flagged': {
-    title: 'Unverified merchant, flagged address',
-    eyebrow: 'no Meigi record · sanctioned payTo',
-    body: "Also no Meigi record, but its payTo is the OFAC-listed Ronin bridge exploiter's address.",
-    button: 'Buy from flagged merchant',
-    progress: 'Intercepta screens payTo before anything is signed…',
-  },
-}
+]
