@@ -68,37 +68,28 @@ const SHOTS = [
   { name: 'landing-hero', path: '/', ready: '.hero__wordmark' },
   // Mid-glide through the torii: the hero has faded and the camera is on its way to the app's gate station.
   { name: 'enter-glide', path: '/', ready: '.hero__wordmark', act: enterGlide },
-  { name: 'home', path: '/start', ready: '.strip__text .jp' },
+  { name: 'home', path: '/start', ready: 'main h1' },
   { name: 'registry', path: '/registry/T2011001234567', ready: '.payee__name', after: '.feed__item' },
   { name: 'registry-empty', path: '/registry', ready: '.directory__chip' },
   { name: 'registry-pending', path: '/registry/T2011001234567', ready: '.pending', setup: pendingPayout },
-  { name: 'register', path: '/register', act: fillRegistration },
+  { name: 'register', path: '/register', ready: 'main h1' },
   { name: 'change', path: '/change/T2011001234567', ready: '.picker__option' },
   { name: 'change-approvals', path: '/change/T2011001234567', ready: '.picker__option', act: openIntent },
   { name: 'agent', path: '/agent', ready: '.invoice__example', act: loadExample },
   { name: 'agent-analysis', path: '/agent', ready: '.invoice__example', act: analyzeScam },
   { name: 'agent-refusal', path: '/agent', ready: '.invoice__example', act: forceScam },
   { name: 'agent-force-refused', path: '/agent', ready: '.invoice__example', act: forceInjection },
-  { name: 'x402', path: '/x402', ready: '.merchant', act: buyCompromised },
-  // The flagged merchant is refused before signing, so this one never settles anything.
-  { name: 'x402-unverified', path: '/x402', ready: '.merchant', act: buyFlagged },
+  { name: 'x402', path: '/x402', ready: '.x402__grid' },
   { name: 'business', path: '/business', ready: '.biz-product' },
-  // These settle a real Sepolia payment (testnet gas + 10 mJPYC), so they only run with SHOTS_HONEST=1. The clean
-  // unverified merchant settles once Intercepta is configured; without a key it is refused like the flagged one.
-  { name: 'x402-honest', path: '/x402', ready: '.merchant', act: buyHonest, optIn: 'SHOTS_HONEST' },
-  { name: 'x402-unverified-paid', path: '/x402', ready: '.merchant', act: buyUnverified, optIn: 'SHOTS_HONEST' },
+  // The research agent's run settles real Sepolia payments (testnet gas + mJPYC), so it only runs with
+  // SHOTS_HONEST=1; its compromised mirror is refused before signing.
+  { name: 'x402-run', path: '/x402', ready: '.x402__grid', act: runResearchAgent, optIn: 'SHOTS_HONEST' },
 ]
 
 /** Enter, then wait until the camera is passing through the torii (the glide takes GLIDE_SECONDS, 2.2 s). */
 async function enterGlide(page) {
   await page.getByRole('link', { name: /enter/ }).click()
   await page.waitForTimeout(1500)
-}
-
-async function fillRegistration(page) {
-  await page.getByLabel('T-number').fill(process.env.SHOTS_T_NUMBER ?? 'T1010601051968')
-  await page.waitForSelector('.nta-hint', { timeout: 20_000 })
-  await page.waitForTimeout(1200)
 }
 
 async function loadExample(page) {
@@ -119,7 +110,8 @@ async function analyzeScam(page) {
   await loadExample(page)
   await page.getByRole('button', { name: 'Analyze' }).click()
   await page.waitForSelector('.decision', { timeout: 120_000 })
-  await page.waitForTimeout(500)
+  // The console scrolls its results into view; wait for that scroll to finish.
+  await page.waitForTimeout(1500)
 }
 
 async function forceScam(page) {
@@ -140,31 +132,12 @@ async function forceInjection(page) {
   await page.waitForTimeout(600)
 }
 
-async function buyHonest(page) {
-  await page.getByRole('button', { name: 'Buy from honest merchant' }).click()
-  await page.waitForSelector('.merchant--honest .notice', { timeout: 120_000 })
-  await page.waitForTimeout(400)
-}
-
-async function buyCompromised(page) {
-  await page.getByRole('button', { name: 'Buy from compromised merchant' }).click()
-  await page.waitForSelector('.merchant--compromised .notice', { timeout: 90_000 })
-  await page.waitForTimeout(400)
-}
-
-/** The row of merchants with no Meigi record, centred so both cards and their results are in view. */
-async function buyFlagged(page) {
-  await page.getByRole('button', { name: 'Buy from flagged merchant' }).click()
-  await page.waitForSelector('.merchant--unverified-flagged .notice', { timeout: 90_000 })
-  const row = page.locator('section[aria-labelledby="undeclared-title"]')
-  await row.evaluate((section) => section.scrollIntoView({ block: 'center' }))
-  await page.waitForTimeout(400)
-}
-
-async function buyUnverified(page) {
-  await page.getByRole('button', { name: 'Buy from unverified merchant' }).click()
-  await page.waitForSelector('.merchant--unverified .notice', { timeout: 120_000 })
-  await buyFlagged(page)
+/** Settles real payments: the research agent buys GPU-minutes and data, and is refused by the swapped mirror. */
+async function runResearchAgent(page) {
+  await page.getByRole('button', { name: 'Run the research agent' }).click()
+  await page.waitForSelector('.agent-run__steps', { timeout: 180_000 })
+  await page.locator('.agent-run__steps').evaluate((steps) => steps.scrollIntoView({ block: 'start' }))
+  await page.waitForTimeout(600)
 }
 
 /**
@@ -196,11 +169,11 @@ async function run(browser, shot) {
 /** Straight into each page of a hosted build: services that need the demo machine show their panels. */
 const HOSTED_SHOTS = [
   { name: 'landing-hero', path: '/', ready: '.hero__wordmark' },
-  { name: 'home', path: '/start', ready: '.strip__text .jp' },
+  { name: 'home', path: '/start', ready: 'main h1' },
   { name: 'registry', path: '/registry/T2011001234567', ready: '.payee__name', after: '.feed__item' },
-  { name: 'agent', path: '/agent', ready: '.recorded .refusal' },
-  { name: 'x402', path: '/x402', ready: '.recorded .merchant' },
-  { name: 'register', path: '/register', ready: '.demo-machine' },
+  { name: 'agent', path: '/agent', ready: '.vault-panel', after: '.recorded' },
+  { name: 'x402', path: '/x402', ready: '.x402__grid' },
+  { name: 'register', path: '/register', ready: 'main h1' },
   { name: 'change', path: '/change/T2011001234567', ready: '.demo-machine' },
 ]
 

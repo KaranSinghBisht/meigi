@@ -105,7 +105,7 @@ Shots run headless Chromium with SwiftShader, so the live world renders; each wa
 
 `registry-pending.png` rewrites `payeeOf` answers in flight (the live chain has no queued change) to show the
 countdown banner and that the queued address isn't shown. The agent, change-approvals and x402 shots need their
-services running. `SHOTS_HOSTED=1 SHOTS_PORT=4180` captures a hosted build as `hosted-*.png`.
-`x402-unverified.png` buys from the flagged merchant, which is refused before signing. `SHOTS_HONEST=1` adds the
-honest and the clean unverified purchases, which settle real Sepolia payments (the unverified one once Intercepta is
-configured); no shot ever clicks Pay on an auto-cleared invoice, which would spend the demo invoice.
+services running. `SHOTS_HOSTED=1 SHOTS_PORT=4181` captures a hosted build as `hosted-*.png`; use a port the
+services don't allow, so the hosted panels show. `SHOTS_HONEST=1` adds `x402-run.png`, the research agent's run,
+which settles real Sepolia payments; no shot ever clicks Pay on an auto-cleared invoice, which would spend the demo
+invoice.
