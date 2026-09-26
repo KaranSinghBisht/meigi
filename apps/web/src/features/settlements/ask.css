@@ -1,0 +1,106 @@
+/* Ask the ledger: a question box at the foot of the settlements window, divided from the rows by a hairline. Three
+   suggested questions as chips, one field with the ink button, the answer as plain text in a cell, and a quiet
+   disclosure. Paused, the whole box greys out calmly. */
+.ask {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  padding: 20px 24px 24px;
+  box-shadow: 0 -1px 0 var(--lg-hairline);
+}
+
+.ask__title {
+  font-size: var(--text-md);
+  font-weight: var(--weight-strong);
+}
+
+.ask__suggested {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ask__chip {
+  height: var(--control-chip);
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--lg-cell-strong);
+  box-shadow: var(--lg-shadow-control);
+  color: var(--ink);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-strong);
+  cursor: pointer;
+}
+
+.ask__chip:hover:not(:disabled) {
+  background: var(--lg-sheen-lift), var(--lg-cell-strong);
+}
+
+.ask__chip:disabled {
+  cursor: not-allowed;
+}
+
+.ask__row {
+  display: flex;
+  gap: 8px;
+}
+
+.ask__row .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.ask__reply {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  background: var(--lg-cell);
+  box-shadow: var(--lg-highlight);
+}
+
+.ask__question {
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.ask__answer {
+  overflow-wrap: break-word;
+  white-space: pre-line;
+}
+
+.ask__cited {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+
+.ask__note,
+.ask__disclosure {
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+
+.ask--paused .ask__suggested,
+.ask--paused .ask__row {
+  opacity: 0.55;
+}
+
+@media (max-width: 520px) {
+  .ask {
+    padding: 16px;
+  }
+
+  .ask__row {
+    flex-direction: column;
+  }
+
+  .ask__row .input {
+    flex: none;
+  }
+}

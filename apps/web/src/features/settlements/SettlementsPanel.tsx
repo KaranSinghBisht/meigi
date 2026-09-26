@@ -3,6 +3,7 @@ import type { Settlement, SettlementKind } from '../../lib/api/settlements'
 import { formatJst, shortHash, txUrl } from '../../lib/chain/format'
 import { Badge } from '../../ui/components/Badge'
 import { Button } from '../../ui/components/Button'
+import { AskLedger } from './AskLedger'
 import { useSettlements, type SettlementsLoad } from './useSettlements'
 import './settlements.css'
 
@@ -67,7 +68,10 @@ interface SettlementsPanelProps {
 }
 
 /** Payments Meigi's contracts settled on Sepolia, newest first, live from Curvegrid MultiBaas's event index. */
-export function SettlementsPanel({ tNumber, title = 'Settlements · indexed by Curvegrid MultiBaas' }: SettlementsPanelProps) {
+export function SettlementsPanel({
+  tNumber,
+  title = 'Settlements · indexed by Curvegrid MultiBaas',
+}: SettlementsPanelProps) {
   const id = useId()
   const load = useSettlements(tNumber)
   const [all, setAll] = useState(false)
@@ -89,7 +93,9 @@ export function SettlementsPanel({ tNumber, title = 'Settlements · indexed by C
       ) : null}
       {load.kind === 'loading' ? <p className="settlements__note muted">Reading MultiBaas…</p> : null}
       {load.kind === 'error' ? <p className="settlements__note muted">{load.message}</p> : null}
-      {load.kind === 'ready' && rows.length === 0 ? <Empty tNumber={tNumber} indexedFrom={load.data.indexedFrom} /> : null}
+      {load.kind === 'ready' && rows.length === 0 ? (
+        <Empty tNumber={tNumber} indexedFrom={load.data.indexedFrom} />
+      ) : null}
       {shown.length > 0 ? (
         <ol className="settlements__list">
           {shown.map((s) => (
@@ -104,6 +110,7 @@ export function SettlementsPanel({ tNumber, title = 'Settlements · indexed by C
           </Button>
         </div>
       ) : null}
+      {!tNumber && rows.length > 0 ? <AskLedger /> : null}
     </section>
   )
 }
