@@ -125,6 +125,27 @@
   gap: 16px 32px;
 }
 
+.closing__live {
+  max-width: 64ch;
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  line-height: 1.8;
+  text-wrap: balance;
+}
+
+.closing__dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 10px;
+  border-radius: 50%;
+  background: var(--jade);
+  box-shadow: 0 0 0 3px var(--jade-tint);
+  vertical-align: 1px;
+}
+
 .closing__link {
   color: var(--ink);
   font-size: var(--text-lg);

@@ -1,8 +1,9 @@
 import { Link } from 'react-router'
 import { LinkButton } from '../../../ui/components/Button'
+import { LiveLine } from './LiveLine'
 import './story.css'
 
-/** The last beat: one plain statement and the same two ways in as the poster. No art, no box. */
+/** The last beat: one plain statement, the same two ways in as the poster, and the chain's live figures. */
 export function ClosingSection() {
   return (
     <section className="closing" aria-labelledby="closing-title">
@@ -18,6 +19,7 @@ export function ClosingSection() {
           Register a company <span aria-hidden="true">→</span>
         </Link>
       </div>
+      <LiveLine />
     </section>
   )
 }
