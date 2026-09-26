@@ -1,3 +1,4 @@
+import { formatJst } from '../../../../lib/chain/format'
 import { X402_RUN } from '../../content/x402'
 import { terminalLines } from '../../content/x402Lines'
 
@@ -9,7 +10,9 @@ export function TerminalPage() {
       <p className="term__head">
         <span>{X402_RUN.buyer}</span>
         <span className="term__meta">x402 · Meigi guard · Sepolia</span>
-        {X402_RUN.placeholder ? <span className="term__placeholder">placeholder run</span> : null}
+        {X402_RUN.recordedAt ? (
+          <span className="term__when">recorded {formatJst(new Date(X402_RUN.recordedAt))}</span>
+        ) : null}
       </p>
       <div className="term__view" data-d="term-view">
         <ol className="term__lines" data-d="term-lines">

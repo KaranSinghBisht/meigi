@@ -1,6 +1,5 @@
-import { shortAddress } from '../../../../lib/chain/format'
 import { HankoMark } from '../../../../ui/brand/HankoMark'
-import { LOG_LINES, VAULT } from '../../content/chainLog'
+import { LOG_GROUPS, type LogGroup } from '../../content/chainLog'
 import { MAILBOX } from '../../content/inbox'
 import { BecCards } from './BecCards'
 import { Chip, Scene, type Tone } from './parts'
@@ -60,29 +59,46 @@ function Idle() {
   )
 }
 
+function LogLines({ group }: { readonly group: LogGroup }) {
+  return (
+    <ol className="plog__lines" data-d={`log-stack-${group.id}`}>
+      {group.lines.map((line) => (
+        <li key={line.id} className={`plog__line plog__line--${line.tone}`} data-d={`log-${line.id}`} data-enter="">
+          <span className="typed">
+            <span className="typed__ghost" aria-hidden="true">
+              {line.text}
+            </span>
+            <span className="typed__live" data-d={`log-${line.id}-text`} />
+          </span>
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+/** One group of lines per chapter, shown one at a time, so each chapter's log tells only its own story. */
 function ChainLog() {
   return (
     <section className="plog">
       <p className="plog__head">
         <span>Chain log</span>
-        <span className="mono">AgentVault {shortAddress(VAULT)} · Sepolia</span>
+        <span className="plog__where">
+          {LOG_GROUPS.map((group) => (
+            <span key={group.id} className="mono" data-d={`log-where-${group.id}`} data-enter="">
+              {group.where}
+            </span>
+          ))}
+        </span>
       </p>
       <div className="plog__view" data-d="log-view">
         <p className="plog__idle" data-d="log-idle">
           Nothing sent yet.
         </p>
-        <ol className="plog__lines" data-d="log-stack">
-          {LOG_LINES.map((line) => (
-            <li key={line.id} className={`plog__line plog__line--${line.tone}`} data-d={`log-${line.id}`} data-enter="">
-              <span className="typed">
-                <span className="typed__ghost" aria-hidden="true">
-                  {line.text}
-                </span>
-                <span className="typed__live" data-d={`log-${line.id}-text`} />
-              </span>
-            </li>
-          ))}
-        </ol>
+        {LOG_GROUPS.map((group) => (
+          <div key={group.id} className="plog__group" data-d={`log-group-${group.id}`} data-enter="">
+            <LogLines group={group} />
+          </div>
+        ))}
       </div>
     </section>
   )
@@ -97,7 +113,7 @@ export function AgentPanel() {
         <Scene id="bec" steps={['Read', 'Triage', 'Belief', 'Kernel', 'Screen', 'Decide']} idle={<Idle />}>
           <BecCards />
         </Scene>
-        <Scene id="urgent" steps={['Read', 'Triage', 'Kernel', 'Decide', 'Human', 'Pay']} hidden>
+        <Scene id="urgent" steps={['Read', 'Triage', 'Decide', 'Human', 'Pay']} hidden>
           <UrgentCards />
         </Scene>
         <Scene id="x402" steps={['402', 'ENS', 'Registry', 'Screen', 'Sign', 'Settle']} hidden>

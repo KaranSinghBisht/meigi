@@ -38,7 +38,7 @@ function read(c: BuildCtx): void {
   show(c, scan, 6.6, { duration: 0.3 })
   c.tl.to(scan, { y: () => (text ? text.offsetHeight - 60 : 400), duration: 3.2, ease: 'none' }, c.t0 + 6.6)
   hide(c, scan, 9.7)
-  scrollTo(c, 'bec-scroll', 'bec-address', 7.0, 2.0, 96)
+  scrollTo(c, 'bec-scroll', 'bec-address', 7.0, 2.0, c.portrait ? 30 : 96)
   READ_ORDER.forEach((key, index) => {
     const at = 9.0 + index * 1.05
     light(c, `bec-${key}`, at)
@@ -47,7 +47,7 @@ function read(c: BuildCtx): void {
 }
 
 function tell(c: BuildCtx): void {
-  scrollTo(c, 'bec-scroll', 'bec-dontCall', 13.4, 1.0, 180)
+  scrollTo(c, 'bec-scroll', 'bec-dontCall', 13.4, 1.0, c.portrait ? 24 : 180)
   cursorTo(c, 'bec-dontCall', 13.6, { duration: 0.9, fx: 0.85, fy: 1.35 })
   c.tl.to(c.el('bec-dontCall'), { '--u': 1, duration: 1.3, ease: 'power2.inOut' }, c.t0 + 14.1)
 }

@@ -82,7 +82,6 @@ function purchase(step: unknown, index: number): X402Purchase {
 export function fromScenario(json: unknown, buyer = 'research-agent'): X402Run {
   if (!isRecord(json) || !Array.isArray(json.steps) || json.steps.length === 0) fail('steps')
   return {
-    placeholder: false,
     recordedAt: text(json.startedAt),
     buyer,
     purchases: json.steps.map(purchase),

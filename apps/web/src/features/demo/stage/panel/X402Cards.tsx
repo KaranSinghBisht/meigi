@@ -8,10 +8,10 @@ function Outcome({ purchase }: { readonly purchase: X402Purchase }) {
   const { outcome } = purchase
   if (outcome.status === 'refused') {
     return (
-      <p className="pcard__row pcard__row--top" data-d={`x-${purchase.id}-outcome`} data-enter="">
+      <div className="pcard__stack" data-d={`x-${purchase.id}-outcome`} data-enter="">
         <Chip tone="bad">Refused before signing</Chip>
-        <span className="pcard__note">{outcome.reason}</span>
-      </p>
+        <p className="pcard__note">{outcome.reason}</p>
+      </div>
     )
   }
   return (
@@ -64,11 +64,6 @@ function PurchaseCard({ purchase, index }: { readonly purchase: X402Purchase; re
 export function X402Cards() {
   return (
     <>
-      {X402_RUN.placeholder ? (
-        <p className="pplaceholder" data-d="x-placeholder">
-          Placeholder run: the recorded research-agent run replaces it.
-        </p>
-      ) : null}
       {X402_RUN.purchases.map((purchase, index) => (
         <PurchaseCard key={purchase.id} purchase={purchase} index={index} />
       ))}

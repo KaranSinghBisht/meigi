@@ -2,7 +2,7 @@
 // safe reply.
 
 import type { BuildCtx, ChapterDef } from '../engine/types'
-import { click, cursorTo, logLine, rise, show, status, typeIn } from './moves'
+import { click, cursorTo, logGroup, logLine, rise, show, status, typeIn } from './moves'
 
 function force(c: BuildCtx): void {
   c.tl.set(c.el('cursor'), { x: 700, y: 560 }, c.t0)
@@ -13,9 +13,10 @@ function force(c: BuildCtx): void {
 }
 
 function refuse(c: BuildCtx): void {
-  const simulated = logLine(c, 'sim', 2.8, 60)
-  const reverted = logLine(c, 'revert', simulated + 0.2, 60)
-  logLine(c, 'nothing', reverted + 0.2, 70)
+  logGroup(c, null, 'refuse', 2.6)
+  const simulated = logLine(c, 'refuse', 'sim', 2.8, 60)
+  const reverted = logLine(c, 'refuse', 'revert', simulated + 0.2, 60)
+  logLine(c, 'refuse', 'nothing', reverted + 0.2, 70)
   c.tl.fromTo(
     c.el('bec-seal'),
     { autoAlpha: 0, scale: 1.5, rotation: -14 },

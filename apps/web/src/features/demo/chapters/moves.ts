@@ -159,19 +159,25 @@ export function scrollTo(c: BuildCtx, box: string, target: Target, at: number, d
   )
 }
 
-/** A line of the chain log: it appears, types out, and the log scrolls to keep it in view. */
-export function logLine(c: BuildCtx, id: string, at: number, cps = 70): number {
+/** Swaps the chain log to a chapter's own group (and its "where" label). */
+export function logGroup(c: BuildCtx, from: string | null, to: string, at: number): void {
+  if (from) {
+    hide(c, `log-group-${from}`, at, { duration: 0.25 })
+    hide(c, `log-where-${from}`, at, { duration: 0.25 })
+  }
+  show(c, `log-group-${to}`, at + 0.15, { duration: 0.25 })
+  show(c, `log-where-${to}`, at + 0.15, { duration: 0.25 })
+}
+
+/** A line of a chapter's chain log: it appears, types out, and the group scrolls to keep it in view. */
+export function logLine(c: BuildCtx, group: string, id: string, at: number, cps = 70): number {
   hide(c, 'log-idle', at, { duration: 0.2 })
   const view = c.el('log-view')
   const line = c.el(`log-${id}`)
   c.tl.to(
-    c.el('log-stack'),
-    {
-      y: () => -Math.max(0, line.offsetTop + line.offsetHeight - view.clientHeight),
-      duration: 0.35,
-      ease: 'power2.out',
-    },
-    pos(c, at),
+    c.el(`log-stack-${group}`),
+    { y: () => -Math.max(0, line.offsetTop + line.offsetHeight - view.clientHeight), duration: 0.35, ease: 'power2.out' },
+    c.t0 + at,
   )
   rise(c, line, at, { duration: 0.25 })
   return typeIn(c, `log-${id}-text`, at + 0.1, cps)

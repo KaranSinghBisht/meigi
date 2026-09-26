@@ -1,5 +1,5 @@
 import { BEC } from '../../content/bec'
-import { URGENT } from '../../content/urgent'
+import { PAID, URGENT } from '../../content/urgent'
 import { Marked } from '../Marked'
 import './message.css'
 
@@ -11,6 +11,8 @@ const JST = new Intl.DateTimeFormat('ja-JP', {
   hour: '2-digit',
   minute: '2-digit',
 })
+
+const DAY = new Intl.DateTimeFormat('ja-JP', { timeZone: 'Asia/Tokyo', month: 'numeric', day: 'numeric', weekday: 'short' })
 
 function mailDate(header: string): string {
   const date = new Date(header)
@@ -87,7 +89,7 @@ export function UrgentMessage() {
         subject={mail.subject}
         fromName={mail.fromName}
         fromAddress={mail.fromAddress}
-        date={mailDate(URGENT.recordedAt.toUTCString())}
+        date={DAY.format(PAID.at)}
         senderName="urgent-sender"
         paidName="msg-urgent-paid"
       />

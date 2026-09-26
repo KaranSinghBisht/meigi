@@ -20,6 +20,7 @@
   position: absolute;
   inset: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto auto auto minmax(0, 1fr);
   padding: 18px 20px 0;
 }
@@ -161,7 +162,7 @@
   box-shadow: 0 1px 3px rgba(60, 64, 67, 0.2);
   font-size: 10.5px;
   line-height: 1.7;
-  white-space: pre;
+  white-space: pre-wrap;
 }
 
 /* A value the agent reads: it lights when read. */

@@ -4,7 +4,7 @@
 import { X402_RUN, type X402Purchase, type X402Run } from '../content/x402'
 import { terminalLines, type TermLine } from '../content/x402Lines'
 import type { BuildCtx, CaptionDef, ChapterDef } from '../engine/types'
-import { card, hide, rise, show, status, step, stepDone, typeIn } from './moves'
+import { card, hide, logGroup, logLine, rise, show, status, step, stepDone, typeIn } from './moves'
 
 const CPS = 140
 const FIRST = 0.9
@@ -57,6 +57,7 @@ function switchTab(c: BuildCtx): void {
   show(c, 'term', 0.25, { duration: 0.3 })
   hide(c, 'scene-urgent', 0.3)
   show(c, 'scene-x402', 0.45)
+  logGroup(c, 'human', 'agents', 0.4)
   status(c, 'paid', 'x402', 0.4)
 }
 
@@ -91,6 +92,7 @@ function purchase(c: BuildCtx, beat: Beat, first: boolean): void {
     at = next
   }
   rise(c, `x-${item.id}-outcome`, at - 0.1)
+  if (item.outcome.status === 'settled' && item.outcome.txHash) logLine(c, 'agents', `settle-${item.id}`, at, 90)
   if (!first) return
   for (const index of [1, 2, 3, 4, 5, 6]) stepDone(c, 'x402', index, at + 0.1)
 }
@@ -104,5 +106,6 @@ export const chapter5: ChapterDef = {
     switchTab(c)
     step(c, 'x402', 1, FIRST)
     BEATS.forEach((beat, index) => purchase(c, beat, index === 0))
+    logLine(c, 'agents', 'refused', (BEATS.at(-1)?.end ?? 18) + 0.3, 90)
   },
 }

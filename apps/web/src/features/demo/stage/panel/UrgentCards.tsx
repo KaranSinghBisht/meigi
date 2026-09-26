@@ -2,7 +2,7 @@ import { HankoMark } from '../../../../ui/brand/HankoMark'
 import { Spinner } from '../../../../ui/components/Spinner'
 import { useQr } from '../../../../ui/world/useQr'
 import { APPROVAL, PAID, URGENT } from '../../content/urgent'
-import { checkLabel, layerLabel, percent } from './checks'
+import { layerLabel, percent } from './checks'
 import { Bar, Card, Chip, Field } from './parts'
 
 const { analysis, triage } = URGENT
@@ -72,28 +72,9 @@ function TriageCard() {
   )
 }
 
-function KernelCard() {
-  const { checks } = analysis.kernel
-  const passed = checks.filter((check) => check.ok).length
-  return (
-    <Card name="u-card-kernel" title="3 · Kernel" meta={`${passed} of ${checks.length} checks pass`}>
-      <ul className="pchecks pchecks--grid">
-        {checks.map((check) => (
-          <li key={check.code} className={check.ok ? 'pcheck' : 'pcheck pcheck--fail'}>
-            <span className="pcheck__mark" aria-hidden="true">
-              {check.ok ? '✓' : '✗'}
-            </span>
-            <span className="pcheck__label">{checkLabel(check.code)}</span>
-          </li>
-        ))}
-      </ul>
-    </Card>
-  )
-}
-
 function DecisionCard() {
   return (
-    <Card name="u-card-decision" title="4 · Decision" meta="a person decides">
+    <Card name="u-card-decision" title="3 · Decision" meta="a person decides">
       <p className="pverdict">
         <Chip tone="hold">HOLD</Chip>
         <span className="pverdict__line">for a verified human</span>
@@ -105,9 +86,7 @@ function DecisionCard() {
           </li>
         ))}
       </ol>
-      {analysis.approval.approvable ? (
-        <p className="pcard__note">A verified human may release this hold. Nothing is paid until then.</p>
-      ) : null}
+      <p className="pcard__note">A verified human may release these holds. Nothing is paid until then.</p>
     </Card>
   )
 }
@@ -115,7 +94,7 @@ function DecisionCard() {
 function WorldIdCard() {
   const qr = useQr(APPROVAL.qrUri)
   return (
-    <Card name="u-card-world" title="5 · World ID for Agents" meta="device flow · sandbox IdP" className="pcard--world">
+    <Card name="u-card-world" title="4 · World ID for Agents" meta="device flow · sandbox IdP" className="pcard--world">
       <div className="pworld">
         <span className="pworld__qr">
           {qr.src ? <img src={qr.src} alt="" width={96} height={96} /> : null}
@@ -152,7 +131,7 @@ function WorldIdCard() {
 
 function PaidCard() {
   return (
-    <Card name="u-card-paid" title="6 · Pay" meta="through the vault's checks" className="pcard--paid">
+    <Card name="u-card-paid" title="5 · Pay" meta="through the vault's checks" className="pcard--paid">
       <p className="pverdict">
         <Chip tone="ok">Paid</Chip>
         <span className="pverdict__line">
@@ -171,7 +150,6 @@ export function UrgentCards() {
     <>
       <ReadCard />
       <TriageCard />
-      <KernelCard />
       <DecisionCard />
       <WorldIdCard />
       <PaidCard />

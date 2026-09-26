@@ -170,6 +170,20 @@
   overflow: hidden;
 }
 
+.plog__where {
+  display: grid;
+  justify-items: end;
+}
+
+.plog__where > * {
+  grid-area: 1 / 1;
+}
+
+.plog__group {
+  position: absolute;
+  inset: 0;
+}
+
 .plog__idle {
   position: absolute;
   inset: 0 auto auto 0;

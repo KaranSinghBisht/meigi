@@ -245,7 +245,7 @@
 
 .dstage__design--portrait .mail__main {
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: 104px minmax(0, 1fr);
+  grid-template-rows: 88px minmax(0, 1fr);
   padding: 8px;
 }
 
@@ -262,15 +262,45 @@
 }
 
 .dstage__design--portrait .msg__subject {
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.35;
 }
 
 .dstage__design--portrait .msg__from {
-  margin: 8px 0 6px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin: 6px 0 4px;
+}
+
+.dstage__design--portrait :is(.msg__avatar, .msg__to, .msg__tag) {
+  display: none;
+}
+
+.dstage__design--portrait .msg__attachment {
+  margin-bottom: 6px;
 }
 
 .dstage__design--portrait .compose {
   right: 8px;
   left: 8px;
   width: auto;
+}
+
+.dstage__design--portrait .msg__paper {
+  padding: 12px 10px 32px;
+  font-size: 10px;
+}
+
+/* Phones: the reply draft fits the shorter pane, header included. */
+.dstage__design--portrait .compose__field + .compose__field {
+  display: none;
+}
+
+.dstage__design--portrait .compose__body {
+  padding: 8px 14px 2px;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.dstage__design--portrait .compose__foot {
+  padding: 6px 14px 10px;
 }

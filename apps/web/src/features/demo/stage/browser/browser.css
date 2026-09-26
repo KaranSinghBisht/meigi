@@ -4,6 +4,7 @@
   inset: 0;
   display: grid;
   grid-template-rows: 40px 40px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   overflow: hidden;
   border-radius: var(--radius-md);
   background: rgba(238, 234, 245, 0.72);
@@ -46,15 +47,18 @@
 
 .mac__tabs {
   display: flex;
+  flex: 1;
   gap: 4px;
+  min-width: 0;
   height: 32px;
 }
 
 .mac__tab {
   display: flex;
+  flex: 0 1 232px;
   align-items: center;
   gap: 8px;
-  width: 232px;
+  min-width: 0;
   padding: 0 12px;
   border-radius: 10px 10px 0 0;
   font-size: 12px;
@@ -168,12 +172,9 @@
   color: #a9a3b8;
 }
 
-.term__placeholder {
+.term__when {
   margin-left: auto;
-  padding: 2px 10px;
-  border-radius: 999px;
-  background: rgba(245, 166, 35, 0.2);
-  color: #f7c46c;
+  color: #a9a3b8;
 }
 
 .term__view {

@@ -1,9 +1,11 @@
-// Chapter 4: a genuine but urgent invoice (services/agent/scripts/demo-invoices/07-urgent-invoice.ja.txt), the
-// agent's real analysis of it (recorded from the local agent against Sepolia on 2026-09-26), and the real
-// payment a verified human approved through World ID for Agents.
+// Chapter 4: a genuine but urgent invoice, the agent's real reading of it, and the real payment a verified human
+// approved through World ID for Agents.
 //
-// The paid transaction settled this same invoice under a fresh number, as the demo script asks: its InvoicePaid
-// invoiceRef is keccak256("T2011001234567|MS-2026-0940"). The amount, payee and payout are the ones shown here.
+// The invoice is services/agent/scripts/demo-invoices/07-urgent-invoice.ja.txt under the number the paid
+// transaction used: its InvoicePaid invoiceRef is keccak256("T2011001234567|MS-2026-0940"). The analysis is the
+// local agent's answer for that exact text (Sepolia, 2026-09-26). It was recorded after the payment, so its kernel
+// now also says "already paid": the chapter shows the reading and the triage, and of the verdict only the holds a
+// verified human may release (triage and pressure), which is what the approval released before the payment.
 
 import { parseAnalysis } from '../../../lib/api/agentParse'
 import { shortAddress, shortHash } from '../../../lib/chain/format'
@@ -48,7 +50,8 @@ export const URGENT = {
   invoice,
   payTo,
   payToShort: shortAddress(payTo),
-  holds: analysis.verdict.reasons.filter((reason) => reason.severity === 'block'),
+  /** The holds the approval releases: World ID for Agents may only release triage and pressure holds. */
+  holds: analysis.verdict.reasons.filter((reason) => reason.severity === 'block' && reason.layer === 'triage'),
 } as const
 
 /** World ID for Agents: the sandbox IdP's device flow, and what the backend checked on the token. */
@@ -67,6 +70,8 @@ export const PAID = {
   txHash: TX,
   txShort: shortHash(TX),
   block: 11_782_065,
+  /** The block's time: 2026-09-26 07:08:00 JST. */
+  at: new Date('2026-09-25T22:08:00Z'),
   amount: '¥55,000',
   payTo: PAYOUT,
   payToShort: shortAddress(PAYOUT),

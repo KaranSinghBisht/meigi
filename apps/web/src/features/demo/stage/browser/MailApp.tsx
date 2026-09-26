@@ -84,7 +84,7 @@ const URGENT_ROW: InboxRow = {
   from: URGENT.mail.fromName,
   subject: URGENT.mail.subject,
   snippet: `請求書番号: ${URGENT.invoice} ご請求金額 ${URGENT.amount}（税込）`,
-  time: '12:38',
+  time: '9/26',
 }
 
 function List() {
