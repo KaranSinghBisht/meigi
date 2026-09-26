@@ -3,7 +3,7 @@
 
 import type { Env } from './env'
 import { createReader } from './multibaas'
-import { createSettlements, parseSnapshot, settlementsResponse, SNAPSHOT_EDGE_S, type SettlementsApi, type Snapshot, type SnapshotStore } from './settlements'
+import { createSettlements, settlementsResponse, SNAPSHOT_EDGE_S, type SettlementsApi, type SnapshotStore } from './settlements'
 
 let api: SettlementsApi | null = null // one per isolate, so its cache is shared by every request it serves
 
@@ -14,27 +14,37 @@ function json(body: unknown, status: number, headers: Record<string, string> = {
 }
 
 /**
- * The snapshot shared by every isolate in a data centre, through the Workers Cache API. A miss or a failure is null.
- * The key names the scope it was built for, so a snapshot from another configuration is never reused.
+ * The snapshot shared by every isolate in a data centre, through the Workers Cache API. A miss or a failure is null;
+ * settlements.ts checks whatever comes back. The key names the settings it was built for, so a snapshot from another
+ * configuration is never reused.
  */
 function edgeStore(scope: string): SnapshotStore | undefined {
   const cache = (globalThis as { caches?: { default?: Cache } }).caches?.default
   if (!cache) return undefined
-  const key = new Request(`https://settlements.meigi.internal/snapshot/v2?scope=${encodeURIComponent(scope)}`)
+  const key = new Request(`https://settlements.meigi.internal/snapshot/v3?scope=${encodeURIComponent(scope)}`)
   const quiet = (what: string) => (error: unknown) => {
     console.error(`[settlements] edge cache ${what} failed: ${error instanceof Error ? error.name : 'error'}`)
     return null
   }
   return {
-    async get(): Promise<Snapshot | null> {
+    async get(): Promise<unknown> {
       const hit = await cache.match(key).catch(quiet('read'))
-      return hit ? parseSnapshot(await hit.json().catch(quiet('parse'))) : null
+      return hit ? await hit.json().catch(quiet('parse')) : null
     },
     async put(snapshot) {
       const body = new Response(JSON.stringify(snapshot), { headers: { 'content-type': 'application/json', 'cache-control': `max-age=${SNAPSHOT_EDGE_S}` } })
       await cache.put(key, body)
     },
   }
+}
+
+/** The isolate's one API. Its settings are the deployment's vars, so they are read once. */
+function settlementsApi(env: Env): SettlementsApi {
+  const payees = (env.SETTLEMENT_PAYEES ?? '').split(',')
+  const token = env.SETTLEMENT_TOKEN ?? null
+  const x402Buyer = env.X402_BUYER ?? null
+  const store = edgeStore([payees.join(','), token ?? '', x402Buyer ?? ''].join('|'))
+  return createSettlements(createReader(env), { payees, token, x402Buyer, store })
 }
 
 export default {
@@ -46,9 +56,7 @@ export default {
       return json({ code: 'method_not_allowed', message: 'Only GET is supported.' }, 405, { allow: 'GET, HEAD' })
     }
     try {
-      const payees = (env.SETTLEMENT_PAYEES ?? '').split(',')
-      const x402Buyer = env.X402_BUYER ?? null
-      api ??= createSettlements(createReader(env), { payees, x402Buyer, store: edgeStore(`${payees.join(',')}|${x402Buyer ?? ''}`) })
+      api ??= settlementsApi(env)
       return await settlementsResponse(url, api)
     } catch (error) {
       console.error(`[settlements] unexpected ${error instanceof Error ? error.name : 'error'}`)

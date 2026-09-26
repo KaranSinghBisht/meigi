@@ -104,13 +104,21 @@ the repo root builds it this way, checks the bundle for secrets and deploys.
   - the router's `Paid`;
   - direct mJPYC transfers (x402 sales) to the payees in `SETTLEMENT_PAYEES`.
 
-  The agent console's "Settlements · indexed by Curvegrid MultiBaas" panel (`src/features/settlements/`) shows
-  them, refreshed every 30 s.
+  The agent console's "Settlements · indexed by Curvegrid MultiBaas" panel and each registry page's "Payments
+  received" (`src/features/settlements/`) show them, refreshed every 60 s.
+- **What a router row proves.** mJPYC is a demo token anyone can mint, so anyone can make a real PayRouter payment
+  to a registered payee, and it shows as a router row. It is a real payment to that payee, but not necessarily one
+  Meigi's agent made. x402 rows count only the research agent's wallet for the same reason.
 - **Secrets.** `MULTIBAAS_URL` and `MULTIBAAS_API_KEY` are Worker secrets, set once from `.env` (the commands are in
   `wrangler.landing.jsonc`). They are never vars, never in the bundle, and never in a response.
+- **Settings.** `SETTLEMENT_PAYEES`, `SETTLEMENT_TOKEN` (Sepolia mJPYC) and `X402_BUYER` are public vars. If a
+  setting is missing or malformed, or MultiBaas's `meigi_mjpy` alias points at another token, the API answers 503
+  and logs which. It never shows a list with rows quietly missing.
 - **Safeguards:**
   - Only an allow-list of MultiBaas calls is made.
-  - Answers are cached (45 s).
+  - One snapshot is served for 3 min from when it was read, shared per data centre and kept per isolate. A refresh
+    costs 3 MultiBaas calls (the saved queries). `payeeOf` is re-read every 10 min; the token alias, its decimals
+    and the indexing start hourly.
   - Errors are a generic 503.
 - **Locally:**
   1. Put the two values in a private env file outside the repo.

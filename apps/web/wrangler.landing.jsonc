@@ -19,7 +19,11 @@
     // Registered payees listed even before the vault or router pays them (the x402 sellers): Meigi Shoji, Minato
     // GPU Cloud, Fuji Data, Bayside Advisory. Anyone the vault or router pays is listed too.
     "SETTLEMENT_PAYEES": "T2011001234567,T6999900000003,T8999900000001,T3999905000001",
+    // Sepolia mJPYC (contracts/deployments/11155111.json): the saved queries filter on it, and MultiBaas's
+    // meigi_mjpy alias must point at it, or the API answers 503.
+    "SETTLEMENT_TOKEN": "0xEcA2B093682a46B14b143474d188A120bA2d0EC2",
     // The x402 research agent's wallet (services/x402-demo): mJPYC is mintable, so only its transfers count.
+    // Required, like SETTLEMENT_TOKEN.
     "X402_BUYER": "0x708106dcdee19be75ffcd5df20cbb1b6b3089882"
   }
 }

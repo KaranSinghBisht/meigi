@@ -48,14 +48,15 @@ function scripted(overrides: Partial<MultiBaasReader> = {}): MultiBaasReader & {
   }
 }
 
-const OPTIONS = { payees: ['T2011001234567', 'T6999900000003', 'T8999900000001'], x402Buyer: BUYER }
+const OPTIONS = { payees: ['T2011001234567', 'T6999900000003', 'T8999900000001'], token: '0xEcA2B093682a46B14b143474d188A120bA2d0EC2', x402Buyer: BUYER }
 const get = async (api: ReturnType<typeof createSettlements>, query = '') => {
   const response = await settlementsResponse(new URL(`https://meigi.example/api/settlements${query}`), api)
   return { status: response.status, cache: response.headers.get('cache-control'), body: (await response.json()) as Record<string, any> }
 }
-const quietly = async <T>(run: () => Promise<T>): Promise<T> => {
+/** Runs with console.error captured into `lines` instead of printed. */
+const quietly = async <T>(run: () => Promise<T>, lines: string[] = []): Promise<T> => {
   const log = console.error
-  console.error = () => {}
+  console.error = (...args: unknown[]) => void lines.push(args.join(' '))
   try {
     return await run()
   } finally {
@@ -91,9 +92,38 @@ describe('GET /api/settlements', () => {
     })
   })
 
-  it('lists no x402 purchases without a configured buyer', async () => {
-    const { body } = await get(createSettlements(scripted(), { ...OPTIONS, x402Buyer: null }))
-    assert.deepEqual(body.settlements.map((s: Record<string, unknown>) => s.kind), ['invoice', 'router'])
+  it('answers 503 on a missing or malformed SETTLEMENT_TOKEN or X402_BUYER, logs which, and asks MultiBaas nothing', async () => {
+    const cases = [
+      [{ x402Buyer: null }, 'Misconfigured: X402_BUYER is missing or not an address'],
+      [{ x402Buyer: '0x7081' }, 'Misconfigured: X402_BUYER is missing or not an address'],
+      [{ token: null }, 'Misconfigured: SETTLEMENT_TOKEN is missing or not an address'],
+      [{ token: 'mJPYC' }, 'Misconfigured: SETTLEMENT_TOKEN is missing or not an address'],
+    ] as const
+    for (const [settings, log] of cases) {
+      const reader = scripted()
+      const lines: string[] = []
+      const { status, cache, body } = await quietly(() => get(createSettlements(reader, { ...OPTIONS, ...settings })), lines)
+      assert.equal(status, 503)
+      assert.equal(cache, 'no-store')
+      assert.deepEqual(body, { code: 'settlements_unavailable', message: 'Settlements are unavailable right now.' })
+      assert.deepEqual(lines, [`[settlements] ${log}`])
+      assert.deepEqual(reader.calls, [])
+    }
+  })
+
+  it('answers 503 when the meigi_mjpy alias points at another token, without running the queries, re-reading it hourly', async () => {
+    let aliasReads = 0
+    const reader = scripted({ tokenAddress: async () => (aliasReads++, FAKE_TOKEN) })
+    let clock = 1_790_000_000_000
+    const api = createSettlements(reader, { ...OPTIONS, memo: createMemo(() => clock), now: () => clock })
+    for (let i = 0; i < 5; i++) {
+      const lines: string[] = []
+      assert.equal((await quietly(() => get(api), lines)).status, 503)
+      assert.deepEqual(lines, ['[settlements] Misconfigured: the meigi_mjpy alias in MultiBaas is not SETTLEMENT_TOKEN'])
+      clock += 20_000 // past the 15 s a failed snapshot is kept
+    }
+    assert.equal(aliasReads, 1)
+    assert.deepEqual(reader.calls, []) // no queries, no payeeOf
   })
 
   it('narrows to one payee, and validates the T-number', async () => {
@@ -132,6 +162,68 @@ describe('GET /api/settlements', () => {
     assert.equal((await get(second)).body.settlements.length, 3)
     assert.equal(reader.calls.filter((c) => c.startsWith('meigi_')).length, 3)
     assert.equal(reader.calls.filter((c) => c.startsWith('payee:')).length, 3) // the scope, once
+  })
+
+  it('costs MultiBaas 3 calls a refresh: payeeOf is re-read every 10 min, the alias, decimals and start hourly', async () => {
+    const reader = scripted()
+    let clock = 1_790_000_000_000
+    let shared: Snapshot | null = null
+    const store: SnapshotStore = { get: async () => shared, put: async (s) => void (shared = s) }
+    const api = createSettlements(reader, { ...OPTIONS, store, memo: createMemo(() => clock), now: () => clock })
+    const costs: number[] = []
+    for (let refresh = 0; refresh < 10; refresh++) {
+      const before = reader.calls.length
+      for (const query of ['', '?tNumber=T2011001234567', '?tNumber=T6999900000003']) assert.equal((await get(api, query)).status, 200)
+      costs.push(reader.calls.length - before)
+      clock += 181_000 // past the 3-minute snapshot window, in the isolate and at the edge
+    }
+    // The first also reads the alias, decimals, the indexing start and the 3 payees in scope; the 5th (12 min) and
+    // 9th (24 min) re-read the payees. 30 min of refreshes: 30 queries, 9 payeeOf and 3 hourly reads.
+    assert.deepEqual(costs, [3 + 3 + 3, 3, 3, 3, 3 + 3, 3, 3, 3, 3 + 3, 3])
+    assert.equal(reader.calls.filter((c) => c === 'token' || c === 'decimals' || c === 'indexedFrom').length, 3)
+  })
+
+  it('ignores a shared snapshot that fails the row checks, and reads MultiBaas instead', async () => {
+    const reader = scripted()
+    const clock = 1_790_000_000_000
+    const good = createSettlements(scripted(), { ...OPTIONS, now: () => clock })
+    const { body } = await get(good)
+    const snapshot = { asOf: body.asOf, indexedFrom: body.indexedFrom, scope: ['T2011001234567'], settlements: body.settlements }
+    const poisoned = [
+      { ...body.settlements[0], payout: 'javascript:alert(1)' },
+      { ...body.settlements[0], kind: 'refund' },
+      { ...body.settlements[0], txHash: '0x12' },
+      { ...body.settlements[0], ens: 'evil.eth' },
+      { ...body.settlements[0], amount: { units: '-1', display: '¥1' } },
+      { ...body.settlements[0], at: 'yesterday' },
+    ]
+    for (const row of poisoned) {
+      const store: SnapshotStore = { get: async () => ({ ...snapshot, settlements: [row] }), put: async () => {} }
+      const api = createSettlements(reader, { ...OPTIONS, store, memo: createMemo(() => clock), now: () => clock })
+      assert.equal((await get(api)).body.settlements.length, 3) // MultiBaas's three, not the cached row
+    }
+    assert.equal(reader.calls.filter((c) => c === 'meigi_invoices_paid').length, poisoned.length)
+    const clean: SnapshotStore = { get: async () => snapshot, put: async () => {} }
+    const served = createSettlements(reader, { ...OPTIONS, store: clean, memo: createMemo(() => clock), now: () => clock })
+    assert.deepEqual((await get(served)).body.settlements, body.settlements) // the positive control: a good copy is used
+    assert.equal(reader.calls.filter((c) => c === 'meigi_invoices_paid').length, poisoned.length)
+  })
+
+  it('keeps an edge copy in an isolate only for what is left of its 3 minutes', async () => {
+    const reader = scripted()
+    let clock = 1_790_000_000_000
+    let shared: Snapshot | null = null
+    const store: SnapshotStore = { get: async () => shared, put: async (s) => void (shared = s) }
+    const isolate = () => createSettlements(reader, { ...OPTIONS, store, memo: createMemo(() => clock), now: () => clock })
+    const first = await get(isolate())
+    const reads = () => reader.calls.filter((c) => c === 'meigi_invoices_paid').length
+    clock += 170_000
+    const late = isolate() // starts 10 s before the copy expires
+    assert.equal((await get(late)).body.asOf, first.body.asOf)
+    assert.equal(reads(), 1)
+    clock += 11_000 // 181 s after the read
+    assert.notEqual((await get(late)).body.asOf, first.body.asOf)
+    assert.equal(reads(), 2)
   })
 
   it('never reuses an edge snapshot older than 3 minutes, even if the cache still returns it', async () => {
