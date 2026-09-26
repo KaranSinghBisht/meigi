@@ -191,7 +191,7 @@ Both were checked against the nationwide NTA data. See [`docs/runbook.md`](docs/
 The contracts went through three review rounds by separate AI reviewers, with proof-of-concept exploits:
 - 16 findings: 14 fixed, 2 documented as by design;
 - round 3 mutation-tested every fix;
-- 95 Foundry tests, including fuzzing of the core guarantee.
+- 121 Foundry tests, including fuzzing of the core guarantee.
 
 These reviews were AI-assisted, not a professional audit.
 
@@ -206,7 +206,7 @@ Needs Node ≥ 22, pnpm 11 and Foundry. The bench also needs Python with uv. Sec
 
 ```sh
 pnpm install
-cd contracts && forge test && cd ..                    # 95 tests
+cd contracts && forge test && cd ..                    # 121 tests
 pnpm --filter @meigi/verifier start                    # :8787 (needs the NTA index: services/verifier/scripts/build_nta_index.py)
 pnpm --filter @meigi/agent start                       # :8788
 pnpm --filter @meigi/agent multibaas:setup --awaji     # optional: index the Awaji contracts in Curvegrid MultiBaas

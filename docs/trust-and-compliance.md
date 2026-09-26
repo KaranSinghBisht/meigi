@@ -156,7 +156,7 @@ production step (roadmap, item 1).
    - DNSSEC validation from several vantage points.
 5. **Assurance.**
    - Planned: an independent audit, formal verification of the timelock invariant, and a public bug bounty.
-   - So far: three AI-assisted review rounds with proof-of-concept exploits, mutation-tested fixes, and 95 fuzzed
+   - So far: three AI-assisted review rounds with proof-of-concept exploits, mutation-tested fixes, and 121 fuzzed
      Foundry tests. That is not a professional audit.
 6. **Limits on-chain.** The verifier already caps each World ID officer (3 companies, 1 open claim per number) and
    each client IP per hour. Production adds three things:
