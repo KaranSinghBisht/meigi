@@ -4,7 +4,7 @@ import './story.css'
 interface StorySectionProps {
   readonly id: string
   readonly headline: string
-  readonly body: string
+  readonly body: ReactNode
   /** The mono tag under the text, e.g. REGISTRY [ 名義 · VERIFY ONCE ]. */
   readonly tag: string
   readonly bracket: string

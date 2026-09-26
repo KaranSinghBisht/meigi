@@ -12,13 +12,17 @@ export const COLOR = {
   jade: '#1f6b4c',
 } as const
 
-/** The start page's fixture payee: the company, its registered payout, and a look-alike an attacker would use. */
+/**
+ * The start page's fixture payee: the company, its registered payout, a look-alike an attacker would use, and an
+ * illustrative new payout the company might move to through the 72-hour change.
+ */
 export const PAYEE = {
   tNumber: 'T2011001234567',
   name: '株式会社メイギ商事',
   ens: 't2011001234567.payee.eth',
   payout: '0x9B4fc8994FcF2d5FE08a82A9454B61AA14D647e4',
   lookalike: '0x9b4F7A1E5C3d2B8f60E94C1D7A2b3e5F6A8047E4',
+  nextPayout: '0x5e21Ac04D7B98f3e6A19C2D40b7F8E15A93c60d2',
 } as const
 
 export const HEX = '0123456789abcdef'
