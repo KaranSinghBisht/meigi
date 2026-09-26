@@ -101,8 +101,8 @@ export function createKochiaMaterial(): ShaderMaterial {
 }
 
 /** Unit sphere with per-dome tint and seed attributes for `count` instances. */
-export function createKochiaGeometry(tints: Float32Array): IcosahedronGeometry {
-  const geometry = new IcosahedronGeometry(1, 3)
+export function createKochiaGeometry(tints: Float32Array, compact: boolean): IcosahedronGeometry {
+  const geometry = new IcosahedronGeometry(1, compact ? 2 : 3)
   const seeds = new Float32Array(tints.length).map((_, i) => (i * 0.6180339) % 1)
   geometry.setAttribute('aTint', new InstancedBufferAttribute(tints, 1))
   geometry.setAttribute('aSeed', new InstancedBufferAttribute(seeds, 1))

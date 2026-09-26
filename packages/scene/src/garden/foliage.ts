@@ -12,15 +12,15 @@ const vertexShader = /* glsl */ `
   uniform float uTime;
   varying vec2 vUv;
   varying float vTint;
-  varying float vSoft;
   varying float vFar;
   void main() {
     vUv = position.xy + 0.5;
+    // Mirror every other clump so the strands never read as one repeating hatch.
+    if (fract(aShade.y * 7.0) > 0.5) vUv.x = 1.0 - vUv.x;
     vTint = aShade.x;
     vec3 root = vec3(aTuft.x, 0.0, aTuft.y);
     vec3 toCam = cameraPosition - root;
     float dist = length(toCam);
-    vSoft = smoothstep(8.0, 3.0, dist);
     vFar = smoothstep(14.0, 60.0, dist);
     toCam.y = 0.0;
     vec3 right = normalize(cross(vec3(0.0, 1.0, 0.0), normalize(toCam)));
@@ -39,17 +39,16 @@ const fragmentShader = /* glsl */ `
   uniform vec3 uHaze;
   varying vec2 vUv;
   varying float vTint;
-  varying float vSoft;
   varying float vFar;
   void main() {
-    vec4 paint = texture2D(uClump, vUv, vSoft * 2.2);
+    vec4 paint = texture2D(uClump, vUv);
     if (paint.a < 0.02) discard;
     vec3 leaf = mix(uMoss, uSage, smoothstep(0.2, 0.8, vTint));
     leaf = mix(leaf, uLavender, smoothstep(0.65, 1.0, vTint) * 0.55);
-    vec3 col = leaf * (0.55 + 0.45 * paint.r) * (0.82 + 0.3 * paint.g);
-    col += uSunColor * 0.07 * smoothstep(0.75, 1.0, paint.r);
+    vec3 col = leaf * (0.8 + 0.2 * paint.r) * (0.97 + 0.05 * paint.g);
+    col += uSunColor * 0.05 * smoothstep(0.75, 1.0, paint.r);
     col = mix(col, uHaze, vFar * 0.5);
-    gl_FragColor = vec4(col, paint.a * (1.0 - 0.3 * vSoft));
+    gl_FragColor = vec4(col, paint.a);
     ${OUTPUT_GLSL}
   }
 `
@@ -59,9 +58,9 @@ export function createFoliageMaterial(clump: Texture): ShaderMaterial {
     uniforms: {
       uTime: { value: 0 },
       uClump: { value: clump },
-      uSage: { value: color('#98A787') },
-      uMoss: { value: color('#71866A') },
-      uLavender: { value: color('#A49BB8') },
+      uSage: { value: color('#8F977A') },
+      uMoss: { value: color('#737C63') },
+      uLavender: { value: color('#9D98A9') },
       uSunColor: { value: SUN_COLOR.clone() },
       uHaze: { value: color(HEX.horizon) },
     },

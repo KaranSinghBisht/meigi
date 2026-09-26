@@ -18,21 +18,24 @@ export interface ShoreShape {
   readonly coveHalf: number
   /** |x| where the edge has turned to run along the lake */
   readonly bend: number
+  /** How far the edge wanders in and out (world units), so it never reads as a clean arc */
+  readonly wobble: number
 }
 
 // Tall screens put the tagline and the enter button low, over the water: the
 // cove comes closer there, so the beds make a thin band along the bottom.
-export const SHORE_WIDE: ShoreShape = { head: -5.4, side: -13.5, coveHalf: 0.8, bend: 5 }
-export const SHORE_TALL: ShoreShape = { head: -2.95, side: -13.5, coveHalf: 0.45, bend: 5.5 }
+export const SHORE_WIDE: ShoreShape = { head: -5.4, side: -13.5, coveHalf: 0.8, bend: 5, wobble: 0.3 }
+export const SHORE_TALL: ShoreShape = { head: -2.95, side: -13.5, coveHalf: 0.45, bend: 5.5, wobble: 0.42 }
 
 function smoothstep(a: number, b: number, x: number): number {
   const t = Math.min(Math.max((x - a) / (b - a), 0), 1)
   return t * t * (3 - 2 * t)
 }
 
-/** z of the water's edge at lateral position x; mirrored in the ground shader. */
+/** z of the water's edge at lateral position x; mirrored exactly in the ground shader. */
 export function shoreZ(shore: ShoreShape, x: number): number {
-  return shore.head + (shore.side - shore.head) * smoothstep(shore.coveHalf, shore.bend, Math.abs(x))
+  const wander = 0.55 * Math.sin(x * 1.3 + 0.7) + 0.3 * Math.sin(x * 2.9 + 2.1) + 0.15 * Math.sin(x * 6.1 + 0.3)
+  return shore.head + (shore.side - shore.head) * smoothstep(shore.coveHalf, shore.bend, Math.abs(x)) + shore.wobble * wander
 }
 
 /** The hero camera for this viewport, which the plants are thinned against. */
@@ -59,6 +62,14 @@ export interface Planter {
   readonly domeKeepOff: number
   /** Largest kochia radius */
   readonly domeMax: number
+  /** Flowers closer than this to the hero camera form the out-of-focus front row */
+  readonly nearRow: number
+  /** Share of the front row's candidates that are kept */
+  readonly frontRow: number
+  /** How strongly flowers crowd towards the water (1 = evenly through the bed) */
+  readonly bedFalloff: number
+  /** Small or dense-pixel screens: fewer flowers and bedding clumps, simpler domes */
+  readonly compact: boolean
   readonly random: () => number
 }
 
