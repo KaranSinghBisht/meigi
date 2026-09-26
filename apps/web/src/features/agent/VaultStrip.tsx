@@ -84,8 +84,9 @@ function VaultFacts({ vault, vendorName }: { readonly vault: VaultState; readonl
             <span className="jp" lang="ja">
               {vendorName ?? FIXTURE_T_NUMBER}
             </span>{' '}
-            → <span className="mono">{shortAddress(vendor.payout)}</span>, up to {vendor.capPerPayment} {vault.symbol} a
-            payment
+            <span className="vault__to">
+              → <span className="mono">{shortAddress(vendor.payout)}</span>
+            </span>
             {!vendor.active && vendor.activeAt ? (
               <span className="vault__pending"> · payments open {formatJst(vendor.activeAt)}</span>
             ) : null}
@@ -94,6 +95,14 @@ function VaultFacts({ vault, vendorName }: { readonly vault: VaultState; readonl
           <span className="muted">{FIXTURE_T_NUMBER} is not approved in this vault</span>
         )}
       </span>
+      {vendor.approved && vendor.payout ? (
+        <span className="vault__item">
+          <span className="vault__label">limit</span>{' '}
+          <span>
+            {vendor.capPerPayment} {vault.symbol} a payment
+          </span>
+        </span>
+      ) : null}
     </>
   )
 }

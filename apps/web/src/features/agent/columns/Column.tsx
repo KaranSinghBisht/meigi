@@ -1,4 +1,5 @@
 import { useId, type ReactNode } from 'react'
+import './pipeline.css'
 import './columns.css'
 
 export type ColumnTone = 'neutral' | 'ok' | 'hold' | 'muted' | 'belief'

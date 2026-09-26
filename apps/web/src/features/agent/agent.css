@@ -1,12 +1,12 @@
 /* The AP console is shown on a projector: bigger type, stronger contrast, one clear action at a time. */
 .agent {
   display: grid;
-  gap: 18px;
+  gap: 16px;
 }
 
 .agent__head {
   display: grid;
-  gap: 14px;
+  gap: 16px;
 }
 
 .agent__head-text {
@@ -15,145 +15,67 @@
 }
 
 .agent__title {
-  font-size: clamp(38px, 4.6vw, 64px);
-  font-weight: 500;
-  letter-spacing: -0.05em;
-  line-height: 1;
+  font-size: var(--text-display);
+  font-weight: var(--weight-strong);
+  letter-spacing: -0.045em;
+  line-height: 1.02;
 }
 
 .agent__lede {
-  max-width: 900px;
-  margin-top: 10px;
+  max-width: 880px;
+  margin-top: 8px;
   color: var(--ink-soft);
-  font-size: clamp(17px, 1.4vw, 20px);
+  font-size: var(--text-lg);
 }
 
 .vault {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 22px;
+  gap: 8px 24px;
   width: fit-content;
   max-width: 100%;
-  padding: 10px 18px;
-  border: 1px solid var(--glass-edge);
-  border-radius: 16px;
-  background: var(--glass);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
-  box-shadow: var(--shadow-soft);
-  font-size: 15px;
+  min-height: var(--control-md);
+  padding: 8px 24px;
+  border-radius: var(--radius-lg);
+  background: var(--lg-window);
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+  box-shadow: var(--lg-shadow-control);
+  font-size: var(--text-md);
 }
 
 .vault__item {
   display: inline-flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 6px;
+  gap: 8px;
 }
 
 .vault__label {
   color: var(--ink-soft);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-strong);
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.vault__to {
+  white-space: nowrap;
 }
 
 .vault__paused {
   color: var(--seal-deep);
-  font-weight: 600;
-}
-
-.invoice {
-  display: grid;
-  gap: 12px;
-  padding: clamp(16px, 2vw, 24px);
-  border: 1px solid var(--glass-edge);
-  border-radius: var(--radius-lg);
-  background: var(--glass-dense);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
-  box-shadow: var(--shadow-panel);
-}
-
-.invoice__examples {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-
-.invoice__examples-label {
-  margin-right: 4px;
-  color: var(--ink-soft);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.invoice__example {
-  padding: 8px 14px;
-  border: 1px solid var(--line-strong);
-  border-radius: 999px;
-  background: var(--lg-sheen), var(--lg-inner);
-  font-size: 15px;
-  font-weight: 500;
-  cursor: pointer;
-  transition:
-    border-color 0.2s var(--ease-out),
-    background-color 0.2s var(--ease-out);
-}
-
-.invoice__example:hover {
-  border-color: var(--seal);
-  background: #fff8f5;
-}
-
-.invoice__example:focus-visible {
-  border-radius: 999px;
-}
-
-.invoice__text {
-  width: 100%;
-  min-height: 230px;
-  padding: 16px 18px;
-  border: 1px solid var(--line-strong);
-  border-radius: 16px;
-  background: var(--lg-inner);
-  box-shadow: var(--lg-shadow-inset);
-  font-family: var(--font-latin);
-  font-size: 17px;
-  line-height: 1.6;
-  resize: vertical;
-}
-
-.invoice__text:focus-visible {
-  outline: 2px solid var(--vermilion);
-  outline-offset: 1px;
-  border-radius: 16px;
-}
-
-.invoice__actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px 20px;
-}
-
-.invoice__hint {
-  color: var(--ink-soft);
-  font-size: 15px;
+  font-weight: var(--weight-strong);
 }
 
 .agent__working {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 18px 4px;
+  padding: 16px 4px;
   color: var(--ink-soft);
-  font-size: 18px;
+  font-size: var(--text-lg);
 }
 
 .agent__results {
@@ -165,25 +87,19 @@
 .decision {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 18px 28px;
+  gap: 16px 32px;
   align-items: center;
-  padding: 20px 24px;
-  border: 1px solid var(--glass-edge);
-  border-left: 8px solid var(--jade);
-  border-radius: 22px;
-  background: var(--lg-sheen), var(--lg-denser);
+  padding: 24px;
+  border-radius: var(--radius-lg);
+  background: var(--lg-window-dense);
   -webkit-backdrop-filter: var(--lg-blur);
   backdrop-filter: var(--lg-blur);
-  box-shadow: var(--shadow-panel);
-}
-
-.decision--hold {
-  border-left-color: var(--seal);
+  box-shadow: var(--lg-shadow);
 }
 
 .decision__word {
-  font-size: 44px;
-  font-weight: 600;
+  font-size: var(--text-display);
+  font-weight: var(--weight-strong);
   letter-spacing: -0.04em;
   line-height: 1;
   text-transform: uppercase;
@@ -200,79 +116,69 @@
 .decision__sub {
   margin-top: 4px;
   color: var(--ink-soft);
-  font-size: 14px;
+  font-size: var(--text-md);
 }
 
 .decision__text {
-  font-size: 18px;
+  font-size: var(--text-lg);
   line-height: 1.5;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .decision__source {
   margin-top: 4px;
   color: var(--ink-muted);
-  font-size: 13.5px;
+  font-size: var(--text-sm);
 }
 
 /* A fixed width (not a percentage), so the grid sizes this column to it rather than to the note's full line. */
 .decision__actions {
   display: grid;
   justify-items: stretch;
-  gap: 12px;
-  width: 300px;
+  gap: 16px;
+  width: 280px;
   max-width: 100%;
 }
 
 .decision__note {
   color: var(--ink-soft);
-  font-size: 13.5px;
+  font-size: var(--text-sm);
 }
 
+/* The attack demo: a quiet text button under a small label, so it never competes with the real action. */
 .decision__attack {
   display: grid;
-  gap: 8px;
-  padding-top: 12px;
-  border-top: 1px dashed var(--line-strong);
+  justify-items: start;
+  gap: 4px;
+  padding-top: 16px;
+  border-top: 1px solid var(--lg-hairline);
 }
 
-.decision__attack-note {
-  color: var(--ink-muted);
-  font-size: 12.5px;
-  line-height: 1.45;
-}
-
-/* A clear lens with a visible outline, so it still reads when disabled; like every control inside glass, it
-   doesn't blur again. */
-.decision__attack .btn--ghost {
-  border-color: var(--line-strong);
-  background: var(--lg-sheen), var(--lg-inner);
-}
-
-.decision__attack-tag {
-  margin-right: 4px;
+.decision__attack-label {
   color: var(--seal-deep);
-  font-size: 11.5px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-strong);
+}
+
+.decision__attack .btn--quiet {
+  margin-left: -8px;
+  color: var(--ink);
 }
 
 .held__reasons {
   display: grid;
   gap: 4px;
-  margin: 6px 0;
-  padding-left: 18px;
+  margin: 8px 0;
+  padding-left: 16px;
   list-style: disc;
 }
 
 .paid {
   display: grid;
-  gap: 6px;
-  padding: 24px 28px;
-  border: 2px solid rgba(63, 157, 120, 0.5);
-  border-radius: 24px;
-  background: linear-gradient(120deg, rgba(63, 157, 120, 0.16), transparent 60%), var(--lg-sheen), var(--lg-denser);
+  gap: 8px;
+  padding: 24px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(120deg, rgba(63, 157, 120, 0.16), transparent 60%), var(--lg-window-dense);
   -webkit-backdrop-filter: var(--lg-blur);
   backdrop-filter: var(--lg-blur);
   box-shadow: var(--lg-shadow);
@@ -280,30 +186,50 @@
 
 .paid__kicker {
   color: var(--jade-deep);
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--text-md);
+  font-weight: var(--weight-strong);
 }
 
 .paid__title {
-  font-size: clamp(28px, 3vw, 42px);
-  font-weight: 600;
+  font-size: var(--text-display-sm);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--weight-strong);
   letter-spacing: -0.035em;
 }
 
 .paid__meta {
   color: var(--ink-soft);
-  font-size: 16px;
+  font-size: var(--text-md);
 }
 
 @media (max-width: 1100px) {
   .decision {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .decision__actions {
+    width: 100%;
+    justify-items: start;
+  }
+
+  .decision__actions > .btn {
+    min-width: 240px;
+  }
+
+  .decision__attack {
+    justify-self: stretch;
+  }
+}
+
+@media (max-width: 560px) {
+  .decision__actions {
+    justify-items: stretch;
   }
 }
 
 .vault__ens--ok {
   color: var(--jade-deep);
-  font-weight: 600;
+  font-weight: var(--weight-strong);
 }
 
 .vault__ens--muted {
@@ -312,17 +238,12 @@
 
 .vault__ens--bad {
   color: var(--seal-deep);
-  font-weight: 600;
+  font-weight: var(--weight-strong);
 }
 
 .vault__pending {
   color: var(--amber-deep);
-  font-weight: 600;
-}
-
-.invoice__example:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
+  font-weight: var(--weight-strong);
 }
 
 .token {
@@ -340,23 +261,32 @@
 
 .agent__hosted {
   display: grid;
-  gap: 18px;
+  gap: 16px;
+}
+
+.recorded__doc {
+  padding: 16px 24px;
+  border-radius: var(--radius-lg);
+  background: var(--lg-window);
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+  box-shadow: var(--lg-shadow-control);
 }
 
 .recorded__doc summary {
   width: fit-content;
-  font-weight: 600;
+  font-weight: var(--weight-strong);
   cursor: pointer;
 }
 
 .recorded__doc pre {
   max-height: 360px;
-  margin-top: 10px;
+  margin-top: 8px;
   overflow: auto;
 }
 
 .recorded__step {
   color: var(--ink-soft);
-  font-size: 16px;
-  font-weight: 600;
+  font-size: var(--text-md);
+  font-weight: var(--weight-strong);
 }

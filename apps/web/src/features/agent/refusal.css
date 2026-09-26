@@ -6,16 +6,13 @@
   align-items: center;
   overflow: hidden;
   padding: clamp(24px, 3.5vw, 48px);
-  border: 2px solid rgba(200, 55, 45, 0.55);
-  border-radius: 28px;
-  background:
-    radial-gradient(90% 140% at 0% 0%, rgba(224, 69, 43, 0.2), transparent 60%), var(--lg-sheen), var(--lg-denser);
+  border-radius: var(--radius-lg);
+  background: radial-gradient(90% 140% at 0% 0%, rgba(224, 69, 43, 0.2), transparent 60%), var(--lg-window-dense);
   -webkit-backdrop-filter: var(--lg-blur);
   backdrop-filter: var(--lg-blur);
   box-shadow:
-    var(--lg-light),
-    var(--lg-depth),
-    0 30px 80px -40px rgba(200, 55, 45, 0.7);
+    var(--lg-highlight),
+    0 30px 80px -40px rgba(200, 55, 45, 0.55);
   animation: refusal-in 0.5s var(--ease-out);
 }
 
@@ -28,31 +25,35 @@
   animation: stamp 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) both;
 }
 
+/* The worded explanation can quote full 42-character addresses; on a phone those wrap instead of being cut off by
+   the card's edge. */
 .refusal__body {
   display: grid;
-  gap: 10px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
   min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .refusal__kicker {
   color: var(--seal-deep);
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--text-md);
+  font-weight: var(--weight-strong);
   letter-spacing: 0.04em;
 }
 
 .refusal__title {
   color: var(--seal);
-  font-size: clamp(44px, 5.6vw, 84px);
-  font-weight: 600;
+  font-size: var(--text-display-lg);
+  font-weight: var(--weight-strong);
   letter-spacing: -0.05em;
   line-height: 0.98;
 }
 
 .refusal__line {
   color: var(--ink);
-  font-size: clamp(20px, 2.1vw, 30px);
-  font-weight: 500;
+  font-size: var(--text-display-sm);
+  font-weight: var(--weight-strong);
   letter-spacing: -0.02em;
   line-height: 1.35;
 }
@@ -62,15 +63,15 @@
 }
 
 .refusal__good {
-  padding: 0 6px;
-  border-radius: 8px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
   background: rgba(63, 157, 120, 0.16);
   color: var(--jade-deep);
 }
 
 .refusal__bad {
-  padding: 0 6px;
-  border-radius: 8px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
   background: rgba(224, 69, 43, 0.14);
   color: var(--seal-deep);
   text-decoration: line-through;
@@ -80,7 +81,7 @@
 .refusal__meta {
   max-width: 900px;
   color: var(--ink-soft);
-  font-size: 16px;
+  font-size: var(--text-md);
 }
 
 @keyframes refusal-in {
@@ -107,7 +108,7 @@
 
 @media (max-width: 720px) {
   .refusal {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .refusal__seal svg {

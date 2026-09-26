@@ -22,7 +22,7 @@ export function BeliefColumn({ proposal }: { readonly proposal: Proposal }) {
     <Column
       step={5}
       title="The agent believes"
-      tag={`${proposal.model || proposal.provider} · only proposes`}
+      tag={`only proposes · ${proposal.model || proposal.provider}`}
       tone="belief"
     >
       <blockquote className="belief">

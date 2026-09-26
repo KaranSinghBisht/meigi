@@ -1,0 +1,108 @@
+/* The document the agent reads: example chips, the text box and the Analyze action. */
+.invoice {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+  border-radius: var(--radius-lg);
+  background: var(--lg-window-dense);
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+  box-shadow: var(--lg-shadow);
+}
+
+/* The label, then the chips wrapping beside it; the label lines up with the first row. */
+.invoice__examples {
+  display: flex;
+  align-items: baseline;
+  gap: 8px 16px;
+}
+
+.invoice__examples-label {
+  flex: none;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-strong);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.invoice__example-list {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* Example documents: white glass chips of one height, lifted like the current nav pill. */
+.invoice__example {
+  flex: none;
+  height: var(--control-chip);
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--lg-cell-strong);
+  box-shadow: var(--lg-shadow-control);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-strong);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.2s var(--ease-out);
+}
+
+.invoice__example:hover {
+  background: #fff;
+}
+
+.invoice__example:focus-visible {
+  border-radius: 999px;
+}
+
+.invoice__text {
+  width: 100%;
+  min-height: 224px;
+  padding: 16px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--lg-cell);
+  box-shadow: var(--lg-shadow-inset);
+  font-family: var(--font-latin);
+  font-size: var(--text-md);
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.invoice__text:focus-visible {
+  outline: 2px solid var(--vermilion);
+  outline-offset: 1px;
+  border-radius: var(--radius-md);
+}
+
+.invoice__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+}
+
+.invoice__hint {
+  color: var(--ink-soft);
+  font-size: var(--text-md);
+}
+
+.invoice__example:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+@media (max-width: 560px) {
+  .invoice__examples {
+    display: grid;
+  }
+
+  .invoice__example-list {
+    flex-wrap: nowrap;
+    margin-inline: -24px;
+    padding-inline: 24px;
+  }
+}

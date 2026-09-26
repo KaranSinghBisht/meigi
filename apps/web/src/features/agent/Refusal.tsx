@@ -4,6 +4,7 @@ import { shortAddress } from '../../lib/chain/format'
 import { prefersReducedMotion } from '../../lib/hooks/motion'
 import { HankoMark } from '../../ui/brand/HankoMark'
 import { TxLink } from '../../ui/components/Address'
+import { TokenText } from '../../ui/components/TokenText'
 import { useSceneMood } from '../../ui/stage/useSceneMood'
 import './refusal.css'
 
@@ -97,7 +98,9 @@ export function Refusal({ outcome, analysis, live = true }: RefusalProps) {
         {mismatch ? (
           <Mismatch outcome={outcome} analysis={analysis} />
         ) : (
-          <p className="refusal__line">{outcome.error.sentence}</p>
+          <p className="refusal__line">
+            <TokenText text={outcome.error.sentence} />
+          </p>
         )}
         <RefusalMeta outcome={outcome} />
       </div>

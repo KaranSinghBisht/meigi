@@ -1,25 +1,22 @@
-import { useId, type FormEvent } from 'react'
+import { useId, useRef, type FormEvent } from 'react'
 import { Button } from '../../ui/components/Button'
+import { useScrollFade } from '../../ui/components/useScrollFade'
 import type { AgentConsole } from './useAgentConsole'
 import './agent.css'
+import './invoice.css'
 
-/** The document the agent reads: paste anything, or start from an example. */
-export function InvoiceInput({ agent }: { readonly agent: AgentConsole }) {
+/** The example documents: chips beside their label, or one sideways-scrolling row on a phone. */
+function ExampleChips({ agent }: { readonly agent: AgentConsole }) {
   const id = useId()
+  const strip = useRef<HTMLDivElement>(null)
   const { examples } = agent
-  const analyzing = agent.analysis.kind === 'analyzing'
-
-  const submit = (event: FormEvent) => {
-    event.preventDefault()
-    void agent.analyze()
-  }
-
+  useScrollFade(strip, examples.list.length)
   return (
-    <form className="invoice" onSubmit={submit}>
-      <div className="invoice__examples" role="group" aria-labelledby={`${id}-examples`}>
-        <span id={`${id}-examples`} className="invoice__examples-label">
-          Examples{examples.source === 'built-in' ? ' (built in)' : ''}
-        </span>
+    <div className="invoice__examples" role="group" aria-labelledby={id}>
+      <span id={id} className="invoice__examples-label">
+        Examples{examples.source === 'built-in' ? ' (built in)' : ''}
+      </span>
+      <div ref={strip} className="invoice__example-list scroll-fade">
         {examples.list.map((example) => (
           <button
             key={example.id}
@@ -33,6 +30,23 @@ export function InvoiceInput({ agent }: { readonly agent: AgentConsole }) {
           </button>
         ))}
       </div>
+    </div>
+  )
+}
+
+/** The document the agent reads: paste anything, or start from an example. */
+export function InvoiceInput({ agent }: { readonly agent: AgentConsole }) {
+  const id = useId()
+  const analyzing = agent.analysis.kind === 'analyzing'
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    void agent.analyze()
+  }
+
+  return (
+    <form className="invoice" onSubmit={submit}>
+      <ExampleChips agent={agent} />
       <label htmlFor={id} className="sr-only">
         Invoice, email or x402 response for the agent to read
       </label>

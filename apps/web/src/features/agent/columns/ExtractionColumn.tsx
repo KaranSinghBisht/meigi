@@ -17,7 +17,9 @@ export function ExtractionColumn({ extracted }: { readonly extracted: Extraction
     <Column step={1} title="Extraction" tag="deterministic, no model" tone={blocking ? 'hold' : 'neutral'}>
       <p className="col__kind">{KINDS[extracted.kind] ?? extracted.kind}</p>
       <Fact label="T-number">
-        <span className="mono col__big-mono">{extracted.tNumber ?? '—'}</span>
+        <span className="mono col__big-mono" title={extracted.tNumber ?? undefined}>
+          {extracted.tNumber ?? '—'}
+        </span>
         {extracted.claimedName ? (
           <span className="jp col__claimed" lang="ja">
             {extracted.claimedName}

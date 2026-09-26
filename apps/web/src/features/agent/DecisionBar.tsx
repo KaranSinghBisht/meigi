@@ -1,5 +1,6 @@
 import type { Analysis, PayMode } from '../../lib/api/agentTypes'
 import { Button } from '../../ui/components/Button'
+import { TokenText } from '../../ui/components/TokenText'
 import type { Approval } from './approval/useApproval'
 import { attackDemoFits } from './holds'
 import type { PayState } from './useAgentConsole'
@@ -17,16 +18,27 @@ interface AttackDemoProps {
   readonly onForce: () => void
 }
 
-/** Secondary on purpose: it plays the agent that was talked into paying, so the chain has to answer alone. */
+/** A quiet text button under a small label: it plays the agent that was talked into paying, so the vault answers. */
 function AttackDemo({ busy, disabled, onForce }: AttackDemoProps) {
   return (
     <div className="decision__attack">
-      <p className="decision__attack-note" id="attack-demo-note">
-        <span className="decision__attack-tag">Attack demo</span> Pushes past the hold, as a talked-into agent would,
-        and asks the vault directly. Forcing only simulates; it never sends.
+      <p className="decision__attack-label" aria-hidden="true">
+        Attack demo
       </p>
-      <Button variant="ghost" busy={busy} disabled={disabled} aria-describedby="attack-demo-note" onClick={onForce}>
-        Let the agent pay anyway
+      <p id="attack-demo-note" className="sr-only">
+        Attack demo: pushes past the hold, as a talked-into agent would, and asks the vault directly. Forcing only
+        simulates; it never sends.
+      </p>
+      <Button
+        variant="quiet"
+        size="sm"
+        busy={busy}
+        disabled={disabled}
+        aria-describedby="attack-demo-note"
+        title="Pushes past the hold and asks the vault directly. Forcing only simulates; it never sends."
+        onClick={onForce}
+      >
+        Let the agent pay anyway <span aria-hidden="true">→</span>
       </Button>
     </div>
   )
@@ -98,7 +110,9 @@ export function DecisionBar({ analysis, controls }: DecisionBarProps) {
         </p>
       </div>
       <div className="decision__why">
-        <p className="decision__text">{analysis.explanation.text}</p>
+        <p className="decision__text">
+          <TokenText text={analysis.explanation.text} />
+        </p>
         {analysis.explanation.source === 'llm' ? (
           <p className="decision__source">
             Worded by {analysis.explanation.model ?? 'the LLM'} from the kernel's facts only.
