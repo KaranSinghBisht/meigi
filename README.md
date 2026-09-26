@@ -101,7 +101,7 @@ the vault reverts `PayeeMismatch` and names the registered company.
     [`apps/web/src/ui/world`](apps/web/src/ui/world),
     [`contracts/src/registry/OfficerQuorum.sol`](contracts/src/registry/OfficerQuorum.sol).
 - **Curvegrid MultiBaas.** Meigi on Mizuhiki, indexed and queried through MultiBaas, like Curvegrid's Matsuri
-  sample (see [below](#how-we-use-curvegrid-multibaas)).
+  sample. A second deployment indexes our Sepolia contracts live. See [below](#how-we-use-curvegrid-multibaas).
 - **Intercepta** (screening; not a prize target). The quick-scan runs before signing, and without a key it fails
   closed. Code: [`packages/x402-guard/src/intercepta.ts`](packages/x402-guard/src/intercepta.ts) (the call);
   `checkPayee` and `checkUndeclared` in [`check.ts`](packages/x402-guard/src/check.ts) (the decisions);
@@ -109,11 +109,14 @@ the vault reverts `PayeeMismatch` and names the registered company.
 
 ### How we use Curvegrid MultiBaas
 
-Meigi on Mizuhiki, indexed and queried through MultiBaas, like Curvegrid's Matsuri sample.
+Meigi on Mizuhiki, indexed and queried through MultiBaas, like Curvegrid's Matsuri sample. We run two MultiBaas
+deployments, one per chain, and each links PayeeRegistry, AgentVault, PayRouter and the JPY token:
+- **Mizuhiki Awaji** (chain 6497): Meigi's contracts there, with addresses in
+  [`contracts/deployments/6497.json`](contracts/deployments/6497.json). Events are indexed from their deploy block.
+- **Ethereum Sepolia:** the contracts the live demo uses. They were linked 100 blocks back, as far as the free
+  plan's backfill reaches (block 11783796). From there, every payment and x402 sale is indexed live.
 
-- **What it indexes.** Meigi's contracts on MIZUHIKI's Awaji testnet (chain 6497), addresses in
-  [`contracts/deployments/6497.json`](contracts/deployments/6497.json). Our MultiBaas deployment there links
-  PayeeRegistry, AgentVault, PayRouter and the JPY token, indexing events from their deploy block.
+The details:
 - **Queries.** Six saved event queries, in the format of Curvegrid's Matsuri sample:
   - `meigi_invoices_paid`: every `InvoicePaid` the vault emitted;
   - `meigi_invoices_by_payee`: `InvoicePaid` summed per T-number;
@@ -122,17 +125,18 @@ Meigi on Mizuhiki, indexed and queried through MultiBaas, like Curvegrid's Matsu
   - `meigi_mjpy_balances`: net MJPY per account, the way the Matsuri sample computes balances (`add` for the
     recipient, `subtract` for the sender);
   - `meigi_mjpy_received`: MJPY summed per recipient.
-- **What reads it.** The AP agent's `GET /payments` has a `mizuhiki` section, labelled "Mizuhiki · via
-  MultiBaas", and the dashboards read it:
-  - payments by the vault and the router;
-  - registered payees;
-  - what each payee received;
-  - the token's decimals, read through the contract call API.
-
-  Sepolia payments stay on RPC logs, read with viem: a free plan backfills about 100 blocks, and our Sepolia
-  history is older.
+- **What reads it.** The AP agent's `GET /payments` feeds the dashboards.
+  - **Sepolia section:** MultiBaas's rows from the link block on (`source: "multibaas"`), and RPC logs read with
+    viem for the older history (`source: "rpc"`), merged with no block counted twice.
+    `GET /invoices/:id/settlement` confirms each new payment from its indexed `InvoicePaid`.
+  - **`mizuhiki` section,** labelled "Mizuhiki · via MultiBaas":
+    - payments by the vault and the router;
+    - registered payees;
+    - what each payee received;
+    - the token's decimals, read through the contract call API.
 - **Setup:**
-  1. Put `MULTIBAAS_AWAJI_URL` and `MULTIBAAS_AWAJI_API_KEY` in `.env`.
+  1. Put `MULTIBAAS_URL` / `MULTIBAAS_API_KEY` (Sepolia) and `MULTIBAAS_AWAJI_URL` / `MULTIBAAS_AWAJI_API_KEY` in
+     `.env`. Sepolia is linked with `pnpm --filter @meigi/agent multibaas:setup --from-block -100`.
   2. Before deploying, run `pnpm --filter @meigi/agent multibaas:setup --awaji --library-only`. It adds the ABIs
      and saves the queries.
   3. Right after the forge broadcast, run `pnpm --filter @meigi/agent multibaas:setup --awaji`. It aliases and
@@ -145,8 +149,20 @@ Meigi on Mizuhiki, indexed and queried through MultiBaas, like Curvegrid's Matsu
 - **Code:** [`services/agent/src/multibaas`](services/agent/src/multibaas),
   [`services/agent/src/history`](services/agent/src/history),
   [`services/agent/src/routes/payments-mizuhiki.ts`](services/agent/src/routes/payments-mizuhiki.ts).
-- **Our experience with MultiBaas:** PENDING, filled in after the live run (time to the first indexed event,
-  what went well, friction, one improvement).
+- **Our experience with MultiBaas** (Sepolia, live since 2026-09-26):
+  - **Time to the first indexed event:** under a minute. We linked from 100 blocks back and ran one x402
+    purchase. Its three mJPYC `Transfer`s came back from the saved queries within a minute.
+  - **Went well:**
+    - the explorer lookup imported all four ABIs from their verified sources;
+    - the Matsuri sample's add/subtract query format computed net balances unchanged;
+    - the contract call API reads `decimals()` without signing anything.
+  - **Friction:** `POST /contracts/{label}` needs `bin`, although the API reference marks it optional. Without it
+    the answer is a 400: `null value in column "bytecode" of relation "contracts" violates not-null constraint`.
+    Sending `bin: ""` works; it is stored as `0x`.
+  - **Friction:** the free plan backfills 100 blocks and keeps events for 72 hours. History from before the link
+    has to come from RPC logs, which is why `GET /payments` merges the two.
+  - **Top improvement:** make `bin` optional in practice, or document it as required. And let a plan backfill a
+    contract once from its creation block.
 - **Next steps:**
   - build `payInvoice` with the contract-call API and sign locally;
   - add an `event.emitted` webhook behind a public relay;
