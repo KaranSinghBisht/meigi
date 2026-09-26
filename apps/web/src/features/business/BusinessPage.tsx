@@ -9,7 +9,7 @@ import './business.css'
 function TalkToUs() {
   return (
     <section className="biz-cta" aria-labelledby="biz-cta">
-      <HankoMark size={64} />
+      <HankoMark size={56} />
       <div className="biz-cta__text">
         <h2 id="biz-cta" className="biz-cta__title">
           Pay companies, not addresses.
@@ -19,7 +19,7 @@ function TalkToUs() {
         </p>
       </div>
       <div className="biz-cta__actions">
-        <a className="btn btn--accent btn--lg" href={`mailto:${env.contactEmail}?subject=Meigi`}>
+        <a className="btn btn--primary btn--lg" href={`mailto:${env.contactEmail}?subject=Meigi`}>
           Talk to us
         </a>
         {env.githubUrl ? (

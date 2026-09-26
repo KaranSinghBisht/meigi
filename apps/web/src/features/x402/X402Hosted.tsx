@@ -27,7 +27,7 @@ export function X402Hosted() {
         why="the buyer agent and the facilitator hold funded keys"
       />
       <RecordedRun title="The guarded buyer agent, buying twice" recordedAt={RECORDED_AT}>
-        <div className="x402__grid">
+        <div className="x402__grid cells window">
           <RecordedMerchant kind="honest" />
           <RecordedMerchant kind="compromised" />
         </div>

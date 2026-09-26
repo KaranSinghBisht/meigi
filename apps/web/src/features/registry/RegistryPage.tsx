@@ -26,9 +26,10 @@ function Directory({ feed, current }: { readonly feed: RegistryFeed; readonly cu
               type="button"
               className="directory__chip"
               aria-pressed={tNumber === current}
+              title={name}
               onClick={() => navigate(`/registry/${tNumber}`)}
             >
-              <span className="jp" lang="ja">
+              <span className="jp directory__name" lang="ja">
                 {name}
               </span>
               <span className="mono directory__t">{tNumber}</span>
@@ -96,7 +97,9 @@ export default function RegistryPage() {
     <div className="registry">
       <header className="page-head">
         <p className="eyebrow">Registry explorer</p>
-        <h1 className="page-head__title">Who does this T-number pay?</h1>
+        <h1 className="page-head__title">
+          Who does this <span className="nowrap">T-number</span> pay?
+        </h1>
         <p className="page-head__lede">
           Every payee lives on-chain: the company's registered name, the one address it can be paid at, and any change
           that is waiting out its public timelock.

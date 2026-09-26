@@ -1,6 +1,6 @@
 .register {
   display: grid;
-  gap: 18px;
+  gap: 16px;
 }
 
 .register .page-head {
@@ -20,9 +20,9 @@
   position: sticky;
   top: 88px;
   display: grid;
-  gap: 14px;
-  padding: 22px;
-  border: 1px solid var(--glass-edge);
+  gap: 16px;
+  padding: 24px;
+  border: 0;
   border-radius: var(--radius-lg);
   background: var(--glass);
   -webkit-backdrop-filter: var(--lg-blur);
@@ -31,32 +31,32 @@
 }
 
 .checklist__title {
-  font-size: 17px;
-  font-weight: 600;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-strong);
   letter-spacing: -0.015em;
 }
 
 .checklist__list {
   display: grid;
-  gap: 14px;
+  gap: 16px;
 }
 
 .checklist__item {
   display: grid;
   grid-template-columns: 26px 1fr;
-  gap: 10px;
+  gap: 8px;
   color: var(--ink-soft);
 }
 
 .checklist__num {
   display: inline-grid;
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   place-items: center;
-  border: 1.5px solid currentColor;
   border-radius: 50%;
-  font-size: 13px;
-  font-weight: 600;
+  background: rgba(42, 39, 48, 0.08);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-strong);
 }
 
 .checklist__item.is-current {
@@ -64,8 +64,7 @@
 }
 
 .checklist__item.is-current .checklist__num {
-  border-color: var(--seal);
-  background: var(--seal);
+  background: var(--lg-ink);
   color: #fff;
 }
 
@@ -75,29 +74,29 @@
 }
 
 .checklist__name {
-  font-weight: 600;
+  font-weight: var(--weight-strong);
 }
 
 .checklist__body {
-  font-size: 14px;
+  font-size: var(--text-md);
   line-height: 1.45;
 }
 
 .register__who {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 12px;
+  gap: 8px 12px;
   align-items: baseline;
-  margin-bottom: 18px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--line);
-  font-size: 15px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--lg-hairline);
+  font-size: var(--text-md);
 }
 
 .register__match {
   color: var(--jade-deep);
-  font-size: 13.5px;
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-strong);
 }
 
 .register__match--fixture {
@@ -106,7 +105,7 @@
 
 .register__nta-name {
   color: var(--ink);
-  font-size: 20px;
+  font-size: var(--text-lg);
 }
 
 .step {
@@ -125,13 +124,13 @@
 }
 
 .step__note {
-  font-size: 13.5px;
+  font-size: var(--text-sm);
 }
 
 .input--jp {
   font-family: var(--font-jp);
-  font-size: 17px;
-  font-weight: 600;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-strong);
 }
 
 .nta-hint {
@@ -139,43 +138,39 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px 14px;
-  padding: 10px 14px;
-  border: 1px solid rgba(125, 110, 214, 0.28);
-  border-radius: 12px;
+  gap: 8px 16px;
+  padding: 8px 16px;
+  border: 0;
+  border-radius: var(--radius-sm);
   background: var(--iris-tint);
-  font-size: 14.5px;
+  font-size: var(--text-md);
 }
 
 .nta-hint--ok {
-  border-color: rgba(63, 157, 120, 0.35);
   background: var(--jade-tint);
 }
 
 .nta-hint--muted {
   justify-content: flex-start;
-  border-color: var(--line);
-  background: var(--lg-sheen), var(--lg-inner);
+  background: var(--lg-cell);
   color: var(--ink-muted);
 }
 
 .nta-hint--warn {
-  border-color: rgba(245, 166, 35, 0.35);
   background: var(--amber-tint);
   color: var(--amber-deep);
 }
 
 .nta-hint--fixture {
   justify-content: flex-start;
-  border-color: rgba(125, 110, 214, 0.35);
   background: var(--iris-tint);
   color: var(--ink);
 }
 
 .nta-hint__label {
   color: var(--ink-soft);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-strong);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -186,15 +181,15 @@
 
 .nta-hint__match {
   color: var(--jade-deep);
-  font-weight: 600;
+  font-weight: var(--weight-strong);
 }
 
 .controller {
   display: grid;
   gap: 8px;
-  padding: 14px 16px;
-  border: 1px dashed var(--line-strong);
-  border-radius: 14px;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  background: var(--lg-cell);
 }
 
 .controller__value {
@@ -206,15 +201,15 @@
 
 .controller__ok {
   color: var(--jade-deep);
-  font-size: 13.5px;
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-strong);
 }
 
 .controller__connect {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 14px;
+  gap: 8px 16px;
 }
 
 .records {
@@ -226,16 +221,16 @@
 .records__option {
   display: grid;
   align-content: start;
-  gap: 10px;
+  gap: 8px;
   padding: 16px;
-  border: 1px solid var(--line);
+  border: 0;
   border-radius: 16px;
-  background: var(--lg-sheen), var(--lg-inner);
+  background: var(--lg-cell);
 }
 
 .records__title {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--text-md);
+  font-weight: var(--weight-strong);
 }
 
 .officers {
@@ -249,25 +244,25 @@
   align-items: center;
   gap: 8px 16px;
   padding: 12px 16px;
-  border: 1px solid rgba(63, 157, 120, 0.3);
-  border-radius: 14px;
+  border: 0;
+  border-radius: var(--radius-md);
   background: var(--jade-tint);
 }
 
 .officers__index {
-  font-weight: 600;
+  font-weight: var(--weight-strong);
 }
 
 .officers__ok {
   margin-left: auto;
   color: var(--jade-deep);
-  font-size: 13.5px;
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-strong);
 }
 
 .threshold {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   margin: 0;
   padding: 0;
   border: 0;
@@ -283,17 +278,16 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 16px;
-  border: 1px solid var(--line-strong);
+  padding: 8px 16px;
+  border: 0;
   border-radius: 999px;
-  background: var(--lg-sheen), var(--lg-inner);
+  background: var(--lg-cell);
   cursor: pointer;
 }
 
 .threshold__option:has(input:checked) {
-  border-color: var(--seal);
-  background: var(--lg-sheen), var(--lg-selected);
-  box-shadow: inset 0 0 0 1px var(--seal);
+  background: rgba(125, 110, 214, 0.18);
+  box-shadow: var(--lg-highlight);
 }
 
 .threshold__option input {
@@ -302,7 +296,7 @@
 
 @media (max-width: 1100px) {
   .register__layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .checklist {
@@ -312,6 +306,6 @@
 
 @media (max-width: 760px) {
   .records {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }

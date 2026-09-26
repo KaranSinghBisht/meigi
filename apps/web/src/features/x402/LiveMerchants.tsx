@@ -5,8 +5,8 @@ import './x402.css'
 export function LiveMerchants() {
   return (
     <>
-      <section className="x402__row" aria-labelledby="declared-title">
-        <div className="x402__row-head on-scene">
+      <section className="x402__row window" aria-labelledby="declared-title">
+        <div className="x402__row-head">
           <h2 id="declared-title" className="x402__row-title">
             Merchants that declare a Meigi payee
           </h2>
@@ -14,13 +14,13 @@ export function LiveMerchants() {
             The registry decides: payTo must be the declared company's registered payout.
           </p>
         </div>
-        <div className="x402__grid">
+        <div className="x402__grid cells">
           <MerchantCard kind="honest" />
           <MerchantCard kind="compromised" />
         </div>
       </section>
-      <section className="x402__row" aria-labelledby="undeclared-title">
-        <div className="x402__row-head on-scene">
+      <section className="x402__row window" aria-labelledby="undeclared-title">
+        <div className="x402__row-head">
           <h2 id="undeclared-title" className="x402__row-title">
             Merchants with no Meigi record
           </h2>
@@ -29,7 +29,7 @@ export function LiveMerchants() {
             screens payTo. Here Intercepta alone decides.
           </p>
         </div>
-        <div className="x402__grid">
+        <div className="x402__grid cells">
           <MerchantCard kind="unverified" />
           <MerchantCard kind="unverified-flagged" />
         </div>

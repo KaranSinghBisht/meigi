@@ -1,5 +1,5 @@
 import { Link } from 'react-router'
-import { Badge } from '../../ui/components/Badge'
+import { Badge, type BadgeTone } from '../../ui/components/Badge'
 import { LEI_NOTE, PRODUCTS, ROADMAP, TIERS, WHY_NOW, type Milestone, type Product } from './content'
 import './business.css'
 
@@ -25,11 +25,13 @@ function ProductCard({ product, index }: { readonly product: Product; readonly i
 
 export function Products() {
   return (
-    <section className="biz-section" aria-labelledby="biz-products">
-      <h2 id="biz-products" className="biz-section__title on-scene">
-        Five products, one registry
-      </h2>
-      <ol className="biz-products">
+    <section className="biz-window window" aria-labelledby="biz-products">
+      <header className="biz-window__head">
+        <h2 id="biz-products" className="biz-window__title">
+          Five products, one registry
+        </h2>
+      </header>
+      <ol className="biz-products cells">
         {PRODUCTS.map((product, index) => (
           <ProductCard key={product.name} product={product} index={index} />
         ))}
@@ -40,14 +42,14 @@ export function Products() {
 
 export function Pricing() {
   return (
-    <section className="biz-section" aria-labelledby="biz-pricing">
-      <div className="biz-section__head on-scene">
-        <h2 id="biz-pricing" className="biz-section__title">
+    <section className="biz-window window" aria-labelledby="biz-pricing">
+      <header className="biz-window__head">
+        <h2 id="biz-pricing" className="biz-window__title">
           Pricing <Badge tone="neutral">Illustrative</Badge>
         </h2>
-        <p className="biz-section__lede">Placeholder tiers to show the shape of the offer. No prices yet.</p>
-      </div>
-      <ul className="biz-tiers">
+        <p className="biz-window__lede">Placeholder tiers to show the shape of the offer. No prices yet.</p>
+      </header>
+      <ul className="biz-tiers cells">
         {TIERS.map((tier) => (
           <li key={tier.name} className="biz-tier">
             <h3 className="biz-tier__name">{tier.name}</h3>
@@ -64,35 +66,43 @@ export function Pricing() {
   )
 }
 
-const STATUS_LABEL: Record<Milestone['status'], string> = { now: 'Now', 'in progress': 'In progress', next: 'Next' }
+const STATUS: Record<Milestone['status'], { label: string; tone: BadgeTone }> = {
+  now: { label: 'Now', tone: 'active' },
+  'in progress': { label: 'In progress', tone: 'pending' },
+  next: { label: 'Next', tone: 'neutral' },
+}
 
 export function Roadmap() {
   return (
-    <section className="biz-section" aria-labelledby="biz-roadmap">
-      <h2 id="biz-roadmap" className="biz-section__title on-scene">
-        Japan first, global by design
-      </h2>
-      <ol className="biz-roadmap">
+    <section className="biz-window window" aria-labelledby="biz-roadmap">
+      <header className="biz-window__head">
+        <h2 id="biz-roadmap" className="biz-window__title">
+          Japan first, global by design
+        </h2>
+      </header>
+      <ol className="biz-roadmap cells">
         {ROADMAP.map((step) => (
-          <li key={step.id} className={`biz-step biz-step--${step.status.replace(' ', '-')}`}>
-            <p className="biz-step__status">{STATUS_LABEL[step.status]}</p>
+          <li key={step.id} className="biz-step">
+            <Badge tone={STATUS[step.status].tone}>{STATUS[step.status].label}</Badge>
             <p className="biz-step__name">{step.name}</p>
             <p className="biz-step__detail">{step.detail}</p>
           </li>
         ))}
       </ol>
-      <p className="biz-roadmap__note">{LEI_NOTE}</p>
+      <p className="biz-window__foot">{LEI_NOTE}</p>
     </section>
   )
 }
 
 export function WhyNow() {
   return (
-    <section className="biz-section" aria-labelledby="biz-why">
-      <h2 id="biz-why" className="biz-section__title on-scene">
-        Why now
-      </h2>
-      <ul className="biz-why">
+    <section className="biz-window window" aria-labelledby="biz-why">
+      <header className="biz-window__head">
+        <h2 id="biz-why" className="biz-window__title">
+          Why now
+        </h2>
+      </header>
+      <ul className="biz-why cells">
         {WHY_NOW.map((fact) => (
           <li key={fact.title} className="biz-fact">
             <h3 className="biz-fact__title">{fact.title}</h3>

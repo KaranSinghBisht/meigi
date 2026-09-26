@@ -109,13 +109,13 @@ export function LeiWidget() {
     void lookup(lei)
   }
   return (
-    <section className="biz-section" aria-labelledby="biz-lei">
-      <div className="biz-section__head on-scene">
-        <h2 id="biz-lei" className="biz-section__title">
+    <section className="biz-window window" aria-labelledby="biz-lei">
+      <header className="biz-window__head">
+        <h2 id="biz-lei" className="biz-window__title">
           Try a global company
         </h2>
-        <p className="biz-section__lede">Type any company's LEI, or try one of these.</p>
-      </div>
+        <p className="biz-window__lede">Type any company's LEI, or try one of these.</p>
+      </header>
       <div className="biz-lei">
         <LeiForm value={value} state={state} onChange={setValue} onLookup={(lei) => void lookup(lei)} />
         <div className="biz-lei__examples" role="group" aria-label="Examples">

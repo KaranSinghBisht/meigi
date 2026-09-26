@@ -1,279 +1,167 @@
-/* For business: static cards over the world at the shore. Every surface is frosted glass, as elsewhere. */
+/* For business: a few glass windows over the world at the shore. Each window has a header and hairline-divided
+   cells (.cells in glass.css); the one call to action is the gradient card. */
 
 .biz {
   display: grid;
-  gap: clamp(28px, 4vw, 48px);
+  gap: 24px;
 }
 
 .biz__jp {
-  margin-right: 6px;
+  margin-right: 8px;
   color: var(--seal);
-  font-size: 14px;
   letter-spacing: 0.12em;
 }
 
-.biz-section {
-  display: grid;
-  gap: 16px;
+.biz-window {
+  overflow: hidden;
 }
 
-.biz-section__title {
-  width: fit-content;
-  font-size: clamp(22px, 2.2vw, 28px);
-  font-weight: 500;
-  letter-spacing: -0.03em;
-}
-
-.biz-section__head {
+.biz-window__head {
   display: grid;
   gap: 4px;
-  width: fit-content;
-  max-width: 100%;
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid var(--lg-hairline);
 }
 
-.biz-section__head .biz-section__title {
-  padding: 0;
-  border: 0;
-  background: none;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
+.biz-window__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-strong);
+  letter-spacing: -0.015em;
 }
 
-.biz-section__title .badge {
-  margin-left: 8px;
-  vertical-align: middle;
-}
-
-.biz-section__lede {
+.biz-window__lede {
   color: var(--ink-soft);
 }
 
-.biz-products,
-.biz-tiers,
-.biz-why {
-  display: grid;
-  gap: 16px;
+.biz-window__foot {
+  padding: 16px 24px;
+  border-top: 1px solid var(--lg-hairline);
+  font-weight: var(--weight-strong);
 }
 
+/* Products: five, then three over two, then two, then one. */
 .biz-products {
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
-.biz-tiers,
-.biz-why {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.biz-product,
 .biz-tier,
 .biz-fact,
-.biz-step,
-.biz-cta {
-  border: 1px solid var(--glass-edge);
-  border-radius: var(--radius-lg);
-  background: var(--glass);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
-  box-shadow: var(--shadow-panel);
-}
-
-.biz-product {
+.biz-step {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 22px;
+  gap: 8px;
+  padding: 24px;
+}
+
+/* Each product sits on five shared rows (kanji, name, body, pricing, link), so every column's pricing and link line
+   up at the bottom however long its body is. */
+.biz-product {
+  display: grid;
+  grid-row: span 5;
+  grid-template-rows: subgrid;
+  row-gap: 8px;
+  padding: 24px;
 }
 
 .biz-product__kanji {
   color: var(--seal);
-  font-size: 22px;
+  font-size: var(--text-lg);
   letter-spacing: 0.1em;
 }
 
 .biz-product__name {
-  font-size: 20px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-strong);
+  letter-spacing: -0.015em;
 }
 
 .biz-product__index {
   display: inline-grid;
   width: 24px;
   height: 24px;
-  margin-right: 4px;
+  flex: none;
   place-items: center;
   border-radius: 50%;
-  background: var(--ink);
+  background: var(--lg-ink);
   color: #fff;
-  font-size: 13px;
-  vertical-align: 2px;
+  font-size: var(--text-sm);
 }
 
 .biz-product__body {
-  flex: 1;
   color: var(--ink-soft);
 }
 
+/* The pricing model: a small lilac label on one line, at the foot of the card. */
 .biz-product__model {
-  width: fit-content;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: var(--iris-tint);
+  align-self: end;
   color: var(--iris-deep);
-  font-size: 13.5px;
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-strong);
 }
 
 .biz-product__demo {
-  font-size: 15px;
-  font-weight: 500;
+  font-weight: var(--weight-strong);
 }
 
-.biz-tier,
-.biz-fact {
-  display: grid;
-  align-content: start;
-  gap: 8px;
-  padding: 22px;
+.biz-why,
+.biz-tiers {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.biz-fact__title,
 .biz-tier__name {
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-strong);
+  letter-spacing: -0.015em;
 }
 
-.biz-tier__who,
-.biz-fact__body {
+.biz-fact__body,
+.biz-tier__who {
   color: var(--ink-soft);
 }
 
 .biz-tier__items {
   display: grid;
-  gap: 6px;
-  margin-top: 6px;
-  padding-left: 18px;
+  gap: 4px;
+  margin-top: 8px;
+  padding-left: 16px;
   list-style: disc;
 }
 
-.biz-fact__title {
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: -0.015em;
-}
-
-/* Five stops, left to right, joined by a line through the status dots. */
+/* The roadmap: five stops, each with a status chip. */
 .biz-roadmap {
-  display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.biz-step {
-  display: grid;
-  align-content: start;
-  gap: 4px;
-  padding: 16px 18px;
-  border-top: 4px solid var(--line-strong);
-}
-
-.biz-step--now {
-  border-top-color: var(--jade);
-}
-
-.biz-step--in-progress {
-  border-top-color: #e0a030;
-}
-
-.biz-step__status {
-  color: var(--ink-muted);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.biz-step--now .biz-step__status {
-  color: var(--jade-deep);
-}
-
-.biz-step--in-progress .biz-step__status {
-  color: var(--amber-deep);
 }
 
 .biz-step__name {
-  font-size: 19px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-strong);
+  letter-spacing: -0.015em;
 }
 
 .biz-step__detail {
   color: var(--ink-soft);
-  font-size: 15px;
 }
 
-.biz-cta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 20px 28px;
-  padding: clamp(22px, 3vw, 34px);
-  background: radial-gradient(120% 140% at 100% 0%, rgba(224, 69, 43, 0.14), transparent 55%), var(--glass);
-}
-
-.biz-cta__text {
-  display: grid;
-  flex: 1;
-  gap: 6px;
-  min-width: min(100%, 320px);
-}
-
-.biz-cta__title {
-  font-size: clamp(24px, 2.6vw, 32px);
-  font-weight: 500;
-  letter-spacing: -0.035em;
-}
-
-.biz-cta__body {
-  color: var(--ink-soft);
-}
-
-.biz-cta__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.biz-roadmap__note {
-  width: fit-content;
-  max-width: 100%;
-  padding: 10px 16px;
-  border: 1px solid var(--glass-edge);
-  border-radius: var(--radius-md);
-  background: var(--glass-strong);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
-  font-weight: 500;
-}
-
-/* Try a global company: one glass panel with the form, the examples and the answer. */
+/* Try a global company. */
 .biz-lei {
   display: grid;
-  gap: 14px;
+  gap: 16px;
   max-width: 760px;
-  padding: 22px;
-  border: 1px solid var(--glass-edge);
-  border-radius: var(--radius-lg);
-  background: var(--glass);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
-  box-shadow: var(--shadow-panel);
+  padding: 24px;
 }
 
 .biz-lei__form {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
+  gap: 16px;
   align-items: end;
 }
 
@@ -284,29 +172,31 @@
 }
 
 .biz-lei__chip {
-  padding: 7px 14px;
-  border: 1px solid var(--line-strong);
+  height: var(--control-chip);
+  padding: 0 12px;
+  border: 0;
   border-radius: 999px;
-  background: var(--lg-sheen), var(--lg-inner);
+  background: var(--lg-cell-strong);
+  box-shadow: var(--lg-shadow-control);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-strong);
   cursor: pointer;
-  font-size: 14.5px;
 }
 
 .biz-lei__chip:hover {
-  border-color: var(--vermilion);
+  background: #fff;
 }
 
 .biz-lei__source {
-  font-size: 13.5px;
+  font-size: var(--text-sm);
 }
 
 .biz-lei__card {
   display: grid;
-  gap: 6px;
-  padding: 16px 18px;
-  border: 1px solid var(--line);
+  gap: 8px;
+  padding: 16px;
   border-radius: var(--radius-md);
-  background: var(--lg-sheen), var(--lg-inner);
+  background: var(--lg-cell-strong);
 }
 
 .biz-lei__head {
@@ -318,36 +208,93 @@
 }
 
 .biz-lei__name {
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: -0.015em;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-strong);
 }
 
 .biz-lei__meta {
+  overflow: hidden;
   color: var(--ink-soft);
-  font-size: 14px;
-  overflow-wrap: anywhere;
+  font-size: var(--text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .biz-lei__nta {
   color: var(--jade-deep);
-  font-weight: 500;
+  font-weight: var(--weight-strong);
 }
 
-@media (max-width: 980px) {
-  .biz-tiers,
-  .biz-why {
-    grid-template-columns: 1fr;
+/* The call to action: the page's one colour card, card-sized soft lavender glass with the solid ink button. */
+.biz-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 24px 32px;
+  max-width: 760px;
+  padding: 32px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--lavender), var(--lavender-soft));
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+  box-shadow:
+    var(--lg-highlight),
+    0 24px 56px -28px rgba(86, 70, 212, 0.45);
+  color: var(--ink);
+}
+
+.biz-cta__text {
+  display: grid;
+  flex: 1;
+  gap: 8px;
+  min-width: min(100%, 320px);
+}
+
+.biz-cta__title {
+  font-size: var(--text-display-sm);
+  font-weight: var(--weight-strong);
+  letter-spacing: -0.03em;
+}
+
+.biz-cta__body {
+  color: var(--ink);
+}
+
+.biz-cta__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+@media (max-width: 1179px) {
+  .biz-products {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .biz-roadmap {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 560px) {
-  .biz-roadmap,
+@media (max-width: 899px) {
+  .biz-products,
+  .biz-roadmap {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .biz-why,
+  .biz-tiers {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 599px) {
+  .biz-products,
+  .biz-roadmap {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .biz-lei__form {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }

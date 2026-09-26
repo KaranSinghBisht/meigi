@@ -148,7 +148,9 @@ export default function RegisterPage() {
     <div className="register">
       <header className="page-head">
         <p className="eyebrow">Register a business</p>
-        <h1 className="page-head__title">Bind your T-number to one payout address.</h1>
+        <h1 className="page-head__title">
+          Bind your <span className="nowrap">T-number</span> to one payout address.
+        </h1>
         <p className="page-head__lede">
           Four checks, then the Meigi attester writes it on-chain: the exact NTA-registered name, a domain proof signed
           by your business key, and a World ID for every officer who will approve changes.

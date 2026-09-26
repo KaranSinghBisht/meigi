@@ -1,18 +1,19 @@
 .landing .pill {
   display: inline-flex;
   align-items: center;
-  gap: 0.42em;
-  height: 38px;
-  padding: 0 16px;
-  border: 1px solid var(--glass-edge);
+  gap: 8px;
+  height: var(--control-md);
+  padding: 0 20px;
+  border: 0;
   border-radius: 999px;
-  background: var(--glass);
+  /* A whiter base than the windows: the flowers behind tint the pill without flooding it with colour. */
+  background: var(--lg-window-dense);
   -webkit-backdrop-filter: var(--lg-blur);
   backdrop-filter: var(--lg-blur);
   box-shadow: var(--lg-shadow-control);
   color: var(--ink);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--text-md);
+  font-weight: var(--weight-strong);
   letter-spacing: -0.01em;
   line-height: 1;
   text-decoration: none;
@@ -27,8 +28,7 @@
 }
 
 .landing .pill:hover {
-  border-color: var(--lg-rim-bright);
-  background: var(--glass-hover);
+  background: var(--lg-cell-strong);
 }
 
 .landing .pill:active {
@@ -41,24 +41,22 @@
   flex: none;
 }
 
+/* The enter lens: the one large control on the hero. */
 .landing .pill--enter {
-  height: 46px;
-  padding: 0 22px 0 24px;
-  border-color: var(--lg-rim-bright);
-  background: var(--lg-sheen), var(--lg-regular);
-  font-size: 16px;
+  height: var(--control-lg);
+  padding: 0 24px;
+  background: var(--lg-window);
+  font-size: var(--text-md);
   box-shadow: var(--lg-shadow);
 }
 
-/* The enter lens brightens rather than turning dark. */
 .landing .pill--enter:hover,
 .landing .pill--enter:focus-visible {
-  background: var(--lg-sheen), var(--lg-selected);
-  filter: brightness(1.04);
+  background: var(--lg-cell-strong);
 }
 
 .landing .pill[aria-expanded='true'] {
-  background: var(--glass-hover);
+  background: var(--lg-cell-strong);
 }
 
 .landing .dock {
@@ -70,7 +68,7 @@
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   pointer-events: none;
 }
 
@@ -102,13 +100,13 @@
   }
 
   .landing .pill {
-    height: 36px;
-    padding: 0 14px;
-    font-size: 13px;
+    height: var(--control-sm);
+    padding: 0 16px;
+    font-size: var(--text-sm);
   }
 
   .landing .pill--enter {
-    height: 44px;
-    font-size: 15px;
+    height: var(--control-md);
+    font-size: var(--text-md);
   }
 }

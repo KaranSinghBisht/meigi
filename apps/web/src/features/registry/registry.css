@@ -8,17 +8,18 @@
 
 .registry__lookup {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 20px;
 }
 
 .tsearch {
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 
 .tsearch__row {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
 .tsearch__input {
@@ -27,6 +28,7 @@
 
 .directory {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
 }
 
@@ -38,53 +40,77 @@
 
 .directory__chip {
   display: inline-flex;
-  align-items: baseline;
-  gap: 10px;
-  padding: 8px 14px;
-  border: 1px solid var(--line-strong);
+  align-items: center;
+  gap: 8px;
+  height: var(--control-chip);
+  padding: 0 12px;
+  border: 0;
   border-radius: 999px;
-  background: var(--lg-sheen), var(--lg-inner);
+  background: var(--lg-cell-strong);
+  box-shadow: var(--lg-shadow-control);
   cursor: pointer;
   transition:
     background-color 0.2s var(--ease-out),
     border-color 0.2s var(--ease-out);
 }
 
+/* A long company name gives way to an ellipsis; the chip stays one line and the T-number stays whole. */
+.directory__list > li {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.directory__chip {
+  max-width: 100%;
+}
+
+.directory__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.directory__t {
+  flex: none;
+}
+
 .directory__chip:hover {
-  background: var(--lg-sheen), var(--lg-selected);
+  background: #fff;
 }
 
 .directory__chip:focus-visible {
   border-radius: 999px;
 }
 
+/* Selected: a lilac fill, like a selected date. */
 .directory__chip[aria-pressed='true'] {
-  border-color: var(--seal);
-  background: var(--lg-sheen), var(--lg-selected);
-  box-shadow: inset 0 0 0 1px var(--seal);
+  background: rgba(125, 110, 214, 0.2);
+  color: var(--iris-deep);
 }
 
 .directory__t {
   color: var(--ink-muted);
-  font-size: 12.5px;
+  font-size: var(--text-sm);
 }
 
 .payee-slot {
   padding-top: 20px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--lg-hairline);
 }
 
 .payee-slot__hint,
 .payee-slot__loading {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   color: var(--ink-soft);
 }
 
 .payee {
   display: grid;
-  gap: 14px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
   container-type: inline-size;
 }
 
@@ -102,27 +128,27 @@
 }
 
 .payee__tnumber {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--text-md);
+  font-weight: var(--weight-strong);
   letter-spacing: 0.02em;
 }
 
 .payee__ens {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 10px;
+  gap: 4px 8px;
   align-items: baseline;
   color: var(--ink-soft);
-  font-size: 14px;
+  font-size: var(--text-md);
 }
 
 .payee__ens-note {
-  font-size: 13px;
+  font-size: var(--text-sm);
 }
 
 .payee__ens-note--ok {
   color: var(--jade-deep);
-  font-weight: 500;
+  font-weight: var(--weight-strong);
 }
 
 .payee__ens-note--muted {
@@ -131,11 +157,11 @@
 
 .payee__ens-note--bad {
   color: var(--seal-deep);
-  font-weight: 600;
+  font-weight: var(--weight-strong);
 }
 
 .payee__name {
-  font-size: clamp(28px, 3vw, 38px);
+  font-size: var(--text-display-sm);
   line-height: 1.15;
 }
 
@@ -146,60 +172,58 @@
 .payee__sub {
   margin-top: -8px;
   color: var(--ink-muted);
-  font-size: 13.5px;
+  font-size: var(--text-sm);
 }
 
 .payee__label {
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   color: var(--ink-soft);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-strong);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .payee__payout {
-  padding: 16px 18px;
-  border: 1px solid rgba(63, 157, 120, 0.3);
+  padding: 16px;
   border-radius: var(--radius-md);
-  background: linear-gradient(100deg, rgba(63, 157, 120, 0.12), transparent), var(--lg-sheen), var(--lg-inner);
+  background: linear-gradient(100deg, rgba(63, 157, 120, 0.12), transparent), var(--lg-cell);
 }
 
 .payee__payout-value {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .payee__payout-value .address__value {
-  font-size: 17px;
-  font-weight: 500;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-strong);
 }
 
 /* Keep the payout on one line wherever the card is narrow (e.g. beside the change form). */
 @container (max-width: 560px) {
   .payee__payout-value .address__value {
-    font-size: 14.5px;
+    font-size: var(--text-md);
   }
 }
 
 @container (max-width: 440px) {
   .payee__payout-value .address__value {
-    font-size: 12.5px;
+    font-size: var(--text-sm);
   }
 }
 
 .payee__frozen {
-  padding: 16px 18px;
-  border: 1px solid rgba(224, 69, 43, 0.35);
+  padding: 16px;
   border-radius: var(--radius-md);
   background: var(--seal-tint);
 }
 
 .payee__frozen-text {
   color: var(--seal-deep);
-  font-weight: 600;
+  font-weight: var(--weight-strong);
 }
 
 .payee__facts {
@@ -208,24 +232,22 @@
 
 .payee__empty {
   display: grid;
-  gap: 10px;
-  padding: 16px 18px;
-  border: 1px dashed var(--line-strong);
+  gap: 8px;
+  padding: 16px;
   border-radius: var(--radius-md);
+  background: var(--lg-cell);
 }
 
 .payee__actions {
-  font-weight: 500;
+  font-weight: var(--weight-strong);
 }
 
 .pending {
   display: grid;
   gap: 8px;
-  padding: 16px 18px;
-  border: 1px solid rgba(224, 69, 43, 0.4);
-  border-left: 6px solid var(--vermilion);
+  padding: 16px;
   border-radius: var(--radius-md);
-  background: linear-gradient(100deg, rgba(224, 69, 43, 0.14), rgba(255, 236, 222, 0.7));
+  background: linear-gradient(100deg, rgba(224, 69, 43, 0.14), rgba(255, 236, 222, 0.5));
 }
 
 .pending__head {
@@ -238,56 +260,76 @@
 
 .pending__title {
   color: var(--seal-deep);
-  font-size: 18px;
-  font-weight: 600;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-strong);
   letter-spacing: -0.01em;
 }
 
 .pending__clock {
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  gap: 8px;
 }
 
 .pending__lands {
   color: var(--seal-deep);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--text-md);
+  font-weight: var(--weight-strong);
 }
 
 .pending__countdown {
   color: var(--seal-deep);
   font-family: var(--font-mono);
-  font-size: 28px;
-  font-weight: 600;
+  font-size: var(--text-display-sm);
+  font-weight: var(--weight-strong);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
 }
 
 .pending__body {
   color: var(--ink-soft);
-  font-size: 14.5px;
+  font-size: var(--text-md);
 }
 
 .pending__when {
   white-space: nowrap;
 }
 
+/* On wide screens the feed stays in view: its header holds still and the events scroll under a soft fade, so the
+   last row fades out instead of being cut by the window's edge. */
 .feed-panel {
   position: sticky;
   top: 88px;
-  max-height: calc(100vh - 110px);
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 112px);
+  overflow: hidden;
+}
+
+.feed-panel > .feed {
+  min-height: 0;
+  padding-bottom: 24px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 40px), transparent);
+  mask-image: linear-gradient(180deg, #000 calc(100% - 40px), transparent);
 }
 
 @media (max-width: 1100px) {
   .registry__grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .feed-panel {
     position: static;
     max-height: none;
+  }
+
+  .feed-panel > .feed {
+    padding-bottom: 0;
+    overflow: visible;
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 }
 
@@ -302,5 +344,5 @@
 }
 
 .payee-slot > .notice {
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }

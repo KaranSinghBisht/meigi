@@ -23,7 +23,7 @@ export const PRODUCTS: readonly Product[] = [
     kanji: '照合',
     name: 'Verify API',
     body: 'Confirmation of Payee for payers: exchanges, wallets, stablecoin issuers such as JPYC, AP platforms and x402 facilitators.',
-    model: 'Subscription plus a per-lookup fee',
+    model: 'Subscription + per lookup',
     demo: { to: '/registry', label: 'Look up a payee' },
   },
   {
@@ -37,14 +37,14 @@ export const PRODUCTS: readonly Product[] = [
     kanji: '支払',
     name: 'Meigi AP Agent',
     body: 'For SMEs paying invoices in stablecoins: triage, a verified human for doubtful payments, and on-chain enforcement.',
-    model: 'Monthly per company plus a per-invoice fee',
+    model: 'Per company + per invoice',
     demo: { to: '/agent', label: 'Try the agent console' },
   },
   {
     kanji: '学習',
     name: 'Custom triage models',
     body: 'We fine-tune a small model on your own AP history, and it runs on your hardware. For example, our 0.8B beat a 70B LLM on payment-fraud triage at 39 ms, trained in 39 minutes on a MacBook.',
-    model: 'Setup plus an annual license',
+    model: 'Setup + annual license',
   },
 ]
 

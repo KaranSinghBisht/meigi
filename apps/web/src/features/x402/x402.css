@@ -1,6 +1,7 @@
 .x402 {
   display: grid;
-  gap: 20px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
 }
 
 .x402 .page-head {
@@ -8,11 +9,8 @@
 }
 
 .x402__grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 480px));
-  justify-content: space-between;
-  gap: 20px;
-  align-items: start;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
 }
 
 .merchant {
@@ -28,13 +26,9 @@
   justify-self: start;
 }
 
-.merchant--compromised {
-  background: radial-gradient(120% 120% at 100% 0%, rgba(224, 69, 43, 0.1), transparent 60%), var(--glass);
-}
-
 .merchant__body {
   color: var(--ink-soft);
-  font-size: 16px;
+  font-size: var(--text-md);
 }
 
 .merchant__result:empty {
@@ -43,27 +37,25 @@
 
 .purchase {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .screen-card {
   display: grid;
   gap: 8px;
-  padding: 14px 16px;
-  border: 1px solid rgba(63, 157, 120, 0.35);
+  padding: 16px;
   border-radius: var(--radius-md);
-  background: linear-gradient(110deg, var(--jade-tint), transparent), var(--lg-sheen), var(--lg-inner);
+  background: linear-gradient(110deg, var(--jade-tint), transparent), var(--lg-cell);
 }
 
 .screen-card.is-flagged {
-  border-color: rgba(200, 55, 45, 0.45);
-  background: linear-gradient(110deg, rgba(224, 69, 43, 0.14), transparent), var(--lg-sheen), var(--lg-inner);
+  background: linear-gradient(110deg, rgba(224, 69, 43, 0.14), transparent), var(--lg-cell);
 }
 
 .screen-card__label {
   color: var(--ink-soft);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-strong);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -73,12 +65,12 @@
   flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: 6px 16px;
+  gap: 8px 16px;
 }
 
 .screen-card__score {
-  font-size: 34px;
-  font-weight: 600;
+  font-size: var(--text-display-sm);
+  font-weight: var(--weight-strong);
   letter-spacing: -0.03em;
   line-height: 1;
   font-variant-numeric: tabular-nums;
@@ -86,15 +78,15 @@
 
 .screen-card__max {
   color: var(--ink-muted);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--text-md);
+  font-weight: var(--weight-strong);
   letter-spacing: 0;
 }
 
 .screen-card__verdict {
   color: var(--jade-deep);
-  font-size: 18px;
-  font-weight: 600;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-strong);
 }
 
 .screen-card.is-flagged .screen-card__score,
@@ -105,39 +97,40 @@
 .screen-card__traits {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
 }
 
 .screen-card__traits li {
-  padding: 3px 10px;
+  padding: 4px 8px;
   border-radius: 999px;
   background: rgba(200, 55, 45, 0.12);
   color: var(--seal-deep);
-  font-size: 13px;
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-strong);
 }
 
 .screen-card__raw {
   color: var(--ink-soft);
-  font-size: 14px;
+  font-size: var(--text-md);
   overflow-wrap: anywhere;
 }
 
+/* Each row of merchants is one window: a header, then the two merchants as divided cells. */
 .x402__row {
   display: grid;
-  gap: 12px;
+  overflow: hidden;
 }
 
 .x402__row-head {
   display: grid;
   gap: 4px;
-  width: fit-content;
-  max-width: 860px;
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid var(--lg-hairline);
 }
 
 .x402__row-title {
-  font-size: 22px;
-  font-weight: 600;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-strong);
   letter-spacing: -0.02em;
 }
 
@@ -146,21 +139,33 @@
 }
 
 .x402__code pre {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 @media (max-width: 900px) {
   .x402__grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
 .merchant__progress {
   color: var(--ink-soft);
-  font-size: 15px;
+  font-size: var(--text-md);
 }
 
 .x402__hosted {
   display: grid;
-  gap: 18px;
+  gap: 16px;
+}
+
+/* Package names and paths in the copy stay whole. */
+.x402 p > code {
+  white-space: nowrap;
+}
+
+/* The code sample keeps its lines and scrolls sideways on a narrow screen, so no identifier is split. */
+.x402__code .codeblock {
+  overflow-x: auto;
+  overflow-wrap: normal;
+  white-space: pre;
 }

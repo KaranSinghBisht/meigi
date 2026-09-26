@@ -10,7 +10,7 @@
   gap: 12px;
   align-items: start;
   padding: 12px 4px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--lg-hairline);
 }
 
 .feed__item:last-child {
@@ -36,7 +36,7 @@
 .feed__dot {
   width: 10px;
   height: 10px;
-  margin-top: 6px;
+  margin-top: 8px;
   border-radius: 50%;
   background: var(--dot);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--dot) 18%, transparent);
@@ -49,25 +49,25 @@
 }
 
 .feed__title {
-  font-weight: 600;
+  font-weight: var(--weight-strong);
   letter-spacing: -0.01em;
 }
 
 .feed__who {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 10px;
+  gap: 4px 8px;
   align-items: baseline;
-  font-size: 14px;
+  font-size: var(--text-md);
 }
 
 .feed__name {
-  font-size: 14px;
+  font-size: var(--text-md);
 }
 
 .feed__detail {
   color: var(--ink-soft);
-  font-size: 13.5px;
+  font-size: var(--text-sm);
 }
 
 .feed__meta {
@@ -75,7 +75,7 @@
   gap: 2px;
   justify-items: end;
   color: var(--ink-muted);
-  font-size: 13px;
+  font-size: var(--text-sm);
   white-space: nowrap;
 }
 
@@ -88,7 +88,7 @@
   align-items: center;
   gap: 8px;
   color: var(--ink-soft);
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-variant-numeric: tabular-nums;
 }
 

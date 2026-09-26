@@ -23,15 +23,15 @@
 }
 
 .home__jp {
-  margin-right: 6px;
+  margin-right: 8px;
   color: var(--seal);
-  font-size: 14px;
+  font-size: var(--text-md);
   letter-spacing: 0.12em;
 }
 
 .home__title {
-  font-size: clamp(44px, 6.4vw, 88px);
-  font-weight: 500;
+  font-size: var(--text-display-lg);
+  font-weight: var(--weight-strong);
   letter-spacing: -0.055em;
   line-height: 0.98;
 }
@@ -39,7 +39,7 @@
 .home__lede {
   max-width: 720px;
   color: var(--ink-soft);
-  font-size: clamp(17px, 1.5vw, 20px);
+  font-size: var(--text-lg);
   line-height: 1.55;
 }
 
@@ -50,14 +50,12 @@
   gap: 8px 16px;
   width: fit-content;
   max-width: 100%;
-  padding: 10px 16px;
-  border: 1px solid var(--glass-edge);
+  min-height: var(--control-md);
+  padding: 8px 20px;
   border-radius: 999px;
-  background: var(--glass);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
-  box-shadow: var(--shadow-soft);
-  font-size: 14.5px;
+  background: var(--lg-cell);
+  box-shadow: var(--lg-highlight);
+  font-size: var(--text-md);
 }
 
 .strip__live {
@@ -65,7 +63,7 @@
   align-items: center;
   gap: 8px;
   color: var(--jade-deep);
-  font-weight: 600;
+  font-weight: var(--weight-strong);
 }
 
 .strip__dot {
@@ -88,47 +86,58 @@
 }
 
 .strip__link {
-  font-weight: 500;
+  font-weight: var(--weight-strong);
 }
 
+/* The demo card and the flows share a row: one colour card among white glass. */
+.home__row {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 24px;
+  align-items: stretch;
+}
+
+/* The key action: the page's one colour card, soft lavender glass with the solid ink button on it. */
 .home__feature {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 20px 32px;
-  max-width: 900px;
-  padding: clamp(22px, 3vw, 36px);
-  border: 1px solid var(--glass-edge);
-  border-radius: 28px;
-  background: radial-gradient(120% 140% at 100% 0%, rgba(224, 69, 43, 0.14), transparent 55%), var(--glass);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
-  box-shadow: var(--shadow-panel);
+  gap: 24px;
+  padding: 32px;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, var(--lavender), var(--lavender-soft));
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+  box-shadow:
+    var(--lg-highlight),
+    0 24px 56px -28px rgba(86, 70, 212, 0.45);
+  color: var(--ink);
 }
 
 .home__feature > div {
   display: grid;
   gap: 8px;
-  max-width: 680px;
+}
+
+.home__feature .eyebrow {
+  color: var(--ink);
 }
 
 .home__feature-title {
-  font-size: clamp(26px, 3vw, 38px);
-  font-weight: 500;
-  letter-spacing: -0.035em;
+  font-size: var(--text-display-sm);
+  font-weight: var(--weight-strong);
+  letter-spacing: -0.03em;
   line-height: 1.1;
 }
 
 .home__feature-body {
-  color: var(--ink-soft);
-  font-size: 17px;
+  font-size: var(--text-lg);
 }
 
+/* The four flows: one window, two by two, cells divided by hairlines (.cells). */
 .home__flows {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .flow-card {
@@ -136,49 +145,40 @@
   align-content: start;
   gap: 8px;
   height: 100%;
-  padding: 22px;
-  border: 1px solid var(--glass-edge);
-  border-radius: var(--radius-lg);
-  background: var(--glass);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
-  box-shadow: var(--shadow-soft);
+  padding: 24px;
   text-decoration: none;
-  transition:
-    transform 0.25s var(--ease-out),
-    background-color 0.25s var(--ease-out);
+  transition: background-color 0.25s var(--ease-out);
 }
 
 .flow-card:hover {
-  background: var(--glass-strong);
-  transform: translateY(-2px);
+  background: var(--lg-cell);
 }
 
 .flow-card:focus-visible {
-  border-radius: var(--radius-lg);
+  outline-offset: -3px;
 }
 
 .flow-card__kanji {
   color: var(--seal);
-  font-size: 22px;
+  font-size: var(--text-lg);
   letter-spacing: 0.1em;
 }
 
 .flow-card__title {
-  font-size: 19px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-strong);
+  letter-spacing: -0.015em;
 }
 
 .flow-card__body {
   color: var(--ink-soft);
-  font-size: 15px;
+  font-size: var(--text-md);
 }
 
 .lost {
   display: grid;
   justify-items: start;
-  gap: 14px;
+  gap: 16px;
   max-width: 640px;
   padding: 8vh 0;
 }
@@ -188,9 +188,9 @@
   padding: 16vh var(--gutter);
 }
 
-@media (max-width: 1100px) {
-  .home__flows {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+@media (max-width: 899px) {
+  .home__row {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -202,7 +202,7 @@
 
 @media (max-width: 560px) {
   .home__flows {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .strip {

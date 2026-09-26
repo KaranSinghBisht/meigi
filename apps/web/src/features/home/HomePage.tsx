@@ -66,7 +66,7 @@ function DemoCallout() {
             : 'Paste a fake invoice, a bank-change email or a prompt injection. Watch the agent believe it, and the vault refuse to pay anyone but the registered company.'}
         </p>
       </div>
-      <LinkButton to="/agent" variant="accent" size="lg">
+      <LinkButton to="/agent" variant="primary" size="lg">
         {env.hosted ? 'See the recorded run' : 'Open the agent console'} <span aria-hidden="true">→</span>
       </LinkButton>
     </section>
@@ -75,7 +75,7 @@ function DemoCallout() {
 
 function FlowCards() {
   return (
-    <ul className="home__flows" aria-label="Other flows">
+    <ul className="home__flows window cells" aria-label="Other flows">
       {FLOWS.map((flow) => (
         <li key={flow.to}>
           <Link to={flow.to} className="flow-card">
@@ -97,8 +97,10 @@ export function HomePage() {
   return (
     <div className="home">
       <Hero />
-      <DemoCallout />
-      <FlowCards />
+      <div className="home__row">
+        <DemoCallout />
+        <FlowCards />
+      </div>
     </div>
   )
 }
