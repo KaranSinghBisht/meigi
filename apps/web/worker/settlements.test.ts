@@ -134,6 +134,18 @@ describe('GET /api/settlements', () => {
     assert.equal(reader.calls.filter((c) => c.startsWith('payee:')).length, 3) // the scope, once
   })
 
+  it('never reuses an edge snapshot older than 3 minutes, even if the cache still returns it', async () => {
+    const reader = scripted()
+    let clock = 1_790_000_000_000
+    let shared: Snapshot | null = null
+    const store: SnapshotStore = { get: async () => shared, put: async (s) => void (shared = s) }
+    const api = createSettlements(reader, { ...OPTIONS, store, memo: createMemo(() => clock), now: () => clock })
+    await get(api)
+    clock += 181_000 // past the edge window and the isolate memo
+    await get(api)
+    assert.equal(reader.calls.filter((c) => c === 'meigi_invoices_paid').length, 2)
+  })
+
   it('answers a generic 503 when MultiBaas fails, never its message', async () => {
     const failing = scripted({ rows: () => Promise.reject(new Upstream('MultiBaas answered 401')) })
     const { status, cache, body } = await quietly(() => get(createSettlements(failing, OPTIONS)))

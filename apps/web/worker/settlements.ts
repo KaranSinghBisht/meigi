@@ -87,7 +87,12 @@ export function createSettlements(reader: MultiBaasReader, options: SettlementsO
     })
     return snapshot
   }
-  const snapshot = () => memo<Snapshot>('snapshot', SNAPSHOT_ISOLATE_MS, async () => (await options.store?.get()) ?? fresh())
+  // The edge copy is used only while it is younger than SNAPSHOT_EDGE_S, whatever the cache itself keeps.
+  const shared = async (): Promise<Snapshot | null> => {
+    const cached = await options.store?.get()
+    return cached && now() - Date.parse(cached.asOf) < SNAPSHOT_EDGE_S * 1000 ? cached : null
+  }
+  const snapshot = () => memo<Snapshot>('snapshot', SNAPSHOT_ISOLATE_MS, async () => (await shared()) ?? fresh())
 
   return {
     async list(digits) {
