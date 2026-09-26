@@ -62,7 +62,7 @@ export function factsOf(kernel: KernelResult, verdict: Verdict, revert: DecodedR
 
 /** The deterministic fallback, and the text used when every check passed. */
 export function templateText(kernel: KernelResult, verdict: Verdict, revert: DecodedRevert | null, broadcast = false): string {
-  if (revert && broadcast) return `The vault refused the payment on-chain: ${revert.sentence}`;
+  if (revert && broadcast) return `The payment's transaction reverted on-chain. ${revert.sentence}`;
   if (revert) return `The vault refused the payment (in simulation; nothing was sent): ${revert.sentence}`;
   const intent = kernel.intent;
   if (verdict.decision === "pay" && intent && kernel.payee) {

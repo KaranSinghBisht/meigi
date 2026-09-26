@@ -1,11 +1,11 @@
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
-import { createPublicClient, HttpRequestError } from "viem";
+import { createPublicClient, custom, HttpRequestError } from "viem";
 import { sepolia } from "viem/chains";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { loadConfig } from "../src/config.js";
 import { nextNonce, NONCE_MEMORY_MS } from "../src/payer.js";
-import { PRIMARY_TIMEOUT_MS, rpcTransports } from "../src/rpc.js";
+import { bench, PRIMARY_TIMEOUT_MS, rpcTransports, Skipped } from "../src/rpc.js";
 
 /** A primary that accepts connections and never answers, and a backup that answers every call. */
 const hung: Server = createServer(() => {});
@@ -122,5 +122,27 @@ describe("the next payment's nonce", () => {
     expect(nextNonce(7, { nonce: 7, at: 1_000 }, 2_000)).toBe(8); // this RPC hasn't seen our last transaction yet
     expect(nextNonce(9, { nonce: 7, at: 1_000 }, 2_000)).toBe(9); // it has seen more
     expect(nextNonce(7, { nonce: 7, at: 1_000 }, 1_000 + NONCE_MEMORY_MS + 1)).toBe(7); // a dropped transaction doesn't block for long
+  });
+});
+
+describe("the bench, on a fake clock", () => {
+  it("lifts only for a quick answer: a primary that answers slowly stays skipped", async () => {
+    let clock = 0;
+    let delay = 0;
+    const primary = bench("https://primary.example", () => clock);
+    const down = custom({ request: async () => { throw new HttpRequestError({ url: "https://primary.example" }); } }, { retryCount: 0 });
+    const answering = custom({ request: async () => ((clock += delay), "0x1") }, { retryCount: 0 });
+    const first = primary.benched(down)({ chain: sepolia });
+    const last = primary.lifting(answering)({ chain: sepolia });
+    const ask = (t: typeof first) => t.request({ method: "eth_blockNumber" });
+
+    await expect(ask(first)).rejects.not.toBeInstanceOf(Skipped); // a real failure: benched from here
+    await expect(ask(first)).rejects.toBeInstanceOf(Skipped);
+    delay = PRIMARY_TIMEOUT_MS + 500;
+    await ask(last); // answered, but slowly
+    await expect(ask(first)).rejects.toBeInstanceOf(Skipped); // still benched
+    delay = 200;
+    await ask(last); // answered quickly
+    await expect(ask(first)).rejects.not.toBeInstanceOf(Skipped); // lifted: the first choice is tried (and fails) again
   });
 });

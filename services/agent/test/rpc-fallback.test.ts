@@ -1,7 +1,9 @@
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createClients, PRIMARY_TIMEOUT_MS } from "../src/chain/clients.js";
+import { custom, HttpRequestError } from "viem";
+import { sepolia } from "viem/chains";
+import { bench, createClients, PRIMARY_TIMEOUT_MS } from "../src/chain/clients.js";
 import { loadConfig } from "../src/config.js";
 
 /** A venue's shared IP gets Cloudflare 403s from a public RPC: reads must carry on through the fallback URL. */
@@ -98,5 +100,30 @@ describe("reading Sepolia through a fallback RPC", () => {
     expect(loadConfig(env).SEPOLIA_RPC_FALLBACK_URL).toBeUndefined();
     expect(loadConfig({ ...env, SEPOLIA_RPC_FALLBACK_URL: "https://sepolia.gateway.tenderly.co" }).SEPOLIA_RPC_FALLBACK_URL).toBe("https://sepolia.gateway.tenderly.co");
     expect(() => loadConfig({ ...env, SEPOLIA_RPC_FALLBACK_URL: "http://rpc.example.com" })).toThrow("SEPOLIA_RPC_FALLBACK_URL");
+  });
+});
+
+describe("the primary's bench, on a fake clock", () => {
+  it("lifts only for a quick answer: a primary that answers slowly stays skipped", async () => {
+    let clock = 0;
+    let delay = 0;
+    let tried = 0;
+    const primary = bench("https://primary.example", () => clock);
+    const down = custom({ request: async () => ((tried += 1), Promise.reject(new HttpRequestError({ url: "https://primary.example" }))) }, { retryCount: 0 });
+    const answering = custom({ request: async () => ((clock += delay), "0x1") }, { retryCount: 0 });
+    const first = primary.benched(down)({ chain: sepolia });
+    const last = primary.lifting(answering)({ chain: sepolia });
+    const ask = (t: typeof first) => t.request({ method: "eth_blockNumber" });
+
+    await expect(ask(first)).rejects.toThrow(); // a real failure benches it
+    await expect(ask(first)).rejects.toThrow(/skipped/u);
+    expect(tried).toBe(1);
+    delay = PRIMARY_TIMEOUT_MS + 500;
+    await ask(last); // answered, but slowly
+    await expect(ask(first)).rejects.toThrow(/skipped/u); // still benched
+    delay = 200;
+    await ask(last); // answered quickly
+    await expect(ask(first)).rejects.toThrow();
+    expect(tried).toBe(2); // lifted: the first choice was tried again
   });
 });

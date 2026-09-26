@@ -21,6 +21,8 @@ type Sentence = (a: Args, label: string, yen: (v: unknown) => string) => string;
 const short = (v: unknown) => shortAddress(String(v));
 
 const SENTENCES: Record<string, Sentence> = {
+  // A mined transaction that reverted: its receipt carries no reason, so none is named.
+  TransactionReverted: () => "The transaction was mined and reverted, and the chain gave no reason.",
   PayeeMismatch: (a, label) => {
     const [registered, asked] = distinctShort(String(a.registered), String(a.expected));
     return `${label} pays ${registered}; this invoice asked for ${asked}.`;

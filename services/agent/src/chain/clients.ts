@@ -44,8 +44,9 @@ export function bench(url: string, now: () => number = Date.now) {
       }),
     lifting: (transport: Transport) =>
       wrap(transport, async (inner, args) => {
+        const started = now();
         const answer = await inner.request(...args);
-        until = 0;
+        if (now() - started < PRIMARY_TIMEOUT_MS) until = 0; // back, and quick: first choice again (a slow answer keeps the bench)
         return answer;
       }),
   };
