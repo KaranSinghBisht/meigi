@@ -9,6 +9,9 @@
 #   payout wallets: payout-name (the payee's name as the wallet's primary name)
 #   company names: ns-deploy | ns-fund | ns-agent | ns-open | ns-attach | ns-issue | ns-status | ns-check |
 #                  ns-detach (rollback). Text-only names a company issues under its payee name (CompanyNamespace).
+#   agent mandate: mandate-register | mandate-open | mandate-attach | mandate-issue | mandate-revoke |
+#                  mandate-deploy | mandate-wire | mandate-unwire (rollback) | mandate-check. The vault pays only
+#                  while the buyer's ap.t<T>.payee.eth answers (MandateGate).
 # Transactions are only simulated unless BROADCAST=1. Keys and the RPC URL come from the environment or
 # meigi/.env and never appear on a command line; tool output is redacted. See README.md.
 set -euo pipefail
@@ -39,7 +42,7 @@ load_dotenv() {
     value="${BASH_REMATCH[3]}"
     [[ $key =~ ^(SEPOLIA_RPC_URL|(DEPLOYER|ATTESTER|PAYEE|ENS)_[A-Z0-9_]+|VAULT_OWNER_(PRIVATE_KEY|ADDRESS))$ ||
       $key == DEMO_VENDOR_CONTROLLER_PRIVATE_KEY || $key =~ ^DEMO_[A-Z]+_PAYOUT_PRIVATE_KEY$ ||
-      $key =~ $agent_vars || $key =~ ^NS_(AP|KEIRI|ZEIRISHI)_(PRIVATE_KEY|ADDRESS)$ ]] || continue
+      $key =~ $agent_vars || $key =~ ^NS_(AP|KEIRI|ZEIRISHI|HARUKA|HARUKA_PAYOUT)_(PRIVATE_KEY|ADDRESS)$ ]] || continue
     if [[ -n ${!key:-} ]]; then continue; fi
     if [[ $value =~ $quoted ]]; then
       value="${BASH_REMATCH[1]}"
@@ -118,7 +121,7 @@ check_rpc() {
 # Gives each command only the key it signs with.
 scope_keys() {
   case "$1" in
-    check | agent-check | claim-check | ns-check)
+    check | agent-check | claim-check | ns-check | mandate-check)
       unset DEPLOYER_PRIVATE_KEY ATTESTER_PRIVATE_KEY AGENT_PRIVATE_KEY VAULT_OWNER_PRIVATE_KEY
       ;;
     claim-profile | ns-agent | ns-open | ns-issue)
@@ -129,7 +132,7 @@ scope_keys() {
       require_key COMPANY_PRIVATE_KEY
       unset DEPLOYER_PRIVATE_KEY ATTESTER_PRIVATE_KEY AGENT_PRIVATE_KEY VAULT_OWNER_PRIVATE_KEY
       ;;
-    seed)
+    seed | mandate-register)
       require_key ATTESTER_PRIVATE_KEY
       unset DEPLOYER_PRIVATE_KEY AGENT_PRIVATE_KEY VAULT_OWNER_PRIVATE_KEY
       ;;
@@ -141,7 +144,11 @@ scope_keys() {
       require_key AGENT_PRIVATE_KEY
       unset DEPLOYER_PRIVATE_KEY ATTESTER_PRIVATE_KEY VAULT_OWNER_PRIVATE_KEY
       ;;
-    vault-name)
+    mandate-open | mandate-issue | mandate-revoke)
+      require_key NS_HARUKA_PRIVATE_KEY
+      unset DEPLOYER_PRIVATE_KEY ATTESTER_PRIVATE_KEY AGENT_PRIVATE_KEY VAULT_OWNER_PRIVATE_KEY
+      ;;
+    vault-name | mandate-wire | mandate-unwire)
       require_key VAULT_OWNER_PRIVATE_KEY
       unset DEPLOYER_PRIVATE_KEY ATTESTER_PRIVATE_KEY AGENT_PRIVATE_KEY
       ;;
@@ -168,6 +175,8 @@ scope_keys() {
   esac
   if [[ $1 != claim-profile && $1 != ns-agent && $1 != ns-open && $1 != ns-issue ]]; then unset COMPANY_PRIVATE_KEY; fi
   if [[ $1 != ns-status ]]; then unset NS_AP_PRIVATE_KEY; fi
+  if [[ $1 != mandate-open && $1 != mandate-issue && $1 != mandate-revoke ]]; then unset NS_HARUKA_PRIVATE_KEY; fi
+  unset NS_HARUKA_PAYOUT_PRIVATE_KEY
   unset NS_KEIRI_PRIVATE_KEY NS_ZEIRISHI_PRIVATE_KEY
   if [[ $1 != payout-name ]]; then unset PAYOUT_PRIVATE_KEY; fi
   unset DEMO_VENDOR_CONTROLLER_PRIVATE_KEY
@@ -281,10 +290,13 @@ main() {
     claim-deploy | claim-attach | claim-detach | claim | claim-profile | claim-check | claim-revoke) ;;
     payout-name) ;;
     ns-deploy | ns-fund | ns-agent | ns-open | ns-attach | ns-issue | ns-status | ns-check | ns-detach) ;;
+    mandate-register | mandate-open | mandate-attach | mandate-issue | mandate-revoke) ;;
+    mandate-deploy | mandate-wire | mandate-unwire | mandate-check) ;;
     *) die "usage: ens.sh <command>; see the header of this file" ;;
   esac
   setup
-  if [[ ($cmd == agent-* || $cmd == vault-name || $cmd == claim* || $cmd == payout-name || $cmd == ns-*) &&
+  if [[ ($cmd == agent-* || $cmd == vault-name || $cmd == claim* || $cmd == payout-name || $cmd == ns-* ||
+    $cmd == mandate-*) &&
     $ENS_DEPLOYMENT != beta ]]; then
     die "$cmd targets the Beta (ENS_DEPLOYMENT=beta)"
   fi
@@ -329,6 +341,8 @@ main() {
     ns-check) (cd "$CONTRACTS" && forge script script/ens/CompanyNames.s.sol --sig "check()") 2>&1 | redact ;;
     ns-agent) cmd_ns_agent ;;
     ns-*) forge_script script/ens/CompanyNames.s.sol --sig "${cmd#ns-}()" ;;
+    mandate-check) (cd "$CONTRACTS" && forge script script/ens/Mandate.s.sol --sig "check()") 2>&1 | redact ;;
+    mandate-*) forge_script script/ens/Mandate.s.sol --sig "${cmd#mandate-}()" ;;
   esac
 }
 
