@@ -89,13 +89,14 @@ function judgementHolds({ extracted, kernel, triage, holds }: VerdictInput): Unt
   const urgent = extracted.flags.some((flag) => flag.code === "urgent_language");
   if (pressure !== null || urgent) {
     const why = pressure !== null ? `System-1 pressure ${Math.round(pressure * 100)}%` : "urgent wording";
-    const message = `This request pushes for a fast payment (${why}), so a person must approve it.`;
+    // Says why, not who may release it: other holds may rule that out (the console shows `approval.approvable`).
+    const message = `This request pushes for a fast payment (${why}).`;
     out.push({ code: "pressure_hold", severity: "block", layer: "triage", message });
   }
   const intent = kernel.intent;
   if (holds.autoClearMaxYen !== null && intent && Number(intent.amount.value) > holds.autoClearMaxYen) {
     const budget = `¥${holds.autoClearMaxYen.toLocaleString("en-US")}`;
-    const message = `${intent.amount.display} is above the auto-clear budget of ${budget}, so a person must approve it.`;
+    const message = `${intent.amount.display} is above the auto-clear budget of ${budget}.`;
     out.push({ code: "above_auto_clear_budget", severity: "block", layer: "kernel", message });
   }
   return out;

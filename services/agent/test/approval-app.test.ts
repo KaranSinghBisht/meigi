@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
 import type { AppDeps } from "../src/deps.js";
-import { demo, FakeTriage, fakeDeps, routineTriage, type Fakes } from "./fakes.js";
+import { demo, FakeLlm, FakeTriage, fakeDeps, routineTriage, type Fakes } from "./fakes.js";
 import { approvalHarness, approvedWith, denied, DEVICE_CODE, expired, pending } from "./mock-idp.js";
 
 /** The HTTP flow the console drives: analyze, ask a verified human, pay with the approval. */
@@ -203,14 +203,24 @@ describe("judgement holds", () => {
     const deps = fakeDeps({ triage: new FakeTriage(routineTriage({ pressure: 0.93 })) });
     const analysis = await analyzeWith(deps, "01-routine-invoice.ja.txt");
     expect(analysis.verdict.reasons).toEqual([
-      expect.objectContaining({ code: "pressure_hold", layer: "triage", message: "This request pushes for a fast payment (System-1 pressure 93%), so a person must approve it." }),
+      expect.objectContaining({ code: "pressure_hold", layer: "triage", message: "This request pushes for a fast payment (System-1 pressure 93%)." }),
     ]);
+  });
+
+  it("never tells anyone to approve a hold nobody may release (a pressured credit note)", async () => {
+    const llm = new FakeLlm({ tNumber: null, payTo: null, amount: null, invoiceNumber: null, wouldPay: false, reasoning: "" });
+    const deps = fakeDeps({ triage: new FakeTriage(routineTriage({ pressure: 0.7 })) }, llm);
+    const analysis = await analyzeWith(deps, "05-credit-note.ja.txt");
+    expect(analysis.verdict.reasons).toEqual(expect.arrayContaining([expect.objectContaining({ code: "credit_note" }), expect.objectContaining({ code: "pressure_hold" })]));
+    expect(JSON.stringify(analysis.verdict.reasons)).not.toMatch(/approv/iu);
+    expect(llm.explained).toHaveLength(1);
+    expect(JSON.stringify(llm.explained)).not.toMatch(/approv/iu); // the explanation model is never told a person could
   });
 
   it("holds amounts above AUTO_CLEAR_MAX_YEN, and not below", async () => {
     const over = await analyzeWith({ ...fakeDeps(), holds: { maxPressure: 0.5, autoClearMaxYen: 100_000 } }, "01-routine-invoice.ja.txt");
     expect(over.verdict.reasons).toEqual([
-      expect.objectContaining({ code: "above_auto_clear_budget", message: "¥132,000 is above the auto-clear budget of ¥100,000, so a person must approve it." }),
+      expect.objectContaining({ code: "above_auto_clear_budget", message: "¥132,000 is above the auto-clear budget of ¥100,000." }),
     ]);
     const under = await analyzeWith({ ...fakeDeps(), holds: { maxPressure: 0.5, autoClearMaxYen: 200_000 } }, "01-routine-invoice.ja.txt");
     expect(under.verdict.decision).toBe("pay");
