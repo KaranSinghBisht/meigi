@@ -1,8 +1,9 @@
-# Mizuhiki / Awaji: Meigi's minimal deploy (2026-09-26)
+# Mizuhiki / Awaji: Meigi is live (2026-09-26)
 
-Meigi on Mizuhiki's Awaji testnet (chain 6497): `PayeeRegistry` and the token-agnostic `PayRouter`, deployed and
-verified for real. Registration and payments are the next step (see "Not yet done" below) — everything in this
-file above that line is independently verified against the chain itself, not just the deploy script's own claim.
+Meigi on Mizuhiki's Awaji testnet (chain 6497): `PayeeRegistry` and the token-agnostic `PayRouter`, deployed,
+linked in MultiBaas, a real vendor registered, paid in real MJPY and real MUSD, and a swapped-payout payment
+refused. Everything below is independently verified against the chain itself, not just trusted from a script's
+own return value or a `pay()` call's success.
 
 ## Chain
 
@@ -65,14 +66,31 @@ three transactions had actually been mined; the error appears to have come from 
 already-included transaction. Caught by checking the broadcast record's receipts directly and independently
 verifying on-chain, rather than trusting the CLI's exit status alone.
 
-## Not yet done
+## Registered and paid, real, verified
 
-- Registering 株式会社メイギ商事 (T2011001234567) with the fixture officer/evidence, the same way
-  `contracts/script/seed-demo.sh` does on Sepolia.
-- One real payment through `PayRouter`, in real MJPY and real MUSD (claimed from the faucet contracts above).
-- One refused payment (`PayeeMismatch`), simulated via `cast call` — costs no gas.
-- MultiBaas linking (apagent) — in progress as of this writing, coordinated separately given the free plan's
-  ~100-block backfill window.
+株式会社メイギ商事 (T2011001234567), registered by the attester with the same fixture officer/evidence
+`contracts/script/seed-demo.sh` uses on Sepolia:
+
+| | Tx | Block |
+|---|---|---|
+| `register(...)` | [`0x7bea88a2…259207572`](https://awaji.blockscout.com/tx/0x7bea88a2d567fe46d955f3aab0dfb29467ace84223cf033db9446d9259207572) | — |
+| approve MJPY → router | [`0xa57f31ea…354ad7519`](https://awaji.blockscout.com/tx/0xa57f31ea4a6b12acc037c8e78517637579b49e5456f86ff58603839354ad7519) | — |
+| **pay 1,000 MJPY (¥1,000)** | [`0x294d6b5b…3fa280ca3`](https://awaji.blockscout.com/tx/0x294d6b5b697620dbee17ef3880eee9ad58dbde2157e5b61d17908b63fa280ca3) | — |
+| approve MUSD → router | [`0x6b41e521…ed5f89012`](https://awaji.blockscout.com/tx/0x6b41e521f3cad0333479a05f96abbf1d863502bad9e2cefa1113d75ed5f89012) | — |
+| **pay 5 MUSD ($5)** | [`0xf87e428b…674d8c446a`](https://awaji.blockscout.com/tx/0xf87e428b3d1f3f6cfbe44a39d80e01acb3ac3952a685a7fbb5c799674d8c446a) | — |
+
+All five receipts status 1. Confirmed the registered payout actually received both: `balanceOf` reads
+1,000,000,000 (1,000 MJPY, 6 decimals) and 5,000,000 (5 MUSD, 6 decimals) directly from each token contract, not
+just trusted from the `pay()` return value.
+
+**One refused payment, real revert (no gas — `cast call`, not `cast send`):** the same `pay()` with the payout
+swapped to the demo scammer address (`DEMO_SCAMMER`) reverts `PayeeMismatch(uint64,address,address)` (selector
+`0xc6652bcc`, confirmed against `cast sig`), decoded args showing the scammer address and the real registered
+payout exactly as expected. Nothing was broadcast.
+
+**MultiBaas:** linked by apagent from block 2387847 (the deploy's first block), about 2 minutes after the real
+deploy — `meigi_registry`, `meigi_router`, `meigi_mjpy` aliases and a saved query for the router's `Paid` event
+filtered to MJPY.
 
 ## How this got funded
 
