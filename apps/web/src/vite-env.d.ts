@@ -12,6 +12,7 @@ interface ImportMetaEnv {
   readonly VITE_WORLD_APP_ID?: string
   readonly VITE_WORLD_ENVIRONMENT?: string
   readonly VITE_WORLD_RP_ID?: string
+  readonly VITE_WORLD_OFFICER_CREDENTIALS?: string
   readonly VITE_LANDING_URL?: string
   readonly VITE_GITHUB_URL?: string
   readonly VITE_DOCS_URL?: string

@@ -6,6 +6,7 @@ import {
 } from '@worldcoin/idkit'
 import { useEffect, useRef, useState } from 'react'
 import { env } from '../../lib/env/env'
+import { credentialLabel, officerConstraint } from '../../lib/world/credentials'
 import { describeWidgetError } from '../../lib/world/rpContext'
 import { Button } from '../components/Button'
 import { CopyButton } from '../components/CopyButton'
@@ -53,7 +54,7 @@ function statusText(flow: UseIDKitSessionHookResult, verifying: boolean, sameHum
   if (verifying) return 'Checking the proof with the Meigi verifier…'
   if (flow.isInWorldApp || flow.isAwaitingUserConfirmation) return `Confirm in ${app}…`
   if (flow.connectorURI)
-    return `Scan with ${app} to prove you are ${sameHuman ? 'the same human who enrolled' : 'a unique human'}.`
+    return `Scan with ${app} to prove you are ${sameHuman ? 'the same human who enrolled' : 'a unique human'} (${credentialLabel()}).`
   return 'Preparing the World ID request…'
 }
 
@@ -63,7 +64,7 @@ export function WorldIdSession(props: WorldIdSessionProps) {
     app_id: env.worldAppId,
     rp_context: props.context,
     environment: env.worldEnvironment,
-    constraints: { type: 'proof_of_human', signal: props.signal },
+    constraints: officerConstraint(props.signal),
     existing_session_id: props.sessionId,
     action_description: props.sessionId ? 'Approve a Meigi change' : 'Enroll as a company officer on Meigi',
     polling: { interval: 1500, timeout: 300_000 },

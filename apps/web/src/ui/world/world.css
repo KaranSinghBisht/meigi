@@ -71,3 +71,14 @@
     justify-items: center;
   }
 }
+
+/* Which credential an officer proves with. */
+.credential-note {
+  display: grid;
+  gap: 4px;
+  padding: 10px 14px;
+  border: 1px solid rgba(125, 110, 214, 0.3);
+  border-radius: 12px;
+  background: var(--iris-tint);
+  font-size: 14.5px;
+}

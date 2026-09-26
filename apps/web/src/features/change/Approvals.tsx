@@ -1,6 +1,7 @@
 import { shortHash } from '../../lib/chain/format'
 import { Countdown } from '../../ui/components/Countdown'
 import { ErrorNotice, Notice } from '../../ui/components/Notice'
+import { CredentialNote } from '../../ui/world/CredentialNote'
 import { WorldIdProof } from '../../ui/world/WorldIdProof'
 import type { IntentFlow } from './useIntent'
 import './change.css'
@@ -75,6 +76,7 @@ export function Approvals({ flow }: { readonly flow: IntentFlow }) {
         </p>
       </div>
       <OfficerRows flow={flow} />
+      <CredentialNote />
       {flow.error ? <ErrorNotice error={flow.error} /> : null}
       <div className="approvals__impostor">
         <p className="muted">

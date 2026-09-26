@@ -7,6 +7,8 @@ import deployment from '../../../../../contracts/deployments/11155111.json'
 
 export type HexAddress = `0x${string}`
 export type WorldEnvironment = 'production' | 'staging' | 'sandbox'
+/** proof_of_human is verified at an Orb; selfie is Selfie Check, which needs only a phone. */
+export type OfficerCredential = 'proof_of_human' | 'selfie'
 
 export interface AppEnv {
   readonly verifierUrl: string
@@ -20,6 +22,8 @@ export interface AppEnv {
   readonly worldAppId: `app_${string}`
   readonly worldEnvironment: WorldEnvironment
   readonly worldRpId: string | null
+  /** What an officer proves with; must match the verifier's WORLD_OFFICER_CREDENTIALS. */
+  readonly worldOfficerCredentials: readonly OfficerCredential[]
   readonly landingUrl: string | null
   /** Optional links in the landing hero's dock. */
   readonly githubUrl: string | null
@@ -58,6 +62,7 @@ const DEFAULTS = {
 
 const BLOCK_RE = /^\d{1,12}$/
 const WORLD_ENVIRONMENTS: readonly WorldEnvironment[] = ['production', 'staging', 'sandbox']
+const OFFICER_CREDENTIALS: readonly OfficerCredential[] = ['proof_of_human', 'selfie']
 
 const issues: string[] = []
 
@@ -90,6 +95,12 @@ const block = (value: string) => (BLOCK_RE.test(value) ? BigInt(value) : null)
 const appId = (value: string) => (value.startsWith('app_') ? (value as `app_${string}`) : null)
 const worldEnv = (value: string) => WORLD_ENVIRONMENTS.find((item) => item === value) ?? null
 const rpId = (value: string) => (value.startsWith('rp_') ? value : null)
+/** "proof_of_human", "selfie", or both, comma-separated; any unknown name makes the whole value invalid. */
+function credentials(value: string): OfficerCredential[] | null {
+  const names = value.split(',').map((name) => name.trim())
+  const known = OFFICER_CREDENTIALS.filter((credential) => names.includes(credential))
+  return known.length > 0 && names.every((name) => known.some((credential) => credential === name)) ? known : null
+}
 /** An absolute http(s) URL or a same-origin path such as "/" (never protocol-relative "//host"). */
 const link = (value: string) => (value.startsWith('/') && !value.startsWith('//') ? value : url(value))
 const email = (value: string) => (/^[^\s@/?#]+@[^\s@/?#]+\.[a-z]{2,}$/i.test(value) ? value : null)
@@ -113,6 +124,12 @@ function readEnv(raw: ImportMetaEnv): AppEnv {
     worldAppId: pick('VITE_WORLD_APP_ID', raw.VITE_WORLD_APP_ID, DEFAULTS.worldAppId, appId),
     worldEnvironment: pick('VITE_WORLD_ENVIRONMENT', raw.VITE_WORLD_ENVIRONMENT, DEFAULTS.worldEnvironment, worldEnv),
     worldRpId: pick<string | null>('VITE_WORLD_RP_ID', raw.VITE_WORLD_RP_ID, null, rpId),
+    worldOfficerCredentials: pick<readonly OfficerCredential[]>(
+      'VITE_WORLD_OFFICER_CREDENTIALS',
+      raw.VITE_WORLD_OFFICER_CREDENTIALS,
+      ['proof_of_human'],
+      credentials,
+    ),
     landingUrl: pick<string | null>('VITE_LANDING_URL', raw.VITE_LANDING_URL, null, link),
     githubUrl: pick<string | null>('VITE_GITHUB_URL', raw.VITE_GITHUB_URL, null, link),
     docsUrl: pick<string | null>('VITE_DOCS_URL', raw.VITE_DOCS_URL, null, link),

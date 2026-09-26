@@ -5,6 +5,7 @@ import { enrollOfficer, type Registration } from '../../lib/api/verifier'
 import { shortHash } from '../../lib/chain/format'
 import { Button } from '../../ui/components/Button'
 import { ErrorNotice, Notice } from '../../ui/components/Notice'
+import { CredentialNote } from '../../ui/world/CredentialNote'
 import { WorldIdProof } from '../../ui/world/WorldIdProof'
 import './register.css'
 
@@ -59,6 +60,7 @@ export function OfficersStep({ registration, officers, onEnrolled, onContinue }:
         to this registration; later, every change must be approved by that same session, so only the same humans can
         move money.
       </p>
+      <CredentialNote />
       <OfficerList officers={officers} />
       {enrolled ? <Notice tone="success" title="Officer enrolled." /> : null}
       {error ? <ErrorNotice error={error} /> : null}

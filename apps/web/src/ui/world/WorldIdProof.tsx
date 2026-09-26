@@ -23,7 +23,8 @@ interface WorldIdProofProps {
 
 /**
  * A World ID 4.0 session proof bound to `signal`, shown inline with its QR code and link. Sessions take
- * constraints, not presets: `{ type: 'proof_of_human', signal }` is the session form of `proofOfHuman`.
+ * constraints, not presets: the credential request(s) come from VITE_WORLD_OFFICER_CREDENTIALS
+ * (lib/world/credentials.ts), e.g. `{ type: 'proof_of_human', signal }`, the session form of `proofOfHuman`.
  */
 export function WorldIdProof(props: WorldIdProofProps) {
   const { label, signal, sessionId, initialContext, onProof, variant = 'primary', size = 'md', disabled } = props
