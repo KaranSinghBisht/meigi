@@ -14,7 +14,7 @@ const SHORT = /^0x[0-9a-fA-F]{2,10}(?:…|\.\.\.)[0-9a-fA-F]{2,10}$/
 export function AgentProse({ text }: { readonly text: string }) {
   const match = useShortAddressMatch()
   const names = useAddressNames()
-  const parts = text.split(TOKEN)
+  const parts = text.replace(/`([^`\n]+)`/g, '$1').split(TOKEN)
   return (
     <>
       {parts.map((part, index) => {
