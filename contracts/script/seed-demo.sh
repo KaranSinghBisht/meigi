@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Seeds the "please try to rob it" demo on a deployed Meigi stack. Idempotent: every step checks the chain first,
 # so a re-run sends only what is missing.
-#   1. the attester registers the FICTIONAL vendors (evidence says so on-chain; they are not NTA companies):
-#      株式会社メイギ商事, approved below, and 合同会社ベイサイド・アドバイザリー, registered but never approved,
-#      so the vault's own vendor list refuses it (VendorNotApproved),
+#   1. the attester registers the FICTIONAL vendors/merchants (evidence says so on-chain; they are not NTA
+#      companies): 株式会社メイギ商事, approved below, 合同会社ベイサイド・アドバイザリー, registered but never
+#      approved so the vault's own vendor list refuses it (VendorNotApproved), and 株式会社ミナトGPUクラウド, the
+#      x402 demo's GPU-compute merchant (registered but not a vault vendor: it's paid over x402, not the vault),
 #   2. mock JPYC is minted into the AgentVault, unless it already holds 4,000,000 or more,
 #   3. the vault owner approves メイギ商事 unless it already is (active after the vault's vendorDelay).
 # Reads keys and addresses from ../.env and deployments/<chainId>.json. Never prints keys.
@@ -15,6 +16,9 @@ NAME="株式会社メイギ商事"
 BAYSIDE_T_NUMBER=3999905000001 # fictional; registry office 9999 doesn't exist
 BAYSIDE_NAME="合同会社ベイサイド・アドバイザリー"
 BAYSIDE_PAYOUT=0xba5Ea94C62C2a86FE0d2FE50c6DB8002155D389b # generated for the demo, key discarded
+MINATO_T_NUMBER=6999900000003 # fictional; registry office 9999 doesn't exist; absent from the nationwide NTA index
+MINATO_NAME="株式会社ミナトGPUクラウド"
+MINATO_PAYOUT=0x4d6D5528f4a4c9E404130Fab23F5FA5DDcaffD30 # generated for the demo, key discarded
 ZERO=0x0000000000000000000000000000000000000000
 PAYEE_VIEW="payeeOf(uint64)((string,address,address,address,uint64,address,uint64,uint64,uint8,uint8,bytes32))"
 
@@ -66,6 +70,8 @@ main() {
   # Bayside's business key is a throwaway address whose key is never kept (only the address leaves jq), so nobody
   # can change this fixture.
   register "$BAYSIDE_T_NUMBER" "$BAYSIDE_NAME" "$(cast wallet new --json | jq -r '.[0].address')" "$BAYSIDE_PAYOUT"
+  # Minato's business key is also a throwaway address: this fixture is paid over x402, never through /change.
+  register "$MINATO_T_NUMBER" "$MINATO_NAME" "$(cast wallet new --json | jq -r '.[0].address')" "$MINATO_PAYOUT"
 
   balance=$(cast call "$TOKEN" "balanceOf(address)(uint256)" "$VAULT" --rpc-url "$RPC" | awk '{print $1}')
   if [ "$(cast from-wei "$balance" | cut -d. -f1)" -ge 4000000 ]; then
@@ -85,6 +91,7 @@ main() {
 
   echo "payoutOf(T$T_NUMBER) = $(cast call "$REGISTRY" "payoutOf(uint64)(address)" "$T_NUMBER" --rpc-url "$RPC")"
   echo "payoutOf(T$BAYSIDE_T_NUMBER) = $(cast call "$REGISTRY" "payoutOf(uint64)(address)" "$BAYSIDE_T_NUMBER" --rpc-url "$RPC"), vault vendor payout $(vendor_payout "$BAYSIDE_T_NUMBER") (zero: not approved)"
+  echo "payoutOf(T$MINATO_T_NUMBER) = $(cast call "$REGISTRY" "payoutOf(uint64)(address)" "$MINATO_T_NUMBER" --rpc-url "$RPC")"
   echo "vault balance = $(cast call "$TOKEN" "balanceOf(address)(uint256)" "$VAULT" --rpc-url "$RPC")"
 }
 
