@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
-import { getAddress, isAddress } from 'viem'
+import { getAddress } from 'viem'
 import type { IntentAction } from '../../lib/api/verifier'
+import { addressProblem } from '../../lib/chain/addressInput'
 import type { PayeeSnapshot } from '../../lib/chain/registry'
 import { Button } from '../../ui/components/Button'
 import { TextField } from '../../ui/components/Field'
@@ -45,7 +46,8 @@ const OPTIONS: readonly Option[] = [
 
 function addressError(option: Option, value: string, payee: PayeeSnapshot): string | null {
   if (!option.needsAddress) return null
-  if (!isAddress(value.trim())) return 'Enter a 0x address (42 characters).'
+  const problem = addressProblem(value)
+  if (problem) return problem
   const current = option.action === 'PayoutChange' ? payee.payout : payee.controller
   if (current && getAddress(value.trim()) === current) return 'That is already the current address.'
   return null

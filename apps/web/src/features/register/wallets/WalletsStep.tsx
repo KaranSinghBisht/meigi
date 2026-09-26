@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react'
-import { getAddress, isAddress, zeroAddress } from 'viem'
+import { getAddress, zeroAddress } from 'viem'
+import { addressProblem } from '../../../lib/chain/addressInput'
 import { useWallet } from '../../../lib/chain/WalletContext'
 import type { HexAddress } from '../../../lib/env/env'
 import { Address } from '../../../ui/components/Address'
@@ -25,11 +26,8 @@ function parsePasted(
 ): { address: HexAddress | null; problem: string | null } {
   const trimmed = value.trim()
   if (trimmed === '') return { address: null, problem: null }
-  if (!isAddress(trimmed)) {
-    const mixedCase = /[a-f]/.test(trimmed) && /[A-F]/.test(trimmed)
-    const problem = mixedCase ? "The checksum doesn't match: check it for a typo." : 'Enter a 0x address (42 characters).'
-    return { address: null, problem }
-  }
+  const problem = addressProblem(trimmed)
+  if (problem) return { address: null, problem }
   const address = getAddress(trimmed)
   if (address === zeroAddress) return { address: null, problem: "That's the zero address." }
   if (unbacked.some((item) => getAddress(item) === address)) {
