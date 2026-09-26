@@ -10,9 +10,9 @@ area.
   benchmark and fine-tuning, the AP agent service and the web app.
 - Every brief and every later instruction the lead session gave to the agents that built, reviewed or documented the
   project is committed verbatim in [`docs/ai/briefs`](docs/ai/briefs). Real people's names are redacted, marked
-  `[redacted: name]`. Five agents that only prepared private pitch notes for the team (a briefing, a judge critique,
-  judge research, a Q&A sheet, a pitch document) are listed there by name, but their briefs aren't published. The
-  specs are in `docs/`.
+  `[redacted: name]`. Eight agents that only prepared private notes for the team (a briefing, a judge critique,
+  judge and speaker research, live event notes, talk transcripts, a Q&A sheet, a pitch document, and drafts of this
+  disclosure) are listed there by name, but their briefs aren't published. The specs are in `docs/`.
 - AI-assisted commits carry a `Co-Authored-By: Claude` trailer, except 32 made between 13:50 and 16:14 JST on
   Sep 26.
 - **OpenAI Codex** made one revision to the landing's garden (`packages/scene` planting and materials), run by
