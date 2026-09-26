@@ -105,7 +105,7 @@ export const chapter0: ChapterDef = {
   title: 'Company joins',
   duration: 24,
   captions: [
-    { at: 0, text: 'Verify once: a company binds its registry number to one payout.' },
+    { at: 0, text: 'Register once: a company binds its registry number to one payout.' },
     { at: 4.6, text: 'One key controls the record; a separate wallet only receives.' },
     { at: 8.9, text: 'Real companies also prove their domain and enroll World ID officers; this demo company is labelled.' },
     { at: 14.8, text: `One registration on Sepolia, and ${ONBOARD.ens} resolves to that payout.` },

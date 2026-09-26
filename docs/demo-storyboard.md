@@ -47,7 +47,7 @@ shows the two steps it couldn't really do the way the record has them.
 
 | t | Browser | Registry panel | Caption |
 |---|---|---|---|
-| 0:00 | `meigi…/register`, step 1: `T2011001234567` is typed; the legal name 株式会社メイギ商事 fills in (labelled "Fictional demo company", as the real wizard labels it) and the payee name `t2011001234567.payee.eth` appears live | T-number and ENS name rows | "Verify once: a company binds its registry number to one payout." |
+| 0:00 | `meigi…/register`, step 1: `T2011001234567` is typed; the legal name 株式会社メイギ商事 fills in (labelled "Fictional demo company", as the real wizard labels it) and the payee name `t2011001234567.payee.eth` appears live | T-number and ENS name rows | "Register once: a company binds its registry number to one payout." |
 | 0:05 | Step 2: "Connect wallet" → business wallet `0xc33a…4638`; "Create a new payout wallet" → `0x9B4f…47e4` | Business wallet and payout rows | "One key controls the record; a separate wallet only receives." |
 | 0:09 | Step 3, "No domain to prove": "Demo companies skip this step", as the real wizard does | Domain · skipped (fictional demo company) | "Real companies also prove their domain and enroll World ID officers; this demo company is labelled." |
 | 0:12 | Step 4: the record's placeholder officer `0xe221…a3ad`, which no one can prove, so no one can change the payout; real companies enroll World ID officers here | Officers · placeholder officer (demo company) | — |
@@ -115,7 +115,7 @@ the run itself; its settlements also land in the chain log. The chapter's last s
 The card holds until the loop cuts back to chapter 0. Every chapter opens on a fully drawn frame, so a chapter chip
 pressed while paused always shows its stage.
 
-"**Pay companies, not addresses.**" Meigi: a company's official registry number, bound to one payout, verified once
+"**Pay companies, not addresses.**" Meigi: a company's official registry number, bound to one payout, registered once
 and checked on every payment, by people and by agents. Links: the live app, `t2011001234567.payee.eth`, GitHub.
 
 ## Build notes

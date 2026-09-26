@@ -52,7 +52,7 @@ export function EndCard() {
         <HankoMark size={56} />
         <h2 className="dend__title">Pay companies, not addresses.</h2>
         <p className="dend__text">
-          Meigi binds a company&apos;s official registry number to one payout: verified once, and checked on every
+          Meigi binds a company&apos;s official registry number to one payout: registered once, and checked on every
           payment, by people and by agents.
         </p>
         <p className="dend__links">
