@@ -4,7 +4,8 @@ import { bodyLimit } from "hono/body-limit";
 import type { Address, Hex } from "viem";
 import { z } from "zod";
 import type { PayCall, SignerPayer } from "./payer.js";
-import { approvalRefusal, type Policy } from "./policy.js";
+import { approvalRefusal, ceilingRule, type Approval, type Policy } from "./policy.js";
+import type { ApprovalVerifier } from "./verify.js";
 
 /**
  * The signer's HTTP API, for the AP agent on localhost only. Typed fields in, never calldata: the signer builds
@@ -17,6 +18,7 @@ export interface SignerInfo {
   vault: Address;
   chainId: number;
   humanAboveYen: number;
+  verifiesApproval?: boolean; // Phase 2 is on
 }
 
 export interface SignerDeps {
@@ -24,6 +26,20 @@ export interface SignerDeps {
   policy: Policy;
   token: string;
   info: SignerInfo;
+  verifier?: ApprovalVerifier | undefined; // Phase 2 (SIGNER_VERIFY_APPROVAL=1); Phase 1 without it
+}
+
+type Gate = { ok: true; approverId?: string } | { ok: false; reason: string };
+
+/** Whether a payment may be signed. Phase 1 reads the approval's claims; Phase 2 verifies it, approver and all. */
+async function gate(deps: SignerDeps, amount: bigint, approval: Approval | undefined, invoiceRef: Hex): Promise<Gate> {
+  if (!deps.verifier || amount <= deps.policy.ceilingUnits) {
+    const refusal = approvalRefusal(amount, approval, deps.policy);
+    return refusal ? { ok: false, reason: refusal } : { ok: true };
+  }
+  if (!approval) return { ok: false, reason: ceilingRule(deps.policy) };
+  const verdict = await deps.verifier.verify(approval.idToken, invoiceRef);
+  return verdict.ok ? { ok: true, approverId: verdict.approverId } : { ok: false, reason: `${ceilingRule(deps.policy)}, and the one presented ${verdict.reason}` };
 }
 
 const call = z
@@ -69,12 +85,14 @@ export function createSignerApp(deps: SignerDeps) {
     const body = await parse(c, pay);
     if (!body) return invalid(c);
     const signer = deps.info.agent;
-    const refusal = approvalRefusal(BigInt(body.amount), body.approval, deps.policy);
-    if (refusal) return c.json({ code: "human_approval_required", message: `The signer refused: ${refusal}.`, signer }, 403);
+    const allowed = await gate(deps, BigInt(body.amount), body.approval, body.invoiceRef as Hex);
+    if (!allowed.ok) return c.json({ code: "human_approval_required", message: `The signer refused: ${allowed.reason}.`, signer }, 403);
     const sent = await deps.payer.send(payCall(body));
     if (!sent.ok) return c.json({ ok: false, revert: sent.revert, signer }); // the in-lock simulation reverted
     const simulation = sent.payout ? { ok: true, payout: sent.payout } : null; // null: the tx already in flight
-    return c.json({ ok: true, txHash: sent.txHash, signer, simulation });
+    if (!allowed.approverId || !body.approval) return c.json({ ok: true, txHash: sent.txHash, signer, simulation });
+    deps.verifier?.spend(body.approval.idToken, body.invoiceRef as Hex);
+    return c.json({ ok: true, txHash: sent.txHash, signer, simulation, approval: { verified: true, approverId: allowed.approverId } });
   });
 
   app.get("/receipt/:txHash", async (c) => {

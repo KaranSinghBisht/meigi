@@ -20,7 +20,16 @@ const schema = z.object({
   SIGNER_APPROVAL_MAX_AGE_S: z.coerce.number().int().positive().default(600), // how fresh that approval must be
   WORLD_AGENTS_ISSUER: z.string().optional(), // when set, an approval must come from this issuer
   WORLD_AGENTS_CLIENT_ID: z.string().optional(), // and be for this client
+  // Phase 2 (1): the signer verifies an approval's signature, approver and single use itself. 0: Phase 1, claims only.
+  SIGNER_VERIFY_APPROVAL: z.enum(["0", "1"]).default("0"),
+  WORLD_AGENTS_APPROVERS: z.string().default(""), // Phase 2: the pinned approvers, as the agent reads them
+  WORLD_AGENTS_APPROVERS_PATH: z.string().default("../../data/agent/approvers.json"), // and the agent's enrolled ones
 });
+
+const secureOrLoopback = (value: string) => {
+  const { protocol, hostname } = new URL(value);
+  return protocol === "https:" || (protocol === "http:" && ["127.0.0.1", "localhost", "[::1]"].includes(hostname));
+};
 
 export type Config = z.infer<typeof schema>;
 
@@ -30,7 +39,18 @@ export class ConfigError extends Error {
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const parsed = schema.safeParse(env);
-  if (parsed.success) return parsed.data;
-  const problems = parsed.error.issues.map((issue) => `${issue.path.join(".") || "config"}: ${issue.message}`);
-  throw new ConfigError(problems.join("; "));
+  if (!parsed.success) {
+    const problems = parsed.error.issues.map((issue) => `${issue.path.join(".") || "config"}: ${issue.message}`);
+    throw new ConfigError(problems.join("; "));
+  }
+  const config = parsed.data;
+  if (config.SIGNER_VERIFY_APPROVAL === "1") {
+    if (!config.WORLD_AGENTS_ISSUER || !config.WORLD_AGENTS_CLIENT_ID) {
+      throw new ConfigError("SIGNER_VERIFY_APPROVAL=1 needs WORLD_AGENTS_ISSUER and WORLD_AGENTS_CLIENT_ID");
+    }
+    if (!URL.canParse(config.WORLD_AGENTS_ISSUER) || !secureOrLoopback(config.WORLD_AGENTS_ISSUER)) {
+      throw new ConfigError("WORLD_AGENTS_ISSUER: must be https (http only on loopback, for a local mock IdP)");
+    }
+  }
+  return config;
 }

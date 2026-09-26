@@ -3,9 +3,10 @@ import { decodeJwt } from "jose";
 /**
  * The signer's own rule, whatever the agent decided: a payment above the ceiling needs a verified human's approval.
  *
- * Phase 1 checks the approval the agent forwards (a World ID for Agents ID token): present, an Orb-level World ID,
- * made within the last `maxAgeS` seconds, and from the configured issuer and client. It does not yet verify the
- * token's signature or the approver: the agent does both today; Phase 2 moves them here.
+ * Phase 1 (SIGNER_VERIFY_APPROVAL=0) checks the approval the agent forwards (a World ID for Agents ID token):
+ * present, an Orb-level World ID, made within the last `maxAgeS` seconds, and from the configured issuer and client.
+ * It trusts the agent to have verified the token's signature and the approver. Phase 2 (verify.ts) checks those
+ * here too, and spends each approval on one payment.
  */
 
 export const ORB_ACR = "https://world.org/oidc/acr/orb-v3";
@@ -24,10 +25,15 @@ export interface Policy {
   clientId?: string | undefined;
 }
 
-/** Why this payment may not be signed, or null when it may. */
+/** "a payment above ¥150,000 needs a verified human's approval": the start of every refusal. */
+export function ceilingRule(policy: Pick<Policy, "ceilingYen">): string {
+  return `a payment above ¥${policy.ceilingYen.toLocaleString("en-US")} needs a verified human's approval`;
+}
+
+/** Phase 1: why this payment may not be signed, or null when it may. */
 export function approvalRefusal(amount: bigint, approval: Approval | undefined, policy: Policy): string | null {
   if (amount <= policy.ceilingUnits) return null;
-  const above = `a payment above ¥${policy.ceilingYen.toLocaleString("en-US")} needs a verified human's approval`;
+  const above = ceilingRule(policy);
   if (!approval) return above;
   let claims: Record<string, unknown>;
   try {

@@ -1,4 +1,4 @@
-import { createSignerApp, ORB_ACR, type PayCall as SignerCall, type SignerPayer } from "@meigi/signer";
+import { createSignerApp, ORB_ACR, type ApprovalVerifier, type PayCall as SignerCall, type SignerPayer } from "@meigi/signer";
 import { encodeErrorResult, type Address, type Hex } from "viem";
 import { agentVaultAbi } from "@meigi/abi";
 import { describe, expect, it } from "vitest";
@@ -13,7 +13,7 @@ const SIGNER_KEY = "0xa73b6418AadCd5C548eEfF828C31081cAe7FBA68";
 const REF = `0x${"ab".repeat(32)}` as Hex;
 
 /** The real signer app over a fake chain, reached through the remote payer's own fetch: the wire protocol, end to end. */
-function setup(overrides: Partial<SignerPayer> = {}) {
+function setup(overrides: Partial<SignerPayer> = {}, verifier?: ApprovalVerifier) {
   const sent: SignerCall[] = [];
   const events: { event: string; fields: Record<string, unknown> }[] = [];
   let mined = false;
@@ -28,6 +28,7 @@ function setup(overrides: Partial<SignerPayer> = {}) {
     token: TOKEN,
     policy: { ceilingUnits: 150_000n * 10n ** 18n, ceilingYen: 150_000, maxAgeS: 600, now: () => NOW },
     info: { agent: SIGNER_KEY, vault: "0x87A798CD92dE1340B1b761dd45196AC82bEF793B", chainId: 11155111, humanAboveYen: 150_000 },
+    verifier,
   });
   const fetcher = ((input: string, init?: RequestInit) => app.request(input.replace("http://127.0.0.1:8796", ""), init)) as typeof fetch;
   let polls = 0;
@@ -117,6 +118,12 @@ describe("the signer's exchanges, as the audit log gets them", () => {
     const reverting = setup({ send: async () => ({ ok: false, revert: { data } }) });
     await reverting.remote.send(call(33_000));
     expect(reverting.events).toEqual([{ event: "signer.pay", fields: { ...call33k, outcome: "reverted", simulation: { ok: false, revert: "InvoiceAlreadyPaid" } } }]);
+  });
+
+  it("records that the signer verified the approval itself (Phase 2), and whose it was", async () => {
+    const { remote, events } = setup({}, { verify: async () => ({ ok: true, approverId: "0123456789abcdef" }), spend: () => {} });
+    await remote.send(call(160_000, { idToken: idToken({ acr: ORB_ACR, auth_time: NOW - 5 }) }));
+    expect(events[0]?.fields).toMatchObject({ outcome: "sent", approval: true, approvalVerified: true, approverId: "0123456789abcdef" });
   });
 
   it("records a send the signer never answered, since it may have signed", async () => {

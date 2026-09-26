@@ -1,3 +1,5 @@
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { agentVaultAbi } from "@meigi/abi";
 import { createPublicClient, createWalletClient, erc20Abi, getAddress, http, type Address, type Chain, type Hex, type PublicClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
@@ -5,6 +7,10 @@ import { foundry, sepolia } from "viem/chains";
 import { createSignerApp } from "./app.js";
 import type { Config } from "./config.js";
 import { createPayer } from "./payer.js";
+import { approversFrom, createApprovalVerifier, type ApprovalVerifier } from "./verify.js";
+
+/** services/signer: relative paths in the config resolve here, whatever the working directory. */
+const PACKAGE_DIR = fileURLToPath(new URL("..", import.meta.url));
 
 export class RoleError extends Error {
   override readonly name = "RoleError";
@@ -13,6 +19,25 @@ export class RoleError extends Error {
 export interface StartedSigner {
   app: ReturnType<typeof createSignerApp>;
   agent: Address;
+  verifiesApproval: boolean;
+}
+
+export interface StartOptions {
+  now?: () => number; // unix seconds
+  fetch?: typeof fetch; // for the World ID provider's discovery and keys (tests)
+}
+
+/** Phase 2's verifier, when SIGNER_VERIFY_APPROVAL=1 (loadConfig has checked the issuer and client are set). */
+function verifierFor(config: Config, now: () => number, fetcher?: typeof fetch): ApprovalVerifier | undefined {
+  if (config.SIGNER_VERIFY_APPROVAL !== "1" || !config.WORLD_AGENTS_ISSUER || !config.WORLD_AGENTS_CLIENT_ID) return undefined;
+  return createApprovalVerifier({
+    issuer: config.WORLD_AGENTS_ISSUER,
+    clientId: config.WORLD_AGENTS_CLIENT_ID,
+    isApprover: approversFrom(config.WORLD_AGENTS_APPROVERS, resolve(PACKAGE_DIR, config.WORLD_AGENTS_APPROVERS_PATH)),
+    maxAgeS: config.SIGNER_APPROVAL_MAX_AGE_S,
+    now,
+    ...(fetcher ? { fetch: fetcher } : {}),
+  });
 }
 
 function chainFor(chainId: number): Chain {
@@ -25,7 +50,8 @@ function chainFor(chainId: number): Chain {
  * Builds the signer from its configuration, after checking on-chain that its key is the vault's agent and not the
  * owner (the owner may pay an invoice twice). Reads the token's decimals to turn the yen ceiling into units.
  */
-export async function startSigner(config: Config, now: () => number = () => Math.floor(Date.now() / 1000)): Promise<StartedSigner> {
+export async function startSigner(config: Config, options: StartOptions = {}): Promise<StartedSigner> {
+  const now = options.now ?? (() => Math.floor(Date.now() / 1000));
   const chain = chainFor(config.CHAIN_ID);
   const transport = http(config.SEPOLIA_RPC_URL, { timeout: 15_000 });
   const account = privateKeyToAccount(config.AGENT_PRIVATE_KEY as Hex);
@@ -40,6 +66,7 @@ export async function startSigner(config: Config, now: () => number = () => Math
   if (getAddress(account.address) === getAddress(owner)) throw new RoleError("AGENT_PRIVATE_KEY is the vault owner's key; the signer holds the agent key only");
   if (getAddress(account.address) !== getAddress(agent)) throw new RoleError(`AGENT_PRIVATE_KEY is ${account.address}, but the vault's agent is ${agent}`);
   const decimals = await publicClient.readContract({ address: token, abi: erc20Abi, functionName: "decimals" });
+  const verifier = verifierFor(config, now, options.fetch);
   const app = createSignerApp({
     payer: createPayer({ publicClient, walletClient, vault: vault.address }),
     token: config.SIGNER_TOKEN,
@@ -51,7 +78,8 @@ export async function startSigner(config: Config, now: () => number = () => Math
       issuer: config.WORLD_AGENTS_ISSUER,
       clientId: config.WORLD_AGENTS_CLIENT_ID,
     },
-    info: { agent: account.address, vault: vault.address, chainId: config.CHAIN_ID, humanAboveYen: config.SIGNER_HUMAN_ABOVE_YEN },
+    info: { agent: account.address, vault: vault.address, chainId: config.CHAIN_ID, humanAboveYen: config.SIGNER_HUMAN_ABOVE_YEN, verifiesApproval: verifier !== undefined },
+    verifier,
   });
-  return { app, agent: account.address };
+  return { app, agent: account.address, verifiesApproval: verifier !== undefined };
 }

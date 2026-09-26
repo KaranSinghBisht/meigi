@@ -10,9 +10,20 @@ This small process holds the AgentVault's agent key and signs one call for it: `
 - **Its own rule, whatever the agent decided.** Above `SIGNER_HUMAN_ABOVE_YEN` (¥150,000), it signs only with a World ID
   for Agents approval: an Orb-level ID token, at most `SIGNER_APPROVAL_MAX_AGE_S` (10 minutes) old, from the
   configured issuer and client. The agent forwards the approving token once, when a verified human has released the
-  hold.
-  - Phase 1 (today) reads the token's claims.
-  - Phase 2 will also verify its signature against the IdP's keys, and the approver, here.
+  hold. Below the ceiling the agent's word is enough; the booth's ¥55,000 approval is the agent's own hold.
+  - Phase 1 (`SIGNER_VERIFY_APPROVAL=0`, the default) reads the token's claims and trusts the agent to have checked
+    the rest.
+  - Phase 2 (`SIGNER_VERIFY_APPROVAL=1`, needs `WORLD_AGENTS_ISSUER` and `WORLD_AGENTS_CLIENT_ID`) checks everything
+    itself, and refuses on the first failure:
+    - the token's RS256 signature, against the provider's keys from its discovery document (same origin, no
+      redirects);
+    - the approver: a subject in `WORLD_AGENTS_APPROVERS` or enrolled in the agent's `data/agent/approvers.json`,
+      which it reads but never writes;
+    - single use: once the payment it approved is sent, it approves no other invoice.
+  - Keys that can't be fetched fail closed. `/health` says which phase is on (`verifiesApproval`). The kill switch
+    is the variable, and a restart: `SIGNER_VERIFY_APPROVAL=1 scripts/ap-stack.sh`.
+  - Spent approvals are kept in memory for their 10-minute window, so a signer restart forgets them. The agent also
+    spends each approval once.
 - **Localhost and a shared secret.** It listens on 127.0.0.1:8796 only. Every route but `/health` needs
   `Authorization: Bearer <SIGNER_TOKEN>`, compared in constant time.
 - **The right key.** At startup it checks on-chain that its key is the vault's agent and not the owner (the owner may
@@ -20,9 +31,9 @@ This small process holds the AgentVault's agent key and signs one call for it: `
 
 | Method | Path | Body | Returns |
 |---|---|---|---|
-| GET | `/health` | | `{ ok, agent, vault, chainId, humanAboveYen }` (no token) |
+| GET | `/health` | | `{ ok, agent, vault, chainId, humanAboveYen, verifiesApproval }` (no token) |
 | POST | `/simulate` | `{ tNumber, payout, amount, invoiceRef }` | `{ ok: true, payout, signer }` or `{ ok: false, revert: { data }, signer }` |
-| POST | `/pay` | the same, plus `approval?: { idToken }` | `{ ok: true, txHash, signer, simulation }` as soon as it's broadcast, `{ ok: false, revert, signer }`, or `403 human_approval_required` |
+| POST | `/pay` | the same, plus `approval?: { idToken }` | `{ ok: true, txHash, signer, simulation, approval? }` as soon as it's broadcast (`approval: { verified, approverId }` when Phase 2 verified one), `{ ok: false, revert, signer }`, or `403 human_approval_required` |
 | GET | `/receipt/:txHash` | | `{ receipt: { txHash, status, blockNumber } \| null }` |
 
 A revert comes back as raw data, which the agent decodes against the Meigi ABIs. A chain failure is a generic `502`.

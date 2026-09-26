@@ -43,7 +43,11 @@ const revert = z.union([z.object({ data: z.string().regex(/^0x[0-9a-fA-F]*$/u) }
 const named = { signer: z.string().regex(/^0x[0-9a-fA-F]{40}$/u).optional() }; // the signing key, as the signer names it
 const simulated = z.union([z.object({ ok: z.literal(true), payout: z.string(), ...named }), z.object({ ok: z.literal(false), revert, ...named })]);
 const inLock = z.object({ ok: z.literal(true), payout: z.string() }).nullable().optional(); // null: a tx already in flight
-const sent = z.union([z.object({ ok: z.literal(true), txHash: z.string(), simulation: inLock, ...named }), z.object({ ok: z.literal(false), revert, ...named })]);
+const verified = z.object({ verified: z.literal(true), approverId: z.string().regex(/^[0-9a-f]{16}$/u) }).optional(); // Phase 2
+const sent = z.union([
+  z.object({ ok: z.literal(true), txHash: z.string(), simulation: inLock, approval: verified, ...named }),
+  z.object({ ok: z.literal(false), revert, ...named }),
+]);
 const receipt = z.object({
   receipt: z.object({ txHash: z.string(), status: z.enum(["success", "reverted"]), blockNumber: z.string().regex(/^\d+$/u) }).nullable(),
 });
@@ -139,7 +143,9 @@ export function createRemotePayer(opts: RemotePayerOptions): RemotePayer {
         return { ok: false, revert: reverted };
       }
       const txHash = r.data.txHash as Hex;
-      note("signer.pay", { ...about(call, r.data.signer), outcome: "sent", txHash, simulation: r.data.simulation ?? null });
+      // With Phase 2 on, the signer verified the approval itself, and says whose it was (the agent logs the same id).
+      const approver = r.data.approval ? { approvalVerified: true, approverId: r.data.approval.approverId } : {};
+      note("signer.pay", { ...about(call, r.data.signer), outcome: "sent", txHash, simulation: r.data.simulation ?? null, ...approver });
       onSent?.(txHash);
       const deadline = Date.now() + (opts.receiptTimeoutMs ?? 120_000);
       while (Date.now() < deadline) {

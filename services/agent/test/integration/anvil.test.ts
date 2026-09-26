@@ -15,7 +15,7 @@ import { loadConfig } from "../../src/config.js";
 import { invoiceRefOf } from "../../src/kernel/intent.js";
 import { buildDeps } from "../../src/wiring.js";
 import { demo, FakeTriage, MEIGI_PAYOUT, routineTriage, SCAMMER, yen } from "../fakes.js";
-import { approvalHarness, approvedWith, denied, type Harness } from "../mock-idp.js";
+import { approvalHarness, approvedWith, CLIENT_ID, denied, ISSUER, type Harness } from "../mock-idp.js";
 
 /**
  * The whole path on real contracts: forge deploys Deploy.s.sol to a fresh anvil, the attester registers the
@@ -40,8 +40,16 @@ describe.skipIf(!hasFoundry())("agent against the real contracts on anvil", () =
     if (stack.anvil.note) process.stderr.write(`[integration] ${stack.anvil.note}\n`);
     cacheDir = mkdtempSync(join(tmpdir(), "meigi-agent-it-"));
     human = await approvalHarness();
-    const signerConfig = loadSignerConfig(signerEnv(stack, { port: 8799, token: SIGNER_TOKEN, humanAboveYen: CEILING_YEN }));
-    const started = await startSigner(signerConfig, () => human.idp.clock.now); // the mock IdP's clock dates its proofs
+    // Phase 2: the signer verifies approvals itself, against the mock IdP's keys; its approver is the mock's human.
+    const signerConfig = loadSignerConfig({
+      ...signerEnv(stack, { port: 8799, token: SIGNER_TOKEN, humanAboveYen: CEILING_YEN }),
+      SIGNER_VERIFY_APPROVAL: "1",
+      WORLD_AGENTS_ISSUER: ISSUER,
+      WORLD_AGENTS_CLIENT_ID: CLIENT_ID,
+      WORLD_AGENTS_APPROVERS: "human-1",
+      WORLD_AGENTS_APPROVERS_PATH: join(cacheDir, "no-enrolled-approvers.json"),
+    });
+    const started = await startSigner(signerConfig, { now: () => human.idp.clock.now, fetch: human.idp.fetch }); // the mock IdP's clock dates its proofs
     signer = await new Promise<ServerType>((resolve) => {
       const server = serve({ fetch: started.app.fetch, port: 0, hostname: "127.0.0.1" }, () => resolve(server));
     });
@@ -194,21 +202,35 @@ describe.skipIf(!hasFoundry())("agent against the real contracts on anvil", () =
     expect(event?.args).toMatchObject({ payout: MEIGI_PAYOUT, amount: yen(55_000), invoiceRef: invoiceRefOf("2011001234567", "MS-2026-0931") });
   });
 
-  it("the signer's own ceiling: above it, nothing is signed without a fresh human approval", async () => {
+  const signerPay = async (body: Record<string, unknown>) => {
+    const res = await fetch(`${signerUrl}/pay`, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${SIGNER_TOKEN}` }, body: JSON.stringify(body) });
+    return { status: res.status, body: (await res.json()) as Record<string, any> };
+  };
+
+  it("the signer's own ceiling: above it, nothing is signed without an approval it verifies itself", async () => {
     const before = await agentNonce();
-    const pay = async (body: Record<string, unknown>) => {
-      const res = await fetch(`${signerUrl}/pay`, { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${SIGNER_TOKEN}` }, body: JSON.stringify(body) });
-      return { status: res.status, body: (await res.json()) as Record<string, any> };
-    };
     const over = { tNumber: "2011001234567", payout: SCAMMER, amount: yen(250_000).toString(), invoiceRef: invoiceRefOf("2011001234567", "MS-2026-9999") };
-    expect(await pay(over)).toMatchObject({ status: 403, body: { code: "human_approval_required" } });
-    // With a fresh Orb-level approval the ceiling lifts, and the chain has the last word: this payout is wrong.
-    const idToken = await human.idp.sign({ auth_time: human.idp.clock.now });
-    const approved = await pay({ ...over, approval: { idToken } });
+    expect(await signerPay(over)).toMatchObject({ status: 403, body: { code: "human_approval_required" } });
+    const refusal = async (idToken: string) => (await signerPay({ ...over, approval: { idToken } })).body.message as string;
+    const now = human.idp.clock.now;
+    expect(await refusal(await human.idp.sign({ auth_time: now }, { key: human.idp.otherKey }))).toMatch(/is not signed by the World ID provider\.$/u);
+    expect(await refusal(await human.idp.sign({ auth_time: now, sub: "someone-else" }))).toMatch(/is from someone who is not an approver\.$/u);
+    // A genuine, fresh approval lifts the ceiling, and the chain has the last word: this payout is wrong.
+    const approved = await signerPay({ ...over, approval: { idToken: await human.idp.sign({ auth_time: now }) } });
     expect(approved).toMatchObject({ status: 200, body: { ok: false, revert: { data: expect.stringMatching(/^0x/u) } } });
-    expect(await agentNonce()).toBe(before); // nothing was sent either time
+    expect(await agentNonce()).toBe(before); // nothing was sent
     const unauthorized = await fetch(`${signerUrl}/pay`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(over) });
     expect(unauthorized.status).toBe(401);
+  });
+
+  it("signs above its ceiling with a verified approval, and spends it on that one payment", async () => {
+    const idToken = await human.idp.sign({ auth_time: human.idp.clock.now });
+    const large = { tNumber: "2011001234567", payout: MEIGI_PAYOUT, amount: yen(250_000).toString(), invoiceRef: invoiceRefOf("2011001234567", "MS-2026-9998") };
+    const signed = await signerPay({ ...large, approval: { idToken } });
+    expect(signed).toMatchObject({ status: 200, body: { ok: true, approval: { verified: true, approverId: expect.stringMatching(/^[0-9a-f]{16}$/u) } } });
+    expect((await reader.waitForTransactionReceipt({ hash: signed.body.txHash as Hex })).status).toBe("success");
+    const again = await signerPay({ ...large, invoiceRef: invoiceRefOf("2011001234567", "MS-2026-9997"), approval: { idToken } });
+    expect(again).toMatchObject({ status: 403, body: { message: expect.stringMatching(/was already spent on another payment\.$/u) } });
   });
 
   it("the audit chain covers the signing step: which key signed, and what its simulation returned", async () => {
@@ -238,14 +260,14 @@ describe.skipIf(!hasFoundry())("agent against the real contracts on anvil", () =
   it("GET /vault reads the live vault", async () => {
     const res = await app.request("/vault");
     const vault = (await res.json()) as Record<string, any>;
-    expect(vault).toMatchObject({ agentAuthorized: true, paused: false, balance: { display: "¥4,813,000" }, token: { symbol: "mJPYC" } });
+    expect(vault).toMatchObject({ agentAuthorized: true, paused: false, balance: { display: "¥4,563,000" }, token: { symbol: "mJPYC" } });
     expect(vault.vendors[0]).toMatchObject({
       tNumber: "T2011001234567",
       approved: true,
       active: true,
       payoutChanged: false,
-      spentInPeriod: "¥187,000",
-      remainingInPeriod: "¥813,000",
+      spentInPeriod: "¥437,000", // 01, 07 and the ¥250,000 the signer paid on a verified approval
+      remainingInPeriod: "¥563,000",
     });
     expect(vault.vendors[1]).toMatchObject({ tNumber: "T3999905000001", status: "active", approved: false });
   });

@@ -1,7 +1,7 @@
 import type { Address, Hex } from "viem";
 import { describe, expect, it } from "vitest";
 import { createSignerApp } from "../src/app.js";
-import type { PayCall, Receipt, Revert, SignerPayer } from "../src/payer.js";
+import type { PayCall, Receipt, Revert, Sent, SignerPayer } from "../src/payer.js";
 import { loadConfig } from "../src/config.js";
 import { ORB_ACR } from "../src/policy.js";
 
@@ -31,7 +31,7 @@ class FakePayer implements SignerPayer {
     this.simulated.push(call);
     return this.revert ? { ok: false as const, revert: this.revert } : { ok: true as const, payout: MEIGI as Address };
   }
-  async send(call: PayCall) {
+  async send(call: PayCall): Promise<Sent> {
     if (this.revert) return { ok: false as const, revert: this.revert };
     this.sent.push(call);
     return { ok: true as const, txHash: TX, payout: MEIGI as Address };
