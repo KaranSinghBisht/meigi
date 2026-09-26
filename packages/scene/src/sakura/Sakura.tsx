@@ -7,6 +7,7 @@ import type { Station } from '../types'
 import { PetalField } from './petalField'
 import { createPetalGeometry } from './petalGeometry'
 import { createPetalMaterial } from './petalMaterial'
+import { frameClock } from '../shared/frameClock'
 
 const PETAL_COUNT = 250
 const BURST_PETALS = 80
@@ -67,10 +68,10 @@ export function Sakura({ station, animate }: SakuraProps) {
     if (mesh.current) field.write(mesh.current, time.current)
   }, [field, pose])
 
-  useFrame((_, delta) => {
+  useFrame(() => {
     const petals = mesh.current
     if (!animate || !petals) return
-    const dt = Math.min(delta, 0.05)
+    const dt = frameClock.dt
     time.current += dt
     stepPetals(field, petals, time.current, dt)
   }, FRAME.animate)

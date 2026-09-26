@@ -1,5 +1,6 @@
 import { useFrame } from '@react-three/fiber'
 import { FRAME, sceneBus, type MoodLevels } from './sceneBus'
+import { frameClock } from './frameClock'
 
 const TINT_SECONDS = 0.7
 const GUST_SECONDS = 1.8
@@ -21,13 +22,13 @@ function isMoving(mood: MoodLevels): boolean {
  * approaches its target. Under reduced motion they snap to their end state.
  */
 export function MoodDriver({ animate }: { readonly animate: boolean }) {
-  useFrame((_, delta) => {
+  useFrame(() => {
     const mood = sceneBus.mood
     if (!animate) {
       settle(mood)
       return
     }
-    const dt = Math.min(delta, 0.1)
+    const dt = frameClock.dt
     mood.tint *= Math.exp(-dt / TINT_SECONDS)
     mood.gust *= Math.exp(-dt / GUST_SECONDS)
     mood.mist += (mood.mistTarget - mood.mist) * (1 - Math.exp(-dt / MIST_SECONDS))

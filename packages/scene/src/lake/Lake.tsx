@@ -10,6 +10,7 @@ import { RippleSim, type SimSources } from './rippleSim'
 import { createSimMapping, mappingUniform, mappingView, type SimMapping } from './simMapping'
 import { dropCentreRipples, usePointerWater } from './usePointerWater'
 import { createWaterMaterial, createWaterUniforms, type WaterUniforms } from './waterMaterial'
+import { frameClock } from '../shared/frameClock'
 
 const SIM_SIZE = 512
 const DEG = Math.PI / 180
@@ -88,11 +89,11 @@ export function Lake({ station, animate, interactive }: LakeProps) {
   const mapping = useLakeViewport(sim, reflector, uniforms, station)
   usePointerWater(mapping, SIM_SIZE, animate && interactive)
 
-  useFrame((_, delta) => {
+  useFrame(() => {
     if (animate) {
       dropCentreRipples(camera, mapping, SIM_SIZE)
-      sim.step(gl, Math.min(delta, 0.1), takeSources)
-      uniforms.uTime.value += Math.min(delta, 0.1)
+      sim.step(gl, frameClock.dt, takeSources)
+      uniforms.uTime.value += frameClock.dt
     } else {
       sceneBus.takeCenterRipples()
     }

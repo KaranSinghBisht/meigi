@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import type { Mesh } from 'three'
 import { FRAME } from '../shared/sceneBus'
 import { createSkyMaterial, createSkyUniforms } from './skyMaterial'
+import { frameClock } from '../shared/frameClock'
 
 interface SkyProps {
   readonly animate: boolean
@@ -16,11 +17,11 @@ export function Sky({ animate }: SkyProps) {
 
   useEffect(() => () => material.dispose(), [material])
 
-  useFrame((state, delta) => {
+  useFrame((state) => {
     const dome = mesh.current
     if (!dome) return
     dome.position.copy(state.camera.position)
-    if (animate) uniforms.uTime.value += Math.min(delta, 0.1)
+    if (animate) uniforms.uTime.value += frameClock.dt
   }, FRAME.animate)
 
   return (

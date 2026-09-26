@@ -8,9 +8,11 @@ import { Lake } from './lake/Lake'
 import { Mist } from './mist/Mist'
 import { Post } from './post/Post'
 import { Sakura } from './sakura/Sakura'
+import { FrameClockDriver } from './shared/frameClock'
 import { DemandPump, ReadySignal, VisibilityPause, WakeKeeper } from './shared/lifecycle'
 import { MoodDriver } from './shared/MoodDriver'
 import { HEX } from './shared/palette'
+import { sceneBus } from './shared/sceneBus'
 import { StatsProbe, wantsStats } from './shared/StatsProbe'
 import { WORLD } from './shared/world'
 import { Sky } from './sky/Sky'
@@ -42,17 +44,21 @@ interface ContentsProps {
 }
 
 function SceneContents({ station, animate, interactive, multisampling }: ContentsProps) {
+  // The lake, mist and petals re-centre on a station only once the camera has
+  // arrived there, so nothing jumps mid-glide.
+  const [settled, setSettled] = useState<Station>(station)
   return (
     <>
-      <CameraRig station={station} animate={animate} interactive={interactive} />
+      <FrameClockDriver />
+      <CameraRig station={station} animate={animate} interactive={interactive} onSettled={setSettled} />
       <MoodDriver animate={animate} />
       <Sky animate={animate} />
       <Fuji />
       <Foothills />
       <Torii />
-      <Lake station={station} animate={animate} interactive={interactive} />
-      <Mist station={station} animate={animate} />
-      <Sakura station={station} animate={animate} />
+      <Lake station={settled} animate={animate} interactive={interactive} />
+      <Mist station={settled} animate={animate} />
+      <Sakura station={settled} animate={animate} />
       <Post multisampling={multisampling} />
     </>
   )
@@ -67,7 +73,13 @@ interface LifecycleProps {
 
 function Lifecycle({ loop, animate, onReady, onDpr }: LifecycleProps) {
   const [showStats] = useState(wantsStats)
-  const onChange = useCallback((api: PerformanceMonitorApi) => onDpr(dprForFactor(api.factor)), [onDpr])
+  // A resolution change mid-glide reallocates every render target: hold it until the camera rests.
+  const onChange = useCallback(
+    (api: PerformanceMonitorApi) => {
+      if (!sceneBus.cameraMoving) onDpr(dprForFactor(api.factor))
+    },
+    [onDpr],
+  )
   const onFallback = useCallback(() => onDpr(1), [onDpr])
   return (
     <>

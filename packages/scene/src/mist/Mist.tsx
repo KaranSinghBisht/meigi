@@ -6,6 +6,7 @@ import { color } from '../shared/palette'
 import { useStationPose } from '../camera/useStationPose'
 import { FRAME, sceneBus } from '../shared/sceneBus'
 import type { Station } from '../types'
+import { frameClock } from '../shared/frameClock'
 
 interface MistLayer {
   readonly z: number
@@ -102,8 +103,12 @@ function useMistCurtains(): readonly MistCurtain[] {
   return curtains
 }
 
-/** Drift (faster while the 'frozen' mist is rolling in or out) and mood density. */
-function updateMist(curtains: readonly MistCurtain[], meshes: ReadonlyArray<Mesh | null>, dt: number): void {
+/**
+ * Drift (faster while the 'frozen' mist is rolling in or out) and mood density.
+ * While `warming`, the frozen-only curtain draws at zero opacity so its shader
+ * compiles at startup rather than on the first 'frozen' mood.
+ */
+function updateMist(curtains: readonly MistCurtain[], meshes: ReadonlyArray<Mesh | null>, dt: number, warming: boolean): void {
   const mood = sceneBus.mood
   const step = dt * (1 + 3 * Math.abs(mood.mistTarget - mood.mist))
   curtains.forEach(({ layer, uniforms }, index) => {
@@ -112,7 +117,7 @@ function updateMist(curtains: readonly MistCurtain[], meshes: ReadonlyArray<Mesh
     if (!layer.frozenOnly) return
     uniforms.uOpacity.value = layer.opacity * mood.mist
     const mesh = meshes[index]
-    if (mesh) mesh.visible = mood.mist > 0.01
+    if (mesh) mesh.visible = warming || mood.mist > 0.01
   })
 }
 
@@ -126,9 +131,11 @@ export function Mist({ station, animate }: MistProps) {
   const curtains = useMistCurtains()
   // The frozen-only curtain rolls in just in front of whichever station is active.
   const anchor = useStationPose(station).position
+  const frames = useRef(0)
 
-  useFrame((_, delta) => {
-    updateMist(curtains, meshes.current, animate ? Math.min(delta, 0.1) : 0)
+  useFrame(() => {
+    frames.current += 1
+    updateMist(curtains, meshes.current, animate ? frameClock.dt : 0, frames.current <= 2)
   }, FRAME.animate)
 
   return (

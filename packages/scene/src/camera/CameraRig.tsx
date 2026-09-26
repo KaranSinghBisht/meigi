@@ -7,6 +7,7 @@ import type { Station } from '../types'
 import { copyPose, createBasePose, poseAt, startMove, stepMove, type BasePose, type CameraMove } from './cameraMoves'
 import { stationPose, type StationPose } from './stations'
 import { useAspect, useStationPose } from './useStationPose'
+import { frameClock } from '../shared/frameClock'
 
 const DEG = Math.PI / 180
 const PARALLAX_YAW = 1.5 * DEG
@@ -60,20 +61,28 @@ interface GlidePoses {
   readonly aspect: number
 }
 
-/** Advances the base pose: a pinned debug glide, a station move, or rest at `target`. */
-function advanceBase(rig: RigState, dt: number, glide: GlidePoses, target: StationPose): void {
+/**
+ * Advances the base pose: a pinned debug glide, a station move, or rest at
+ * `target`. Returns true on the frame a move arrives.
+ */
+function advanceBase(rig: RigState, dt: number, glide: GlidePoses, target: StationPose): boolean {
   const pin = sceneBus.pinnedGlide
   if (pin !== null) {
     rig.pinned ??= startMove('hero', 'gate', glide.hero, glide.gate, toriiPlacement(glide.aspect))
     poseAt(rig.pinned, pin, rig.base)
-    return
+    return false
   }
   if (rig.pinned) {
     rig.pinned = null
     copyPose(target, rig.base)
   }
-  if (rig.move && !stepMove(rig.move, dt, rig.base)) rig.move = null
-  if (rig.move) sceneBus.keepAwake(250)
+  if (!rig.move) return false
+  if (stepMove(rig.move, dt, rig.base)) {
+    sceneBus.keepAwake(250)
+    return false
+  }
+  rig.move = null
+  return true
 }
 
 /** Mouse position in NDC for the parallax; touch never steers the camera. */
@@ -90,15 +99,48 @@ function usePointerParallax(enabled: boolean): void {
   }, [enabled])
 }
 
+interface StationChange {
+  readonly station: Station
+  readonly target: StationPose
+  readonly aspect: number
+  readonly animate: boolean
+  readonly onSettled: (station: Station) => void
+}
+
+/**
+ * A new station starts a move from wherever the camera is; a resize (same
+ * station, new pose) or reduced motion jumps straight there.
+ */
+function useStationChange(rig: RigState, change: StationChange): void {
+  const invalidate = useThree((state) => state.invalidate)
+  const { station, target, aspect, animate, onSettled } = change
+  useEffect(() => {
+    const from = rig.station
+    if (animate && from !== null && from !== station) {
+      rig.move = startMove(from, station, rig.base, target, toriiPlacement(aspect))
+      sceneBus.cameraMoving = true
+      sceneBus.keepAwake(rig.move.duration * 1000 + 400)
+    } else {
+      copyPose(target, rig.base)
+      rig.move = null
+      sceneBus.cameraMoving = false
+      onSettled(station)
+    }
+    rig.station = station
+    invalidate()
+  }, [rig, station, target, aspect, animate, invalidate, onSettled])
+}
+
 interface CameraRigProps {
   readonly station: Station
   readonly animate: boolean
   readonly interactive: boolean
+  /** The camera has come to rest at this station (after a move, or at once). */
+  readonly onSettled: (station: Station) => void
 }
 
-export function CameraRig({ station, animate, interactive }: CameraRigProps) {
+export function CameraRig({ station, animate, interactive, onSettled }: CameraRigProps) {
   const camera = useThree((state) => state.camera)
-  const invalidate = useThree((state) => state.invalidate)
   const aspect = useAspect()
   const target = useStationPose(station)
   const glide = useMemo(() => ({ hero: stationPose('hero', aspect), gate: stationPose('gate', aspect), aspect }), [aspect])
@@ -111,27 +153,16 @@ export function CameraRig({ station, animate, interactive }: CameraRigProps) {
     camera.far = WORLD.cameraFar
   }, [camera])
 
-  // A new station starts a move from wherever the camera is; a resize (same
-  // station, new pose) or reduced motion jumps straight there.
-  useEffect(() => {
-    const state = rig.current
-    const from = state.station
-    if (animate && from !== null && from !== station) {
-      state.move = startMove(from, station, state.base, target, toriiPlacement(aspect))
-      sceneBus.keepAwake(state.move.duration * 1000 + 400)
-    } else {
-      copyPose(target, state.base)
-      state.move = null
-    }
-    state.station = station
-    invalidate()
-  }, [station, target, aspect, animate, invalidate])
+  useStationChange(rig.current, { station, target, aspect, animate, onSettled })
 
-  useFrame((_, delta) => {
+  useFrame(() => {
     if (!(camera instanceof PerspectiveCamera)) return
     const state = rig.current
-    const dt = Math.min(delta, 0.1)
-    advanceBase(state, dt, glide, target)
+    const dt = frameClock.dt
+    if (advanceBase(state, dt, glide, target)) {
+      sceneBus.cameraMoving = false
+      onSettled(station)
+    }
     if (animate) followPointer(state, dt, interactive)
     applyPose(camera, state)
   }, FRAME.camera)

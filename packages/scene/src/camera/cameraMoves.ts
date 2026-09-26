@@ -2,8 +2,8 @@ import { Quaternion, Vector3, type CatmullRomCurve3 } from 'three'
 import type { ToriiPlacement } from '../shared/world'
 import { GLIDE_SECONDS, STATION_SECONDS } from '../timing'
 import type { Station } from '../types'
-import { createGlidePath, glideLookTarget } from './glidePath'
-import { lookQuaternion, type StationPose } from './stations'
+import { createGlidePath } from './glidePath'
+import { gatePoint, lookQuaternion, type StationPose } from './stations'
 
 /** The camera pose before drift and parallax are layered on. */
 export interface BasePose {
@@ -23,7 +23,10 @@ interface TweenMove {
 interface GlideMove {
   readonly kind: 'glide'
   readonly path: CatmullRomCurve3
-  readonly restLook: Vector3
+  /** Where the camera was facing when the glide began. */
+  readonly restDir: Vector3
+  /** A point well beyond the gate on its axis: the camera looks through the torii at it. */
+  readonly gateFocus: Vector3
   readonly from: BasePose
   readonly to: StationPose
   readonly duration: number
@@ -58,21 +61,32 @@ const power2InOut = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 
 export function startMove(fromStation: Station, toStation: Station, base: BasePose, to: StationPose, torii: ToriiPlacement): CameraMove {
   const from = clonePose(base)
   if (fromStation === 'hero' && toStation === 'gate') {
-    const restLook = new Vector3(0, 0, -40).applyQuaternion(base.quaternion).add(base.position)
+    const restDir = new Vector3(0, 0, -1).applyQuaternion(base.quaternion)
     const path = createGlidePath(base.position, torii, to.position)
-    return { kind: 'glide', path, restLook, from, to, duration: GLIDE_SECONDS, elapsed: 0 }
+    const gateFocus = gatePoint(torii, -45, 2.6)
+    return { kind: 'glide', path, restDir, gateFocus, from, to, duration: GLIDE_SECONDS, elapsed: 0 }
   }
   return { kind: 'tween', from, to, duration: STATION_SECONDS, elapsed: 0 }
 }
 
-const look = new Vector3()
+const gateDir = new Vector3()
+const endDir = new Vector3()
+const lookDir = new Vector3()
+const lookPoint = new Vector3()
 
+/**
+ * Blends view directions, not look-at points: from where the camera faced,
+ * to straight through the torii, to the mountain. Blending points at very
+ * different distances made the nearer one grab the view and whip the camera.
+ */
 function glidePose(move: GlideMove, t: number, out: BasePose): void {
   const e = power2InOut(t)
   move.path.getPointAt(e, out.position)
-  glideLookTarget(move.path, e, move.to.target, look)
-  look.lerpVectors(move.restLook, look, smoothstep(0, 0.22, e))
-  lookQuaternion(out.position, look, out.quaternion)
+  gateDir.subVectors(move.gateFocus, out.position).normalize()
+  endDir.subVectors(move.to.target, out.position).normalize()
+  lookDir.copy(move.restDir).lerp(gateDir, smoothstep(0.04, 0.45, e)).normalize()
+  lookDir.lerp(endDir, smoothstep(0.55, 0.97, e)).normalize()
+  lookQuaternion(out.position, lookPoint.copy(out.position).add(lookDir), out.quaternion)
   out.fov = move.from.fov + (move.to.fov - move.from.fov) * e + 4 * Math.sin(Math.PI * e)
 }
 

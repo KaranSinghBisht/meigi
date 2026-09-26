@@ -101,7 +101,8 @@ export class PetalField {
     petal.y -= petal.windY * lift * dt
     petal.z += petal.windZ * dt
     const depth = this.anchor.z - petal.z
-    if (petal.x - this.anchor.x > 0.56 * depth * 1.4 + 2) {
+    // Recycle petals that drift out of the view to the right or end up behind the camera.
+    if (depth < 0.5 || petal.x - this.anchor.x > 0.56 * depth * 1.4 + 2) {
       this.spawn(petal, i, false)
       return
     }
@@ -120,11 +121,14 @@ export class PetalField {
     if (fade === 0) this.spawn(petal, i, false)
   }
 
-  /** Re-seeds the whole volume around a new camera position; true if it moved. */
+  /**
+   * Lays new petals out in front of another camera position. Nothing jumps:
+   * petals already in view keep drifting, and ones now behind the camera
+   * recycle to the new volume on their next step.
+   */
   setAnchor(position: Vector3): boolean {
     if (position.distanceTo(this.anchor) < REANCHOR_DISTANCE) return false
     this.anchor.copy(position)
-    this.petals.forEach((petal, i) => this.spawn(petal, i, true))
     return true
   }
 

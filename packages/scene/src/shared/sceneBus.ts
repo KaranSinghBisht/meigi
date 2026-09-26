@@ -49,6 +49,8 @@ class SceneBus {
   awakeUntil = 0
   /** Debug (?stats): pins the camera on the hero → gate glide at this progress. */
   pinnedGlide: number | null = null
+  /** True while the camera is gliding or easing between stations. */
+  cameraMoving = false
 
   pushDrop(drop: WaterDrop): void {
     if (this.drops.length < MAX_DROPS) this.drops.push(drop)
@@ -141,6 +143,7 @@ export const sceneBus = new SceneBus()
 
 /** useFrame priorities: camera first, then simulation, reflection, composer. */
 export const FRAME = {
+  clock: -60,
   camera: -40,
   mood: -35,
   animate: -30,
