@@ -13,10 +13,11 @@ export default function X402Page() {
         <p className="eyebrow">Agentic commerce</p>
         <h1 className="page-head__title">Agents buy compute and data. Meigi checks who they pay.</h1>
         <p className="page-head__lede">
-          Every merchant here declares its T-number and ENS name in the 402 response, over x402. Before an agent
-          signs, <code>@meigi/x402-guard</code> checks <code>payTo</code> against both, independently, and refuses
-          if either disagrees. A compromised server can edit its own <code>payTo</code>; it can't touch the
-          company's registry entry or its ENS name.
+          Registered merchants declare a T-number and ENS name in the 402 response, over x402. Before an agent signs,{' '}
+          <code>@meigi/x402-guard</code> checks <code>payTo</code> against both, independently, and refuses if either
+          disagrees. A compromised server can edit its own <code>payTo</code>; it can't touch the company's registry
+          entry or its ENS name. One merchant here deliberately declares neither, so you can see the guard fall back to
+          screening <code>payTo</code>.
         </p>
       </header>
       <ServiceGate service="merchant" fallback={<X402Hosted />}>

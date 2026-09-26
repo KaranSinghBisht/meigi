@@ -59,7 +59,7 @@ export function asData(question: string): string {
 
 /** The request to Workers AI: the rules, today in Japan, the payees (T-number | name | ENS name), the question. */
 export function modelInput(payees: readonly Payee[], question: string, today: string) {
-  const names = payees.map((p) => `${p.tNumber} | ${p.legalName ?? '(name withheld while disputed)'} | ${p.ens}`)
+  const names = payees.map((p) => `${p.tNumber} | ${p.legalName ?? '(no name shown)'} | ${p.ens}`)
   const user = [
     `TODAY (Japan time): ${today}`,
     `PAYEES (T-number | name | ENS name):\n${names.join('\n')}`,

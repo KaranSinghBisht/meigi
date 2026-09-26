@@ -1,6 +1,7 @@
 // Live reads of the PayeeRegistry. A queued payout (or controller) is reported only as "pending until",
 // never as an address: until it lands, nobody should pay it, so the UI never gets to see it. A disputed payee's
-// name is withheld the same way, as the ENS resolver does: only its status is public, never a claimant's name.
+// name isn't returned either, so the explorer shows only its status, as the ENS resolver publishes only the status.
+// (The registry itself still holds the name on-chain: this is what Meigi shows, not a privacy guarantee.)
 
 import { payeeRegistryAbi } from '@meigi/abi'
 import type { Hex } from 'viem'
@@ -13,7 +14,7 @@ export type PayeeStatus = 'unregistered' | 'active' | 'disputed'
 export interface PayeeSnapshot {
   readonly tNumber: ParsedTNumber
   readonly status: PayeeStatus
-  /** The registered name; empty unless active (a disputed payee's name is withheld). */
+  /** The registered name; empty unless active (the explorer doesn't show a disputed payee's name). */
   readonly legalName: string
   readonly controller: HexAddress | null
   /** The payout the registry pays today; null unless active (disputed payees are frozen). */

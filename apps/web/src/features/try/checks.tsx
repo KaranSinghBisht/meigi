@@ -57,7 +57,7 @@ export const CHECKS: readonly Check[] = [
   {
     title: 'Agents paying agents',
     proves:
-      'A research agent buys GPU time and data over x402, and checks every payTo against the registry and ENS before it signs.',
+      "A research agent buys GPU time and data over x402. It checks each declared merchant's payTo against the registry and ENS before it signs; an undeclared one gets at most ¥50 after a clean screen.",
     status: <SettlementsStatus only="x402" />,
     links: [{ label: 'See the agent shop', href: '/x402' }],
   },

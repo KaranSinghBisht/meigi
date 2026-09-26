@@ -44,9 +44,12 @@ const WHEN = new Intl.DateTimeFormat('en-GB', {
 
 const dayLabel = (day: string) => DAY.format(new Date(`${day}T00:00:00Z`))
 
-/** "株式会社メイギ商事 (t2011001234567.payee.eth)": the registered name first, then the payout name. */
+/**
+ * "株式会社メイギ商事 (t2011001234567.payee.eth)": the registered name, then the payout name. A payee that isn't
+ * active has no name in the rows (the settlements panel shows none), so it is its payout name alone.
+ */
 export function payeeLabel(payee: Payee): string {
-  return payee.legalName ? `${payee.legalName} (${payee.ens})` : `${payee.ens} (name withheld while disputed)`
+  return payee.legalName ? `${payee.legalName} (${payee.ens})` : payee.ens
 }
 
 /** When a row settled, as the panel shows it: "on 26 Sept 2026, 15:47 JST", or its block when the time is unknown. */

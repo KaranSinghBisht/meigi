@@ -103,7 +103,7 @@
   line-height: 1.15;
 }
 
-.payee__name--withheld {
+.payee__name--disputed {
   color: var(--ink-soft);
 }
 

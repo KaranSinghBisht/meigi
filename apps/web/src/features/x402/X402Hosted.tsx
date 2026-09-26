@@ -12,8 +12,11 @@ export function X402Hosted() {
     <div className="x402__hosted">
       <DemoMachine
         service="merchant"
-        what="Buying compute and data over x402"
-        why="the buyer agent, the merchants and the facilitator all hold funded keys"
+        title="This page replays a real run."
+        live={{
+          what: 'Buying compute and data over x402',
+          why: 'the buyer agent, the merchants and the facilitator all hold funded keys',
+        }}
       />
       <div className="x402__grid cells window">
         {MERCHANT_LISTINGS.map((listing) => (

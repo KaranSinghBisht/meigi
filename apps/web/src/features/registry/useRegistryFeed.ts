@@ -8,7 +8,7 @@ const TIMESTAMPED = 40
 /** Public RPCs are load-balanced: a lagging node can miss the newest blocks, so each poll rescans a few. */
 const OVERLAP = 6n
 
-/** One registered T-number as the logs tell it. A disputed one's name is withheld, as everywhere else. */
+/** One registered T-number as the logs tell it. A disputed one's name isn't shown, as everywhere in the explorer. */
 export interface DirectoryPayee {
   readonly tNumber: string
   readonly name: string | null

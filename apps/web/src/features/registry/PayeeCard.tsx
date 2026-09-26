@@ -35,17 +35,18 @@ function nameProvenance(payee: PayeeSnapshot): string {
     : 'Matched to the NTA registry by exact name'
 }
 
-/** A disputed payee's name is withheld (readPayee never returns it), as the ENS resolver withholds it. */
+/**
+ * A disputed payee: the explorer shows only its status. readPayee doesn't return the name, though the registry still
+ * holds it on-chain, and the ENS resolver publishes only the status.
+ */
 function Name({ payee }: { readonly payee: PayeeSnapshot }) {
   if (payee.status === 'disputed') {
     return (
       <>
-        <h2 id="payee-name" className="payee__name payee__name--withheld">
-          Name withheld while disputed
+        <h2 id="payee-name" className="payee__name payee__name--disputed">
+          Name not shown
         </h2>
-        <p className="payee__sub">
-          Like ENS, Meigi shows only the status of a disputed T-number, never a claimant's name.
-        </p>
+        <p className="payee__sub">Meigi's explorer shows only the status while a number is disputed.</p>
       </>
     )
   }

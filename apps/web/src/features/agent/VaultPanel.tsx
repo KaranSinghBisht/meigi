@@ -106,7 +106,7 @@ export function VaultPanel({ version }: { readonly version: number }) {
   const id = useId()
   const load = useVault(version)
   const { state: payee } = usePayee(FIXTURE_T_NUMBER)
-  // Empty unless the vendor is active: a disputed payee's name is withheld, so the T-number is shown instead.
+  // Empty unless the vendor is active: the explorer doesn't show a disputed payee's name, so the T-number stands in.
   const name = payee.status === 'ready' ? payee.payee.legalName || null : null
   const registered = payee.status === 'ready' ? payee.payee.payout : null
   const check = useEnsCheck(AGENT_ENS_NAME, env.vault)

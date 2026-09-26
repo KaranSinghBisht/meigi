@@ -6,26 +6,28 @@ import './demo.css'
 
 interface DemoMachineProps {
   readonly service: Service
-  /** What this step does, e.g. "Registering a business". */
-  readonly what: string
-  /** Why it runs only live, e.g. "it signs as the attester". */
-  readonly why: string
+  /** The note's heading. Only a page that shows a recorded run may say "This page replays a real run." */
+  readonly title: string
+  /** What this step does and why it runs only live, e.g. "Registering a business" and "it signs as the attester". */
+  readonly live?: { readonly what: string; readonly why: string }
   readonly children?: ReactNode
 }
 
-/** A calm note, not an error: on the product site this step is a replay, and the live service runs at our booth. */
-export function DemoMachine({ service, what, why, children }: DemoMachineProps) {
+/** A calm note, not an error: on the product site this step runs only at our booth. */
+export function DemoMachine({ service, title, live, children }: DemoMachineProps) {
   const info = SERVICES[service]
   return (
     <section className="demo-machine" aria-labelledby={`demo-${service}`}>
       <HankoMark size={44} />
       <div className="demo-machine__body">
         <h2 id={`demo-${service}`} className="demo-machine__title">
-          This page replays a real run.
+          {title}
         </h2>
-        <p>
-          {what} needs the live {info.name}, which runs at our booth because {why}.
-        </p>
+        {live ? (
+          <p>
+            {live.what} needs the live {info.name}, which runs at our booth because {live.why}.
+          </p>
+        ) : null}
         {env.demoVideoUrl ? (
           <a className="demo-machine__video" href={env.demoVideoUrl} target="_blank" rel="noreferrer">
             Watch the demo video <span aria-hidden="true">↗</span>

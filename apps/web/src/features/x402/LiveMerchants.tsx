@@ -12,7 +12,9 @@ export function LiveMerchants() {
           <h2 id="listings-title" className="x402__row-title">
             Who's selling
           </h2>
-          <p className="x402__row-lede">Each declares its T-number and ENS name in the 402 response.</p>
+          <p className="x402__row-lede">
+            Registered merchants declare a T-number and ENS name in the 402 response. The web scrape declares neither.
+          </p>
         </div>
         <div className="x402__grid cells">
           {MERCHANT_LISTINGS.map((listing) => (

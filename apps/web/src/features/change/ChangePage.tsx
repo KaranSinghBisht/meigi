@@ -64,11 +64,11 @@ function Flow({ payee, refresh }: { readonly payee: PayeeSnapshot; readonly refr
 /** The public site: approvals need the verifier, which checks World ID and signs as the attester. */
 function ChangeHosted() {
   return (
-    <DemoMachine
-      service="verifier"
-      what="Approving a change"
-      why="it checks each officer's World ID session and signs the approval as the attester"
-    >
+    <DemoMachine service="verifier" title="The live officer flow runs at our booth.">
+      <p>
+        Approving a change needs the live verifier, which checks each officer's World ID session and signs the approval
+        as the attester. A recording of a real run appears here after it's done.
+      </p>
       <p>
         The registry side is live on the left: a queued change would show its countdown there, and its new address isn't
         shown until it lands.
@@ -110,10 +110,11 @@ export default function ChangePage() {
     <div className="change">
       <header className="page-head">
         <p className="eyebrow">Company changes</p>
-        <h1 className="page-head__title">Changes need the same humans, in public.</h1>
+        <h1 className="page-head__title">A company's changes need the same humans, in public.</h1>
         <p className="page-head__lede">
-          A new payout address needs the business key and a quorum of the officers who enrolled with World ID, then
-          waits 72 hours where everyone can see it. A different human is refused.
+          A company's new payout address needs its business key and a quorum of the officers who enrolled with World ID,
+          then waits 72 hours where everyone can see it. A different human is refused. The only other way is a
+          governance ruling on a dispute, after the same 72 hours.
         </p>
       </header>
       <Panel className="change__search" aria-label="Choose a company">

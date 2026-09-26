@@ -81,7 +81,7 @@ describe('answerFor', () => {
     })
     assert.equal(
       ask('latest', { kind: 'router' }).answer,
-      'The most recent payment through the PayRouter was ¥20 to t6999900000003.payee.eth (name withheld while disputed), at block 11784001.',
+      'The most recent payment through the PayRouter was ¥20 to t6999900000003.payee.eth, at block 11784001.',
     )
     assert.equal(
       ask('largest').answer,

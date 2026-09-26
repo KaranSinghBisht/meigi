@@ -36,14 +36,14 @@ function Row({ payee, current, onOpen }: RowProps) {
         <span className="finder__dot" aria-hidden="true" />
         <span className="finder__name">
           {disputed ? (
-            'Name withheld while disputed'
+            'Disputed'
           ) : (
             <span className="jp" lang="ja">
               {payee.name}
             </span>
           )}
         </span>
-        <span className="sr-only">{disputed ? ', disputed' : ', active'}</span>
+        {disputed ? null : <span className="sr-only">, active</span>}
         <span className="finder__t mono">{payee.tNumber}</span>
       </button>
     </li>
