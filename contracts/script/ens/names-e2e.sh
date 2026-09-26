@@ -116,13 +116,16 @@ done
 
 step "Stock viem: texts, no address, the ENSIP-25 link; a deeper name answers nothing"
 KEY="agent-registration[0x0001000003aa36a714$(tr 'A-F' 'a-f' <<<"${ERC8004#0x}")][$NS_AP_8004_ID]"
-NAMES="$(names TEXT_KEYS="agent-endpoint[web],$KEY")" || fail "viem failed: $NAMES"
+NAMES="$(names TEXT_KEYS="agent-endpoint[web],class,$KEY")" || fail "viem failed: $NAMES"
 echo "$NAMES" | jq .
 for label in ap keiri zeirishi; do
   [[ $(field "$label" address "$NAMES") == null ]] || fail "$label resolves an address"
   [[ $(field "$label" description "$NAMES") == *"fictional demo company"* ]] || fail "$label has no description"
 done
 [[ $(field ap agentStatus "$NAMES") == busy ]] || fail "ap's holder could not set its status"
+for pair in "ap Agent" "keiri Workgroup" "zeirishi Person"; do # ENSIP-27
+  [[ $(jq -r --arg l "${pair% *}" '.names[$l].texts.class' <<<"$NAMES") == "${pair#* }" ]] || fail "${pair% *} has no ENSIP-27 class"
+done
 [[ $(jq -r --arg k "$KEY" '.names.ap.texts[$k]' <<<"$NAMES") == 1 ]] || fail "ap does not confirm its ERC-8004 agent"
 uri="$(cast call "$ERC8004" "tokenURI(uint256)(string)" "$NS_AP_8004_ID" --rpc-url "$RPC_URL" | tr -d '"')"
 base64 -d <<<"${uri#data:application/json;base64,}" | jq -e '.services[] | select(.name == "ENS") | .endpoint == "ap.t2011001234567.payee.eth"' >/dev/null ||

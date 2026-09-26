@@ -120,7 +120,8 @@ contract CompanyNames is Script {
                 "keiri",
                 vm.envAddress("NS_KEIRI_ADDRESS"),
                 claimExpiry,
-                string.concat(unicode"Accounts department (経理部) of ", FIXTURE, ". Not a payee.")
+                string.concat(unicode"Accounts department (経理部) of ", FIXTURE, ". Not a payee."),
+                "Workgroup"
             ),
             _department(
                 "zeirishi",
@@ -130,7 +131,8 @@ contract CompanyNames is Script {
                     unicode"Outside tax accountant (税理士) engaged for 30 days by ",
                     FIXTURE,
                     ". Not a payee."
-                )
+                ),
+                "Person"
             )
         ];
         EnsV2Lib.startBroadcast("COMPANY_PRIVATE_KEY", "COMPANY_ADDRESS");
@@ -229,7 +231,7 @@ contract CompanyNames is Script {
         n.label = "ap";
         n.holder = holder;
         n.expiry = expiry;
-        n.keys = new string[](linked ? 5 : 4);
+        n.keys = new string[](linked ? 6 : 5);
         n.values = new string[](n.keys.length);
         n.keys[0] = "description";
         n.values[0] = string.concat(
@@ -248,24 +250,31 @@ contract CompanyNames is Script {
         n.values[2] = REGISTRY_PAGE;
         n.keys[3] = "agent-status";
         n.values[3] = "online";
+        n.keys[4] = "class"; // ENSIP-27
+        n.values[4] = "Agent";
         if (linked) {
-            n.keys[4] = Ensip25.registrationKey(address(Ensip25.registry()), vm.envUint("NS_AP_8004_ID"));
-            n.values[4] = "1";
+            n.keys[5] = Ensip25.registrationKey(address(Ensip25.registry()), vm.envUint("NS_AP_8004_ID"));
+            n.values[5] = "1";
         }
     }
 
-    function _department(string memory label, address holder, uint64 expiry, string memory description)
-        private
-        pure
-        returns (CompanyNamespace.Name memory n)
-    {
+    /// @dev `class` is ENSIP-27's: Workgroup for a department, Person for an outside professional.
+    function _department(
+        string memory label,
+        address holder,
+        uint64 expiry,
+        string memory description,
+        string memory class
+    ) private pure returns (CompanyNamespace.Name memory n) {
         n.label = label;
         n.holder = holder;
         n.expiry = expiry;
-        n.keys = new string[](1);
-        n.values = new string[](1);
+        n.keys = new string[](2);
+        n.values = new string[](2);
         n.keys[0] = "description";
         n.values[0] = description;
+        n.keys[1] = "class";
+        n.values[1] = class;
     }
 
     function _setSubregistry(address namespace) private {
