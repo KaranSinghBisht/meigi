@@ -9,7 +9,7 @@
   flex-direction: column;
   justify-content: flex-end;
   gap: clamp(22px, 4vh, 40px);
-  padding: clamp(24px, 5vh, 56px) var(--gutter) clamp(36px, 8vh, 80px);
+  padding: clamp(24px, 5vh, 56px) var(--home-inset) clamp(36px, 8vh, 80px);
 }
 
 .poster__title {

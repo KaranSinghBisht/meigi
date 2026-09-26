@@ -92,11 +92,13 @@
   pointer-events: auto;
 }
 
-/* The navigation's footprint at the top: the compact bar's height in the flow (a full-screen page subtracts it),
-   and how far down a sticky part of a page has to sit to clear the bar and its gap. */
+/* The navigation's footprint: the compact bar's height in the flow (a full-screen page subtracts it), how far down
+   a sticky part of a page has to sit to clear the bar and its gap, and how far the page sits from the left edge
+   (a full-bleed band reaches back under the sidebar by that much). */
 :root {
   --shell-bar: 72px;
   --shell-top: 88px;
+  --shell-left: 0px;
 }
 
 /* From 1280 px the sidebar (nav.css) holds the left edge: the page and its footer move beside it, the compact bar
@@ -105,10 +107,11 @@
   :root {
     --shell-bar: 0px;
     --shell-top: var(--sidebar-inset);
+    --shell-left: calc(var(--sidebar) + 2 * var(--sidebar-inset));
   }
 
   .shell--app {
-    padding-left: calc(var(--sidebar) + 2 * var(--sidebar-inset));
+    padding-left: var(--shell-left);
   }
 
   .topbar {

@@ -5,6 +5,10 @@
 }
 
 .home {
+  /* The page column every other page uses (and the footer window): at most --content wide, centred, never closer
+     than the gutter. The poster and the story set their text in it, so everything lines up with the footer. */
+  --home-inset: max(var(--gutter), calc((100% - var(--content)) / 2));
+
   display: grid;
 }
 
