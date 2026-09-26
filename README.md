@@ -118,6 +118,7 @@ company it belongs to.
     [`services/verifier/src/routes/intents.ts`](services/verifier/src/routes/intents.ts),
     [`apps/web/src/ui/world`](apps/web/src/ui/world),
     [`contracts/src/registry/OfficerQuorum.sol`](contracts/src/registry/OfficerQuorum.sol).
+  - Integration debrief: [`docs/world-debrief.md`](docs/world-debrief.md).
 - **Curvegrid (Best AI Agent Project) and MultiBaas.** Meigi on Mizuhiki, indexed and queried through MultiBaas, like
   Curvegrid's Matsuri sample. A second deployment indexes our Sepolia contracts live. See
   [below](#curvegrid-best-ai-agent-project).

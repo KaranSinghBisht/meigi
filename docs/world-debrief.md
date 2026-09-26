@@ -5,10 +5,9 @@ from what actually happened building against the real sandbox and staging endpoi
 
 ## Best Use of IDKit (officer sessions, payout-change approvals)
 
-**Time to first success:** about 3 hours from reading the IDKit 4.0 docs to a verified session proof round-
-tripping through our verifier — the mechanism itself, against sandbox/staging, most of it spent on the two
-friction points below, not on our own code. IDKit sessions only worked against **production**, with a real
-phone, in the evening (see below).
+**Time to first success:** registration attempts from 10:09 JST in our verifier's table; World first verified a
+real session proof at 19:41 JST, once we scanned with the iPhone Camera app. Nothing verified on staging or
+sandbox: the simulator rejects 4.0 sessions and our Sandbox invite was pending.
 
 **Friction, in the order we hit it:**
 - **Session flows reject presets.** IDKit's own example for `createSession` uses a preset, but a session
@@ -68,25 +67,25 @@ phone, in the evening (see below).
   instead of a calm decline, same night. World's own error-codes doc calls it a "Legacy rejection code (older
   bridge/app behavior). Handle same as `user_rejected`." Fixed the same night (`d0da955`): it now reads
   "Declined. Nothing was added/approved." like every other decline path.
-- **PENDING:** team-lead's brief for this file mentions an `integrity_verification_failed` probe as something to
-  include. I couldn't find it anywhere in the repo (code, logs, or docs) and don't have direct experience with
-  it myself, so I'm not writing a cause for it without evidence. Whoever hit it: send me the context (what
-  request produced it, what fixed it) and I'll fold it in accurately.
+- **`proveSession` request-building confirmed against tonight's real enrollments; completion by a human is the
+  one thing left unverified without a phone.** The pitched mechanism - an officer approving a change by
+  re-proving their enrolled session - had not run against World in any form before this review: every approval
+  intent so far is on the seeded test company, with zero approvals. Built and ran a real
+  `IDKit.proveSession(existingSessionId, ...)` request in production using one of tonight's actual enrolled
+  session ids straight from the verifier's own database: World accepted it and returned a valid connector URI,
+  the first time this exact code path has been exercised against production. World's own docs additionally say
+  to "require session_id to match the account's saved session" server-side; we don't do this as a separate
+  explicit check, but reasoned through why the existing one already enforces it: an officer's on-chain id is
+  `keccak256(session_id)`, so a returned session_id can only pass the "is this an enrolled officer" check if
+  it's the exact session that officer enrolled with. Reasoned through, not yet proven with a completed proof -
+  that needs Karan's rehearsal.
 
-**Production route confirmed live, first-hand.** Sent five deliberately-invalid probes myself, directly to
-`POST https://developer.world.org/api/v4/verify/rp_d14a7db12e6bfc65` (our real production RP id, no auth beyond
-the URL), each with an obviously-fake `responses[0]` body and nothing that could pass as a real proof. Every one
-came back a structured `HTTP 400 {"code":"validation_error","detail":"...","attribute":"..."}` — never a
-connection failure, a 5xx, or an unstructured response — confirming the route and RP id are live in production.
-Each response revealed one more layer of the real schema (a genuine, if slow, way to learn it): `protocol_version`
-must be the string `"4.0"`; `responses[0]` needs `issuer_schema_id` (a **number** matching a known credential type,
-not our placeholder `0`), `expires_at_min`, and `proof` as an **array of exactly 5 elements** (ours was a string,
-then the wrong-length array). I stopped once I'd confirmed liveness and structured validation rather than keep
-guessing a real proof's shape — I did not reach the specific `integrity_verification_failed` code team-lead saw
-earlier the same day (their probe was evidently well-formed enough to pass schema validation and fail a deeper
-semantic/cryptographic check instead; mine never got past schema validation). Both are genuine, structured
-rejections from the same live production endpoint — no real phone proof had passed there until the Camera-app
-route (above).
+**Production route confirmed live.** Five deliberately-invalid probes to `POST developer.world.org/api/v4/verify/
+rp_d14a7db12e6bfc65` (our real production RP id) all came back structured `HTTP 400` validation errors — never a
+connection failure or an unstructured response — confirming the route and RP id are live, and revealing the
+schema one field at a time (`protocol_version: "4.0"`, `issuer_schema_id` as a number, `proof` as an array of
+exactly 5 elements). **Ask: publish the v4 verify request schema** — this team learned it by iterating on 400s,
+not by reading it anywhere.
 
 **Missing docs:** nothing explains that on-chain verification of World ID **4.0** proofs (`WorldIDVerifier.sol` /
 `WorldIDSatellite`) is only deployed on **World Chain and Arc** today — the contracts-3.0 legacy page (which
@@ -116,8 +115,9 @@ separate:
   Check is already the floor there, not a ceiling. That's a production-only addition, not a standing default: the
   verifier's own code default (`services/verifier/src/config.ts`) is narrower, `proof_of_human` only, which is
   what staging and sandbox runs get unless overridden. **Confirmed:** tonight's enrollment rehearsals enrolled
-  with Orb (`officerId` `0x8b843464…fd8d90`, then `0xdcf809aa…118b6f`) - real production `proof_of_human` proofs,
-  no Selfie Check involved in either; the recorded registration run is pending.
+  with Orb (`officerId` `0x8b843464…fd8d90`, then `0xdcf809aa…118b6f`) - real production `proof_of_human` proofs.
+  Not by choice: Selfie Check is what we set out to demonstrate as the minimum, but it failed twice inside the
+  World ID app (above), so both real enrollments used Orb instead; the recorded registration run is pending.
 - An **N-of-M quorum**, where several independent identities must each be genuinely unique humans (not just
   genuinely the same session-holder each time), should require Orb — that's exactly the case Selfie Check's
   weaker Sybil-resistance isn't built for. Gating on Selfie Check's own `sybil_score` (a real field on its

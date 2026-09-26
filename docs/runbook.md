@@ -238,3 +238,19 @@ The live demo runs on http://localhost:5190 (`scripts/world-live.sh`): registrat
       signer refuses approvals made before, or within 60 s of, its start.
     - Not `kill -STOP`: a stopped signer still accepts connections, so Pay hangs for 30 s. If the stop lands
       mid-payment, the queued `/pay` goes through after `kill -CONT`, after the agent has reported a failure.
+
+## If /change fails
+
+Quick triage for the officer-approval World ID flow, in the order to try them.
+
+1. **Generic error immediately, no QR:** scan with the phone's Camera app, not from inside World App or the
+   World ID app's own scanner — only Camera app → World ID app is confirmed working.
+2. **"Something went wrong. There was a temporary issue verifying you" mid-scan:** that's on World's side, not
+   ours (hit twice already); wait, then use the page's own "Try again" once it appears, or reopen `/change`.
+3. **No response for a while:** use the page's own "Try again" button (appears after 2.5 minutes of silence)
+   rather than refreshing — refreshing loses the open intent's nonce/deadline, not just the QR.
+4. **"Not an officer" / 403:** the phone is enrolled under a different World ID than the one that registered —
+   check you're on your own phone/account, not a teammate's.
+5. **Still stuck:** stop and flag it rather than retry more than twice. An intent's signal expires 15 minutes
+   after it's opened (`INTENT_TTL_SECONDS`, `services/verifier/src/routes/intents.ts:19`) and needs a fresh
+   `/change` load after that, not a retry of the same QR.
