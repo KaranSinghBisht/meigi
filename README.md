@@ -124,6 +124,8 @@ company it belongs to.
   - A payout change the company requests needs `proveSession` from the same human, with a signal that binds
     chain, registry, T-number, action, target, nonce and deadline.
   - The proof is verified server-side, then turned into an EIP-712 approval the contract checks.
+  - Live on Sepolia: T7999900000002 (fictional) registered with an Orb officer, who then approved a payout change
+    with `proveSession`, queued for 72 hours ([`docs/world-live-run.md`](docs/world-live-run.md)).
   - Code: [`services/verifier/src/world/session.ts`](services/verifier/src/world/session.ts),
     [`services/verifier/src/routes/intents.ts`](services/verifier/src/routes/intents.ts),
     [`apps/web/src/ui/world`](apps/web/src/ui/world),
