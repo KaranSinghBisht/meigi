@@ -91,12 +91,15 @@ separate:
   Check as **medium-assurance** ("does not provide a strict one-person-one-account guarantee") and Orb-based
   Proof of Human as **high-assurance** ("each human can only have one PoH credential").
 - Our trust moment is a **1:1 re-authentication** ("is this the same session that enrolled as an officer?"), not
-  a **1:N uniqueness** check across a large population. **The minimum we request is Selfie Check** — a 1-of-1
-  quorum on a Selfie Check session is enough, since the session already answers "same human," and we don't need
-  Selfie Check's weaker Sybil-resistance to also carry an anti-squatting job it isn't built for. **Orb is
-  accepted too** (`WORLD_OFFICER_CREDENTIALS=selfie,proof_of_human`): whichever an officer happens to hold
-  clears the bar, since Selfie Check is already the floor, not a ceiling. [PENDING confirmation once his run
-  reaches this step: Karan's officer used Orb.]
+  a **1:N uniqueness** check across a large population. In production (`scripts/world-live.sh --yes`), **the
+  minimum we request is Selfie Check** — a 1-of-1 quorum on a Selfie Check session is enough, since the session
+  already answers "same human," and we don't need Selfie Check's weaker Sybil-resistance to also carry an
+  anti-squatting job it isn't built for. **Orb is accepted too** (`WORLD_OFFICER_CREDENTIALS=selfie,proof_of_human`,
+  set by that same production launch script): whichever an officer happens to hold clears the bar, since Selfie
+  Check is already the floor there, not a ceiling. That's a production-only addition, not a standing default: the
+  verifier's own code default (`services/verifier/src/config.ts`) is narrower, `proof_of_human` only, which is
+  what staging and sandbox runs get unless overridden. [PENDING confirmation once his run reaches this step:
+  Karan's officer used Orb.]
 - An **N-of-M quorum**, where several independent identities must each be genuinely unique humans (not just
   genuinely the same session-holder each time), should require Orb — that's exactly the case Selfie Check's
   weaker Sybil-resistance isn't built for. Gating on Selfie Check's own `sybil_score` (a real field on its
