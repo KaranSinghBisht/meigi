@@ -10,6 +10,8 @@ export interface RecordedOfficer {
   readonly id: `0x${string}`
   /** `world-id`: a real World ID session. `placeholder`: a seeded demo company's officer that no one can prove. */
   readonly proof: 'world-id' | 'placeholder'
+  /** Selfie Check's sybil score as the verifier returned it at enrollment; leave it out for any other credential. */
+  readonly sybilScore?: number | null
 }
 
 export interface Recording {
