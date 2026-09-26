@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {IPayeeRegistry} from "../registry/IPayeeRegistry.sol";
+import {CompanyNameRules} from "./CompanyNameRules.sol";
 import {EnsV2Grant, IEnsV2Factory, IEnsV2Registry, IEnsV2Resolver} from "./IEnsV2.sol";
 
 /// @title CompanyNamespace
@@ -13,19 +14,22 @@ import {EnsV2Grant, IEnsV2Factory, IEnsV2Registry, IEnsV2Resolver} from "./IEnsV
 ///         ERC-8004 registration) and resolves no address. The only name anyone pays is `t<T-number>.<parent>`, whose
 ///         payout the registry decides.
 ///
-///         Authority follows the PayeeRegistry live:
+///         The registry decides, live:
 ///         - only the payee's current controller, while the payee is active, opens the namespace and issues, edits,
-///           renews or revokes names. A controller rotation moves that authority; a dispute freezes it;
-///         - the names answer only while the payee is active, so a dispute darkens them at once.
+///           renews or revokes names;
+///         - a name answers only while the payee is active and its controller is still the key that issued it, so a
+///           dispute darkens every issued name at once, and a controller rotation (e.g. recovery from a stolen key)
+///           darkens every name the old key issued.
 ///
-///         This contract is the issued names' resolver (ENSIP-10). It answers only exact, live names of the current
-///         namespace, and only text, read from each name's own ENSv2 PermissionedResolver. It is the only role holder
-///         on those resolvers and writes only the exact name, never the root node that a PermissionedResolver would
-///         serve as every deeper name's default. A holder updates its `agent-status` through `setStatus`, and nothing
-///         else.
+///         This contract is the issued names' resolver (ENSIP-10), and every issued name's registry entry points at it.
+///         It answers only the exact `<label>.t<13 digits>.<parent>` of a live name in the current namespace, and only
+///         text, read from that name's own ENSv2 PermissionedResolver. It is the only role holder there and writes only
+///         the exact name, never the root node a PermissionedResolver would serve as every deeper name's default. A
+///         holder updates its `agent-status` through `setStatus`, and nothing else.
 ///
-///         Meigi (`brake`) can unregister any issued name, and `reset` a T-number's namespace: after a dispute moves
-///         the number to another company, none of the old names carry over.
+///         Meigi (`brake`) can block a label or freeze a whole namespace (both stick: issuing, editing and answering
+///         stop until Meigi lifts them), unregister any issued name, and reset a T-number's namespace so that, after a
+///         dispute moves the number to another company, none of the old names carry over.
 contract CompanyNamespace is IERC165 {
     using Strings for uint256;
 
@@ -36,6 +40,12 @@ contract CompanyNamespace is IERC165 {
         uint64 expiry;
         string[] keys;
         string[] values;
+    }
+
+    /// @dev An issued name's record resolver, and the controller that issued it.
+    struct Issued {
+        address records;
+        address issuer;
     }
 
     /// @dev ENSv2 RegistryRolesLib roles on a company registry's root.
@@ -50,9 +60,6 @@ contract CompanyNamespace is IERC165 {
     bytes4 private constant ADDR_COIN = 0xf1cb7e06; // addr(bytes32,uint256)
     bytes4 private constant TEXT = 0x59d1d43c; // text(bytes32,string)
     bytes4 private constant MULTICALL = 0xac9650d8; // multicall(bytes[])
-    uint256 private constant MAX_LABEL_LENGTH = 32;
-    /// @dev A T-number has 13 digits, so no label may carry a run of 13.
-    uint256 private constant T_NUMBER_DIGITS = 13;
     string private constant STATUS_KEY = "agent-status";
 
     IPayeeRegistry public immutable registry;
@@ -66,18 +73,22 @@ contract CompanyNamespace is IERC165 {
     bytes32 public immutable parentNameHash;
     bytes public parentDnsName;
 
-    /// @notice Bumped by `reset`: the current namespace generation of each T-number.
+    /// @notice Bumped by `resetNamespace`: the current namespace generation of each T-number.
     mapping(uint64 tNumber => uint256) public epochOf;
     /// @notice The current namespace registry of each T-number (zero until opened, and after a reset).
     mapping(uint64 tNumber => address) public namespaceOf;
-    mapping(uint64 tNumber => mapping(uint256 epoch => mapping(bytes32 labelHash => address))) private
-        _resolverOf;
+    /// @notice Set by Meigi: the whole namespace neither changes nor answers.
+    mapping(uint64 tNumber => bool) public frozen;
+    /// @notice Set by Meigi, by keccak256(label): the label can't be issued, changed or answered, in any epoch.
+    mapping(uint64 tNumber => mapping(bytes32 labelHash => bool)) public blocked;
+    mapping(uint64 tNumber => mapping(uint256 epoch => mapping(bytes32 labelHash => Issued))) private _issued;
     mapping(uint64 tNumber => mapping(uint256 epoch => string[])) private _labels;
-    mapping(uint64 tNumber => mapping(uint256 epoch => mapping(bytes32 labelHash => bool))) private _listed;
     uint256 private _resolverCount;
 
     event NamespaceOpened(uint64 indexed tNumber, uint256 epoch, address namespace);
     event NamespaceReset(uint64 indexed tNumber, uint256 epoch);
+    event NamespaceFrozen(uint64 indexed tNumber, bool frozen);
+    event NameBlocked(uint64 indexed tNumber, string label, bool blocked);
     event NameIssued(uint64 indexed tNumber, string label, address holder, address resolver, uint64 expiry);
     event NameRenewed(uint64 indexed tNumber, string label, uint64 expiry);
     event NameRevoked(uint64 indexed tNumber, string label);
@@ -88,12 +99,12 @@ contract CompanyNamespace is IERC165 {
     error NotController(uint64 tNumber, address caller);
     error NotHolder(uint64 tNumber, string label, address caller);
     error NotBrake(address caller);
+    error Frozen(uint64 tNumber);
+    error Blocked(uint64 tNumber, string label);
     error NoClaim(uint64 tNumber);
     error NamespaceExists(uint64 tNumber);
     error NoNamespace(uint64 tNumber);
     error UnknownName(uint64 tNumber, string label);
-    error InvalidLabel(string label);
-    error ReservedKey(string key);
     error InvalidHolder(address holder);
     error InvalidExpiry(uint64 expiry, uint64 latest);
     error TextsMismatch();
@@ -125,11 +136,19 @@ contract CompanyNamespace is IERC165 {
         parentDnsName = parentDnsName_;
     }
 
-    /// @dev Only the payee's current controller, and only while the payee is active.
+    /// @dev Only the payee's current controller, only while the payee is active, and only while Meigi hasn't frozen
+    ///      the namespace.
     modifier onlyController(uint64 tNumber) {
         _onlyController(tNumber);
         _;
     }
+
+    modifier onlyBrake() {
+        if (msg.sender != brake) revert NotBrake(msg.sender);
+        _;
+    }
+
+    // ---- the company ----
 
     /// @notice Creates the company's registry for the current epoch. Meigi then attaches it to the claimed name.
     function open(uint64 tNumber) external onlyController(tNumber) returns (address namespace) {
@@ -152,26 +171,27 @@ contract CompanyNamespace is IERC165 {
         emit NamespaceOpened(tNumber, epoch, namespace);
     }
 
-    /// @notice Issues `name.label` under the company's payee name: text records only, in its own resolver.
+    /// @notice Issues `name.label` under the company's payee name: text records only, in its own resolver, with this
+    ///         contract as the resolver of its registry entry.
     function issue(uint64 tNumber, Name calldata name)
         external
         onlyController(tNumber)
         returns (address resolver)
     {
         IEnsV2Registry namespace = _namespace(tNumber);
-        _checkLabel(name.label);
+        CompanyNameRules.checkLabel(name.label);
+        bytes32 labelHash = keccak256(bytes(name.label));
+        if (blocked[tNumber][labelHash]) revert Blocked(tNumber, name.label);
         if (name.holder == address(0) || name.holder.code.length != 0) revert InvalidHolder(name.holder);
         _checkExpiry(tNumber, name.expiry);
         if (name.keys.length != name.values.length) revert TextsMismatch();
 
         uint256 epoch = epochOf[tNumber];
-        bytes32 labelHash = keccak256(bytes(name.label));
-        if (!_listed[tNumber][epoch][labelHash]) {
-            _listed[tNumber][epoch][labelHash] = true;
+        if (_issued[tNumber][epoch][labelHash].records == address(0)) {
             _labels[tNumber][epoch].push(name.label);
         }
         resolver = _deployResolver(_dnsName(tNumber, name.label), name);
-        _resolverOf[tNumber][epoch][labelHash] = resolver;
+        _issued[tNumber][epoch][labelHash] = Issued({records: resolver, issuer: msg.sender});
         namespace.register(name.label, name.holder, address(0), address(this), 0, name.expiry);
         emit NameIssued(tNumber, name.label, name.holder, resolver, name.expiry);
     }
@@ -181,13 +201,16 @@ contract CompanyNamespace is IERC165 {
         external
         onlyController(tNumber)
     {
-        _checkKey(key);
+        CompanyNameRules.checkKey(key);
+        _checkNotBlocked(tNumber, label);
         if (_namespace(tNumber).getOwner(_labelId(label)) == address(0)) revert UnknownName(tNumber, label);
         _write(tNumber, label, key, value);
     }
 
     /// @notice Sets `agent-status` on a live issued name, as its holder. The holder can write nothing else.
     function setStatus(uint64 tNumber, string calldata label, string calldata value) external {
+        if (frozen[tNumber]) revert Frozen(tNumber);
+        _checkNotBlocked(tNumber, label);
         if (_namespace(tNumber).getOwner(_labelId(label)) != msg.sender) {
             revert NotHolder(tNumber, label, msg.sender);
         }
@@ -197,6 +220,7 @@ contract CompanyNamespace is IERC165 {
     /// @notice Extends a live name, up to the company's claim expiry. An expired or revoked name is issued again
     ///         instead: the registry would revive a revoked name without its holder.
     function renew(uint64 tNumber, string calldata label, uint64 expiry) external onlyController(tNumber) {
+        _checkNotBlocked(tNumber, label);
         IEnsV2Registry namespace = _namespace(tNumber);
         uint256 id = _labelId(label);
         if (namespace.getOwner(id) == address(0)) revert UnknownName(tNumber, label);
@@ -206,21 +230,37 @@ contract CompanyNamespace is IERC165 {
     }
 
     /// @notice Unregisters an issued name: it stops resolving, and its label can be issued again.
-    function revoke(uint64 tNumber, string calldata label) external onlyController(tNumber) {
+    function revoke(uint64 tNumber, string calldata label) external {
+        _onlyController(tNumber, false);
         _namespace(tNumber).unregister(_labelId(label));
         emit NameRevoked(tNumber, label);
     }
 
-    /// @notice Meigi's reset of a T-number's namespace, e.g. after a dispute moved the number to another company:
-    ///         every name of the old epoch stops answering at once, and `open` starts a fresh registry.
-    function reset(uint64 tNumber) external {
-        if (msg.sender != brake) revert NotBrake(msg.sender);
+    // ---- Meigi's brake ----
+
+    /// @notice Stops a label: it can't be issued, edited, renewed or answered until Meigi lifts it.
+    function setBlocked(uint64 tNumber, string calldata label, bool isBlocked) external onlyBrake {
+        blocked[tNumber][keccak256(bytes(label))] = isBlocked;
+        emit NameBlocked(tNumber, label, isBlocked);
+    }
+
+    /// @notice Stops a whole namespace: nothing is opened, issued, edited, renewed or answered until Meigi lifts it.
+    function setFrozen(uint64 tNumber, bool isFrozen) external onlyBrake {
+        frozen[tNumber] = isFrozen;
+        emit NamespaceFrozen(tNumber, isFrozen);
+    }
+
+    /// @notice Starts a T-number over, e.g. after a dispute moved it to another company: every name of the old epoch
+    ///         stops answering at once, and `open` makes a fresh registry (Meigi then attaches it instead of the old one).
+    function resetNamespace(uint64 tNumber) external onlyBrake {
         uint256 epoch = ++epochOf[tNumber];
         delete namespaceOf[tNumber];
         emit NamespaceReset(tNumber, epoch);
     }
 
-    /// @notice ENSIP-10. Text records of exact, live issued names while the payee is active; no address, ever.
+    // ---- resolution ----
+
+    /// @notice ENSIP-10. Text of an issued name while the registry vouches for it (see `answers`); no address, ever.
     function resolve(bytes calldata name, bytes calldata data) external view returns (bytes memory) {
         if (data.length < 4) revert UnsupportedRecord(bytes4(0));
         bytes4 selector = bytes4(data[:4]);
@@ -228,9 +268,10 @@ contract CompanyNamespace is IERC165 {
         if (selector == ADDR) return abi.encode(address(0));
         if (selector == ADDR_COIN) return abi.encode(bytes(""));
         if (selector != TEXT) revert UnsupportedRecord(selector);
-        address resolver = _answering(name);
-        if (resolver == address(0)) return abi.encode("");
-        try IEnsV2Resolver(resolver).resolve(name, data) returns (bytes memory result) {
+        (uint64 tNumber, bytes calldata label, bool exact) = CompanyNameRules.parse(name, parentNameHash);
+        address records = exact ? _answering(tNumber, keccak256(label)) : address(0);
+        if (records == address(0)) return abi.encode("");
+        try IEnsV2Resolver(records).resolve(name, data) returns (bytes memory result) {
             return result;
         } catch {
             return abi.encode("");
@@ -241,31 +282,39 @@ contract CompanyNamespace is IERC165 {
         return interfaceId == type(IERC165).interfaceId || interfaceId == EXTENDED_RESOLVER;
     }
 
+    /// @notice Whether `<label>.t<T-number>.<parent>` answers now: not frozen or blocked, live in the current namespace,
+    ///         the payee active, and its controller still the key that issued the name.
+    function answers(uint64 tNumber, string calldata label) external view returns (bool) {
+        return _answering(tNumber, keccak256(bytes(label))) != address(0);
+    }
+
     /// @notice Every label issued in the current namespace, including revoked and expired ones.
     function labelsOf(uint64 tNumber) external view returns (string[] memory) {
         return _labels[tNumber][epochOf[tNumber]];
     }
 
-    /// @notice An issued name's holder, record resolver and expiry in the current namespace. The holder is zero once it
-    ///         expired or was revoked.
+    /// @notice An issued name in the current namespace: its holder (zero once it expired or was revoked), record
+    ///         resolver, issuing controller and expiry.
     function nameOf(uint64 tNumber, string calldata label)
         external
         view
-        returns (address holder, address resolver, uint64 expiry)
+        returns (address holder, address records, address issuer, uint64 expiry)
     {
         IEnsV2Registry namespace = IEnsV2Registry(namespaceOf[tNumber]);
-        if (address(namespace) == address(0)) return (address(0), address(0), 0);
+        if (address(namespace) == address(0)) return (address(0), address(0), address(0), 0);
         uint256 id = _labelId(label);
-        resolver = _resolverOf[tNumber][epochOf[tNumber]][keccak256(bytes(label))];
-        return (namespace.getOwner(id), resolver, namespace.getExpiry(id));
+        Issued memory issued = _issued[tNumber][epochOf[tNumber]][bytes32(id)];
+        return (namespace.getOwner(id), issued.records, issued.issuer, namespace.getExpiry(id));
     }
+
+    // ---- internals ----
 
     /// @dev The name's own resolver, with its texts set while initializing. This contract is its only role holder,
     ///      with the text role alone, so no address record can ever exist there.
     function _deployResolver(bytes memory dnsName, Name calldata name) private returns (address) {
         bytes[] memory calls = new bytes[](name.keys.length);
         for (uint256 i; i < name.keys.length; ++i) {
-            _checkKey(name.keys[i]);
+            CompanyNameRules.checkKey(name.keys[i]);
             calls[i] = abi.encodeCall(IEnsV2Resolver.setText, (dnsName, name.keys[i], name.values[i]));
         }
         EnsV2Grant[] memory grants = new EnsV2Grant[](1);
@@ -274,43 +323,26 @@ contract CompanyNamespace is IERC165 {
         return factory.deployProxy(resolverImplementation, ++_resolverCount, init);
     }
 
-    /// @dev Writes one text on the exact name (never the root node), in its current resolver.
+    /// @dev Writes one text on the exact name (never the root node), in its current record resolver.
     function _write(uint64 tNumber, string calldata label, string memory key, string calldata value) private {
-        address resolver = _resolverOf[tNumber][epochOf[tNumber]][keccak256(bytes(label))];
-        IEnsV2Resolver(resolver).setText(_dnsName(tNumber, label), key, value);
+        address records = _issued[tNumber][epochOf[tNumber]][keccak256(bytes(label))].records;
+        IEnsV2Resolver(records).setText(_dnsName(tNumber, label), key, value);
     }
 
-    /// @dev The record resolver answering `name`, or zero: `name` must be exactly `<label>.t<13 digits>.<parent>`, the
-    ///      payee active, and the label live in the current namespace.
-    function _answering(bytes calldata name) private view returns (address) {
-        (uint64 tNumber, bytes calldata label, bool exact) = _parse(name);
-        if (!exact || !registry.isActive(tNumber)) return address(0);
+    /// @dev The record resolver that answers for a label now, or zero.
+    function _answering(uint64 tNumber, bytes32 labelHash) private view returns (address) {
+        if (frozen[tNumber] || blocked[tNumber][labelHash]) return address(0);
         address namespace = namespaceOf[tNumber];
-        if (namespace == address(0)) return address(0);
-        if (IEnsV2Registry(namespace).getOwner(uint256(keccak256(label))) == address(0)) return address(0);
-        return _resolverOf[tNumber][epochOf[tNumber]][keccak256(label)];
-    }
-
-    /// @dev Splits `<label>.t<13 digits>.<parent>` (DNS-encoded). `exact` is false for any other shape.
-    function _parse(bytes calldata name)
-        private
-        view
-        returns (uint64 tNumber, bytes calldata label, bool exact)
-    {
-        label = name[0:0];
-        if (name.length == 0) return (0, label, false);
-        uint256 end = 1 + uint8(name[0]);
-        // label, then a 14-byte label "t<13 digits>", then the parent
-        if (end == 1 || name.length < end + 15 || uint8(name[end]) != 14 || name[end + 1] != "t") {
-            return (0, label, false);
+        if (namespace == address(0) || IEnsV2Registry(namespace).getOwner(uint256(labelHash)) == address(0)) {
+            return address(0);
         }
-        if (keccak256(name[end + 15:]) != parentNameHash) return (0, label, false);
-        for (uint256 i = end + 2; i < end + 15; ++i) {
-            bytes1 c = name[i];
-            if (c < "0" || c > "9") return (0, label, false);
-            tNumber = tNumber * 10 + uint64(uint8(c) - 48);
+        Issued memory issued = _issued[tNumber][epochOf[tNumber]][labelHash];
+        if (issued.records == address(0)) return address(0);
+        IPayeeRegistry.PayeeView memory payee = registry.payeeOf(tNumber);
+        if (payee.status != IPayeeRegistry.Status.Active || payee.controller != issued.issuer) {
+            return address(0);
         }
-        return (tNumber, name[1:end], true);
+        return issued.records;
     }
 
     function _multicall(bytes calldata name, bytes calldata data) private view returns (bytes memory) {
@@ -327,9 +359,19 @@ contract CompanyNamespace is IERC165 {
     }
 
     function _onlyController(uint64 tNumber) private view {
+        _onlyController(tNumber, true);
+    }
+
+    /// @dev `checkFrozen` is false only for revoke: taking a name down stays possible while Meigi's freeze holds.
+    function _onlyController(uint64 tNumber, bool checkFrozen) private view {
+        if (checkFrozen && frozen[tNumber]) revert Frozen(tNumber);
         IPayeeRegistry.PayeeView memory payee = registry.payeeOf(tNumber);
         if (payee.status != IPayeeRegistry.Status.Active) revert PayeeNotActive(tNumber);
         if (payee.controller != msg.sender) revert NotController(tNumber, msg.sender);
+    }
+
+    function _checkNotBlocked(uint64 tNumber, string calldata label) private view {
+        if (blocked[tNumber][keccak256(bytes(label))]) revert Blocked(tNumber, label);
     }
 
     function _namespace(uint64 tNumber) private view returns (IEnsV2Registry namespace) {
@@ -345,39 +387,6 @@ contract CompanyNamespace is IERC165 {
 
     function _claimExpiry(string memory claimLabel) private view returns (uint64) {
         return claims.getExpiry(uint256(keccak256(bytes(claimLabel))));
-    }
-
-    /// @dev ENSIP-15-normal and strict: 1 to 32 of [a-z0-9] with single inner hyphens (so never `xn--` punycode),
-    ///      and no run of 13 digits, so a label can't pose as a T-number.
-    function _checkLabel(string calldata label) private pure {
-        bytes calldata b = bytes(label);
-        uint256 n = b.length;
-        if (n == 0 || n > MAX_LABEL_LENGTH || b[0] == "-" || b[n - 1] == "-") revert InvalidLabel(label);
-        uint256 run;
-        for (uint256 i; i < n; ++i) {
-            bytes1 c = b[i];
-            bool digit = c >= "0" && c <= "9";
-            if (c == "-") {
-                if (b[i - 1] == "-") revert InvalidLabel(label);
-            } else if (!digit && !(c >= "a" && c <= "z")) {
-                revert InvalidLabel(label);
-            }
-            run = digit ? run + 1 : 0;
-            if (run == T_NUMBER_DIGITS) revert InvalidLabel(label);
-        }
-    }
-
-    /// @dev `meigi.*` keys, in any letter case, carry registry facts on payee names; a company can't publish them.
-    function _checkKey(string calldata key) private pure {
-        bytes calldata k = bytes(key);
-        bytes memory prefix = "meigi.";
-        if (k.length < prefix.length) return;
-        for (uint256 i; i < prefix.length; ++i) {
-            bytes1 c = k[i];
-            if (c >= "A" && c <= "Z") c = bytes1(uint8(c) + 32);
-            if (c != prefix[i]) return;
-        }
-        revert ReservedKey(key);
     }
 
     function _claimLabel(uint64 tNumber) private pure returns (string memory) {

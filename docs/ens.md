@@ -87,6 +87,71 @@ to stop. The T-number name stays the only one.
 
 **The vault's primary name is `ap.meigi.eth`**, so wallets show the agent's name instead of `0x87A7…793B`.
 
+## Companies issue names to their own agents (built and fork-proven, not yet deployed)
+
+A company that claimed `t<T-number>.payee.eth` can issue names under it:
+- `ap.t2011001234567.payee.eth` for its AP agent;
+- `keiri.…` (経理) for its accounts department;
+- `zeirishi.…` (税理士) for an outside tax accountant, for 30 days.
+
+[`CompanyNamespace`](../contracts/src/ens/CompanyNamespace.sol) issues them. The demo company is fictional, and its
+texts say so.
+
+**An issued name is an identity, never a payee.**
+- It resolves no address. It has only text records:
+  - a description;
+  - ENSIP-26's `agent-context`, `agent-endpoint[web]` and `agent-status`;
+  - for the agent, an ENSIP-25 link to its ERC-8004 registration, which the company owns.
+- The only name anyone pays is `t2011001234567.payee.eth`. So a stolen company key can't mint
+  `pay.t2011001234567.payee.eth` pointing at a thief, because an issued name carries no address at all.
+- Who the company is comes from the parent name, which the registry answers. So `name`, `display`, `url` and `avatar`
+  are reserved on issued names.
+
+**The registry decides, live.**
+- Only the payee's current controller, while the payee is active, can open the namespace and issue, edit, renew or
+  revoke names.
+- A name answers only while the payee is active and its controller is still the key that issued it:
+  - **a disputed number's issued names resolve to nothing**;
+  - a controller rotation (recovery from a stolen key, say) darkens every name the old key issued.
+
+**How it's built, and why.**
+- **Every issued name's resolver is the gate** (ENSIP-10). It answers only the exact `<label>.t<13 digits>.payee.eth` of
+  a live name in the current namespace, and only text.
+- **Each name keeps its records in its own PermissionedResolver**, where the gate is the only role holder and writes
+  only that exact name. The holder gets no role there; it sets its own `agent-status` through the gate, and nothing
+  else. contracts-review confirmed two Beta behaviours on a fork that make this necessary:
+  - a record under the root node answers every deeper name through the wildcard;
+  - setter roles are scoped by key, not by name.
+- **Lifetime.**
+  - Names are non-transferable (issued with no token roles).
+  - They expire no later than the company's claim.
+  - `renew` extends live names only, because a registry unregister followed by renew would revive the old resolver.
+- **Labels** are ENSIP-15-normal `[a-z0-9]` with single inner hyphens. A label can't contain 13 digits in a row, so
+  `t8999900000001.t2011001234567.payee.eth` can't pose as another company. Holders are plain accounts.
+- **Meigi's brake** can:
+  - block a label, or freeze a whole namespace (both stay dark and unchangeable until lifted);
+  - unregister a name;
+  - reset a T-number's namespace after a dispute moves the number, so none of the old names carry over.
+
+**Evidence.**
+- 23 unit tests, against the real PayeeRegistry, so rotations and disputes are the registry's own flows.
+- 6 fork tests on the live Beta through the canonical UniversalResolver.
+- [`names-e2e.sh`](../contracts/script/ens/names-e2e.sh), on an anvil fork with stock viem:
+  - the names are text-only;
+  - the ERC-8004 and ENSIP-25 link is confirmed both ways;
+  - a deeper name answers nothing;
+  - the brake sticks;
+  - a dispute darkens the names and dismissing it restores them;
+  - expiry, revocation and reset all work;
+  - the seven reference names resolve as before.
+- contracts-review's findings shaped this design.
+
+**Limits.**
+- Not deployed yet.
+- Until the rotation lands, or Meigi blocks or freezes it, a stolen controller key can still issue a text-only name.
+  It can never make one payable.
+- Issued names' texts are the company's own words. Only the parent's legal name comes from the registry.
+
 ## Resolver partitioning: no role crosses names
 
 A PermissionedResolver scopes a setter role by record key, not by name: the role's resource is `keccak256(key)`. So a

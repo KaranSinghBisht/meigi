@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+import {CompanyNameRules} from "../../src/ens/CompanyNameRules.sol";
 import {CompanyNamespace} from "../../src/ens/CompanyNamespace.sol";
 import {IEnsV2Factory, IEnsV2Registry} from "../../src/ens/IEnsV2.sol";
 import {IPayeeRegistry} from "../../src/registry/IPayeeRegistry.sol";
@@ -178,12 +179,19 @@ contract CompanyNamespaceTest is MeigiFixture {
         assertEq(_textOf("ap", "description"), "AP agent, updated by the company");
 
         vm.prank(controller);
-        vm.expectRevert(abi.encodeWithSelector(CompanyNamespace.ReservedKey.selector, "Meigi.Registry"));
+        vm.expectRevert(abi.encodeWithSelector(CompanyNameRules.ReservedKey.selector, "Meigi.Registry"));
         gate.setText(VENDOR, "ap", "Meigi.Registry", "0x0");
+        // Who the company is comes from the parent payee name: no profile keys on an issued name, in any case.
+        string[4] memory profile = [string("NAME"), "Display", "url", "AvAtAr"];
+        for (uint256 i; i < profile.length; ++i) {
+            vm.prank(controller);
+            vm.expectRevert(abi.encodeWithSelector(CompanyNameRules.ReservedKey.selector, profile[i]));
+            gate.setText(VENDOR, "ap", profile[i], "x");
+        }
         CompanyNamespace.Name memory n = _name("keiri", accounts, claimExpiry);
         n.keys[0] = "MEIGI.status";
         vm.prank(controller);
-        vm.expectRevert(abi.encodeWithSelector(CompanyNamespace.ReservedKey.selector, "MEIGI.status"));
+        vm.expectRevert(abi.encodeWithSelector(CompanyNameRules.ReservedKey.selector, "MEIGI.status"));
         gate.issue(VENDOR, n);
 
         vm.prank(controller);
@@ -214,7 +222,7 @@ contract CompanyNamespaceTest is MeigiFixture {
         ];
         for (uint256 i; i < bad.length; ++i) {
             vm.prank(controller);
-            vm.expectRevert(abi.encodeWithSelector(CompanyNamespace.InvalidLabel.selector, bad[i]));
+            vm.expectRevert(abi.encodeWithSelector(CompanyNameRules.InvalidLabel.selector, bad[i]));
             gate.issue(VENDOR, _name(bad[i], agent, claimExpiry));
         }
         string[5] memory good = [string("keiri"), "zeirishi", "t2011", "audit-2026-09", "a-b-c"];
@@ -263,26 +271,30 @@ contract CompanyNamespaceTest is MeigiFixture {
 
     // ---- the registry decides ----
 
-    function test_AuthorityFollowsAControllerRotation() public {
+    function test_ARotationMovesAuthorityAndDarkensTheOldKeysNames() public {
         _open();
         _issue("ap", agent);
         address successor = makeAddr("new-business-key");
         _queueRotation(VENDOR, successor, OFFICER_A);
-        _issue("keiri", accounts); // queued, not matured: the current controller still issues
+        _issue("keiri", accounts); // queued, not matured: the current controller still issues, and names answer
+        assertEq(_textOf("keiri", "description"), "AP agent of a fictional demo company");
 
         vm.warp(block.timestamp + CHANGE_DELAY + 1);
         assertEq(registry.payeeOf(VENDOR).controller, successor);
         vm.prank(controller);
         vm.expectRevert(abi.encodeWithSelector(CompanyNamespace.NotController.selector, VENDOR, controller));
         gate.issue(VENDOR, _name("zeirishi", stranger, claimExpiry));
+        // Every name the old key issued (e.g. a thief's, during the recovery window) goes dark once the rotation lands.
+        assertEq(_textOf("ap", "description"), "");
+        assertEq(_textOf("keiri", "description"), "");
 
-        // The successor has the authority without any ENS transaction, and the names keep answering.
+        // The successor has the authority without any ENS transaction, and re-issues what it vouches for.
         vm.startPrank(successor);
-        gate.issue(VENDOR, _name("zeirishi", stranger, claimExpiry));
-        gate.setText(VENDOR, "ap", "description", "set by the new business key");
-        gate.revoke(VENDOR, "keiri");
+        gate.revoke(VENDOR, "ap");
+        gate.issue(VENDOR, _name("ap", agent, claimExpiry));
         vm.stopPrank();
-        assertEq(_textOf("ap", "description"), "set by the new business key");
+        assertEq(_textOf("ap", "description"), "AP agent of a fictional demo company");
+        assertEq(_textOf("keiri", "description"), "", "still dark: the old key issued it");
     }
 
     function test_ADisputeDarkensTheNamesAndFreezesTheNamespace() public {
@@ -314,12 +326,12 @@ contract CompanyNamespaceTest is MeigiFixture {
         _issue("ap", agent);
         vm.prank(stranger);
         vm.expectRevert(abi.encodeWithSelector(CompanyNamespace.NotBrake.selector, stranger));
-        gate.reset(VENDOR);
+        gate.resetNamespace(VENDOR);
 
         vm.expectEmit(true, false, false, true, address(gate));
         emit CompanyNamespace.NamespaceReset(VENDOR, 1);
         vm.prank(brake);
-        gate.reset(VENDOR);
+        gate.resetNamespace(VENDOR);
         assertEq(gate.namespaceOf(VENDOR), address(0));
         assertEq(first.getOwner(_id("ap")), agent, "still registered in the old registry");
         assertEq(_textOf("ap", "description"), "", "but it no longer answers");
@@ -328,9 +340,10 @@ contract CompanyNamespaceTest is MeigiFixture {
         MockNamespaceRegistry second = _open();
         assertTrue(address(second) != address(first));
         MockProfileResolver records = _issue("ap", stranger);
-        (address holder, address resolver,) = gate.nameOf(VENDOR, "ap");
+        (address holder, address resolver, address issuer,) = gate.nameOf(VENDOR, "ap");
         assertEq(holder, stranger);
         assertEq(resolver, address(records));
+        assertEq(issuer, controller);
         assertEq(_textOf("ap", "description"), "AP agent of a fictional demo company");
     }
 
@@ -393,6 +406,100 @@ contract CompanyNamespaceTest is MeigiFixture {
         ns.unregister(_id("ap"));
     }
 
+    function test_ABlockedLabelStaysDownThroughReissue() public {
+        MockNamespaceRegistry ns = _open();
+        _issue("pay", agent);
+        vm.startPrank(brake);
+        gate.setBlocked(VENDOR, "pay", true);
+        ns.unregister(_id("pay"));
+        vm.stopPrank();
+        assertEq(_textOf("pay", "description"), "");
+
+        vm.startPrank(controller);
+        vm.expectRevert(abi.encodeWithSelector(CompanyNamespace.Blocked.selector, VENDOR, "pay"));
+        gate.issue(VENDOR, _name("pay", agent, claimExpiry));
+        vm.stopPrank();
+
+        // Blocking a live name darkens it and stops every change to it.
+        _issue("ap", agent);
+        vm.prank(brake);
+        gate.setBlocked(VENDOR, "ap", true);
+        assertEq(_textOf("ap", "description"), "");
+        bytes memory stopped = abi.encodeWithSelector(CompanyNamespace.Blocked.selector, VENDOR, "ap");
+        vm.prank(controller);
+        vm.expectRevert(stopped);
+        gate.setText(VENDOR, "ap", "description", "x");
+        vm.prank(controller);
+        vm.expectRevert(stopped);
+        gate.renew(VENDOR, "ap", claimExpiry);
+        vm.prank(agent);
+        vm.expectRevert(stopped);
+        gate.setStatus(VENDOR, "ap", "x");
+
+        vm.prank(brake);
+        gate.setBlocked(VENDOR, "ap", false);
+        assertEq(_textOf("ap", "description"), "AP agent of a fictional demo company");
+    }
+
+    function test_AFrozenNamespaceNeitherChangesNorAnswers() public {
+        _open();
+        _issue("ap", agent);
+        vm.prank(brake);
+        gate.setFrozen(VENDOR, true);
+        assertEq(_textOf("ap", "description"), "");
+        assertFalse(gate.answers(VENDOR, "ap"));
+
+        bytes memory stopped = abi.encodeWithSelector(CompanyNamespace.Frozen.selector, VENDOR);
+        vm.startPrank(controller);
+        vm.expectRevert(stopped);
+        gate.issue(VENDOR, _name("keiri", accounts, claimExpiry));
+        vm.expectRevert(stopped);
+        gate.setText(VENDOR, "ap", "description", "x");
+        vm.expectRevert(stopped);
+        gate.renew(VENDOR, "ap", claimExpiry);
+        gate.revoke(VENDOR, "ap"); // taking a name down stays possible
+        vm.stopPrank();
+        vm.prank(agent);
+        vm.expectRevert(stopped);
+        gate.setStatus(VENDOR, "ap", "x");
+
+        vm.prank(brake);
+        gate.setFrozen(VENDOR, false);
+        _issue("keiri", accounts);
+        assertTrue(gate.answers(VENDOR, "keiri"));
+    }
+
+    function test_OnlyMeigiHoldsTheBrake() public {
+        _open();
+        address[2] memory others = [controller, stranger];
+        for (uint256 i; i < others.length; ++i) {
+            vm.startPrank(others[i]);
+            bytes memory denied = abi.encodeWithSelector(CompanyNamespace.NotBrake.selector, others[i]);
+            vm.expectRevert(denied);
+            gate.setBlocked(VENDOR, "ap", true);
+            vm.expectRevert(denied);
+            gate.setFrozen(VENDOR, true);
+            vm.expectRevert(denied);
+            gate.resetNamespace(VENDOR);
+            vm.stopPrank();
+        }
+    }
+
+    function test_NoIssuedNameCanBypassTheGate() public {
+        MockNamespaceRegistry ns = _open();
+        _issue("ap", agent);
+        assertEq(ns.getResolver("ap"), address(gate));
+        // Nobody holds the role that could point the name's registry entry past the gate.
+        address[4] memory everyone = [controller, agent, address(gate), brake];
+        for (uint256 i; i < everyone.length; ++i) {
+            assertEq(ns.rootRoles(everyone[i]) & ROLE_SET_RESOLVER, 0);
+            vm.prank(everyone[i]);
+            vm.expectRevert(abi.encodeWithSelector(Unauthorized.selector, 0, ROLE_SET_RESOLVER, everyone[i]));
+            ns.setResolver(_id("ap"), stranger);
+        }
+        assertEq(ns.tokenRoles("ap"), 0);
+    }
+
     // ---- resolver plumbing and views ----
 
     function test_MulticallAndInterfaces() public {
@@ -419,11 +526,14 @@ contract CompanyNamespaceTest is MeigiFixture {
         assertEq(labels.length, 2);
         assertEq(labels[0], "ap");
         assertEq(labels[1], "keiri");
-        (address holder, address resolver, uint64 expiry) = gate.nameOf(VENDOR, "ap");
+        (address holder, address resolver, address issuer, uint64 expiry) = gate.nameOf(VENDOR, "ap");
         assertEq(holder, agent);
         assertEq(resolver, address(records));
+        assertEq(issuer, controller);
         assertEq(expiry, claimExpiry);
-        (holder,,) = gate.nameOf(OTHER_VENDOR, "ap");
+        assertTrue(gate.answers(VENDOR, "ap"));
+        assertFalse(gate.answers(VENDOR, "keiri-x"));
+        (holder,,,) = gate.nameOf(OTHER_VENDOR, "ap");
         assertEq(holder, address(0));
     }
 

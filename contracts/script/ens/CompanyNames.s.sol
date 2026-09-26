@@ -135,7 +135,7 @@ contract CompanyNames is Script {
         ];
         EnsV2Lib.startBroadcast("COMPANY_PRIVATE_KEY", "COMPANY_ADDRESS");
         for (uint256 i; i < names.length; ++i) {
-            (address holder,,) = gate.nameOf(T_NUMBER, names[i].label);
+            (address holder,,,) = gate.nameOf(T_NUMBER, names[i].label);
             if (holder != address(0)) {
                 console.log("%s is already live", names[i].label);
                 continue;
@@ -194,12 +194,13 @@ contract CompanyNames is Script {
         private
         view
     {
-        (address holder, address records, uint64 expiry) = gate.nameOf(T_NUMBER, label);
+        (address holder, address records,, uint64 expiry) = gate.nameOf(T_NUMBER, label);
         string memory name = _full(label);
         require(_addr(ens, name) == address(0), "an issued name resolves an address");
         string memory description = attached ? _text(ens, name, "description") : "";
         require(
-            holder == address(0) || !attached || bytes(description).length > 0, "a live name answers nothing"
+            !attached || gate.answers(T_NUMBER, label) == (bytes(description).length > 0),
+            "the name answers differently than the gate says"
         );
         console.log("%s: holder %s, records %s", name, holder, records);
         console.log("  expires %s: %s", expiry, description);

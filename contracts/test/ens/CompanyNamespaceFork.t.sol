@@ -2,12 +2,21 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
+import {CompanyNameRules} from "../../src/ens/CompanyNameRules.sol";
 import {CompanyNamespace} from "../../src/ens/CompanyNamespace.sol";
 import {IEnsV2Factory, IEnsV2Registry} from "../../src/ens/IEnsV2.sol";
 import {IPayeeRegistry} from "../../src/registry/IPayeeRegistry.sol";
+import {OfficerQuorum} from "../../src/registry/OfficerQuorum.sol";
+import {PayeeRegistry} from "../../src/registry/PayeeRegistry.sol";
 
 interface IClaimsRegistry {
     function setSubregistry(uint256 anyId, address registry) external;
+}
+
+interface IRegistryRoles {
+    function getResolver(string calldata label) external view returns (address);
+    function roles(uint256 anyId, address account) external view returns (uint256);
+    function setResolver(uint256 anyId, address resolver) external;
 }
 
 interface ILiveResolver {
@@ -63,7 +72,8 @@ contract CompanyNamespaceForkTest is Test {
     }
 
     function test_ForkNamesAreTextOnlyExactAndScoped() public {
-        address records = _openAttachIssue();
+        _openAttachIssue();
+        (, address records,,) = gate.nameOf(T_NUMBER, "ap");
         Text memory description = _text(AP, "description");
         assertEq(description.used, address(gate), "the UniversalResolver asks the gate");
         assertEq(description.v, unicode"AP agent of 株式会社メイギ商事 (fictional demo company)");
@@ -126,7 +136,7 @@ contract CompanyNamespaceForkTest is Test {
 
         // Meigi resets the namespace: the old names stop answering even while the old registry is still attached.
         vm.prank(MEIGI);
-        gate.reset(T_NUMBER);
+        gate.resetNamespace(T_NUMBER);
         assertEq(_text(AP, "description").v, "");
         vm.prank(CONTROLLER);
         address fresh = gate.open(T_NUMBER);
@@ -140,17 +150,67 @@ contract CompanyNamespaceForkTest is Test {
         _openAttachIssue();
         CompanyNamespace.Name memory n = _name("t8999900000001", agent, 0, "look-alike");
         vm.prank(CONTROLLER);
-        vm.expectRevert(abi.encodeWithSelector(CompanyNamespace.InvalidLabel.selector, "t8999900000001"));
+        vm.expectRevert(abi.encodeWithSelector(CompanyNameRules.InvalidLabel.selector, "t8999900000001"));
         gate.issue(T_NUMBER, n);
     }
 
-    function _openAttachIssue() internal returns (address apRecords) {
+    function test_ForkARotationDarkensTheOldKeysNames() public {
+        _openAttachIssue();
+        address freshKey = makeAddr("fresh-business-key");
+        _queueRotation(freshKey);
+        assertEq(
+            _text(AP, "description").v,
+            unicode"AP agent of 株式会社メイギ商事 (fictional demo company)"
+        );
+        vm.warp(block.timestamp + PayeeRegistry(address(PAYEES)).changeDelay());
+        assertEq(PayeeRegistry(address(PAYEES)).controllerOf(T_NUMBER), freshKey);
+        assertEq(_text(AP, "description").v, "", "issued by the old key: dark once the rotation lands");
+
+        CompanyNamespace.Name memory n = _name("ap", agent, 0, "re-issued by the new key");
+        vm.startPrank(freshKey);
+        gate.revoke(T_NUMBER, "ap");
+        gate.issue(T_NUMBER, n);
+        vm.stopPrank();
+        assertEq(_text(AP, "description").v, "re-issued by the new key");
+    }
+
+    function test_ForkMeigisBrakeSticksAndNothingBypassesTheGate() public {
+        address ns = _openAttachIssue();
+        assertEq(IRegistryRoles(ns).getResolver("ap"), address(gate), "the registry entry points at the gate");
+        uint256 id = uint256(keccak256("ap"));
+        address[4] memory everyone = [CONTROLLER, agent, address(gate), MEIGI];
+        for (uint256 i; i < everyone.length; ++i) {
+            assertEq(IRegistryRoles(ns).roles(0, everyone[i]) & (1 << 24), 0, "nobody may re-point a name");
+            assertEq(IRegistryRoles(ns).roles(id, everyone[i]), 0, "and nobody holds token roles");
+            vm.prank(everyone[i]);
+            vm.expectRevert();
+            IRegistryRoles(ns).setResolver(id, address(0xdead));
+        }
+
+        vm.prank(MEIGI);
+        gate.setBlocked(T_NUMBER, "ap", true);
+        assertEq(_text(AP, "description").v, "", "blocked: dark");
         vm.prank(CONTROLLER);
-        address ns = gate.open(T_NUMBER);
+        vm.expectRevert(abi.encodeWithSelector(CompanyNamespace.Blocked.selector, T_NUMBER, "ap"));
+        gate.setText(T_NUMBER, "ap", "description", "x");
+
+        vm.prank(MEIGI);
+        gate.setFrozen(T_NUMBER, true);
+        assertEq(_text("keiri.t2011001234567.payee.eth", "description").v, "", "frozen: every name dark");
+        vm.prank(MEIGI);
+        gate.setFrozen(T_NUMBER, false);
+        assertEq(
+            _text("keiri.t2011001234567.payee.eth", "description").v,
+            "Accounts department (fictional demo company)"
+        );
+    }
+
+    function _openAttachIssue() internal returns (address ns) {
+        vm.prank(CONTROLLER);
+        ns = gate.open(T_NUMBER);
         vm.prank(MEIGI);
         IClaimsRegistry(CLAIMS).setSubregistry(uint256(keccak256("t2011001234567")), ns);
-        apRecords =
-            _issue("ap", agent, 0, unicode"AP agent of 株式会社メイギ商事 (fictional demo company)");
+        _issue("ap", agent, 0, unicode"AP agent of 株式会社メイギ商事 (fictional demo company)");
         _issue("keiri", accounts, 0, "Accounts department (fictional demo company)");
         _issue(
             "zeirishi", taxAccountant, uint64(block.timestamp + 30 days), "Outside tax accountant (fictional)"
@@ -183,6 +243,28 @@ contract CompanyNamespaceForkTest is Test {
         n.values[1] = "online";
         n.keys[2] = "agent-endpoint[web]";
         n.values[2] = "https://meigi.karanbishttt.workers.dev/registry/T2011001234567";
+    }
+
+    /// @dev Officers start a recovery rotation, as contracts-review's harness does: an attester added on the fork signs
+    ///      over the payee's enrolled officers.
+    function _queueRotation(address to) internal {
+        PayeeRegistry registry = PayeeRegistry(address(PAYEES));
+        uint256 attesterKey = 0xA77E57;
+        vm.prank(MEIGI);
+        registry.setAttester(vm.addr(attesterKey), true);
+        bytes32[] memory ids = registry.officersOf(T_NUMBER);
+        uint256 deadline = block.timestamp + 10 minutes;
+        bytes32 digest = registry.approvalDigest(
+            T_NUMBER, OfficerQuorum.Action.ControllerRotation, bytes32(uint256(uint160(to))), ids, deadline
+        );
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(attesterKey, digest);
+        registry.requestControllerRotation(
+            T_NUMBER,
+            to,
+            OfficerQuorum.OfficerApproval({
+                officerIds: ids, deadline: deadline, signature: abi.encodePacked(r, s, v)
+            })
+        );
     }
 
     struct Text {

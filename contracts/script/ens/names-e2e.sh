@@ -7,8 +7,11 @@
 #   - the AP agent sets its agent-status through the gate and can write nothing on its resolver; nobody else can set
 #     its status; a label shaped like another company's T-number is refused;
 #   - the seven reference names (six payee names and ap.meigi.eth) resolve exactly as before;
+#   - Meigi's brake sticks (a blocked label is dark and frozen names are dark until lifted); every label the rules
+#     accept is already ENSIP-15-normal in viem;
 #   - a dispute darkens the names and dismissing it brings them back; after 30 days zeirishi is gone; revoked keiri
 #     is gone and renew can't revive it; Meigi's reset darkens the namespace; detach leaves the references unchanged.
+# A controller rotation darkening the old key's names needs a signed officer approval: CompanyNamespaceFork.t.sol.
 # Nothing is sent to a real network.
 set -euo pipefail
 
@@ -136,7 +139,7 @@ deeper="$(viem check-names-viem.mjs T_NUMBER="$T" LABELS=x.ap)" || fail "viem fa
 
 step "Roles: the agent writes only its status, through the gate; look-alike labels are refused"
 AP_DNS="$(dns "ap.t$T.payee.eth")"
-RECORDS="$(cast call "$COMPANY_NAMESPACE" "nameOf(uint64,string)(address,address,uint64)" "$T" ap --rpc-url "$RPC_URL" | sed -n 2p)"
+RECORDS="$(cast call "$COMPANY_NAMESPACE" "nameOf(uint64,string)(address,address,address,uint64)" "$T" ap --rpc-url "$RPC_URL" | sed -n 2p)"
 refused "$NS_AP_ADDRESS" "$RECORDS" "setText(bytes,string,string)" 0x00 agent-status pwned || fail "the agent wrote the root node"
 refused "$NS_AP_ADDRESS" "$RECORDS" "setText(bytes,string,string)" "$AP_DNS" description rewritten || fail "the agent rewrote its description"
 refused "$NS_AP_ADDRESS" "$RECORDS" "setAddress(bytes,uint256,bytes)" "$AP_DNS" 60 "$NS_AP_ADDRESS" || fail "the agent set an address"
@@ -149,6 +152,19 @@ echo "scoped as designed"
 step "The seven reference names are unchanged"
 [[ "$(snapshot)" == "$BEFORE" ]] || fail "a reference name resolves differently"
 echo "unchanged"
+
+step "Meigi's brake sticks: a blocked label and a frozen namespace are dark until lifted"
+send_as "$DEPLOYER_ADDRESS" "$COMPANY_NAMESPACE" "setBlocked(uint64,string,bool)" "$T" ap true
+[[ $(field ap description "$(names LABELS=ap)") == null ]] || fail "a blocked name still answers"
+refused "$COMPANY_ADDRESS" "$COMPANY_NAMESPACE" "setText(uint64,string,string,string)" "$T" ap description x ||
+  fail "the company edited a blocked name"
+send_as "$DEPLOYER_ADDRESS" "$COMPANY_NAMESPACE" "setBlocked(uint64,string,bool)" "$T" ap false
+send_as "$DEPLOYER_ADDRESS" "$COMPANY_NAMESPACE" "setFrozen(uint64,bool)" "$T" true
+[[ $(field keiri description "$(names LABELS=keiri)") == null ]] || fail "a frozen namespace still answers"
+send_as "$DEPLOYER_ADDRESS" "$COMPANY_NAMESPACE" "setFrozen(uint64,bool)" "$T" false
+[[ $(field ap description "$(names LABELS=ap)") != null ]] || fail "ap did not come back after the brake lifted"
+labels="$(viem check-labels-viem.mjs SAMPLES=2000)" || fail "a label the rules accept isn't ENSIP-15-normal: $labels"
+echo "brake sticks; $(jq -r .checked <<<"$labels") accepted labels are ENSIP-15-normal"
 
 step "A dispute darkens the names; dismissing it brings them back"
 send_as "$ATTESTER" "$REGISTRY" "fileDispute(uint64,address,bytes32)" "$T" "$NS_ZEIRISHI_ADDRESS" "$(cast keccak demo-dispute)"
@@ -169,7 +185,7 @@ jq -c '.names | map_values(.description != null)' <<<"$NAMES"
 [[ $(field ap description "$NAMES") != null ]] || fail "ap stopped answering"
 
 step "Meigi's reset darkens the namespace; detach leaves the references unchanged"
-send_as "$DEPLOYER_ADDRESS" "$COMPANY_NAMESPACE" "reset(uint64)" "$T"
+send_as "$DEPLOYER_ADDRESS" "$COMPANY_NAMESPACE" "resetNamespace(uint64)" "$T"
 [[ $(field ap description "$(names LABELS=ap)") == null ]] || fail "ap still answers after the reset"
 out="$(forge_as "$DEPLOYER_ADDRESS" "detach()")" || fail "detach failed: $out"
 [[ "$(snapshot)" == "$BEFORE" ]] || fail "a reference name resolves differently after detach"
