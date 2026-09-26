@@ -39,13 +39,17 @@ export function asSessionId(value: string): `session_${string}` | null {
   return SESSION_ID_RE.test(value) ? (value as `session_${string}`) : null
 }
 
+/** What the widget reports back, and how to show it: `calm` codes are the person's own choice, not a failure. */
+export interface WidgetOutcome {
+  readonly message: string
+  readonly calm: boolean
+}
+
 const WIDGET_ERRORS: Record<string, string> = {
-  user_rejected: 'The request was declined in World App.',
   verification_rejected: 'World App rejected the verification.',
   credential_unavailable: "This World ID doesn't hold the proof-of-human credential.",
   connection_failed: "Couldn't connect to World App. Try again.",
   timeout: 'World ID timed out. Try again.',
-  cancelled: 'World ID was cancelled.',
   max_verifications_reached: 'This World ID has reached its verification limit for this app.',
   invalid_rp_signature: "World App didn't accept the verifier's signature. Check the RP id and signing key.",
   unknown_rp: "World App doesn't know this RP id. Check VITE_WORLD_RP_ID.",
@@ -54,6 +58,13 @@ const WIDGET_ERRORS: Record<string, string> = {
   malformed_request: 'World ID rejected the request as malformed.',
 }
 
-export function describeWidgetError(code: string): string {
-  return WIDGET_ERRORS[code] ?? `World ID failed (${code}).`
+/** Choosing not to prove is the person's own decision, not something broken: shown calmly, not as an alert. */
+const WIDGET_CALM: Record<string, string> = {
+  user_rejected: 'Declined in World App. Nothing changed — try again when you\'re ready.',
+  cancelled: 'Cancelled. Nothing changed — try again when you\'re ready.',
+}
+
+export function widgetOutcome(code: string): WidgetOutcome {
+  if (code in WIDGET_CALM) return { message: WIDGET_CALM[code]!, calm: true }
+  return { message: WIDGET_ERRORS[code] ?? `World ID failed (${code}).`, calm: false }
 }

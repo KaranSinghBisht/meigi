@@ -7,7 +7,7 @@ import {
 import { useEffect, useRef, useState } from 'react'
 import { env } from '../../lib/env/env'
 import { credentialLabel, officerConstraint } from '../../lib/world/credentials'
-import { describeWidgetError } from '../../lib/world/rpContext'
+import { widgetOutcome, type WidgetOutcome } from '../../lib/world/rpContext'
 import { Button } from '../components/Button'
 import { CopyButton } from '../components/CopyButton'
 import { Spinner } from '../components/Spinner'
@@ -25,7 +25,7 @@ interface WorldIdSessionProps {
   readonly signal: string
   readonly sessionId?: `session_${string}`
   readonly onProof: (result: IDKitResultSession) => Promise<void>
-  readonly onFinish: (problem: string | null) => void
+  readonly onFinish: (problem: WidgetOutcome | null) => void
 }
 
 /** Hands a confirmed proof to `onProof` once, and ends the session on any World ID failure. */
@@ -44,7 +44,7 @@ function useHandoff(flow: UseIDKitSessionHookResult, props: WorldIdSessionProps)
     )
   }, [flow.isSuccess, flow.result, onProof, onFinish])
   useEffect(() => {
-    if (flow.isError && flow.errorCode) onFinish(describeWidgetError(flow.errorCode))
+    if (flow.isError && flow.errorCode) onFinish(widgetOutcome(flow.errorCode))
   }, [flow.isError, flow.errorCode, onFinish])
   return verifying
 }

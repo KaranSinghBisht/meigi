@@ -50,9 +50,14 @@ export function WorldIdProof(props: WorldIdProofProps) {
           {label}
         </Button>
       )}
-      {flow.problem ? (
+      {flow.problem?.calm ? (
+        <p className="muted" role="status">
+          {flow.problem.message}
+        </p>
+      ) : null}
+      {flow.problem && !flow.problem.calm ? (
         <p className="field__error" role="alert">
-          {flow.problem}
+          {flow.problem.message}
         </p>
       ) : null}
     </div>
