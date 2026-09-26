@@ -1,20 +1,11 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
+import { pendingStore } from "./pending.js";
+import { toRecord, type RegistrationRecord, type Row } from "./records.js";
+
+export type { RegistrationRecord } from "./records.js";
 
 /** Verifier state: registrations in progress, enrolled officer sessions, approval intents, used nullifiers. */
-
-export interface RegistrationRecord {
-  id: string;
-  tNumber: string; // 13 digits
-  legalName: string; // exact NTA-registered name
-  domain: string;
-  controller: string;
-  payout: string;
-  challenge: string; // nonce for the domain proof
-  domainMethod: string | null;
-  outcome: string | null; // registered | disputed
-  txHash: string | null;
-}
 
 export interface OfficerSession {
   officerId: string;
@@ -45,17 +36,39 @@ CREATE TABLE IF NOT EXISTS nullifiers (nullifier TEXT PRIMARY KEY, purpose TEXT 
 CREATE TABLE IF NOT EXISTS intents (
   id TEXT PRIMARY KEY, t_number TEXT NOT NULL, action TEXT NOT NULL, target TEXT NOT NULL, nonce TEXT NOT NULL,
   deadline TEXT NOT NULL, signal TEXT NOT NULL, payload TEXT, approvals TEXT NOT NULL DEFAULT '[]');
+CREATE TABLE IF NOT EXISTS objections (
+  public_id TEXT NOT NULL, reason TEXT NOT NULL, contact TEXT, created_at INTEGER NOT NULL);
+CREATE INDEX IF NOT EXISTS officers_by_officer ON officers (officer_id);
 `;
+
+/** Columns added after the first release, so an existing verifier database keeps working. */
+const ADDED_COLUMNS: Record<string, string> = {
+  submit_after: "INTEGER",
+  threshold: "INTEGER",
+  public_id: "TEXT",
+  review: "TEXT",
+};
+
+function migrate(db: DatabaseSync): void {
+  const rows = db.prepare("PRAGMA table_info(registrations)").all() as { name: string }[];
+  const have = new Set(rows.map((row) => row.name));
+  for (const [column, type] of Object.entries(ADDED_COLUMNS)) {
+    if (!have.has(column)) db.exec(`ALTER TABLE registrations ADD COLUMN ${column} ${type}`);
+  }
+  db.exec("CREATE UNIQUE INDEX IF NOT EXISTS registrations_by_public_id ON registrations (public_id)");
+}
 
 export type Store = ReturnType<typeof openStore>;
 
 export function openStore(path: string) {
   const db = new DatabaseSync(path);
   db.exec(SCHEMA);
+  migrate(db);
   return {
     ...registrations(db),
     ...officers(db),
     ...intents(db),
+    ...pendingStore(db),
     /** Records a proof's nullifier. Returns false if it was already used (replay). */
     consumeNullifier(nullifier: string, purpose: string): boolean {
       const result = db
@@ -68,30 +81,21 @@ export function openStore(path: string) {
 
 function registrations(db: DatabaseSync) {
   return {
-    createRegistration(input: Pick<RegistrationRecord, "tNumber" | "legalName" | "domain" | "controller" | "payout">) {
+    createRegistration(
+      input: Pick<RegistrationRecord, "tNumber" | "legalName" | "domain" | "controller" | "payout">,
+      createdAtMs = Date.now(),
+    ) {
       const id = randomUUID();
       const challenge = randomBytes(12).toString("hex");
       db.prepare(
         "INSERT INTO registrations (id, t_number, legal_name, domain, controller, payout, challenge, created_at) " +
           "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-      ).run(id, input.tNumber, input.legalName, input.domain, input.controller, input.payout, challenge, Date.now());
+      ).run(id, input.tNumber, input.legalName, input.domain, input.controller, input.payout, challenge, createdAtMs);
       return { id, challenge };
     },
     getRegistration(id: string): RegistrationRecord | null {
-      const row = db.prepare("SELECT * FROM registrations WHERE id = ?").get(id) as Record<string, string> | undefined;
-      if (!row) return null;
-      return {
-        id: row.id!,
-        tNumber: row.t_number!,
-        legalName: row.legal_name!,
-        domain: row.domain!,
-        controller: row.controller!,
-        payout: row.payout!,
-        challenge: row.challenge!,
-        domainMethod: row.domain_method ?? null,
-        outcome: row.outcome ?? null,
-        txHash: row.tx_hash ?? null,
-      };
+      const row = db.prepare("SELECT * FROM registrations WHERE id = ?").get(id) as Row | undefined;
+      return row ? toRecord(row) : null;
     },
     setDomainVerified(id: string, method: string): void {
       db.prepare("UPDATE registrations SET domain_method = ? WHERE id = ?").run(method, id);
@@ -114,6 +118,15 @@ function officers(db: DatabaseSync) {
         .prepare("SELECT officer_id, session_id FROM officers WHERE registration_id = ?")
         .all(registrationId) as { officer_id: string; session_id: string }[];
       return rows.map((r) => ({ officerId: r.officer_id, sessionId: r.session_id }));
+    },
+    /** Every registration an officer (World ID session) is enrolled in, for the per-human limits. */
+    registrationsOfOfficer(officerId: string): RegistrationRecord[] {
+      const rows = db
+        .prepare(
+          "SELECT r.* FROM officers o JOIN registrations r ON r.id = o.registration_id WHERE o.officer_id = ?",
+        )
+        .all(officerId) as Row[];
+      return rows.map(toRecord);
     },
     /** Every session ever enrolled for a T-number; callers filter by the on-chain officer set. */
     sessionsFor(tNumber: string): OfficerSession[] {

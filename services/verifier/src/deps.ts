@@ -1,5 +1,7 @@
+import type { Context } from "hono";
 import type { DomainProofInput, DomainProofResult } from "./domain/proof.js";
 import type { LeiRegistry } from "./lei/lei.js";
+import type { Policy } from "./limits/policy.js";
 import type { CorporationIndex } from "./nta/corporations.js";
 import type { ChainPort } from "./registry/chain.js";
 import type { Store } from "./store/db.js";
@@ -22,6 +24,10 @@ export interface AppDeps {
   origins: string[];
   /** Fictional demo companies (registry office 9999 only) may skip the NTA match and domain proof. */
   fixtures?: boolean;
+  /** Anti-squatting limits; anything left out uses DEFAULT_POLICY. */
+  policy?: Partial<Omit<Policy, "ratePerHour">> & { ratePerHour?: Partial<Policy["ratePerHour"]> };
+  /** The client a request is rate-limited as (default: one shared "unknown" client). */
+  clientIp?: (c: Context) => string;
   now?: () => number; // unix seconds; injectable for tests
 }
 

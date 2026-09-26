@@ -1,13 +1,18 @@
-import { Hono } from "hono";
-import { getAddress, keccak256, toBytes, type Address, type Hex } from "viem";
+import { Hono, type Context } from "hono";
+import { getAddress, type Address } from "viem";
 import { z } from "zod";
-import type { AppDeps } from "../deps.js";
+import { nowSeconds, type AppDeps } from "../deps.js";
 import { domainProofMessage, normalizeDomain, TXT_PREFIX, txtRecordName } from "../domain/proof.js";
+import { isFixture } from "../fixtures.js";
 import { HttpError } from "../http.js";
+import { checkOfficerLimits, isExpired } from "../limits/officers.js";
+import { policyOf } from "../limits/policy.js";
+import type { RateLimiter } from "../limits/rate.js";
 import { checkRegisteredName } from "../nta/corporations.js";
-import { sortOfficerIds } from "../registry/approvals.js";
+import { queueForWindow } from "../pending/window.js";
+import { plannedOutcome, submitOnChain } from "../registry/submit.js";
 import type { RegistrationRecord } from "../store/db.js";
-import { formatTNumber, hasCorporateCheckDigit, isUnassignableOffice, toChainId } from "../tnumber.js";
+import { formatTNumber } from "../tnumber.js";
 import { requireDigits } from "./lookup.js";
 
 const address = z.string().regex(/^0x[0-9a-fA-F]{40}$/u);
@@ -27,14 +32,6 @@ const NTA_MESSAGES = {
   name_mismatch: "The name doesn't exactly match the NTA-registered name. Fuzzy matches are never accepted.",
 } as const;
 
-/** What a fixture's on-chain evidence says about it, so the registry records it as fictional. */
-const FIXTURE_EVIDENCE = "fictional demo company: registry office 9999 is never issued; no NTA match, no domain proof";
-
-/** A fictional demo company: fixtures enabled, and a number no real company can hold. */
-function isFixture(deps: AppDeps, digits: string): boolean {
-  return deps.fixtures === true && isUnassignableOffice(digits) && hasCorporateCheckDigit(digits);
-}
-
 type NameResult = { ok: true; legalName: string; fixture: boolean } | { ok: false; body: Record<string, unknown> };
 
 /** The exact NTA-registered name, or, for a fixture, the name as given. */
@@ -51,8 +48,17 @@ export function enrollmentSignal(registrationId: string): string {
   return `meigi:v1:enroll:${registrationId}`;
 }
 
-export function registrationRoutes(deps: AppDeps) {
+/** Where a registration stands, as GET /registrations/:id reports it. */
+function stateOf(deps: AppDeps, r: RegistrationRecord): string {
+  if (r.outcome) return r.outcome;
+  if (r.submitAfter !== null) return r.review ? "under_review" : "pending_public_window";
+  return !isFixture(deps, r.tNumber) && isExpired(r, policyOf(deps), nowSeconds(deps)) ? "expired" : "open";
+}
+
+export function registrationRoutes(deps: AppDeps, limiter: RateLimiter) {
   const app = new Hono();
+  const policy = policyOf(deps);
+  const client = (c: Context) => (deps.clientIp ? deps.clientIp(c) : "unknown");
 
   function load(id: string): RegistrationRecord {
     const registration = deps.store.getRegistration(id);
@@ -60,21 +66,35 @@ export function registrationRoutes(deps: AppDeps) {
     return registration;
   }
 
+  /** A registration that can still change: not submitted or queued, and not expired (fixtures never expire). */
+  function loadOpen(id: string): RegistrationRecord {
+    const registration = load(id);
+    if (registration.outcome || registration.submitAfter !== null) {
+      throw new HttpError(409, "already_submitted", `already ${stateOf(deps, registration).replaceAll("_", " ")}`);
+    }
+    if (!isFixture(deps, registration.tNumber) && isExpired(registration, policy, nowSeconds(deps))) {
+      throw new HttpError(410, "registration_expired", "this registration expired; start a new one");
+    }
+    return registration;
+  }
+
   /** Step 1: exact NTA match, then a domain-proof challenge for the controller wallet to sign. */
   app.post("/", async (c) => {
+    limiter.hit("registrations", client(c), policy.ratePerHour.registrations, nowSeconds(deps));
     const body = createBody.parse(await c.req.json());
     const digits = requireDigits(body.tNumber);
     const domain = normalizeDomain(body.domain);
     if (!domain) throw new HttpError(400, "invalid_domain", "expected a public domain name like example.co.jp");
     const name = registeredName(deps, digits, body.legalName);
     if (!name.ok) return c.json(name.body, 422);
-    const { id, challenge } = deps.store.createRegistration({
+    const input = {
       tNumber: digits,
       legalName: name.legalName,
       domain,
       controller: getAddress(body.controller),
       payout: getAddress(body.payout),
-    });
+    };
+    const { id, challenge } = deps.store.createRegistration(input, nowSeconds(deps) * 1000);
     const tNumber = formatTNumber(digits);
     return c.json(
       {
@@ -93,9 +113,16 @@ export function registrationRoutes(deps: AppDeps) {
     );
   });
 
+  /** Where a registration stands. The id is the caller's capability, so this shows no officer data either. */
+  app.get("/:id", (c) => {
+    const r = load(c.req.param("id"));
+    const state = stateOf(deps, r);
+    return c.json({ id: r.id, tNumber: formatTNumber(r.tNumber), state, submitAfter: r.submitAfter, txHash: r.txHash });
+  });
+
   /** Step 2: the signed challenge is published in DNS (or .well-known). */
   app.post("/:id/domain", async (c) => {
-    const registration = load(c.req.param("id"));
+    const registration = loadOpen(c.req.param("id"));
     if (isFixture(deps, registration.tNumber)) {
       deps.store.setDomainVerified(registration.id, "fixture");
       return c.json({ ok: true, method: "fixture" });
@@ -111,11 +138,12 @@ export function registrationRoutes(deps: AppDeps) {
     return c.json({ ok: true, method: result.method });
   });
 
-  /** Step 3: each officer creates a World ID session bound to this registration. */
+  /** Step 3: each officer creates a World ID session bound to this registration, within the per-human limits. */
   app.post("/:id/officers", async (c) => {
-    const registration = load(c.req.param("id"));
+    const registration = loadOpen(c.req.param("id"));
     const { result } = proofBody.parse(await c.req.json());
     const session = await deps.world.verify(result, enrollmentSignal(registration.id));
+    checkOfficerLimits(deps, registration, session.officerId, policy, nowSeconds(deps));
     if (!deps.store.consumeNullifier(session.sessionNullifier, `enroll:${registration.id}`)) {
       throw new HttpError(409, "proof_replayed", "this proof was already used");
     }
@@ -123,35 +151,26 @@ export function registrationRoutes(deps: AppDeps) {
     return c.json({ officerId: session.officerId, officers: deps.store.officersOf(registration.id).length });
   });
 
-  /** Step 4: the attester writes it on-chain, or files a dispute if the T-number is already claimed. */
+  /**
+   * Step 4: the attester writes it on-chain, or files a dispute if the T-number is already claimed. With a public
+   * window configured, a non-fixture registration is queued instead and listed at GET /registrations/pending.
+   */
   app.post("/:id/submit", async (c) => {
-    const registration = load(c.req.param("id"));
+    const registration = loadOpen(c.req.param("id"));
     const { threshold } = submitBody.parse(await c.req.json());
-    if (registration.outcome) throw new HttpError(409, "already_submitted", `already ${registration.outcome}`);
     if (!registration.domainMethod) throw new HttpError(409, "domain_not_verified", "verify the domain first");
-    const officers = sortOfficerIds(deps.store.officersOf(registration.id).map((o) => o.officerId as Hex));
-    if (officers.length === 0) throw new HttpError(409, "no_officers", "enroll at least one officer");
-    if (threshold > officers.length) throw new HttpError(400, "invalid_threshold", "threshold exceeds officers");
+    const officers = deps.store.officersOf(registration.id).length;
+    if (officers === 0) throw new HttpError(409, "no_officers", "enroll at least one officer");
+    if (threshold > officers) throw new HttpError(400, "invalid_threshold", "threshold exceeds officers");
 
-    const tNumber = toChainId(registration.tNumber);
-    const fixture = isFixture(deps, registration.tNumber) ? FIXTURE_EVIDENCE : undefined;
-    const evidence = keccak256(toBytes(JSON.stringify({ ...registration, officers, threshold, fixture })));
-    const current = await deps.chain.payee(tNumber);
-    const outcome = current.status === 0 ? "registered" : "disputed";
-    if (outcome === "disputed" && current.controller === getAddress(registration.controller)) {
-      throw new HttpError(409, "already_registered", "this business already controls the payee");
+    const outcome = await plannedOutcome(deps, registration);
+    if (outcome === "disputed") limiter.hit("disputes", client(c), policy.ratePerHour.disputes, nowSeconds(deps));
+    if (policy.pendingHours > 0 && !isFixture(deps, registration.tNumber)) {
+      return c.json(queueForWindow(deps, registration, threshold, policy.pendingHours), 202);
     }
-    const txHash =
-      outcome === "registered"
-        ? await deps.chain.register({ ...registrationArgs(registration), officers, threshold, evidence, tNumber })
-        : await deps.chain.fileDispute(tNumber, registration.controller as Address, evidence);
-    deps.store.setOutcome(registration.id, outcome, txHash);
+    const { txHash } = await submitOnChain(deps, registration, threshold, outcome);
     return c.json({ outcome, txHash, tNumber: formatTNumber(registration.tNumber) });
   });
 
   return app;
-}
-
-function registrationArgs(r: RegistrationRecord) {
-  return { legalName: r.legalName, controller: r.controller as Address, payout: r.payout as Address };
 }

@@ -9,6 +9,7 @@ export class HttpError extends Error {
     readonly status: ContentfulStatusCode,
     readonly code: string,
     message: string,
+    readonly headers: Record<string, string> = {},
   ) {
     super(message);
     this.name = "HttpError";
@@ -18,6 +19,7 @@ export class HttpError extends Error {
 /** Maps errors to JSON responses without leaking stack traces or internals. */
 export function handleError(error: Error, c: Context) {
   if (error instanceof HttpError) {
+    for (const [name, value] of Object.entries(error.headers)) c.header(name, value);
     return c.json({ code: error.code, message: error.message }, error.status);
   }
   if (error instanceof ZodError) {
