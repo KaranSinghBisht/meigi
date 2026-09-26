@@ -251,9 +251,9 @@ by separate AI reviewers, with proof-of-concept exploits:
 - round 3 mutation-tested every fix;
 - 138 Foundry tests in all, including fuzzing of the core guarantee.
 
-These reviews were AI-assisted, not a professional audit. Contract work after them (the ENS claim contracts
-`ClaimedPayeeResolver` and `CompanyNamespace`, and a resolver change that hides a disputed payee's name) has tests
-but no review round.
+These reviews were AI-assisted, not a professional audit. Contract work after them (the ENS claim contract
+`ClaimedPayeeResolver`, and a resolver change that hides a disputed payee's name) has tests but no review round.
+`CompanyNamespace`, added last, went through two review rounds of its own, with fork PoCs ([`docs/ens.md`](docs/ens.md)).
 
 Roles, delays and the trust model are in [`contracts/README.md`](contracts/README.md). The agent is untrusted
 by design and holds no key. The signer (`services/signer`) holds it, signs only `payInvoice`, and above ¥150,000 only
