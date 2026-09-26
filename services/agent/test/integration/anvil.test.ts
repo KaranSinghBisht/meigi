@@ -79,6 +79,22 @@ describe.skipIf(!hasFoundry())("agent against the real contracts on anvil", () =
     expect((await balanceOf(MEIGI_PAYOUT)) - before).toBe(yen(132_000));
   });
 
+  it("reads the settlement back from RPC logs when MultiBaas is off", async () => {
+    const res = await app.request("/payments?tNumber=T2011001234567");
+    const body = (await res.json()) as Record<string, any>;
+    expect(body.source).toEqual({ settled: "rpc", received: "rpc" });
+    expect(body.settled).toContainEqual(
+      expect.objectContaining({
+        tNumber: "T2011001234567",
+        legalName: "株式会社メイギ商事",
+        payout: MEIGI_PAYOUT,
+        amount: { units: yen(132_000).toString(), display: "¥132,000" },
+        invoiceRef: invoiceRefOf("2011001234567", "MS-2026-0917"),
+      }),
+    );
+    expect(body.received).toEqual([expect.objectContaining({ tNumber: "T2011001234567", payout: MEIGI_PAYOUT, total: expect.objectContaining({ display: "¥132,000" }) })]);
+  });
+
   it("refuses a swapped address with PayeeMismatch, decoded into a sentence, and broadcasts nothing", async () => {
     const analysis = await analyze("02-bank-change-bec.ja.txt");
     expect(analysis.verdict.decision).toBe("hold");

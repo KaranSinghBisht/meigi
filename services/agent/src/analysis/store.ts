@@ -31,6 +31,11 @@ export class AnalysisStore {
     return this.items.get(id);
   }
 
+  /** Newest first. */
+  recent(limit: number): StoredAnalysis[] {
+    return [...this.items.values()].reverse().slice(0, limit);
+  }
+
   find(match: (analysis: StoredAnalysis) => boolean): StoredAnalysis | undefined {
     for (const analysis of this.items.values()) if (match(analysis)) return analysis;
     return undefined;

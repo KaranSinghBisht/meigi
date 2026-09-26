@@ -8,6 +8,7 @@ import type { AppDeps } from "../src/deps.js";
 import { LlmError, type ExplanationFacts, type LlmPort, type Proposal } from "../src/llm/types.js";
 import type { Screening, ScreeningPort } from "../src/screening/intercepta.js";
 import type { TriageOk, TriagePort, TriageResult } from "../src/triage/triage.js";
+import type { PaymentHistory, ReceivedTotal, SettledPayment } from "../src/history/types.js";
 
 export const DEMO_DIR = fileURLToPath(new URL("../scripts/demo-invoices/", import.meta.url));
 export const demo = (file: string) => readFileSync(`${DEMO_DIR}${file}`, "utf8");
@@ -190,6 +191,22 @@ export class FakeScreening implements ScreeningPort {
   }
 }
 
+/** Settlement history as RPC logs would report it: whatever the test puts in. */
+export class FakeHistory implements PaymentHistory {
+  source = "rpc" as const;
+  payments: SettledPayment[] = [];
+  totals: ReceivedTotal[] = [];
+  async invoicesPaid(limit: number) {
+    return [...this.payments].sort((a, b) => Number(b.blockNumber - a.blockNumber)).slice(0, limit);
+  }
+  async received(payouts: Address[]) {
+    return this.totals.filter((t) => payouts.some((p) => p.toLowerCase() === t.payout.toLowerCase()));
+  }
+  async settlementOf(txHash: Hex) {
+    return this.payments.find((p) => p.txHash === txHash) ?? null;
+  }
+}
+
 export interface Fakes {
   chain: FakeChain;
   payer: FakePayer;
@@ -214,8 +231,9 @@ export function fakeDeps(parts: Partial<Fakes> = {}, llm: LlmPort | null = null)
     triageRequired: true,
     holds: DEFAULT_HOLD_POLICY,
     approvals: null,
+    history: { multibaas: null, rpc: new FakeHistory() },
     apiToken: null,
     demoDir: DEMO_DIR,
-    info: { chainId: 31337, vault: VAULT, agent: AGENT, triage: ["fake"], triageRequired: true, llm: llm ? "fake" : "none", screening: false, humanApproval: false },
+    info: { chainId: 31337, vault: VAULT, agent: AGENT, triage: ["fake"], triageRequired: true, llm: llm ? "fake" : "none", screening: false, humanApproval: false, multibaas: false },
   };
 }

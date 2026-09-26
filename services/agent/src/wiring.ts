@@ -5,6 +5,10 @@ import { AnalysisStore } from "./analysis/store.js";
 import { createApprovals, type ApprovalService } from "./approval/approvals.js";
 import { createApproverRegistry } from "./approval/approvers.js";
 import { createIdp } from "./approval/idp.js";
+import { createMultiBaasHistory } from "./history/multibaas.js";
+import { createRpcHistory } from "./history/rpc.js";
+import { createMultiBaas } from "./multibaas/client.js";
+import { V2_START_BLOCK } from "./multibaas/labels.js";
 import { createClients } from "./chain/clients.js";
 import { createPayer } from "./chain/payer.js";
 import { createChainReader } from "./chain/reader.js";
@@ -45,6 +49,10 @@ export function buildDeps(config: Config) {
     toxicThreshold: config.INTERCEPTA_TOXIC_THRESHOLD,
   });
   const approvals = createApprovalService(config);
+  const history = {
+    multibaas: config.MULTIBAAS_URL && config.MULTIBAAS_API_KEY ? createMultiBaasHistory(createMultiBaas({ url: config.MULTIBAAS_URL, apiKey: config.MULTIBAAS_API_KEY })) : null,
+    rpc: createRpcHistory({ client: publicClient, vault, token: async () => (await chain.token()).address, fromBlock: historyFrom(config) }),
+  };
   const deps: AppDeps = {
     chain,
     payer: createPayer({ publicClient, walletClient, vault }),
@@ -58,6 +66,7 @@ export function buildDeps(config: Config) {
     triageRequired: config.TRIAGE_REQUIRED,
     holds: { maxPressure: config.TRIAGE_MAX_PRESSURE, autoClearMaxYen: config.AUTO_CLEAR_MAX_YEN ?? null },
     approvals,
+    history,
     apiToken: config.AGENT_API_TOKEN ?? null,
     demoDir: DEMO_DIR,
     info: {
@@ -69,6 +78,7 @@ export function buildDeps(config: Config) {
       llm: llm ? `${llm.provider}:${llm.model}` : "none",
       screening: screening.enabled,
       humanApproval: approvals !== null,
+      multibaas: history.multibaas !== null,
     },
   };
   return { deps, init: chain.init };
@@ -125,6 +135,12 @@ function workersAiTarget(config: Config) {
   const token = (config.WORKERS_AI_TOKEN ?? config.CLOUDFLARE_API_TOKEN)!;
   if (config.WORKERS_AI_URL) return { url: config.WORKERS_AI_URL, token, model };
   return { url: `https://api.cloudflare.com/client/v4/accounts/${config.CLOUDFLARE_ACCOUNT_ID}/ai/run/${model}`, token, model };
+}
+
+/** RPC log scans start at the v2 deployment on Sepolia (nothing earlier is ours), at 0 on a local chain. */
+function historyFrom(config: Config): bigint {
+  if (config.HISTORY_FROM_BLOCK !== undefined) return BigInt(config.HISTORY_FROM_BLOCK);
+  return config.CHAIN_ID === 11155111 ? BigInt(V2_START_BLOCK) : 0n;
 }
 
 /** localhost, 127.0.0.1 and [::1], bare and with the port, plus any extra names (for LAN use). */
