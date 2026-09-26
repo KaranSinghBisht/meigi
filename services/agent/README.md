@@ -164,10 +164,12 @@ grant: the agent is the device, and the human approves in World App. It is off u
 
 ## Settlement history (Curvegrid MultiBaas)
 
-Meigi also runs on Mizuhiki Awaji (chain 6497), where it is indexed and queried only through MultiBaas, like
-Curvegrid's Matsuri sample. On the agent's own chain (Sepolia), payments are read from RPC logs with viem, unless a
-MultiBaas deployment there indexes the vault from the start of that history. A free plan backfills only about
-100 blocks, so older payments would be missing.
+Two MultiBaas deployments, one per chain:
+- **Sepolia**, the agent's own chain. MultiBaas indexes from the block the contracts were linked at: a free plan
+  backfills about 100 blocks. So `GET /payments` merges two sources: MultiBaas's rows from that block on, and RPC
+  logs read with viem for the older history. Every row is tagged with where it came from.
+- **Mizuhiki Awaji** (chain 6497). Meigi is indexed and queried only through MultiBaas, like Curvegrid's Matsuri
+  sample.
 
 - **Setup:** `pnpm --filter @meigi/agent multibaas:setup --awaji` (the Awaji deployment, `MULTIBAAS_AWAJI_URL` and
   `MULTIBAAS_AWAJI_API_KEY`) or without `--awaji` (`MULTIBAAS_URL` and `MULTIBAAS_API_KEY`). It is idempotent.
@@ -175,20 +177,24 @@ MultiBaas deployment there indexes the vault from the start of that history. A f
   - It imports each contract's ABI through MultiBaas's explorer lookup, or uses the repo's copy when the lookup has no
     ABI declaring the events it queries.
   - It aliases and links PayeeRegistry, AgentVault, PayRouter and the JPY token. Event indexing starts at the first
-    block of the forge broadcast that deployed them (Sepolia: block 11781105; override with `--from-block N`). A
-    dry run's deployment file is refused.
+    block of the forge broadcast that deployed them (Sepolia: block 11781105). `--from-block N` overrides the start,
+    and a negative N counts back from the head: Sepolia is linked with `--from-block -100`. A dry run's deployment
+    file is refused.
   - It saves the event queries in `src/multibaas/labels.ts`, in the Matsuri sample's format: invoices paid, totals
     per payee, payees registered, router payments, MJPY net balances (add/subtract) and MJPY received.
   - `--library-only` adds just the ABIs and queries, before the contracts exist. Then linking a fresh deploy is
     quick, well inside the plan's 100-block backfill (about 10 minutes at Awaji's 6-second blocks).
 - **`GET /payments`:**
-  - `settled` has every `InvoicePaid`, newest first.
-  - `received` has the mJPYC each registered payee got, totalled from `Transfer`. That covers the T-numbers
-    asked for, or the vendor list by default.
+  - `settled` has every `InvoicePaid`, newest first. Each row has `source: "multibaas"` (at or after
+    `multibaasFrom`, the block MultiBaas indexes from) or `"rpc"` (older).
+  - `received` has the mJPYC each registered payee got, totalled from `Transfer`: MultiBaas's total from its
+    first indexed block plus RPC's before it. `source` may be `"multibaas+rpc"`. That covers the T-numbers asked
+    for, or the vendor list by default.
   - `refused` has this agent's holds since it started, newest first. Refusals never reach the chain, so they
     always come from the agent.
-  - `source` says where `settled` and `received` came from (`multibaas` or `rpc`), and `notes` explains a fallback.
-    `label` names it, e.g. `Sepolia · via RPC`.
+  - `source` says where `settled` and `received` came from: `multibaas+rpc`, `multibaas` when the index covers the
+    whole history, or `rpc` when MultiBaas isn't configured or can't answer. `notes` explains a fallback, and
+    `label` names it, e.g. `Sepolia · via MultiBaas + RPC`.
   - `mizuhiki` is Meigi on Mizuhiki Awaji (`null` when it isn't configured). It has:
     - `label: "Mizuhiki · via MultiBaas"`, plus `chainId`, `network`, `explorer` and `source: "multibaas"`;
     - `token` (`{ symbol, decimals }`, read through MultiBaas's contract call API);
@@ -197,8 +203,11 @@ MultiBaas deployment there indexes the vault from the start of that history. A f
     - `received[]`: the MJPY each registered payout got.
 
     When MultiBaas can't answer, or serves another chain, the lists are empty and a `note` says why.
-- **`GET /invoices/:id/settlement`:** after a payment, it is `confirmed` once MultiBaas has indexed its
-  `InvoicePaid`, or `indexing` until then. On the RPC path it is `confirmed` from the receipt, or `pending`.
+- **`GET /invoices/:id/settlement`:** `confirmed` once MultiBaas has indexed the payment's `InvoicePaid`, and
+  `indexing` while it is mined but not indexed yet. A payment older than the index is `confirmed` from its receipt
+  (`source: "rpc"`), as is every payment when MultiBaas is off. Before the transaction is mined it is `pending`.
+- **Retention:** a free plan keeps indexed events for 72 hours. Rows that have aged out of MultiBaas are still in
+  the RPC logs, but this split doesn't fall back to them yet.
 - **Keys:** only this service holds the MultiBaas key; the dashboards read `/payments`.
 - **Not built yet:** the contract-call API and webhooks.
 

@@ -55,7 +55,7 @@ export function buildDeps(config: Config) {
   const sameChain = multibaas(config.MULTIBAAS_URL, config.MULTIBAAS_API_KEY);
   const awaji = multibaas(config.MULTIBAAS_AWAJI_URL, config.MULTIBAAS_AWAJI_API_KEY);
   const history = {
-    multibaas: sameChain ? createMultiBaasHistory(sameChain, config.CHAIN_ID, fromBlock) : null, // only once it indexes the whole history
+    multibaas: sameChain ? createMultiBaasHistory(sameChain, config.CHAIN_ID) : null, // RPC logs cover the blocks before its index
     rpc: createRpcHistory({ client: publicClient, vault, token: async () => (await chain.token()).address, fromBlock }),
     mizuhiki: awaji ? createIndexedNetwork(awaji) : null,
   };

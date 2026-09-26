@@ -16,7 +16,7 @@ export interface Deployment {
   vault: string;
   router?: string;
   token: string;
-  startBlock: number; // where event indexing starts: the deployment's first block
+  startBlock: number; // where event indexing starts: the deployment's first block, or negative: that many blocks back
 }
 
 const OUR_ABI = { registry: payeeRegistryAbi, vault: agentVaultAbi, router: payRouterAbi, token: mockJPYCAbi } as const;
@@ -79,6 +79,11 @@ async function saveQueries(mb: MultiBaas, log: (line: string) => void) {
 async function link(mb: MultiBaas, contract: (typeof CONTRACTS)[keyof typeof CONTRACTS], startBlock: number, log: (line: string) => void) {
   const path = `/chains/ethereum/addresses/${contract.alias}/contracts`;
   const body = { label: contract.label, version: CONTRACT_VERSION };
+  if (startBlock < 0) {
+    await mb.call("POST", path, { ...body, startingBlock: String(startBlock) });
+    log(`linked ${contract.alias} to ${contract.label}, indexing from ${-startBlock} blocks back`);
+    return;
+  }
   try {
     await mb.call("POST", path, { ...body, startingBlock: String(startBlock) });
     log(`linked ${contract.alias} to ${contract.label}, indexing events from block ${startBlock}`);

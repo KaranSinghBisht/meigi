@@ -33,10 +33,21 @@ export interface ReceivedTotal {
   total: bigint;
 }
 
+/** An inclusive upper bound on the blocks read: RPC logs cover the history older than a MultiBaas index. */
+export interface BlockRange {
+  toBlock?: bigint;
+}
+
 /** Settlement history: MultiBaas's indexed events, or the same facts read from RPC logs. */
 export interface PaymentHistory {
   source: "multibaas" | "rpc";
-  invoicesPaid(limit: number): Promise<SettledPayment[]>; // newest first
-  received(payouts: Address[]): Promise<ReceivedTotal[]>;
+  fromBlock?: bigint; // RPC logs: nothing earlier is read
+  invoicesPaid(limit: number, range?: BlockRange): Promise<SettledPayment[]>; // newest first
+  received(payouts: Address[], range?: BlockRange): Promise<ReceivedTotal[]>;
   settlementOf(txHash: Hex): Promise<SettledPayment | null>; // the InvoicePaid in that transaction, once visible
+}
+
+/** MultiBaas's index of a chain, which starts at the block each contract was linked from. */
+export interface IndexedHistory extends PaymentHistory {
+  indexedFrom(contract: "vault" | "token"): Promise<bigint>;
 }

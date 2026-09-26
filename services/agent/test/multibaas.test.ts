@@ -27,8 +27,11 @@ const DEPLOYMENT = {
   startBlock: V2_START_BLOCK,
 };
 
-function withMultiBaas(): AppDeps & Fakes {
+/** The agent's chain in MultiBaas, linked at `linkStart`; RPC logs (a FakeHistory) from the v2 block. */
+function withMultiBaas(linkStart = V2_START_BLOCK): AppDeps & Fakes {
+  stub.linkStart = linkStart;
   const deps = fakeDeps();
+  (deps.history.rpc as FakeHistory).fromBlock = BigInt(V2_START_BLOCK);
   return { ...deps, history: { multibaas: createMultiBaasHistory(mbClient(), 11155111), rpc: deps.history.rpc, mizuhiki: null } };
 }
 
@@ -107,6 +110,14 @@ describe("a plan that caps past-log depth", () => {
     expect(stub.aliases.get("meigi_vault")?.links).toEqual([expect.objectContaining({ startingBlock: "-100" })]);
     expect(log).toContain(`linked meigi_vault to meigi_agent_vault, indexing from 100 blocks back (the plan refused block ${V2_START_BLOCK})`);
   });
+
+  it("links from a relative start when asked, without trying an absolute block first", async () => {
+    stub.shallowPlan = true;
+    const log: string[] = [];
+    await setupMultiBaas(mbClient(), { ...DEPLOYMENT, startBlock: -100 }, (line) => log.push(line));
+    expect(stub.requests.filter((r) => r.path.endsWith("/contracts") && r.method === "POST")).toHaveLength(4); // one link each, no retries
+    expect(log).toContain("linked meigi_vault to meigi_agent_vault, indexing from 100 blocks back");
+  });
 });
 
 describe("GET /payments", () => {
@@ -117,7 +128,8 @@ describe("GET /payments", () => {
     await call(deps, "POST", "/invoices/analyze", { text: demo("02-bank-change-bec.ja.txt") }); // held: a refusal
     const { status, body } = await call(deps, "GET", "/payments");
     expect(status).toBe(200);
-    expect(body.source).toEqual({ settled: "multibaas", received: "multibaas" });
+    expect(body.source).toEqual({ settled: "multibaas", received: "multibaas" }); // indexed from the v2 block: nothing older
+    expect(body.multibaasFrom).toBe(String(V2_START_BLOCK));
     expect(body.settled).toEqual([
       {
         txHash: "0xbb",
@@ -128,9 +140,12 @@ describe("GET /payments", () => {
         payout: MEIGI_PAYOUT,
         amount: { units: yen(55_000).toString(), display: "¥55,000" },
         invoiceRef: REF,
+        source: "multibaas",
       },
     ]);
-    expect(body.received).toEqual([{ tNumber: "T2011001234567", legalName: "株式会社メイギ商事", payout: MEIGI_PAYOUT, total: { units: yen(56_000).toString(), display: "¥56,000" } }]);
+    expect(body.received).toEqual([
+      { tNumber: "T2011001234567", legalName: "株式会社メイギ商事", payout: MEIGI_PAYOUT, total: { units: yen(56_000).toString(), display: "¥56,000" }, source: "multibaas" },
+    ]);
     expect(body.refused).toEqual([expect.objectContaining({ tNumber: "T2011001234567", reasons: expect.arrayContaining(["payout_mismatch"]) })]);
     expect(JSON.stringify(body)).not.toContain(SCAMMER); // a refusal never lists the address it refused to pay
   });
@@ -145,6 +160,28 @@ describe("GET /payments", () => {
     expect(body.settled).toEqual([expect.objectContaining({ txHash: "0xcc", amount: { units: yen(1000).toString(), display: "¥1,000" } })]);
   });
 
+  it("merges MultiBaas's rows from its link block with RPC logs for the older history", async () => {
+    const deps = withMultiBaas(11783796); // a free plan links about 100 blocks back
+    const rpc = deps.history.rpc as FakeHistory;
+    const paidAt = (txHash: `0x${string}`, block: bigint, amount: number) => ({ txHash, blockNumber: block, at: null, tNumber: 2011001234567n, payout: MEIGI_PAYOUT, amount: yen(amount), invoiceRef: REF });
+    rpc.payments.push(paidAt("0x55", 11781300n, 55_000), paidAt("0x10", 11781500n, 1_000), paidAt("0x20", 11783900n, 2_000)); // RPC sees every block
+    rpc.totals.push({ payout: MEIGI_PAYOUT, total: yen(56_000), block: 11781500n }, { payout: MEIGI_PAYOUT, total: yen(2_000), block: 11783900n });
+    stub.invoicesPaid.push({ txHash: "0x20", block: 11783900, at: "2026-09-26T04:40:00Z", inputs: { tNumber: "2011001234567", payout: MEIGI_PAYOUT, amount: yen(2_000).toString(), invoiceRef: REF } });
+    stub.received.push({ payout: MEIGI_PAYOUT, total: yen(2_000).toString() });
+    const { body } = await call(deps, "GET", "/payments");
+    expect(body).toMatchObject({ label: "Anvil · via MultiBaas + RPC", source: { settled: "multibaas+rpc", received: "multibaas+rpc" }, multibaasFrom: "11783796", notes: [] });
+    expect(body.settled.map((p: { txHash: string; source: string }) => [p.txHash, p.source])).toEqual([["0x20", "multibaas"], ["0x10", "rpc"], ["0x55", "rpc"]]);
+    expect(body.received[0]).toMatchObject({ total: { units: yen(58_000).toString(), display: "¥58,000" }, source: "multibaas+rpc" }); // no block counted twice
+  });
+
+  it("reads RPC logs alone, and says why, while nothing is linked", async () => {
+    const deps = withMultiBaas();
+    stub.linkStart = null;
+    const { body } = await call(deps, "GET", "/payments");
+    expect(body.source).toEqual({ settled: "rpc", received: "rpc" });
+    expect(body.notes).toEqual(["MultiBaas unavailable (meigi_vault isn't linked in MultiBaas); read from RPC logs", "MultiBaas unavailable (meigi_mjpy isn't linked in MultiBaas); read from RPC logs"]);
+  });
+
   it("uses RPC logs without MultiBaas, and rejects a malformed T-number", async () => {
     const deps = fakeDeps();
     expect((await call(deps, "GET", "/payments")).body.source).toEqual({ settled: "rpc", received: "rpc" });
@@ -155,9 +192,12 @@ describe("GET /payments", () => {
 
 describe("settlement confirmation", () => {
   it("confirms a payment once MultiBaas has indexed its InvoicePaid", async () => {
-    const deps = withMultiBaas();
+    const deps = withMultiBaas(11781350);
     const analysis = (await call(deps, "POST", "/invoices/analyze", { text: demo("01-routine-invoice.ja.txt") })).body;
     const paid = (await call(deps, "POST", `/invoices/${analysis.id}/pay`, {})).body;
+    expect((await call(deps, "GET", `/invoices/${analysis.id}/settlement`)).body).toMatchObject({ status: "pending", source: "rpc", txHash: paid.txHash }); // not mined yet
+    const mined = { txHash: paid.txHash, blockNumber: 11781400n, at: null, tNumber: 2011001234567n, payout: MEIGI_PAYOUT, amount: yen(132_000), invoiceRef: REF };
+    (deps.history.rpc as FakeHistory).payments.push(mined);
     expect((await call(deps, "GET", `/invoices/${analysis.id}/settlement`)).body).toMatchObject({ status: "indexing", source: "multibaas", txHash: paid.txHash });
     stub.invoicesPaid.push({ txHash: paid.txHash, block: 11781400, at: "2026-09-26T03:20:00Z", inputs: { tNumber: "2011001234567", payout: MEIGI_PAYOUT, amount: yen(132_000).toString(), invoiceRef: REF } });
     expect((await call(deps, "GET", `/invoices/${analysis.id}/settlement`)).body).toEqual({
@@ -167,6 +207,15 @@ describe("settlement confirmation", () => {
       blockNumber: "11781400",
       at: "2026-09-26T03:20:00Z",
     });
+  });
+
+  it("confirms a payment older than MultiBaas's index from its receipt", async () => {
+    const deps = withMultiBaas(11783796);
+    const analysis = (await call(deps, "POST", "/invoices/analyze", { text: demo("01-routine-invoice.ja.txt") })).body;
+    const paid = (await call(deps, "POST", `/invoices/${analysis.id}/pay`, {})).body;
+    const mined = { txHash: paid.txHash, blockNumber: 11781400n, at: null, tNumber: 2011001234567n, payout: MEIGI_PAYOUT, amount: yen(132_000), invoiceRef: REF };
+    (deps.history.rpc as FakeHistory).payments.push(mined);
+    expect((await call(deps, "GET", `/invoices/${analysis.id}/settlement`)).body).toEqual({ status: "confirmed", source: "rpc", txHash: paid.txHash, blockNumber: "11781400", at: null });
   });
 
   it("says 404 for an invoice that was never paid", async () => {

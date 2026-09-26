@@ -1,11 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
 import type { AppDeps } from "../src/deps.js";
-import { createMultiBaasHistory } from "../src/history/multibaas.js";
 import { createIndexedNetwork } from "../src/history/network.js";
 import { invoiceRefOf } from "../src/kernel/intent.js";
 import { createMultiBaas } from "../src/multibaas/client.js";
-import { V2_START_BLOCK } from "../src/multibaas/labels.js";
 import { fakeDeps, MEIGI_PAYOUT, yen } from "./fakes.js";
 import { startStubMultiBaas, STUB_KEY, type StubMultiBaas } from "./stub-multibaas.js";
 
@@ -89,26 +87,5 @@ describe("GET /payments on Mizuhiki Awaji", () => {
 
   it("is null when no Mizuhiki deployment is configured", async () => {
     expect((await payments(fakeDeps())).mizuhiki).toBeNull();
-  });
-});
-
-describe("MultiBaas on the agent's own chain", () => {
-  const sepolia = (deps: AppDeps) => ({ ...deps, history: { ...deps.history, multibaas: createMultiBaasHistory(mbClient(), 11155111, BigInt(V2_START_BLOCK)) } });
-
-  it("answers only once it indexes the whole history; until then RPC logs do, and the note says why", async () => {
-    stub.invoicesPaid.push({ txHash: "0xcc", block: V2_START_BLOCK + 2_600, at: "2026-09-26T04:00:00Z", inputs: { tNumber: MEIGI, payout: MEIGI_PAYOUT, amount: "1", invoiceRef: REF } });
-    const unlinked = await payments(sepolia(fakeDeps()));
-    expect(unlinked.notes).toEqual(["MultiBaas unavailable (the vault isn't linked in MultiBaas); read from RPC logs"]);
-
-    stub.vaultStart = V2_START_BLOCK + 2_500; // a free plan backfills about 100 blocks
-    const shallow = await payments(sepolia(fakeDeps()));
-    expect(shallow.source).toEqual({ settled: "rpc", received: "rpc" });
-    expect(shallow.label).toBe("Anvil · via RPC");
-    expect(shallow.notes).toEqual([`MultiBaas unavailable (MultiBaas indexes the vault from block ${V2_START_BLOCK + 2_500}, after block ${V2_START_BLOCK} where this history starts); read from RPC logs`]);
-
-    stub.vaultStart = V2_START_BLOCK;
-    const full = await payments(sepolia(fakeDeps()));
-    expect(full.source).toEqual({ settled: "multibaas", received: "multibaas" });
-    expect(full.settled.map((p: { txHash: string }) => p.txHash)).toEqual(["0xcc"]);
   });
 });

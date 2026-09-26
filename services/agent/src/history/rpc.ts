@@ -1,6 +1,6 @@
 import { agentVaultAbi, mockJPYCAbi } from "@meigi/abi";
 import { getAbiItem, parseEventLogs, type Address, type Hex, type PublicClient } from "viem";
-import type { PaymentHistory, ReceivedTotal, SettledPayment } from "./types.js";
+import type { BlockRange, PaymentHistory, ReceivedTotal, SettledPayment } from "./types.js";
 
 /** Blocks per eth_getLogs call: public RPCs cap the range. */
 const CHUNK = 10_000n;
@@ -18,17 +18,18 @@ export function createRpcHistory(opts: RpcHistoryOptions): PaymentHistory {
   const transfer = getAbiItem({ abi: mockJPYCAbi, name: "Transfer" });
   return {
     source: "rpc",
-    async invoicesPaid(limit) {
-      const logs = await chunked(opts, (fromBlock, toBlock) => opts.client.getLogs({ address: opts.vault, event: invoicePaid, fromBlock, toBlock, strict: true }));
+    fromBlock: opts.fromBlock,
+    async invoicesPaid(limit, range) {
+      const logs = await chunked(opts, range, (fromBlock, toBlock) => opts.client.getLogs({ address: opts.vault, event: invoicePaid, fromBlock, toBlock, strict: true }));
       return logs
         .map((log): SettledPayment => ({ txHash: log.transactionHash, blockNumber: log.blockNumber, at: null, ...log.args }))
         .sort((a, b) => Number(b.blockNumber - a.blockNumber))
         .slice(0, limit);
     },
-    async received(payouts) {
+    async received(payouts, range) {
       if (payouts.length === 0) return [];
       const token = await opts.token();
-      const logs = await chunked(opts, (fromBlock, toBlock) =>
+      const logs = await chunked(opts, range, (fromBlock, toBlock) =>
         opts.client.getLogs({ address: token, event: transfer, args: { to: payouts }, fromBlock, toBlock, strict: true }),
       );
       const totals = new Map<Address, bigint>();
@@ -44,8 +45,9 @@ export function createRpcHistory(opts: RpcHistoryOptions): PaymentHistory {
   };
 }
 
-async function chunked<T>(opts: RpcHistoryOptions, read: (from: bigint, to: bigint) => Promise<T[]>): Promise<T[]> {
-  const latest = await opts.client.getBlockNumber({ cacheTime: 0 }); // viem caches it; a payment just mined must count
+async function chunked<T>(opts: RpcHistoryOptions, range: BlockRange | undefined, read: (from: bigint, to: bigint) => Promise<T[]>): Promise<T[]> {
+  const head = await opts.client.getBlockNumber({ cacheTime: 0 }); // viem caches it; a payment just mined must count
+  const latest = range?.toBlock !== undefined && range.toBlock < head ? range.toBlock : head;
   const out: T[] = [];
   for (let from = opts.fromBlock; from <= latest; from += CHUNK) {
     const to = from + CHUNK - 1n < latest ? from + CHUNK - 1n : latest;

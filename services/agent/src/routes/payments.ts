@@ -5,7 +5,7 @@ import type { StoredAnalysis } from "../analysis/store.js";
 import { registeredName } from "../chain/format.js";
 import type { AppDeps } from "../deps.js";
 import { parseTNumber } from "../extract/tnumber.js";
-import { readHistory } from "../history/read.js";
+import { readReceived, readSettled, readSettlement, type Mixed } from "../history/read.js";
 import type { SettledPayment } from "../history/types.js";
 import { HttpError } from "../http.js";
 import { load } from "./lookup.js";
@@ -18,9 +18,10 @@ const paymentsQuery = z.object({
 });
 
 /**
- * Settlement on the agent's chain, read from MultiBaas's event index when it is configured for that chain (Curvegrid)
- * and from RPC logs otherwise; every section says which. Refusals never reach the chain, so they come from this
- * agent's own analyses. `mizuhiki` is Meigi on Mizuhiki Awaji, read only through its MultiBaas deployment.
+ * Settlement on the agent's chain: MultiBaas's event index (Curvegrid) from the block it was linked at, RPC logs for
+ * the older history, and RPC alone when MultiBaas isn't configured or can't answer. Every row says which. Refusals
+ * never reach the chain, so they come from this agent's own analyses. `mizuhiki` is Meigi on Mizuhiki Awaji, read
+ * only through its MultiBaas deployment.
  */
 export function paymentRoutes(deps: AppDeps) {
   const app = new Hono();
@@ -30,35 +31,38 @@ export function paymentRoutes(deps: AppDeps) {
     const filter = query.tNumber === undefined ? null : tNumbersOf(query.tNumber);
     const { decimals } = await deps.chain.token();
     const names = nameCache(deps);
-    const settled = await readHistory(deps.history, (h) => h.invoicesPaid(query.limit));
-    const rows = settled.value.filter((p) => !filter || filter.includes(p.tNumber.toString()));
+    const settled = await readSettled(deps.history, query.limit);
+    const rows = settled.rows.filter((p) => !filter || filter.includes(p.tNumber.toString()));
     const received = await receivedRows(deps, filter ?? deps.vendorTNumbers, decimals, names);
     return c.json({
-      label: `${networkName(deps.info.chainId)} · via ${settled.source === "multibaas" ? "MultiBaas" : "RPC"}`,
+      label: `${networkName(deps.info.chainId)} · via ${SOURCE_NAMES[settled.source]}`,
       source: { settled: settled.source, received: received.source },
+      multibaasFrom: settled.indexedFrom?.toString() ?? null, // MultiBaas's rows start here; older ones are RPC's
       notes: [...new Set([settled.note, received.note].filter((note): note is string => Boolean(note)))],
-      settled: await Promise.all(rows.map(async (p) => settledRow(p, decimals, await names(p.tNumber)))),
+      settled: await Promise.all(rows.map(async (p) => ({ ...settledRow(p, decimals, await names(p.tNumber)), source: p.source }))),
       received: received.rows,
       refused: refusedRows(deps.store.recent(500), filter, query.limit),
       mizuhiki: await mizuhikiSection(deps.history.mizuhiki, filter, query.limit),
     });
   });
 
-  /** Is this invoice's payment in the chain's history yet? MultiBaas's index first, RPC as the fallback. */
+  /** Is this invoice's payment in the chain's history yet? MultiBaas's index first, the receipt for older payments. */
   app.get("/invoices/:id/settlement", async (c) => {
     const stored = load(deps, c.req.param("id"));
     const payment = stored.payment;
     if (!payment || (payment.status !== "paid" && payment.status !== "pending")) {
       throw new HttpError(404, "not_paid", "this invoice has no payment to settle");
     }
-    const { value: found, source, note } = await readHistory(deps.history, (h) => h.settlementOf(payment.txHash));
-    const status = !found ? (source === "multibaas" ? "indexing" : "pending") : matches(found, stored) ? "confirmed" : "mismatch";
+    const { state, found, source, note } = await readSettlement(deps.history, payment.txHash);
+    const status = state !== "found" || !found ? state : matches(found, stored) ? "confirmed" : "mismatch";
     const detail = found ? { blockNumber: found.blockNumber.toString(), at: found.at } : {};
     return c.json({ status, source, txHash: payment.txHash, ...detail, ...(note ? { note } : {}) });
   });
 
   return app;
 }
+
+const SOURCE_NAMES: Record<Mixed, string> = { multibaas: "MultiBaas", rpc: "RPC", "multibaas+rpc": "MultiBaas + RPC" };
 
 function networkName(chainId: number): string {
   return chainId === 11155111 ? "Sepolia" : chainId === 31337 ? "Anvil" : `Chain ${chainId}`;
@@ -89,12 +93,13 @@ function nameCache(deps: AppDeps) {
 async function receivedRows(deps: AppDeps, tNumbers: string[], decimals: number, names: ReturnType<typeof nameCache>) {
   const payees = await Promise.all(tNumbers.map(async (t) => ({ tNumber: t, ...(await names(t)) })));
   const payouts = payees.flatMap((p) => (p.payout ? [p.payout] : []));
-  const totals = await readHistory(deps.history, (h) => h.received(payouts));
+  const totals = await readReceived(deps.history, payouts);
   const rows = payees
     .filter((p) => p.payout)
     .map((p) => {
-      const total = totals.value.find((t) => t.payout.toLowerCase() === p.payout!.toLowerCase())?.total ?? 0n;
-      return { tNumber: `T${p.tNumber}`, legalName: p.name, payout: p.payout!, total: yenAmount(total, decimals) };
+      const found = totals.totals.find((t) => t.payout.toLowerCase() === p.payout!.toLowerCase());
+      const total = found?.total ?? 0n;
+      return { tNumber: `T${p.tNumber}`, legalName: p.name, payout: p.payout!, total: yenAmount(total, decimals), source: found?.source ?? totals.source };
     });
   return { rows, source: totals.source, note: totals.note };
 }

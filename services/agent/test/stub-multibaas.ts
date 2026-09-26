@@ -39,7 +39,7 @@ export interface StubMultiBaas {
   payees: StubPayee[];
   received: { payout: string; total: string }[];
   token: { symbol: string; decimals: number };
-  vaultStart: number | null; // where the vault link's indexing starts; null: not linked
+  linkStart: number | null; // where every link's event indexing starts; null: nothing linked
   close(): void;
 }
 
@@ -61,7 +61,7 @@ export async function startStubMultiBaas(): Promise<StubMultiBaas> {
     payees: [],
     received: [],
     token: { symbol: "mJPYC", decimals: 18 },
-    vaultStart: null,
+    linkStart: null,
   } as unknown as StubMultiBaas;
   const server: Server = createServer((req, res) => {
     let raw = "";
@@ -99,8 +99,8 @@ function route(stub: StubMultiBaas, method: string, url: URL, body: any, auth: s
   }
   const status = /^\/chains\/ethereum\/addresses\/([^/]+)\/contracts\/([^/]+)\/status$/u.exec(path);
   if (method === "GET" && status) {
-    if (status[1] !== "meigi_vault" || stub.vaultStart === null) return [404, notFound];
-    return [200, ok({ startBlockNumber: stub.vaultStart, latestBlockNumber: 11783500, isProcessingPastLogs: false })];
+    if (stub.linkStart === null) return [404, notFound];
+    return [200, ok({ startBlockNumber: stub.linkStart, latestBlockNumber: 11783999, isProcessingPastLogs: false })];
   }
   const read = /^\/chains\/ethereum\/addresses\/meigi_mjpy\/contracts\/meigi_jpy_token\/methods\/(symbol|decimals)$/u.exec(path)?.[1];
   if (method === "POST" && read) return [200, ok({ kind: "MethodCallResponse", output: read === "symbol" ? stub.token.symbol : stub.token.decimals })];

@@ -8,7 +8,7 @@ import type { AppDeps } from "../src/deps.js";
 import { LlmError, type ExplanationFacts, type LlmPort, type Proposal } from "../src/llm/types.js";
 import type { Screening, ScreeningPort } from "../src/screening/intercepta.js";
 import type { TriageOk, TriagePort, TriageResult } from "../src/triage/triage.js";
-import type { PaymentHistory, ReceivedTotal, SettledPayment } from "../src/history/types.js";
+import type { BlockRange, PaymentHistory, ReceivedTotal, SettledPayment } from "../src/history/types.js";
 
 export const DEMO_DIR = fileURLToPath(new URL("../scripts/demo-invoices/", import.meta.url));
 export const demo = (file: string) => readFileSync(`${DEMO_DIR}${file}`, "utf8");
@@ -191,16 +191,23 @@ export class FakeScreening implements ScreeningPort {
   }
 }
 
-/** Settlement history as RPC logs would report it: whatever the test puts in. */
+/** Settlement history as RPC logs would report it: whatever the test puts in. A total without a block is old. */
 export class FakeHistory implements PaymentHistory {
   source = "rpc" as const;
+  fromBlock?: bigint;
   payments: SettledPayment[] = [];
-  totals: ReceivedTotal[] = [];
-  async invoicesPaid(limit: number) {
-    return [...this.payments].sort((a, b) => Number(b.blockNumber - a.blockNumber)).slice(0, limit);
+  totals: (ReceivedTotal & { block?: bigint })[] = [];
+  async invoicesPaid(limit: number, range?: BlockRange) {
+    const upTo = (p: SettledPayment) => range?.toBlock === undefined || p.blockNumber <= range.toBlock;
+    return this.payments.filter(upTo).sort((a, b) => Number(b.blockNumber - a.blockNumber)).slice(0, limit);
   }
-  async received(payouts: Address[]) {
-    return this.totals.filter((t) => payouts.some((p) => p.toLowerCase() === t.payout.toLowerCase()));
+  async received(payouts: Address[], range?: BlockRange) {
+    const sums = new Map<Address, bigint>();
+    for (const t of this.totals) {
+      const wanted = payouts.some((p) => p.toLowerCase() === t.payout.toLowerCase());
+      if (wanted && (range?.toBlock === undefined || (t.block ?? 0n) <= range.toBlock)) sums.set(t.payout, (sums.get(t.payout) ?? 0n) + t.total);
+    }
+    return [...sums].map(([payout, total]) => ({ payout, total }));
   }
   async settlementOf(txHash: Hex) {
     return this.payments.find((p) => p.txHash === txHash) ?? null;

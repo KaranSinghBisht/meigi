@@ -9,7 +9,8 @@ import { indexingStatus, prepareLibrary, setupMultiBaas } from "../src/multibaas
  * deploy block, and the saved event queries. Safe to re-run.
  *   --awaji         the Mizuhiki Awaji deployment (MULTIBAAS_AWAJI_URL / _API_KEY) instead of MULTIBAAS_URL / _API_KEY
  *   --library-only  only the ABIs and queries, before the contracts exist
- *   --from-block N  where indexing starts (default: the first block of the forge broadcast; Sepolia: the v2 block)
+ *   --from-block N  where indexing starts (default: the first block of the forge broadcast; Sepolia: the v2 block);
+ *                   negative: that many blocks back, e.g. -100 for a plan that backfills 100 blocks
  * Addresses come from contracts/deployments/<chain>.json. Reads the URL and key from the repo-root .env, prints neither.
  */
 
@@ -48,6 +49,6 @@ function fromBlockArg(list: string[]): number | undefined {
   const at = list.indexOf("--from-block");
   if (at === -1) return undefined;
   const block = Number(list[at + 1]);
-  if (!Number.isSafeInteger(block) || block < 0) throw new Error("--from-block takes a block number");
+  if (!Number.isSafeInteger(block)) throw new Error("--from-block takes a block number, or a negative count of blocks back");
   return block;
 }

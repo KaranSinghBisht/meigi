@@ -3,21 +3,21 @@ import { z } from "zod";
 import type { IndexedEvent, MultiBaas } from "../multibaas/client.js";
 import { MultiBaasUnavailable } from "../multibaas/client.js";
 import { CONTRACTS, EVENTS, MAX_QUERY_ROWS, QUERIES } from "../multibaas/labels.js";
-import type { PaymentHistory, ReceivedTotal, RegisteredPayee, SettledPayment, TokenInfo } from "./types.js";
+import type { IndexedHistory, ReceivedTotal, RegisteredPayee, SettledPayment, TokenInfo } from "./types.js";
 
 /**
- * Settlement history from MultiBaas's event index (Curvegrid). Throws MultiBaasUnavailable on any trouble, including
- * a deployment on another chain than `chainId`. With `coversFrom`, also unless the vault's events are indexed from
- * that block or earlier: a plan that backfills only a few blocks can't answer for older payments, so they come from
- * RPC logs instead of silently going missing.
+ * Settlement history from MultiBaas's event index (Curvegrid), from the block each contract was linked at. Throws
+ * MultiBaasUnavailable on any trouble, including a deployment on another chain than `chainId`.
  */
-export function createMultiBaasHistory(mb: MultiBaas, chainId: number, coversFrom?: bigint): PaymentHistory {
-  const sameChain = checkedOnce(async () => {
-    await mb.requireChain(chainId);
-    if (coversFrom !== undefined) await requireCoverage(mb, coversFrom);
-  });
+export function createMultiBaasHistory(mb: MultiBaas, chainId: number): IndexedHistory {
+  const sameChain = remembered(() => mb.requireChain(chainId));
+  const starts = { vault: remembered(() => linkStart(mb, CONTRACTS.vault)), token: remembered(() => linkStart(mb, CONTRACTS.token)) };
   return {
     source: "multibaas",
+    async indexedFrom(contract) {
+      await sameChain();
+      return starts[contract]();
+    },
     async invoicesPaid(limit) {
       await sameChain();
       const rows = await mb.query(QUERIES.meigi_invoices_paid, Math.min(limit, MAX_QUERY_ROWS));
@@ -43,33 +43,35 @@ export function createMultiBaasHistory(mb: MultiBaas, chainId: number, coversFro
   };
 }
 
-/** A check that passes once for good; a failure is remembered for `retryMs`, so an unready index costs few calls. */
-function checkedOnce(check: () => Promise<void>, retryMs = 5 * 60_000): () => Promise<void> {
-  let passed: Promise<void> | null = null;
+/**
+ * A read whose answer doesn't change once it succeeds (the chain, where indexing starts). A failure is remembered for
+ * `retryMs`, so a misconfigured or unlinked deployment costs a call every few minutes, not one per request.
+ */
+function remembered<T>(read: () => Promise<T>, retryMs = 5 * 60_000): () => Promise<T> {
+  let answer: Promise<T> | null = null;
   let failed: { error: unknown; at: number } | null = null;
   return () => {
     if (failed && Date.now() - failed.at < retryMs) return Promise.reject(failed.error);
-    passed ??= check().catch((error: unknown) => {
-      passed = null;
+    answer ??= read().catch((error: unknown) => {
+      answer = null;
       failed = { error, at: Date.now() };
       throw error;
     });
-    return passed;
+    return answer;
   };
 }
 
-async function requireCoverage(mb: MultiBaas, from: bigint): Promise<void> {
-  const path = `/chains/ethereum/addresses/${CONTRACTS.vault.alias}/contracts/${CONTRACTS.vault.label}/status`;
-  const status = z.object({ startBlockNumber: z.number() }).safeParse(
+/** The block MultiBaas started indexing a linked contract's events from. */
+async function linkStart(mb: MultiBaas, contract: { alias: string; label: string }): Promise<bigint> {
+  const path = `/chains/ethereum/addresses/${contract.alias}/contracts/${contract.label}/status`;
+  const status = z.object({ startBlockNumber: z.number().int().nonnegative() }).safeParse(
     await mb.call("GET", path).catch((error: unknown) => {
-      if (error instanceof MultiBaasUnavailable && error.status === 404) throw new MultiBaasUnavailable("the vault isn't linked in MultiBaas", 404);
+      if (error instanceof MultiBaasUnavailable && error.status === 404) throw new MultiBaasUnavailable(`${contract.alias} isn't linked in MultiBaas`, 404);
       throw error;
     }),
   );
   if (!status.success) throw new MultiBaasUnavailable("MultiBaas returned its indexing status in an unexpected shape");
-  if (BigInt(status.data.startBlockNumber) > from) {
-    throw new MultiBaasUnavailable(`MultiBaas indexes the vault from block ${status.data.startBlockNumber}, after block ${from} where this history starts`);
-  }
+  return BigInt(status.data.startBlockNumber);
 }
 
 /** Payments made through the PayRouter (pay by T-number), newest first. */
