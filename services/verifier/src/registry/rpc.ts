@@ -1,11 +1,10 @@
-import { fallback, http, HttpRequestError, type Transport } from "viem";
-import { isTransportError } from "./broadcast.js";
+import { BaseError, fallback, http, HttpRequestError, TimeoutError, type Transport } from "viem";
 
 /**
  * The verifier's RPC transports. With SEPOLIA_RPC_FALLBACK_URL set, the primary gets one try of PRIMARY_TIMEOUT_MS
  * and a primary that fails at the transport level (a hang, a refused connection, an HTTP error such as a Cloudflare
- * 403) is skipped for BENCH_MS, so a hung RPC costs one timeout, not one per call. The fallback keeps a normal
- * timeout.
+ * 403) is skipped for BENCH_MS, so a hung RPC costs one timeout, not one per call. The fallback comes next, and the
+ * primary again last, benched or not, so the fallback is never the only way to the chain.
  *
  * Mirrors services/signer/src/rpc.ts (copied rather than imported cross-package, to keep this scoped under a
  * time box) so the two behave the same.
@@ -14,13 +13,30 @@ import { isTransportError } from "./broadcast.js";
 export const PRIMARY_TIMEOUT_MS = 4_000;
 export const BENCH_MS = 60_000;
 
-/** The primary: while benched after a transport failure it answers at once with one, so the fallback takes over. */
+/** A timeout, a refused connection or an HTTP error: the RPC failed, not the transaction. */
+export function isTransportError(error: unknown): boolean {
+  if (!(error instanceof BaseError)) return false;
+  return error.walk((e) => e instanceof HttpRequestError || e instanceof TimeoutError) !== null;
+}
+
+/** What a benched primary answers: a transport error, so the next RPC is tried, for a call that never left here. */
+export class Skipped extends HttpRequestError {
+  constructor(url: string) {
+    super({ url, details: "skipped: it failed within the last minute" });
+  }
+}
+
+export function wasSkipped(error: unknown): boolean {
+  return error instanceof BaseError && error.walk((e) => e instanceof Skipped) !== null;
+}
+
+/** The primary: while benched after a transport failure it answers at once with Skipped. */
 export function benched(url: string, transport: Transport, now: () => number = Date.now): Transport {
   let until = 0;
   return (params) => {
     const inner = transport(params);
     const request = (async (args: Parameters<typeof inner.request>[0]) => {
-      if (now() < until) throw new HttpRequestError({ url, details: "skipped: it failed within the last minute" });
+      if (now() < until) throw new Skipped(url);
       try {
         return await inner.request(args);
       } catch (error) {
@@ -32,14 +48,17 @@ export function benched(url: string, transport: Transport, now: () => number = D
   };
 }
 
-/** Reads and simulations go through `transport`; `each` is every RPC on its own, for broadcast.ts. */
+/** Reads and simulations go through `transport`; `each` is every RPC on its own, in the same order, for broadcast.ts. */
 export function rpcTransports(urls: readonly [string, ...string[]]): { transport: Transport; each: Transport[] } {
   const [primaryUrl, fallbackUrl] = urls;
   if (!fallbackUrl) {
     const only = http(primaryUrl, { timeout: 15_000 });
     return { transport: only, each: [only] };
   }
-  const primary = benched(primaryUrl, http(primaryUrl, { timeout: PRIMARY_TIMEOUT_MS, retryCount: 0 }));
-  const backup = http(fallbackUrl, { timeout: 8_000, retryCount: 1 });
-  return { transport: fallback([primary, backup], { retryCount: 0 }), each: [primary, backup] };
+  const each = [
+    benched(primaryUrl, http(primaryUrl, { timeout: PRIMARY_TIMEOUT_MS, retryCount: 0 })),
+    http(fallbackUrl, { timeout: 8_000, retryCount: 0 }),
+    http(primaryUrl, { timeout: 8_000, retryCount: 0 }), // the last resort: the primary, even while benched
+  ];
+  return { transport: fallback(each, { retryCount: 0 }), each };
 }

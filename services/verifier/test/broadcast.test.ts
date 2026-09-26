@@ -1,6 +1,7 @@
 import { HttpRequestError, keccak256, RpcRequestError, TimeoutError, TransactionNotFoundError, type Hex } from "viem";
 import { describe, expect, it } from "vitest";
 import { broadcast, type BroadcastRpc } from "../src/registry/broadcast.js";
+import { Skipped } from "../src/registry/rpc.js";
 
 const SIGNED = "0x02f86b83aa36a7018459682f00850ba43b7400825208949b4fc8994fcf2d5fe08a82a9454b61aa14d647e48080c080a0" as Hex;
 const HASH = keccak256(SIGNED);
@@ -65,6 +66,25 @@ describe("broadcasting a signed registry transaction across the RPCs", () => {
     const second = rpc(() => HASH);
     await expect(broadcast([other, second], SIGNED)).rejects.toThrow(/nonce too low/u);
     expect(second.sent).toEqual([]); // a refusal isn't a transport error: the fallback isn't tried
+  });
+
+  it("never reads 'unknown transaction' as 'known transaction'", async () => {
+    const second = rpc(() => HASH);
+    await expect(broadcast([rpc(() => refused("unknown transaction type")), second], SIGNED)).rejects.toThrow(/unknown transaction/u);
+    expect(second.sent).toEqual([]); // a refusal, not a send: final
+    expect(await broadcast([rpc(() => refused("known transaction: 0xabc"))], SIGNED)).toBe(HASH);
+  });
+
+  it("passes over a benched RPC without asking anyone for the hash: nothing was sent to it", async () => {
+    let lookups = 0;
+    const counted = (node: BroadcastRpc): BroadcastRpc => ({
+      sendRawTransaction: (args) => node.sendRawTransaction(args),
+      getTransaction: (args) => ((lookups += 1), node.getTransaction(args)),
+    });
+    const second = rpc(() => HASH);
+    expect(await broadcast([counted(rpc(() => new Skipped("https://rpc.example"))), counted(second)], SIGNED)).toBe(HASH);
+    expect(second.sent).toEqual([SIGNED]);
+    expect(lookups).toBe(0);
   });
 
   it("reports failure when every RPC is down and none has the transaction", async () => {
