@@ -21,20 +21,23 @@ function Status({ load }: { readonly load: SettlementsLoad }) {
   return load.stale ? <Badge tone="pending">Reconnecting</Badge> : <Badge tone="active">Live</Badge>
 }
 
-function Row({ settlement: s }: { readonly settlement: Settlement }) {
+/** `payee` is off on one payee's page, whose header already names it, so each row fits two lines on a phone. */
+function Row({ settlement: s, payee }: { readonly settlement: Settlement; readonly payee: boolean }) {
   return (
     <li className="settlement">
       <p className="settlement__amount num">{s.amount.display}</p>
       <div className="settlement__body">
-        <p className="settlement__payee">
-          {s.legalName ? (
-            <span className="jp" lang="ja">
-              {s.legalName}
-            </span>
-          ) : null}
-          <span className="mono">{s.ens}</span>
-          <span className="mono muted">{s.tNumber}</span>
-        </p>
+        {payee ? (
+          <p className="settlement__payee">
+            {s.legalName ? (
+              <span className="jp" lang="ja">
+                {s.legalName}
+              </span>
+            ) : null}
+            <span className="mono">{s.ens}</span>
+            <span className="mono muted">{s.tNumber}</span>
+          </p>
+        ) : null}
         <p className="settlement__meta">
           <span>{KIND[s.kind]}</span>
           <span className="settlement__token">indexed at block {blockNumber(s.blockNumber)}</span>
@@ -90,7 +93,7 @@ export function SettlementsPanel({ tNumber, title = 'Settlements · indexed by C
       {shown.length > 0 ? (
         <ol className="settlements__list">
           {shown.map((s) => (
-            <Row key={`${s.txHash}:${s.kind}:${s.tNumber}`} settlement={s} />
+            <Row key={`${s.txHash}:${s.kind}:${s.tNumber}`} settlement={s} payee={!tNumber} />
           ))}
         </ol>
       ) : null}
