@@ -10,11 +10,12 @@ System-1 model routes, and how honest its confidence is.
 
 ## Results
 
-Test split: 150 items (600 answers) built from test-only templates. Every local model is served the same way
-(`kev.serve`, MLX bf16 on the M5 Max, one request at a time over localhost HTTP); Llama runs on Workers AI behind our
-own Worker. Full table with macro-F1, paired statistics and a per-family breakdown:
-[`results/RESULTS.md`](results/RESULTS.md); raw numbers: `results/results.json`; every prediction:
-`results/predictions/`. The six-page paper with the full analysis is [`paper/paper.pdf`](paper/paper.pdf).
+Test split: 150 items (600 answers) built from test-only templates. Every Kev model is served the same way (`kev.serve`,
+MLX bf16 on the M5 Max, one request at a time over localhost HTTP); the open-model fine-tunes are scored offline by
+option likelihood (`scripts/mlx_sft_answers.py`); Llama runs on Workers AI behind our own Worker. Full table with
+macro-F1, paired statistics and a per-family breakdown: [`results/RESULTS.md`](results/RESULTS.md); raw numbers:
+`results/results.json`; every prediction: `results/predictions/`. The six-page paper with the full analysis is
+[`paper/paper.pdf`](paper/paper.pdf).
 
 | contender | request type | new destination | pressure | suspicion | mean acc | ECE | AUROC of p_safe | safe items auto-cleared at 1% budget (held items let through) | p50 latency | $ per 1k items |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -23,6 +24,9 @@ own Worker. Full table with macro-F1, paired statistics and a per-family breakdo
 | Kev-4B, released | 0.880 | 0.927 | 0.960 | 0.413 | 0.795 | 0.120 | 0.969 | 16% (0) | 169 ms | $0.00060 |
 | **payee-0.8b (ours)** | **0.947** | **0.967** | **0.973** | **0.787** | **0.918** | 0.024 | 0.944 | **45% (1)** | 39 ms | $0.00013 |
 | payee-4b (ours, 1 epoch) | 0.953 | 0.987 | 1.000 | 0.813 | 0.938 | 0.016 | 0.986 | 67% (1) | 165 ms | $0.00058 |
+| Gemma 4 E2B-it + LoRA (ours; mlx-lm, 1 epoch, different recipe) | 0.880 | 0.987 | 0.920 | 0.807 | 0.898 | 0.050 | 0.990 | 61% (1) | not measured | not measured |
+| Llama 3.2 3B Instruct + LoRA (ours; mlx-lm, 2 epochs, different recipe) | 0.887 | 0.993 | 0.933 | 0.713 | 0.882 | 0.033 | 0.916 | 27% (4) | not measured | not measured |
+| Qwen3-4B, Kev recipe (ours) | not run: the overnight GPU window closed first (future work) | | | | | | | | | |
 | Llama 3.3 70B (Workers AI, FP8, JSON by prompt) | 0.833 | 0.947 | 0.920 | 0.560 | 0.815 | 0.092 | 0.986 | not run on validation (oracle 39%) | 2,047 ms | $0.46 |
 | Jev (through our Worker) | not run: the Worker answers 402 `insufficient_credits` (see below) | | | | | | | | | est. $0.021 at list price |
 
@@ -49,6 +53,13 @@ family-clustered intervals and the convention analysis below come from `paper/an
   times the latency, so the 0.8B is the System-1 we ship. The 4B ranks safe vs held better (AUROC 0.986 vs 0.944;
   difference CI -0.078 to -0.013 over items, -0.169 to +0.012 over families). It was trained for one epoch with a bf16
   backbone to fit in memory (see the training section).
+- **Open models fine-tuned on the same 600 items, with a different recipe:** Gemma 4 E2B is statistically tied with
+  payee-0.8b in accuracy (payee-0.8b +2.0 points, CI -1.2 to +5.3) and ranks safe vs held better (AUROC 0.990 vs 0.944;
+  difference CI -0.084 to -0.016 over items, -0.175 to +0.007 over families). Llama 3.2 3B is 3.7 points behind (CI +0.7
+  to +6.7; -3.0 to +9.2 over families), and its validation threshold lets 4 held items through on test (payee-0.8b's
+  lets 1), so it is not usable as deployed. These runs use mlx-lm LoRA, scored by option likelihood with no fitted
+  temperature, against the Kev trainer's pointer head with a fitted temperature: the gaps compare these recipes on this
+  benchmark, not a 0.8B model with larger ones. Qwen3-4B with the Kev recipe was not run.
 - **Suspicion** is where zero-shot Kev fails (0.39 accuracy, mean error 1.1 levels on a 0-3 scale) and where the fine-tune
   gains most (0.79, 0.50 levels). The three other questions were already 0.8-0.96 zero-shot.
 - **Calibration:** ECE 0.024, against 0.016 for the 4B fine-tune, 0.11-0.13 for the released models, 0.092 for Llama
