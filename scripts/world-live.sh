@@ -155,10 +155,12 @@ fi
 cat <<EOF
 
 Rehearsal steps (T7999900000002, Selfie Check; Adithya needs World App from the App Store, signed in):
-  1. Open http://localhost:$WEB_PORT/register, enter T7999900000002 as the T-number.
-  2. Company step: the fixture note appears; type any legal name and continue past the domain skip.
-  3. Officers step: enroll one officer, scanning the QR with World App's Selfie Check.
-  4. On /change, request a payout change for T7999900000002.
-  5. Approve it from the same phone/session with Selfie Check again.
-  6. Have a second person (or a second World App session) try to approve; confirm it's denied.
+  1. Open http://localhost:$WEB_PORT/register. "Your company": enter T7999900000002 and a fictional legal name.
+  2. "Your wallets": connect the business wallet, then "Create a new payout wallet" and save its backup file.
+  3. "Prove your domain": skip it.
+  4. "Prove you represent the company": skip it too (production uses the corporate e-certificate).
+  5. "Your officers": enroll one officer, scanning the QR with World App's Selfie Check.
+  6. "Review and register": confirm 1 of 1 officers, then Register company.
+  7. On /change, request a payout change for T7999900000002, approve it from the same phone/session with
+     Selfie Check, then have a second person (or a second World App session) try to approve and confirm it's denied.
 EOF
