@@ -374,8 +374,7 @@ figure. The test split was reused: the models were trained on an earlier build t
 every model was scored once per build, the 4B was trained after the 0.8B's results were known and Gemma 4 E2B after
 Llama 3.2 3B's, and the 0.8B was chosen on test. Each model was trained once, with one seed; a first Llama 3.2 3B run at a
 higher learning rate diverged and was stopped unscored. The frontier rows are agents with context, reasoning and a shell,
-run once, with no latency and an estimated cost. TypeSafe's hosted System-1 model, Jev~\cite{typesafe_models}, was not
-evaluated.
+run once, with no latency and an estimated cost. TypeSafe's Jev~\cite{typesafe_models} was not evaluated.
 
 \textbf{Audit.} An AI auditing agent re-derived the headline numbers with independent code and found one bug, fixed
 throughout: a probability exactly on a bin edge fell into the lower bin, understating Llama's ECE

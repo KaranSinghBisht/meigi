@@ -87,10 +87,17 @@ def family_interval(pair):
     return f", though the family-clustered interval {interval(pair['ci_families'])} contains zero"
 
 
+RECIPE_NOTE = (" These gaps are not controlled for recipe (mlx-lm LoRA scored by option likelihood with no fitted temperature, "
+               "against the Kev trainer's pointer head and fitted temperature): they compare these recipes on this benchmark, "
+               "not a 0.8B model with larger ones.")
+
+
 def results(res, ana):
-    """A leading space and one sentence on the open-model fine-tunes that have results; empty before any."""
+    """A leading space, one sentence on the open-model fine-tunes that have results and the recipe caveat; empty before any."""
     done = [n for n in names.PLANNED if n in res["contenders"]]
-    return " Of the open models, " + "; ".join(clause(n, ana, i == 0) for i, n in enumerate(done)) + "." if done else ""
+    if not done:
+        return ""
+    return " Of the open models, " + "; ".join(clause(n, ana, i == 0) for i, n in enumerate(done)) + "." + RECIPE_NOTE
 
 
 def conclusion(res, ana):
@@ -101,10 +108,9 @@ def conclusion(res, ana):
     words = []
     for n in close:
         acc, auc = ana["vs_ours"][n]["all"], ana["vs_ours"][n]["auroc"]
-        text = f"a {plain(n)} fine-tuned on the same items is " + (
+        text = f"our {plain(n)} fine-tune is " + (
             "statistically tied with it in accuracy" if frontier_text.verdict(acc) == "tied" else "more accurate")
         if frontier_text.verdict(auc) == "ahead":
-            caveat = "; the family-clustered interval includes zero" if frontier_text.family_disagrees(auc) else ""
-            text += f" and ranks safe against held items better (item-level{caveat})"
+            text += " and ranks safe against held items better" + (" (item level only)" if frontier_text.family_disagrees(auc) else "")
         words.append(text)
     return ", and " + frontier_text.join(words)
