@@ -15,6 +15,7 @@ Every document goes through these layers. Only the kernel, and then the vault it
 | Screening | Intercepta (Web3 Antivirus) quick-scan of the addresses involved. | `src/screening/` |
 | Human approval | A hold that is a judgement call (pressure, System-1's hold, the auto-clear budget) can be released by a verified human who proves with World App, freshly, for this one payment (World ID for Agents). | `src/approval/` |
 | Payment | Always simulates first; a simulated revert is decoded into a sentence and never broadcast. | `src/chain/payer.ts`, `src/analysis/pay.ts` |
+| Settlement | What was paid and received, from Curvegrid MultiBaas's event index (RPC logs as the fallback). | `src/multibaas/`, `src/history/`, `src/routes/payments.ts` |
 
 ## Endpoints
 
@@ -29,9 +30,11 @@ if `AGENT_API_TOKEN` is set. It answers only requests addressed to `localhost`, 
 | POST | `/invoices/:id/pay` `{ force?: boolean }` or `{ approvalId }` | See the payment results below |
 | POST | `/invoices/:id/approval` `{}` | `202 { attemptId, userCode, verificationUriComplete, expiresAt, interval }` (unix seconds; seconds): see [Human approval](#human-approval-world-id-for-agents) |
 | GET | `/invoices/:id/approval` | `{ attemptId, status, expiresAt, used, approvedAt?, approver?, reason? }` |
+| GET | `/payments?tNumber=T…[,T…]&limit=50` | `{ source: { settled, received }, notes, settled[], received[], refused[] }`: see [Settlement history](#settlement-history-curvegrid-multibaas) |
+| GET | `/invoices/:id/settlement` | `{ status: "confirmed" \| "indexing" \| "pending" \| "mismatch", source, txHash, blockNumber?, at?, note? }`; `404 not_paid` |
 | GET | `/vault` | `{ agent, vaultAgent, agentAuthorized, vault, registry, owner, token, balance, paused, vendorDelaySeconds, vendors[] }` |
 | GET | `/demo/invoices` | The documents in `scripts/demo-invoices/` with the manifest |
-| GET | `/health` | `{ ok, chainId, vault, agent, triage, triageRequired, llm, screening, humanApproval }` |
+| GET | `/health` | `{ ok, chainId, vault, agent, triage, triageRequired, llm, screening, humanApproval, multibaas }` |
 
 A payment returns one of:
 
@@ -159,6 +162,28 @@ grant: the agent is the device, and the human approves in World App. It is off u
   - `409 approval_void`: the analysis changed after approval.
   - `400`: `force` and `approvalId` were sent together.
 
+## Settlement history (Curvegrid MultiBaas)
+
+The agent reads what the vault paid, and what each payee received, from a MultiBaas deployment's event index. When
+MultiBaas isn't configured or can't answer, it reads the same facts from RPC logs.
+
+- **Setup:** `pnpm --filter @meigi/agent multibaas:setup`, with `MULTIBAAS_URL` and `MULTIBAAS_API_KEY` in the
+  repo-root `.env`. It is idempotent.
+  - It imports each contract's ABI through MultiBaas's explorer lookup (the repo's copy if unverified).
+  - It aliases and links PayeeRegistry, AgentVault and MockJPYC with event indexing from block 11781105.
+  - It saves the event queries in `src/multibaas/labels.ts`.
+- **`GET /payments`:**
+  - `settled` has every `InvoicePaid`, newest first.
+  - `received` has the mJPYC each registered payee got, totalled from `Transfer`. That covers the T-numbers
+    asked for, or the vendor list by default.
+  - `refused` has this agent's holds since it started, newest first. Refusals never reach the chain, so they
+    always come from the agent.
+  - `source` says where `settled` and `received` came from (`multibaas` or `rpc`), and `notes` explains a fallback.
+- **`GET /invoices/:id/settlement`:** after a payment, it is `confirmed` once MultiBaas has indexed its
+  `InvoicePaid`, or `indexing` until then. On the RPC path it is `confirmed` from the receipt, or `pending`.
+- **Keys:** only this service holds the MultiBaas key; the dashboards read `/payments`.
+- **Not built yet:** the contract-call API and webhooks.
+
 ## Run it
 
 Run these from the repo root.
@@ -200,6 +225,7 @@ and token match the configuration, that the key is the vault's agent, and that i
 | LLM | `LLM_PROVIDER=local` (the default for demos: a model on this machine behind an OpenAI-compatible API, `LOCAL_LLM_URL=http://127.0.0.1:11434/v1`, `LOCAL_LLM_MODEL=llama3.1:8b`, `LOCAL_LLM_TIMEOUT_MS=60000`), `proxy` (Llama 3.3 via `AI_PROXY_URL/v1/chat` with `AI_PROXY_TOKEN`), `anthropic` (`ANTHROPIC_API_KEY`, `claude-haiku-4-5`), `workers-ai` or `none` |
 | Screening | `INTERCEPTA_API_KEY` (optional), `INTERCEPTA_CACHE_PATH=../../data/agent/intercepta-cache.json`, `INTERCEPTA_MAX_CALLS=900`, `INTERCEPTA_TOXIC_THRESHOLD=50` |
 | Judgement holds | `TRIAGE_MAX_PRESSURE=0.5`, `AUTO_CLEAR_MAX_YEN` (unset: no budget hold) |
+| Settlement history | `MULTIBAAS_URL` and `MULTIBAAS_API_KEY` (both or neither; https only), `HISTORY_FROM_BLOCK` (RPC log scans; default 11781105 on Sepolia, 0 elsewhere) |
 | Human approval | `WORLD_AGENTS_CLIENT_ID` and `WORLD_AGENTS_CLIENT_SECRET` (both or neither), `WORLD_AGENTS_ISSUER=https://sandbox.auth.world.org`, `WORLD_AGENTS_AUTH_METHOD=client_secret_basic` (or `client_secret_post`), `WORLD_AGENTS_APPROVERS`, `WORLD_AGENTS_ENROLL` (off), `WORLD_AGENTS_APPROVERS_PATH=../../data/agent/approvers.json`, `WORLD_AGENTS_TRACE` (off) |
 | Server | `AGENT_PORT=8788`, `AGENT_HOST=127.0.0.1`, `AGENT_ALLOWED_HOSTS` (extra Host names for LAN use), `APP_ORIGINS=http://localhost:5173,http://localhost:4173`, `VENDOR_T_NUMBERS=2011001234567` |
 
