@@ -11,6 +11,7 @@
     "dev:local": "tsx watch --env-file=../../.env --env-file=.env.local src/server.ts",
     "demo": "tsx scripts/run-demo.ts",
     "demo:renumber": "tsx --env-file=../../.env scripts/demo-renumber.ts",
+    "mandate:rehearsal": "tsx scripts/mandate-rehearsal.ts",
     "mock:idp": "tsx scripts/mock-world-idp.ts",
     "multibaas:setup": "tsx --env-file=../../.env scripts/multibaas-setup.ts",
     "test": "vitest run",

@@ -49,6 +49,43 @@ Demo fixtures, fictional companies marked as such in their on-chain evidence:
 Check: `EXPECT_ADDR=0x9B4fc8994FcF2d5FE08a82A9454B61AA14D647e4 contracts/script/ens/ens.sh check`
 (set `ENS_DEPLOYMENT=beta` for the Beta). Scripts and details: `contracts/script/ens/README.md`.
 
+### The agent's ENS mandate goes live (MandateGate)
+
+Only after Karan's video, and only on the lead's word. The demo must never depend on the gate being healthy.
+
+1. **Order.**
+   1. ens commits the gate's constructor check (efd4574), and contracts-review passes it.
+   2. ens runs `ens.sh mandate-deploy` (it asserts the wiring), then `ens.sh mandate-wire`: the owner makes the gate
+      the vault's agent.
+   3. Set these in the root `.env`:
+      - `SIGNER_VIA_GATE=1`;
+      - `MANDATE_GATE_ADDRESS=<the gate>`;
+      - `MANDATE_PRINCIPAL=4999900000005`;
+      - `SEPOLIA_RPC_FALLBACK_URL=https://sepolia.gateway.tenderly.co`.
+
+      Then restart the pair: `scripts/ap-stack.sh --stop && SIGNER_VERIFY_APPROVAL=1 scripts/ap-stack.sh`. The
+      signer refuses to start unless the gate is the vault's agent, forwards to this vault, enforces
+      `ap.t4999900000005.payee.eth` and names its key.
+   4. `curl -s localhost:8796/health` shows `"via":"gate"`, and `curl -s localhost:8788/vault` shows the mandate
+      `live: true`.
+2. **The live rehearsal spends as little as possible.** It uses ¥1,100 invoices from Meigi Shoji in their own series,
+   MS-2026-72xx, and never the numbers of 01 or 07. Run it with `pnpm --filter @meigi/agent mandate:rehearsal`:
+   1. `run 01`: paid through the gate (**tx A**).
+   2. `analyze 02`, and keep its id.
+   3. ens runs `ens.sh mandate-revoke` (**tx B**).
+   4. `pay <id>` holds `mandate_not_live`, and `analyze 03` holds at analysis. `audit` shows the `signer.simulate`
+      entry with `MandateNotLive`, and nothing was broadcast.
+   5. ens runs `ens.sh mandate-issue` (**tx C**).
+   6. `run 04`: paid through the gate again (**tx D**).
+
+   It costs ¥2,200. The 30-day cap has ¥828,500 left after the 07 rehearsal, and judging, the finalist stage and
+   one retry need ¥561,000.
+3. **Evidence for the ENS judges** (a short section of `docs/ens.md`): tx A (sent to the gate; the vault emits
+   `InvoicePaid`), tx B, the audit entry with the `MandateNotLive` simulation, tx C and tx D.
+4. **Rollback, if anything is off:** ens runs `ens.sh mandate-unwire`, which hands the vault back to the key. Set
+   `SIGNER_VIA_GATE=0`, restart the pair, and tell the lead. `/health` then shows `"via":"vault"`. The signer won't
+   start while the flag and the chain disagree, so a half-done rollback shows up at once.
+
 ## Services
 
 | Port | Service | Start |
