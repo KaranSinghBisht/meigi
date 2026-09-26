@@ -12,11 +12,11 @@ export default function AgentPage() {
           <p className="eyebrow">
             AP agent · <span className="agent__ens">ap.meigi.eth</span>
           </p>
-          <h1 className="agent__title">It reads every invoice. It only pays verified companies.</h1>
+          <h1 className="agent__title">It reads every invoice. It only pays registered payees.</h1>
           <p className="agent__lede">
             {env.hosted
-              ? 'The agent may believe a scam. The vault only pays the address registered to the company. Below, replayed from real Sepolia runs: a bank-change scam, a human approval, and agents paying agents.'
-              : 'Drop in an invoice, a supplier email or an x402 request. The agent may believe a scam. The vault only pays the address registered to the company.'}
+              ? 'The agent may believe a scam. The vault only pays the address registered for the T-number on the invoice. Below, replayed from real Sepolia runs: a bank-change scam, a human approval, and agents paying agents.'
+              : 'Drop in an invoice, a supplier email or an x402 request. The agent may believe a scam. The vault only pays the address registered for the T-number on the invoice.'}
           </p>
         </div>
       </header>

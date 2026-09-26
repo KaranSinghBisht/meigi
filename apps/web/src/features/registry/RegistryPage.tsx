@@ -101,8 +101,8 @@ export default function RegistryPage() {
           Who does this <span className="nowrap">T-number</span> pay?
         </h1>
         <p className="page-head__lede">
-          Every payee lives on-chain: the company's registered name, the one address it can be paid at, and any change
-          that is waiting out its public timelock.
+          Every payee lives on-chain: the name registered for the T-number (an exact match in the NTA registry), the one
+          address it can be paid at, and any change that is waiting out its public timelock.
         </p>
       </header>
       <div className="registry__grid">

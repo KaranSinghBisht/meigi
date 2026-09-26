@@ -19,7 +19,7 @@ interface PaidViewProps {
 
 function kicker(outcome: Paid, approved: boolean): string {
   if (approved) return 'Approved by a verified human, then paid'
-  return outcome.forced ? 'Forced, and the chain still only paid the registered company' : 'Paid'
+  return outcome.forced ? 'Forced, and the chain still only paid the registered payout' : 'Paid'
 }
 
 function PaidView({ outcome, analysis, approved }: PaidViewProps) {

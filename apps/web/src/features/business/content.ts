@@ -15,21 +15,21 @@ export const PRODUCTS: readonly Product[] = [
   {
     kanji: '台帳',
     name: 'Meigi Registry',
-    body: 'Register once (NTA match, domain proof, World ID officers), then get paid correctly by every wallet and agent. Resolves in ENS.',
+    body: 'Register once: an exact-name NTA match, a domain proof and World ID officers. Wallets and agents that check Meigi then pay only the registered address. Resolves in ENS.',
     model: 'Free for companies',
     demo: { to: '/register', label: 'Register a business' },
   },
   {
     kanji: '照合',
     name: 'Verify API',
-    body: 'Confirmation of Payee for payers: exchanges, wallets, stablecoin issuers such as JPYC, AP platforms and x402 facilitators.',
+    body: 'Confirmation of Payee for payers: exchanges, wallets, stablecoin issuers, AP platforms and x402 facilitators.',
     model: 'Subscription + per lookup',
     demo: { to: '/registry', label: 'Look up a payee' },
   },
   {
     kanji: '守護',
     name: 'Guard SDK',
-    body: "The x402 guard and AgentVault for AI-agent platforms. The agent can be talked into anything, but it can't pay the wrong company.",
+    body: 'The x402 guard and AgentVault for AI-agent platforms. The agent can be talked into anything, but it can only pay a registered payout.',
     model: 'Subscription',
     demo: { to: '/x402', label: 'See the x402 guard' },
   },
@@ -88,7 +88,12 @@ export interface Milestone {
 }
 
 export const ROADMAP: readonly Milestone[] = [
-  { id: 'jp', name: 'Japan first', detail: 'T-number, 5.8M corporations', status: 'now' },
+  {
+    id: 'jp',
+    name: 'Japan first',
+    detail: 'T-numbers of qualified-invoice issuers, matched to the NTA registry',
+    status: 'now',
+  },
   { id: 'lei', name: 'LEI', detail: 'The global Legal Entity Identifier; lookup live', status: 'in progress' },
   { id: 'eu', name: 'EU VAT', detail: 'VIES', status: 'next' },
   { id: 'uk', name: 'UK', detail: 'Companies House', status: 'next' },
@@ -108,7 +113,7 @@ export const WHY_NOW = [
 ] as const
 
 export const LEI_NOTE =
-  "LEI lookup live: our verifier checks any company's LEI against GLEIF, and links Japanese ones to their T-number (Sony Group → T5010401067252)."
+  "LEI lookup live: our verifier checks any company's LEI against GLEIF, and links Japanese ones to a T-number by exact NTA name (Sony Group → T5010401067252)."
 
 export const LEI_EXAMPLES = [
   { label: 'Sony Group', lei: '529900R5WX9N2OI2N910' },

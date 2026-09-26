@@ -31,7 +31,7 @@ function nameProvenance(payee: PayeeSnapshot): string {
   if (isUnassignableOffice(payee.tNumber)) return "Fictional demo company (registry office 9999 can't be issued)"
   return FIXTURE_EVIDENCE.has(payee.evidence.toLowerCase())
     ? 'Fictional demo company, marked as such in its on-chain evidence (not an NTA record)'
-    : 'Registered name, an exact match of the NTA record'
+    : 'Matched to the NTA registry by exact name'
 }
 
 /** A disputed payee's name is withheld (readPayee never returns it), as the ENS resolver withholds it. */
@@ -92,15 +92,16 @@ function EnsLine({ payee }: { readonly payee: PayeeSnapshot }) {
 }
 
 /**
- * What the company says about itself, from the ENS name it claimed. The badge makes the source plain: these are the
- * company's own words, while the name above and the payout below still come from the registry.
+ * What the registrant says about itself, from the ENS name it claimed. The badge makes the source plain: these are the
+ * registrant's own words (a registration doesn't yet prove it represents the company), while the name above and the
+ * payout below still come from the registry.
  */
 function Claimed({ payee }: { readonly payee: PayeeSnapshot }) {
   const profile = useClaimedProfile(payee.tNumber.ens, payee.status === 'active')
   if (!profile) return null
   return (
     <div className="payee__claim">
-      <Badge tone="info">Claimed by the company</Badge>
+      <Badge tone="neutral">Claimed by the registrant</Badge>
       {profile.description ? <p className="payee__claim-text">{profile.description}</p> : null}
       {profile.url ? (
         <a className="payee__claim-url" href={profile.url} target="_blank" rel="noopener noreferrer">
