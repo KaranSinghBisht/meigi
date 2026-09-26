@@ -13,6 +13,13 @@ import type { PayCall, PayerPort, PaymentReceipt, RawRevert, SendOutcome, Simula
 
 export class SignerUnavailable extends Error {
   override readonly name = "SignerUnavailable";
+  constructor(
+    message: string,
+    readonly status: number | null, // what the signer answered; null when nothing answered at all
+    readonly nothingSent = false, // it failed at /simulate, before any /pay: nothing can have been signed
+  ) {
+    super(message);
+  }
 }
 
 export interface SignerHealth {
@@ -84,7 +91,7 @@ export function createRemotePayer(opts: RemotePayerOptions): RemotePayer {
   const base = opts.url.replace(/\/+$/u, "");
   const wait = opts.wait ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
 
-  async function request(method: "GET" | "POST", path: string, body?: unknown): Promise<{ status: number; json: unknown }> {
+  async function request(method: "GET" | "POST", path: string, body?: unknown, nothingSent = false): Promise<{ status: number; json: unknown }> {
     let response: Response;
     try {
       response = await (opts.fetch ?? fetch)(`${base}${path}`, {
@@ -95,7 +102,7 @@ export function createRemotePayer(opts: RemotePayerOptions): RemotePayer {
         signal: AbortSignal.timeout(opts.timeoutMs ?? 30_000),
       });
     } catch {
-      throw new SignerUnavailable("the signer could not be reached");
+      throw new SignerUnavailable("the signer could not be reached", null, nothingSent);
     }
     return { status: response.status, json: await response.json().catch(() => null) };
   }
@@ -103,7 +110,7 @@ export function createRemotePayer(opts: RemotePayerOptions): RemotePayer {
   async function answer<T>(method: "GET" | "POST", path: string, schema: z.ZodType<T>, body?: unknown): Promise<T> {
     const { status, json } = await request(method, path, body);
     const parsed = schema.safeParse(json);
-    if (status !== 200 || !parsed.success) throw new SignerUnavailable(`the signer answered ${status}`);
+    if (status !== 200 || !parsed.success) throw new SignerUnavailable(`the signer answered ${status}`, status);
     return parsed.data;
   }
 
@@ -123,9 +130,10 @@ export function createRemotePayer(opts: RemotePayerOptions): RemotePayer {
 
   return {
     async simulate(call) {
-      const { status, json } = await request("POST", "/simulate", fields(call));
+      // A simulation never signs, so a signer that fails here has sent nothing.
+      const { status, json } = await request("POST", "/simulate", fields(call), true);
       const r = simulated.safeParse(json);
-      if (status !== 200 || !r.success) throw new SignerUnavailable(`the signer answered ${status}`);
+      if (status !== 200 || !r.success) throw new SignerUnavailable(`the signer answered ${status}`, status, true);
       const result: Simulation = r.data.ok ? { ok: true, payout: r.data.payout as Address } : { ok: false, revert: rawRevert(r.data.revert) };
       note("signer.simulate", { ...about(call, toldBy(json).signer), simulation: result.ok ? { ok: true, payout: result.payout } : { ok: false, revert: result.revert.name } });
       return result;
@@ -148,7 +156,7 @@ export function createRemotePayer(opts: RemotePayerOptions): RemotePayer {
       const r = sent.safeParse(json);
       if (status !== 200 || !r.success) {
         note("signer.pay", { ...paying(call, undefined), outcome: "unanswered", status });
-        throw new SignerUnavailable(`the signer answered ${status}`);
+        throw new SignerUnavailable(`the signer answered ${status}`, status);
       }
       if (!r.data.ok) {
         const reverted = rawRevert(r.data.revert);

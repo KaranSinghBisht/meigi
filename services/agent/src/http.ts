@@ -4,6 +4,7 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { BaseError } from "viem";
 import { ZodError } from "zod";
 import { ConfigMismatchError } from "./chain/reader.js";
+import { SignerUnavailable } from "./chain/remote-payer.js";
 
 /** An error that is safe to show to the caller: a stable code plus a human-readable message. */
 export class HttpError extends Error {
@@ -30,6 +31,10 @@ export function handleError(error: Error, c: Context) {
     process.stderr.write(`[agent] ${error.message}\n`);
     return c.json({ code: "config_mismatch", message: error.message }, 500);
   }
+  if (error instanceof SignerUnavailable) {
+    process.stderr.write(`[agent] ${error.message}\n`);
+    return c.json({ code: "signer_unavailable", message: signerMessage(error) }, 503);
+  }
   if (error instanceof BaseError) {
     // viem errors can embed the RPC URL (and any API key in it): log the short form only.
     process.stderr.write(`[agent] chain error: ${error.name}: ${error.shortMessage}\n`);
@@ -37,6 +42,21 @@ export function handleError(error: Error, c: Context) {
   }
   process.stderr.write(`[agent] unexpected error: ${error.name}: ${error.message}\n`);
   return c.json({ code: "internal_error", message: "something went wrong" }, 500);
+}
+
+/** What went wrong at the signer, from what it answered (null: nothing answered at all). */
+function signerTrouble(status: number | null): string {
+  if (status === null) return "The signer isn't answering";
+  if (status === 401) return "The signer refused the agent's token (SIGNER_TOKEN must be the same in .env and .env.signer)";
+  if (status === 502) return "The signer couldn't reach the chain";
+  return status === 200 ? "The signer's answer couldn't be read" : `The signer answered ${status}`;
+}
+
+/** The agent holds no key, so without the signer it can't pay. Only a failure at /simulate proves nothing was sent. */
+function signerMessage({ status, nothingSent }: SignerUnavailable): string {
+  if (nothingSent) return `${signerTrouble(status)}, and the agent holds no key of its own: nothing was signed or sent.`;
+  const trouble = status === null ? "The signer stopped answering" : signerTrouble(status);
+  return `${trouble} during the payment, so it may have been sent. Pay again once it answers: the vault refuses a second payment of this invoice.`;
 }
 
 function chainMessage(error: BaseError): string {
