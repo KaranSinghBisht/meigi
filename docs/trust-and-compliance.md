@@ -187,8 +187,9 @@ ruling on a dispute. Nothing changes it instantly.
 5. **Assurance.**
    - Planned: an independent audit, formal verification of the timelock invariant, and a public bug bounty.
    - So far: three AI-assisted review rounds on the core contracts with proof-of-concept exploits, mutation-tested
-     fixes, and 138 Foundry tests, some of them fuzzed. The ENS claim contracts added later have tests only. None of
-     it is a professional audit.
+     fixes, and 164 Foundry tests (156 run without an RPC), some of them fuzzed. The ENS claim contract added later,
+     ClaimedPayeeResolver, has tests only; CompanyNamespace and MandateGate, added last, had review rounds of their
+     own. None of it is a professional audit.
 6. **Limits on-chain.** The verifier already caps each World ID officer at 1 open claim per company (an officer can
    hold claims for up to 3 companies), and each client IP per hour. Production adds three things:
    - The next step: key officer limits on a World ID uniqueness nullifier for a fixed action. Enrollment adds a
