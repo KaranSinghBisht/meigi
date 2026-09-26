@@ -38,7 +38,7 @@ export function ScreeningColumn({ screening, holds }: ScreeningColumnProps) {
   const flagged = screening.results.some((result) => result.flagged)
   const status = <Badge tone={flagged ? 'disputed' : 'active'}>{flagged ? 'Flagged' : 'Clear'}</Badge>
   return (
-    <Column step={4} title="Screening" tag="Intercepta, advisory" tone={flagged ? 'hold' : 'ok'} status={status}>
+    <Column step={4} title="Screening" tag="Intercepta" tone={flagged ? 'hold' : 'ok'} status={status}>
       {screening.results.length === 0 ? <p className="col__note">No addresses to screen.</p> : null}
       <ul className="screen">
         {screening.results.map((result) => (
@@ -54,7 +54,11 @@ export function ScreeningColumn({ screening, holds }: ScreeningColumnProps) {
         ))}
       </ul>
       {screening.errors.length > 0 ? <p className="col__note">Not screened: {screening.errors.join('; ')}</p> : null}
-      <p className="col__note">A clean score never overrides the registry.</p>
+      <p className="col__note">
+        {flagged
+          ? 'A flagged address holds the payment: no approval or force can release it.'
+          : 'A clean score never overrides the registry.'}
+      </p>
     </Column>
   )
 }
