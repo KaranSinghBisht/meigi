@@ -68,4 +68,9 @@
   .payee-lookup__row {
     flex-direction: column;
   }
+
+  /* Stacked, the field keeps its own height instead of growing from zero. */
+  .payee-lookup__row .input {
+    flex: none;
+  }
 }
