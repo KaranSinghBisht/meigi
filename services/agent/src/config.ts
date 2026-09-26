@@ -15,6 +15,7 @@ const secureOrLoopback = (url: string) => {
 const schema = z
   .object({
     SEPOLIA_RPC_URL: z.url(),
+    SEPOLIA_RPC_FALLBACK_URL: optional(z.url().refine(secureOrLoopback, "must be https, or http on loopback")), // reads retry there
     CHAIN_ID: z.coerce.number().int().positive().default(11155111),
     // The agent holds no key: services/signer does, and signs payInvoice for it over localhost.
     AGENT_ADDRESS: address, // the vault's agent, whose key only the signer holds

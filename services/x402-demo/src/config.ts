@@ -9,6 +9,7 @@ const schema = z.object({
   // Where payments settle: "sepolia" (mock JPYC, plus ENS) or "awaji" (Mizuhiki's own MJPY on Awaji; no ENS there).
   X402_CHAIN: z.enum(["sepolia", "awaji"]).default("sepolia"),
   SEPOLIA_RPC_URL: z.url(),
+  SEPOLIA_RPC_FALLBACK_URL: optional(z.url()), // reads retry there when the primary fails (e.g. a venue IP gets 403s)
   REGISTRY_ADDRESS: address,
   TOKEN_ADDRESS: address,
   DEMO_MERCHANT_T_NUMBER: z.string().regex(/^T?\d{13}$/u).default("T8999900000001"),

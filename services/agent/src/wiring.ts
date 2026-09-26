@@ -33,7 +33,7 @@ const PACKAGE_DIR = fileURLToPath(new URL("..", import.meta.url));
 
 /** Builds every dependency from validated configuration. */
 export function buildDeps(config: Config) {
-  const { publicClient } = createClients(config.SEPOLIA_RPC_URL, config.CHAIN_ID);
+  const { publicClient } = createClients(config.SEPOLIA_RPC_URL, config.CHAIN_ID, config.SEPOLIA_RPC_FALLBACK_URL);
   const vault = config.VAULT_ADDRESS as Address;
   const agent = getAddress(config.AGENT_ADDRESS);
   // One file per chain: the Sepolia agent and a local-chain agent never append to the same chain of hashes.

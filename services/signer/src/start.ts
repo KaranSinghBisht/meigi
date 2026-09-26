@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { agentVaultAbi } from "@meigi/abi";
-import { createPublicClient, createWalletClient, erc20Abi, getAddress, http, type Address, type Chain, type Hex, type PublicClient } from "viem";
+import { createPublicClient, createWalletClient, erc20Abi, fallback, getAddress, http, type Address, type Chain, type Hex, type PublicClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { foundry, sepolia } from "viem/chains";
 import { createSignerApp } from "./app.js";
@@ -61,10 +61,15 @@ function chainFor(chainId: number): Chain {
 export async function startSigner(config: Config, options: StartOptions = {}): Promise<StartedSigner> {
   const now = options.now ?? (() => Math.floor(Date.now() / 1000));
   const chain = chainFor(config.CHAIN_ID);
-  const transport = http(config.SEPOLIA_RPC_URL, { timeout: 15_000 });
+  // Reads fall back to SEPOLIA_RPC_FALLBACK_URL when the primary fails; a payment is signed once and broadcast by
+  // broadcast.ts, which settles a transport error by asking both RPCs for its hash.
+  const urls = [config.SEPOLIA_RPC_URL, ...(config.SEPOLIA_RPC_FALLBACK_URL ? [config.SEPOLIA_RPC_FALLBACK_URL] : [])];
+  const one = (url: string) => http(url, { timeout: 15_000, ...(urls.length > 1 ? { retryCount: 1 } : {}) });
+  const transport = urls.length > 1 ? fallback(urls.map(one)) : one(urls[0]!);
   const account = privateKeyToAccount(config.AGENT_PRIVATE_KEY as Hex);
   const publicClient = createPublicClient({ chain, transport }) as PublicClient;
   const walletClient = createWalletClient({ chain, transport, account });
+  const rpcs = urls.map((url) => createPublicClient({ chain, transport: one(url) }));
   const vault = { address: config.VAULT_ADDRESS as Address, abi: agentVaultAbi } as const;
   const gate = config.MANDATE_GATE_ADDRESS ? getAddress(config.MANDATE_GATE_ADDRESS) : null;
   const [route, token] = await Promise.all([
@@ -80,7 +85,7 @@ export async function startSigner(config: Config, options: StartOptions = {}): P
   const decimals = await publicClient.readContract({ address: token, abi: erc20Abi, functionName: "decimals" });
   const verifier = verifierFor(config, now, options.fetch);
   const app = createSignerApp({
-    payer: createPayer({ publicClient, walletClient, target: route.target }),
+    payer: createPayer({ publicClient, walletClient, target: route.target, rpcs }),
     token: config.SIGNER_TOKEN,
     policy: {
       ceilingUnits: BigInt(config.SIGNER_HUMAN_ABOVE_YEN) * 10n ** BigInt(decimals),

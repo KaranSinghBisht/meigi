@@ -2,6 +2,7 @@ import { agentVaultAbi, mandateGateAbi } from "@meigi/abi";
 import {
   BaseError,
   ContractFunctionRevertedError,
+  encodeFunctionData,
   TransactionReceiptNotFoundError,
   type Account,
   type Address,
@@ -11,6 +12,7 @@ import {
   type Transport,
   type WalletClient,
 } from "viem";
+import { broadcast, type BroadcastRpc } from "./broadcast.js";
 
 /** The arguments of `AgentVault.payInvoice`, the one call this key may make. */
 export interface PayCall {
@@ -44,6 +46,7 @@ export interface PayerOptions {
   publicClient: PublicClient;
   walletClient: WalletClient<Transport, Chain, Account>;
   target: Address; // the vault, or the MandateGate in front of it (route.ts): the same payInvoice either way
+  rpcs: readonly BroadcastRpc[]; // where a signed payment is broadcast: SEPOLIA_RPC_URL, then the fallback if set
 }
 
 // The gate's payInvoice has the vault's signature, plus its own errors (MandateNotLive, NotMandateHolder, …).
@@ -66,7 +69,7 @@ export function createPayer(opts: PayerOptions): SignerPayer {
         if (sent) return { ok: true, txHash: sent, payout: null };
         const outcome = await simulate(opts, call);
         if (!outcome.ok) return outcome;
-        const txHash = await opts.walletClient.writeContract(outcome.request);
+        const txHash = await signAndBroadcast(opts, call);
         inFlight.set(invoice, txHash);
         return { ok: true, txHash, payout: outcome.payout };
       }),
@@ -76,6 +79,15 @@ export function createPayer(opts: PayerOptions): SignerPayer {
       return found;
     },
   };
+}
+
+/** Signs the payment once, locally, and broadcasts those bytes (broadcast.ts): never a second signature. */
+async function signAndBroadcast(opts: PayerOptions, call: PayCall): Promise<Hex> {
+  const data = encodeFunctionData({ abi: PAY_ABI, functionName: "payInvoice", args: [call.tNumber, call.expectedPayout, call.amount, call.invoiceRef] });
+  const { account, chain } = opts.walletClient;
+  const request = await opts.walletClient.prepareTransactionRequest({ account, chain, to: opts.target, data });
+  const serialized = await opts.walletClient.signTransaction(request);
+  return broadcast(opts.rpcs, serialized);
 }
 
 async function simulate(opts: PayerOptions, call: PayCall) {

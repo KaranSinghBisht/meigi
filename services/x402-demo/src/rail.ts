@@ -1,4 +1,4 @@
-import { defineChain, parseGwei, type Address, type Chain } from "viem";
+import { defineChain, fallback, http, parseGwei, type Address, type Chain, type Transport } from "viem";
 import { sepolia } from "viem/chains";
 import type { Config } from "./config.js";
 
@@ -12,6 +12,8 @@ export interface Rail {
   readonly network: `eip155:${number}`;
   readonly chain: Chain;
   readonly rpcUrl: string;
+  /** Sepolia only (SEPOLIA_RPC_FALLBACK_URL): the reads' second RPC. */
+  readonly rpcFallbackUrl?: string;
   readonly registry: Address;
   /** The payment token, with the EIP-712 domain its EIP-3009 authorizations are signed under. */
   readonly asset: { readonly address: Address; readonly extra: { name: string; version: string }; readonly decimals: number };
@@ -57,10 +59,21 @@ export function railOf(config: Config): Rail {
     network: "eip155:11155111",
     chain: sepolia,
     rpcUrl: config.SEPOLIA_RPC_URL,
+    ...(config.SEPOLIA_RPC_FALLBACK_URL ? { rpcFallbackUrl: config.SEPOLIA_RPC_FALLBACK_URL } : {}),
     registry: config.REGISTRY_ADDRESS as Address,
     asset: { address: config.TOKEN_ADDRESS as Address, extra: { name: "Mock JPY Coin", version: "1" }, decimals: 18 },
     ens: true,
   };
+}
+
+/**
+ * The transport for the rail's reads: its RPC, then the fallback when one is set and the primary fails. The in-process
+ * facilitator sends settlements through the primary alone (facilitator.ts), so a signed transaction is never
+ * re-sent elsewhere by a transport it can't see into.
+ */
+export function readTransport(rail: Rail): Transport {
+  if (!rail.rpcFallbackUrl) return http(rail.rpcUrl);
+  return fallback([http(rail.rpcUrl, { retryCount: 1 }), http(rail.rpcFallbackUrl, { retryCount: 1 })]);
 }
 
 /** An amount in whole yen, in the rail's token units (mock JPYC has 18 decimals, MJPY 6). */

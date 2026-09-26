@@ -7,6 +7,13 @@ This small process holds the AgentVault's agent key and signs one call for it: `
   unknown fields are refused, so arbitrary calldata can't get through.
 - **Simulated first, every time.** `/pay` re-simulates inside the nonce lock and broadcasts only if that passes. An
   invoice whose payment is in flight is never sent twice.
+- **Signed once, broadcast carefully.** The signer signs the transaction locally and knows its hash before sending
+  it (`broadcast.ts`).
+  - A transport error on `SEPOLIA_RPC_URL` (a timeout, a connection error, a Cloudflare 403) is settled by asking
+    both RPCs for that hash. If neither has it, the same bytes go to `SEPOLIA_RPC_FALLBACK_URL`.
+  - "Already known", or a nonce collision on that very hash, counts as sent.
+  - Any other refusal is final: nothing is signed again.
+  - Reads fall back to the second RPC too.
 - **Its own rule, whatever the agent decided.** Above `SIGNER_HUMAN_ABOVE_YEN` (¥150,000), it signs only with a World ID
   for Agents approval: an Orb-level ID token, at most `SIGNER_APPROVAL_MAX_AGE_S` (10 minutes) old, from the
   configured issuer and client. The agent forwards the approving token once, when a verified human has released the

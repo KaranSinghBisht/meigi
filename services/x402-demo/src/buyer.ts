@@ -3,10 +3,10 @@ import { x402Client } from "@x402/core/client";
 import { toClientEvmSigner } from "@x402/evm";
 import { ExactEvmScheme } from "@x402/evm/exact/client";
 import { decodePaymentResponseHeader, wrapFetchWithPayment } from "@x402/fetch";
-import { createPublicClient, http, type Hex } from "viem";
+import { createPublicClient, type Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { MAX_PRICE_YEN, UNVERIFIED_MAX_YEN, type Config } from "./config.js";
-import { railOf, yen } from "./rail.js";
+import { railOf, readTransport, yen } from "./rail.js";
 
 export interface PurchaseResult {
   verdict: GuardVerdict | null;
@@ -24,7 +24,7 @@ export interface PurchaseResult {
 export function guardedBuyer(config: Config) {
   const rail = railOf(config);
   const account = privateKeyToAccount(config.DEMO_BUYER_PRIVATE_KEY as Hex);
-  const publicClient = createPublicClient({ chain: rail.chain, transport: http(rail.rpcUrl) });
+  const publicClient = createPublicClient({ chain: rail.chain, transport: readTransport(rail) });
   const signer = toClientEvmSigner(account, publicClient);
   const guardDeps = {
     network: rail.network,

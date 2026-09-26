@@ -36,7 +36,7 @@ Where the checks are: `packages/x402-guard/src/check.ts` (`checkPayee` for decla
 for undeclared ones) and `packages/x402-guard/src/ens.ts` (the ENS resolver). Both run in x402's
 `onBeforePaymentCreation` hook, before anything is signed.
 
-Env: `SEPOLIA_RPC_URL`, `REGISTRY_ADDRESS`, `TOKEN_ADDRESS`, `DEMO_MERCHANT_T_NUMBER`, `DEMO_MERCHANT_PAYOUT`,
+Env: `SEPOLIA_RPC_URL` (optional `SEPOLIA_RPC_FALLBACK_URL` for reads), `REGISTRY_ADDRESS`, `TOKEN_ADDRESS`, `DEMO_MERCHANT_T_NUMBER`, `DEMO_MERCHANT_PAYOUT`,
 `DEMO_MINATO_T_NUMBER`, `DEMO_MINATO_PAYOUT`, `DEMO_SCAMMER`, `DEMO_BUYER_PRIVATE_KEY` (holds mJPYC),
 `FACILITATOR_PRIVATE_KEY` (holds Sepolia ETH), and optionally `INTERCEPTA_API_KEY`, `DEMO_UNVERIFIED_PAYTO` and
 `DEMO_FLAGGED_PAYTO`.

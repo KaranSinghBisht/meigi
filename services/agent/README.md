@@ -326,6 +326,8 @@ Sepolia `TOKEN_ADDRESS`, which the deploy script would otherwise reuse.
 All settings come from the environment; see `.env.example`.
 - **Required:** `SEPOLIA_RPC_URL`, `AGENT_ADDRESS`, `SIGNER_TOKEN`, `REGISTRY_ADDRESS` and `VAULT_ADDRESS`.
   `SIGNER_URL` defaults to `http://127.0.0.1:8796`.
+- **Optional second RPC:** `SEPOLIA_RPC_FALLBACK_URL`. Reads retry there when the primary fails (a timeout, a
+  connection error, an HTTP error such as a Cloudflare 403 at a crowded venue).
 - **`AGENT_PRIVATE_KEY` must not be set:** the agent refuses to start if it is. It lives in `.env.signer`, which only
   the signer loads.
 - **Startup checks:**

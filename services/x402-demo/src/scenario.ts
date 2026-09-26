@@ -1,9 +1,9 @@
 import { ensResolver, parseDeclaration, registryReader, type MeigiPayeeDeclaration } from "@meigi/x402-guard";
 import { decodePaymentRequiredHeader } from "@x402/core/http";
-import { createPublicClient, http } from "viem";
+import { createPublicClient } from "viem";
 import { guardedBuyer } from "./buyer.js";
 import type { Config } from "./config.js";
-import { railOf } from "./rail.js";
+import { railOf, readTransport } from "./rail.js";
 
 /**
  * A research agent's shopping trip: it needs 2 GPU-minutes and a dataset slice for a job, and tries two
@@ -106,7 +106,7 @@ export async function runResearchAgent(config: Config): Promise<ScenarioResult> 
   const startedAt = new Date().toISOString();
   const self = `http://localhost:${config.X402_DEMO_PORT}`;
   const rail = railOf(config);
-  const publicClient = createPublicClient({ chain: rail.chain, transport: http(rail.rpcUrl) });
+  const publicClient = createPublicClient({ chain: rail.chain, transport: readTransport(rail) });
   const registry = registryReader(publicClient, rail.registry);
   const resolveEns = rail.ens ? ensResolver(publicClient) : undefined;
   const buy = guardedBuyer(config);

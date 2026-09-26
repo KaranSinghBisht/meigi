@@ -12,6 +12,7 @@ const schema = z.object({
   AGENT_PRIVATE_KEY: z.string().regex(/^0x[0-9a-fA-F]{64}$/u, "must be 0x followed by 64 hex characters"),
   SIGNER_TOKEN: z.string().min(32, "must be at least 32 characters (openssl rand -hex 32)"),
   SEPOLIA_RPC_URL: z.url(),
+  SEPOLIA_RPC_FALLBACK_URL: z.url().optional(), // reads fall back to it; a payment's bytes are broadcast there too
   CHAIN_ID: z.coerce.number().int().positive().default(11155111),
   VAULT_ADDRESS: address,
   // 1: pay through the ENS MandateGate at MANDATE_GATE_ADDRESS, which must already be the vault's agent (route.ts).
