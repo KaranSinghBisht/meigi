@@ -44,6 +44,11 @@ confirmed: **"Verification was not approved. No information was shared."**
 
 ## What the agent recorded
 
+*(The `reason` string below quotes exactly what the backend returned during this run. Its wording — "World App"
+— has since been corrected in `services/agent/src/approval/device.ts` to "the World ID app," now that we've
+confirmed World split verification into its own app. Quoted here unedited as a record of what actually
+happened; a fresh run today would show the corrected string.)*
+
 `GET /invoices/842b5f6b-54b8-4367-ae1a-8a2eba091f50/approval`:
 ```json
 {

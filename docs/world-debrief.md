@@ -16,7 +16,7 @@ tripping through our verifier — most of it spent on the two friction points be
   the bridge (200 OK) and then sits on a loading screen; it never offers a fake identity to confirm. A request
   older than a few minutes shows "Invalid or expired QR code" instead. The simulator's own banner says it "will
   change with the adoption of World ID 4.0" — so as of this build, session-based 4.0 flows can't be tested
-  end-to-end without a real phone running World App.
+  end-to-end without a real phone running the World ID app.
 - **`rp_context` field naming drifts from the signing helper.** The helper that signs our request context
   outputs a field the verify step expects under a different name (`signature` vs. `sig`); we normalize both on
   read (`RpContextWire` accepts either) rather than betting on one name staying stable.
@@ -50,18 +50,33 @@ verifier — Sepolia included — a 4.0 proof has to be checked off-chain, throu
 `POST /api/v4/verify/{rp_id}`, which is exactly what our verifier does.
 
 **Top improvement:** a 4.0-capable web simulator for session flows. Right now, testing a session request end to
-end requires a real phone with World App, every time.
+end requires a real phone with the World ID app, every time.
 
-**Why Selfie Check, not Orb, in production:** the trust moment IDKit protects here is "is this the same unique
-human who enrolled as an officer for this specific company?" — a 1:1 re-authentication of an identity we already
-established, not a 1:N uniqueness check across a large population. Orb-level `proof_of_human` is the strongest
-available credential for the latter (resisting large-scale Sybil attacks), but it requires physically visiting an
-Orb, which doesn't fit officers who need to approve a change from wherever they are. Selfie Check gives the same
-"same human, still alive, still them" guarantee this specific re-authentication needs, at a credential strength
-proportionate to the attack we're defending against (a stolen business key or a phished inbox, not a fabricated
-population of fake humans). The verifier enforces whichever credential a deployment is configured for
-(`WORLD_OFFICER_CREDENTIALS`) on every proof, so a weaker one can never slip in underneath it. Passport or other
-government-ID data would add personal data collection without closing any additional gap in this threat model.
+**The session proves continuity; the credential sets assurance — one story, not two claims.** Earlier copy said
+Selfie Check gives "the same unique human" guarantee. That conflated two different things World's own docs keep
+separate:
+- The **session** (`createSession`/`proveSession`) is what proves "the same human who enrolled," across every
+  later approval — that's a continuity property of the session mechanism itself, not of any one credential.
+- The **credential** sets how strongly that session's holder is one real, unique person. World documents Selfie
+  Check as **medium-assurance** ("does not provide a strict one-person-one-account guarantee") and Orb-based
+  Proof of Human as **high-assurance** ("each human can only have one PoH credential").
+- Our trust moment is a **1:1 re-authentication** ("is this the same session that enrolled as an officer?"), not
+  a **1:N uniqueness** check across a large population — so a **1-of-1 quorum on a Selfie Check session** is the
+  minimum sufficient credential for this demo: the session already answers "same human," and we don't need
+  Selfie Check's weaker Sybil-resistance to also carry an anti-squatting job it isn't built for.
+- If we ever needed an **N-of-M quorum** where several independent identities must each be genuinely unique
+  humans (not just genuinely the same session-holder each time), that's exactly when Orb, or gating on
+  Selfie Check's own `sybil_score` (a real field on its response, a risk signal rather than a uniqueness
+  verdict), would earn its cost. We don't gate on `sybil_score` today.
+- **Known limit, roadmap:** our officer-company cap (`officerCompanyLimit`, `services/verifier/src/limits/`) is
+  keyed on the session's officer id today, not on a Sybil-resistant uniqueness nullifier for a fixed action —
+  someone willing to complete Selfie Check under several distinct sessions could exceed the intended per-human
+  cap. Keying it on a uniqueness nullifier instead is the fix; Orb's proof-of-human already provides one, Selfie
+  Check's `sybil_score` is a softer signal toward the same goal.
+
+The verifier enforces whichever credential a deployment is configured for (`WORLD_OFFICER_CREDENTIALS`) on every
+proof, so a weaker one can never slip in underneath what was configured. Passport or other government-ID data
+would add personal data collection without closing any additional gap in this threat model.
 
 ## Best Use of World ID for Agents (the AP agent's held payments)
 

@@ -1,6 +1,7 @@
 # The real World ID phone run
 
-One real run, in World App's **production** environment with **Selfie Check**, against the fictional company
+One real run, in the **World ID** app's **production** environment with **Selfie Check**, against the fictional
+company
 T7999900000002 (registry office 9999: provably not a real NTA corporation). It does two things at once:
 registers a company and queues a payout change, both gated by World ID, on Sepolia; and produces the real data
 the hosted `/change` page replays. About 10 minutes once everything below is ready.
@@ -9,8 +10,9 @@ Never share the QR code or session link from a screenshot: whoever completes it 
 
 ## Before Karan starts
 
-- [ ] Karan has World App from the App Store, signed in, and has completed a Selfie Check in the app at least
-      once before (so it isn't also debugging World's own onboarding during the run).
+- [ ] Karan has the **World ID** app (not "World App" — World split verification into its own app) from the App
+      Store, signed in, and has completed a Selfie Check in it at least once before (so it isn't also debugging
+      World's own onboarding during the run).
 - [ ] Karan's own wallet (MetaMask or similar) holds a small amount of Sepolia ETH. It signs one real
       transaction later (`requestPayoutChange`), and only that wallet can send it, so this can't be topped up
       mid-run without restarting the officer approval.
@@ -31,7 +33,7 @@ Never share the QR code or session link from a screenshot: whoever completes it 
 3. **"Prove your domain":** skip it.
 4. **"Prove you represent the company":** skip it too (production's real check is the 商業登記電子証明書, which
    this run isn't built to carry).
-5. **"Your officers":** tap enroll, scan the QR with World App, complete Selfie Check on the phone.
+5. **"Your officers":** tap enroll, scan the QR with the **World ID** app, complete Selfie Check on the phone.
 6. **"Review and register":** confirm it shows "1 of 1 officers", then tap **Register company**.
    - **We check, right after:**
      - `cast call $REGISTRY "officersOf(uint64)(bytes32[])" 7999900000002 --rpc-url $SEPOLIA_RPC_URL` returns
@@ -42,13 +44,13 @@ Never share the QR code or session link from a screenshot: whoever completes it 
        its hash; confirm it on Etherscan.
 7. On `/change/T7999900000002`, pick **payout change** and request a new address. Then, in this order:
    1. **The cancelled proof (alternative path a — cheapest, no second human needed).** Tap "Approve with World
-      ID," open the QR/session, then **cancel from inside World App itself** (decline, or back out) once.
+      ID," open the QR/session, then **cancel from inside the World ID app itself** (decline, or back out) once.
       - **We check:** the panel closes and shows a plain, calm line — "Cancelled. Nothing changed — try again
         when you're ready." — not a red error. This is `apps/web/src/lib/world/rpContext.ts`'s `widgetOutcome()`
         (fixed for this run in `80fd408`: `user_rejected`/`cancelled` now render as a muted status line, not an
         alert).
       - Tap the same button again immediately: it must start a fresh request with no leftover state.
-   2. **The wrong human (alternative path b) — only if Adithya's World App is available.** From the "someone who
+   2. **The wrong human (alternative path b) — only if Adithya's World ID app is available.** From the "someone who
       isn't an enrolled officer" row, have Adithya prove with his own World ID.
       - **We check:** the verifier refuses it (not the same human who enrolled) and the approval count stays at
         0 of 1 — nothing is queued.
