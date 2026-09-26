@@ -34,4 +34,12 @@ export const COPY = {
     lede: (ens: string) =>
       `Payers who check ${ens} will only ever pay the address below. Changing it takes your business key, your officers and 72 hours in public.`,
   },
+  /** The replay's last screen speaks about the company, not to it: the viewer registered nothing. */
+  registeredReplay: {
+    title: "It's registered.",
+    lede: (ens: string) =>
+      `Payers who check ${ens} will only ever pay the address below. Changing it takes the company's business key, its officers and 72 hours in public.`,
+    placeholderLede: (ens: string) =>
+      `Payers who check ${ens} pay only the address below. Its placeholder officer means no one can change it; a real company changes it with its business key, its officers and 72 hours in public.`,
+  },
 } as const

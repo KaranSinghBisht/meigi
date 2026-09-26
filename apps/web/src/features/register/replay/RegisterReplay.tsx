@@ -1,34 +1,48 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { env } from '../../../lib/env/env'
+import { prefersReducedMotion } from '../../../lib/hooks/motion'
 import { Button, LinkButton } from '../../../ui/components/Button'
 import { skippedSteps, type StepIndex } from '../flow/steps'
 import { ProgressRail } from '../wizard/ProgressRail'
 import { RailNeeds } from '../wizard/RailNeeds'
 import { StepActions } from '../wizard/StepFrame'
 import { useDirection } from '../wizard/useDirection'
-import { RECORDING } from './recording'
+import { RECORDING, type Recording } from './recording'
 import { ReplayScreen } from './ReplayScreens'
 import { useReplay, type Replay } from './useReplay'
 import './replay.css'
 
 const TALK = `mailto:${env.contactEmail}?subject=${encodeURIComponent('Meigi beta')}`
 
+/** What the replay is, in one line: a real run through the wizard, or a seeded registration shown the wizard's way. */
+function BarNote({ recording }: { readonly recording: Recording }) {
+  if (recording.source === 'wizard') {
+    return (
+      <p className="replay-bar__note">
+        <strong>Replay of a real registration on Sepolia</strong> · registering your own company opens with the beta
+      </p>
+    )
+  }
+  return (
+    <p className="replay-bar__note">
+      <strong>How the wizard presents a registration</strong> ·{' '}
+      <span lang="ja">{recording.company.legalName}</span> is a demo company our seed script registered on Sepolia
+    </p>
+  )
+}
+
 /** The one honest line, and the replay's own controls: play or pause, and the way to get in touch. */
-function ReplayBar({ replay }: { readonly replay: Replay }) {
+function ReplayBar({ replay, recording }: { readonly replay: Replay; readonly recording: Recording }) {
   return (
     <div className="replay-bar">
-      <p className="replay-bar__note">
-        <strong>Replay of a registration on Sepolia</strong> · registering your own company opens with the beta
-      </p>
+      <BarNote recording={recording} />
       <div className="replay-bar__actions">
         <Button variant="ghost" size="sm" data-replay-toggle onClick={replay.toggle}>
           {replay.atEnd ? 'Replay again' : replay.playing ? 'Pause' : 'Play'}
         </Button>
-        {replay.atEnd ? null : (
-          <a className="btn btn--primary btn--sm" href={TALK}>
-            Talk to us
-          </a>
-        )}
+        <a className="btn btn--primary btn--sm" href={TALK}>
+          Talk to us
+        </a>
       </div>
     </div>
   )
@@ -57,13 +71,21 @@ function actionsFor(replay: Replay, tNumber: string): ReactNode {
   )
 }
 
-/** After the reader moves (not autoplay), focus follows to the new screen's question, as in the live wizard. */
+/**
+ * After the reader moves (not autoplay), focus follows to the new screen's question and the window scrolls back into
+ * view if its top is hidden, as in the live wizard: Next at the foot of a long screen on a phone starts the next at
+ * its top.
+ */
 function useManualFocus(replay: Replay) {
   const windowRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!replay.manual.current) return
     replay.manual.current = false
-    windowRef.current?.querySelector<HTMLElement>('.onboard-step__title')?.focus({ preventScroll: true })
+    const node = windowRef.current
+    node?.querySelector<HTMLElement>('.onboard-step__title')?.focus({ preventScroll: true })
+    if (node && node.getBoundingClientRect().top < 0) {
+      node.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' })
+    }
   }, [replay.step, replay.manual])
   return windowRef
 }
@@ -79,13 +101,20 @@ export function RegisterReplay() {
   const recording = RECORDING
   const placeholderOfficers = recording.officers.some((officer) => officer.proof === 'placeholder')
   const skipped = skippedSteps({ fixture: recording.company.fixture, placeholderOfficers })
-  // Any pointer or key inside the window stops the autoplay, except the play/pause button itself.
+  // Any pointer, key or focus inside the window stops the autoplay, except on the play/pause button itself: a
+  // keyboard reader who tabs in is never left on a screen that changes, or a control that goes, under them.
   const interrupt = (event: { readonly target: EventTarget | null }) => {
     if (!(event.target instanceof Element) || !event.target.closest('[data-replay-toggle]')) replay.pause()
   }
   return (
-    <div ref={windowRef} className="onboard onboard--replay window cells" onPointerDown={interrupt} onKeyDown={interrupt}>
-      <ReplayBar replay={replay} />
+    <div
+      ref={windowRef}
+      className="onboard onboard--replay window cells"
+      onPointerDown={interrupt}
+      onKeyDown={interrupt}
+      onFocus={interrupt}
+    >
+      <ReplayBar replay={replay} recording={recording} />
       <ProgressRail
         current={replay.step}
         finished={replay.atEnd}

@@ -24,8 +24,25 @@ interface ScreenProps {
   readonly actions: ReactNode
 }
 
+/** A seeded demo company never went through this screen: the card says what it is and how it was registered. */
+function SeededCompany({ company }: { readonly company: Recording['company'] }) {
+  return (
+    <div className="company-record nta-hint">
+      <p className="company-record__chips">
+        <Badge tone="info">Demo company</Badge>
+      </p>
+      <p className="company-record__name jp" lang="ja">
+        {company.legalName}
+      </p>
+      {company.note ? <p className="company-record__note">{company.note}</p> : null}
+    </div>
+  )
+}
+
 /** The company card as the first screen showed it: the NTA record, or a fictional company and why it is one. */
-function RecordedCompany({ company }: { readonly company: Recording['company'] }) {
+function RecordedCompany({ recording }: { readonly recording: Recording }) {
+  const { company } = recording
+  if (recording.source === 'seed') return <SeededCompany company={company} />
   if (!company.fixture) {
     return (
       <div className="company-record nta-hint">
@@ -56,7 +73,7 @@ function CompanyScreen({ recording, actions }: ScreenProps) {
     <StepFrame step={STEP.company} title={COPY.company.title} lede={COPY.company.lede} actions={actions}>
       <TextField label="T-number or LEI" className="input--hero" mono value={company.query} readOnly />
       <EnsPreview digits={company.tNumber.slice(1)} />
-      <RecordedCompany company={company} />
+      <RecordedCompany recording={recording} />
     </StepFrame>
   )
 }
@@ -78,28 +95,52 @@ function PayoutDetail({ payout }: { readonly payout: Recording['payout'] }) {
   )
 }
 
+/** An address as the registry holds it, with a neutral chip saying so (a seeded company connected nothing). */
+function Registered({ address, label }: { readonly address: Recording['controller']; readonly label: string }) {
+  return (
+    <div className="onboard-cell wallet-cell">
+      <div className="wallet-cell__row">
+        <Address value={address} copy />
+        <Badge tone="neutral">{label}</Badge>
+      </div>
+    </div>
+  )
+}
+
 function WalletsScreen({ recording, actions }: ScreenProps) {
+  const { controller, payout, source } = recording
+  const recorded = source === 'wizard' && payout.mode !== undefined
   return (
     <StepFrame step={STEP.wallets} title={COPY.wallets.title} lede={COPY.wallets.lede} actions={actions}>
       <section className="onboard-section" aria-labelledby="replay-key">
         <h3 id="replay-key" className="onboard-section__title">
           Business key
         </h3>
-        <p className="onboard-section__lede">It signs your domain proof, and every change after today.</p>
-        <div className="onboard-cell wallet-cell">
-          <div className="wallet-cell__row">
-            <Address value={recording.controller} copy />
-            <Badge tone="active">Connected</Badge>
+        <p className="onboard-section__lede">It signs the domain proof, and every change after registration.</p>
+        {source === 'wizard' ? (
+          <div className="onboard-cell wallet-cell">
+            <div className="wallet-cell__row">
+              <Address value={controller} copy />
+              <Badge tone="active">Connected</Badge>
+            </div>
           </div>
-        </div>
+        ) : (
+          <Registered address={controller} label="Registered business key" />
+        )}
       </section>
       <section className="onboard-section" aria-labelledby="replay-payout">
         <h3 id="replay-payout" className="onboard-section__title">
           Payout address
         </h3>
         <p className="onboard-section__lede">The only address payers who check Meigi will send money to.</p>
-        <PayoutChoice mode={recording.payout.mode} disabled />
-        <PayoutDetail payout={recording.payout} />
+        {recorded && payout.mode ? (
+          <>
+            <PayoutChoice mode={payout.mode} disabled />
+            <PayoutDetail payout={payout} />
+          </>
+        ) : (
+          <Registered address={payout.address} label="Registered payout" />
+        )}
       </section>
     </StepFrame>
   )
@@ -107,6 +148,16 @@ function WalletsScreen({ recording, actions }: ScreenProps) {
 
 function DomainScreen({ recording, actions }: ScreenProps) {
   const { domain, company } = recording
+  if (recording.source === 'seed') {
+    return (
+      <StepFrame
+        step={STEP.domain}
+        title={COPY.domainFictional.title}
+        lede="Our seed script registered this demo company without a domain proof: nothing was signed and no DNS record was added."
+        actions={actions}
+      />
+    )
+  }
   if (domain.method === 'fixture') {
     return (
       <StepFrame step={STEP.domain} title={COPY.domainFictional.title} lede={COPY.domainFictional.lede} actions={actions}>
@@ -190,11 +241,13 @@ function ReviewScreen({ recording, actions }: ScreenProps) {
 function RegisteredScreen({ recording, actions }: ScreenProps) {
   const parsed = parseTNumber(recording.company.tNumber)
   if (!parsed) return null
+  const placeholder = recording.officers.some((officer) => officer.proof === 'placeholder')
+  const copy = COPY.registeredReplay
   return (
     <StepFrame
       step={STEP.registered}
-      title={COPY.registered.title}
-      lede={COPY.registered.lede(parsed.ens)}
+      title={copy.title}
+      lede={placeholder ? copy.placeholderLede(parsed.ens) : copy.lede(parsed.ens)}
       actions={actions}
     >
       <RegisteredView
