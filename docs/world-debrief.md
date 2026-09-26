@@ -118,11 +118,14 @@ separate:
   with Orb (`officerId` `0x8b843464…fd8d90`, then `0xdcf809aa…118b6f`) - real production `proof_of_human` proofs.
   Not by choice: Selfie Check is what we set out to demonstrate as the minimum, but it failed twice inside the
   World ID app (above), so both real enrollments used Orb instead; the recorded registration run is pending.
-- An **N-of-M quorum**, where several independent identities must each be genuinely unique humans (not just
-  genuinely the same session-holder each time), should require Orb — that's exactly the case Selfie Check's
-  weaker Sybil-resistance isn't built for. Gating on Selfie Check's own `sybil_score` (a real field on its
-  response, a risk signal rather than a uniqueness verdict) is a softer alternative worth considering there. We
-  don't gate on `sybil_score` today.
+- **Not enforced today — a design argument, not a current property.** An **N-of-M quorum**, where several
+  independent identities must each be genuinely unique humans (not just genuinely the same session-holder each
+  time), arguably should require Orb — that's exactly the case Selfie Check's weaker Sybil-resistance isn't built
+  for. But nothing in `/officers` or `/submit` (`services/verifier/src/routes/registrations.ts:150-188`) keys
+  enrollment or submission to the requested threshold: every officer is checked against the same deployment-wide
+  configured credential regardless of quorum size. Gating on Selfie Check's own `sybil_score` (a real field on
+  its response, a risk signal rather than a uniqueness verdict) is a softer alternative worth considering. We
+  don't gate on `sybil_score`, or on quorum size, today.
 - **Known limit, roadmap:** our officer-company cap (`officerCompanyLimit`, `services/verifier/src/limits/`) is
   keyed on the session's officer id today, not on a Sybil-resistant uniqueness nullifier for a fixed action —
   someone willing to complete Selfie Check under several distinct sessions could exceed the intended per-human

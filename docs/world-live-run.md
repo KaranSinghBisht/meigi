@@ -1,25 +1,43 @@
-# The real World ID phone run
+# The real World ID phone run — the record
 
-One real run, in the **World ID** app's **production** environment with **Selfie Check**, against the fictional
-company
+One real run, in the **World ID** app's **production** environment, against the fictional company
 T7999900000002 (registry office 9999: provably not a real NTA corporation). It does two things at once:
 registers a company and queues a payout change, both gated by World ID, on Sepolia; and produces the real data
-the hosted `/change` page replays. About 10 minutes once everything below is ready.
+the hosted `/change` page replays. About 10 minutes once everything below is ready. **Credential: Orb, not
+Selfie Check** — Selfie Check has failed in-app twice already tonight (`docs/world-debrief.md`); don't spend
+this run's one shot re-proving that.
 
 Never share the QR code or session link from a screenshot: whoever completes it becomes the enrolled officer.
+
+## Already true, before this run
+
+Two things below already happened tonight, ahead of T7999900000002's actual registration, and are separate from
+it — both are recorded in full in `docs/world-debrief.md`:
+
+- **Two real production World ID proofs, Orb, `createSession`** — the first time any of this ran against World
+  outside a fixture: officer `0x8b843464…fd8d90` at 19:41 JST, officer `0xdcf809aa…118b6f` at 20:39 JST. Neither
+  is registered on-chain yet; no company registration has happened.
+- **A real `proveSession` request against production.** The pitched officer-approval mechanism (`proveSession`
+  re-proving an enrolled session) had never run against World in any form before tonight. Using one of the two
+  session ids above, the request built correctly and World returned a live connector URI — the first time this
+  code path has been exercised against production. It timed out unscanned (no phone was available to complete
+  it); a human completing the scan is the one thing this hasn't yet proven live.
+
+This file is the record of the actual registration-plus-payout-change run below.
 
 ## Before Karan starts
 
 - [ ] Karan has the **World ID** app (not "World App" — World split verification into its own app) from the App
-      Store, signed in, and has completed a Selfie Check in it at least once before (so it isn't also debugging
-      World's own onboarding during the run).
+      Store, signed in, with access to a physical Orb nearby and at least one prior verification completed on
+      it. (Selfie Check has failed in-app twice tonight; Orb is the confirmed-working path — see
+      `docs/world-debrief.md`. This is a real logistical requirement, not just an app install.)
 - [ ] Karan's own wallet (MetaMask or similar) holds a small amount of Sepolia ETH. It signs one real
       transaction later (`requestPayoutChange`), and only that wallet can send it, so this can't be topped up
       mid-run without restarting the officer approval.
-- [ ] **worldui, only once team-lead says go:** `scripts/world-live.sh --yes` from the repo root. Confirm both
-      lines print "up": the verifier on :8787 and a rehearsal web server on :5190.
-- [ ] worldui sends Karan the printed URL (`http://localhost:5190/register`) and stays on the call/chat to
-      capture the checks below as they happen.
+- [ ] **Only once team-lead says go:** `scripts/world-live.sh --yes` from the repo root. Confirm both lines
+      print "up": the verifier on :8787 and a rehearsal web server on :5190.
+- [ ] Send Karan the printed URL (`http://localhost:5190/register`) and stay on the call/chat to capture the
+      checks below as they happen.
 - [ ] Have `contracts/deployments/11155111.json` (or its `registry` address) and `$SEPOLIA_RPC_URL` handy for
       the `cast call` checks.
 
@@ -39,7 +57,8 @@ Never share the QR code or session link from a screenshot: whoever completes it 
    - **We check:** the panel closes and shows a plain, calm line — "Declined. Nothing was added." (declined in
      the app) or "Cancelled. Nothing was added." (backed out, or cancelled from our own Cancel button) — not a
      red error. Tap the same button again immediately: it starts a fresh request with no leftover state.
-   Then tap enroll again, scan the QR with the **World ID** app for real, complete Selfie Check on the phone.
+   Then tap enroll again, scan the QR with the **World ID** app for real, complete verification on the phone
+   with **Orb** (Selfie Check is confirmed failing in-app tonight — see the intro).
 6. **"Review and register":** confirm it shows "1 of 1 officers", then tap **Register company**.
    - **We check, right after:**
      - `cast call $REGISTRY "officersOf(uint64)(bytes32[])" 7999900000002 --rpc-url $SEPOLIA_RPC_URL` returns
@@ -62,7 +81,7 @@ Never share the QR code or session link from a screenshot: whoever completes it 
       row, he proves with his own World ID against the same still-open request (or a fresh one, if this one has
       since resolved). **We check:** the verifier refuses it (not the same human who enrolled) and nothing is
       queued.
-   3. **The real approval.** Karan approves for real from the same phone/session with Selfie Check.
+   3. **The real approval.** Karan approves for real from the same phone/session with **Orb**.
       - **We check:** the verifier log shows the signed approval; the UI shows "1 of 1 approvals" before the
         "Quorum reached" notice appears.
    Tap **"Queue it with the controller wallet."** This is the one real transaction Karan's own wallet sends —
@@ -84,10 +103,10 @@ Never share the QR code or session link from a screenshot: whoever completes it 
    this one.** landing's `/business` withdrawal check and the registry's pending banner both need a real,
    currently-live "change pending, hold" example.
    - **We capture:** the queue tx's block, then `cast block <n> --rpc-url $SEPOLIA_RPC_URL -f timestamp` for its
-     landing time = that timestamp + 259200 (72h) — write the exact value into "What worldui captures" below
+     landing time = that timestamp + 259200 (72h) — write the exact value into "What this run captures" below
      once known. After judging, Karan can let it land or cancel it (with his wallet, same button as step 8).
 
-## What worldui captures for the record
+## What this run captures for the record
 
 No private keys, no World ID session tokens beyond their public session id, no personal data:
 
@@ -97,8 +116,15 @@ No private keys, no World ID session tokens beyond their public session id, no p
   landed in;
 - the exact UI copy at each stage ("1 of 1 officers", "Declined/Cancelled. Nothing was added/approved.",
   "Quorum reached...", "Queued on-chain...", "Cancelled by the controller...");
-- the wrong-human refusal message, verbatim, once Adithya's deferred mini-step happens;
-- **step 9's landing time:** queue tx block `TODO`, block timestamp `TODO`, lands at `TODO` (timestamp + 259200).
+- the wrong-human refusal message, verbatim, once Adithya's deferred mini-step happens.
+
+**Slots to fill once the run happens** (leave the label, replace only the value — this is the whole reason this
+file is a skeleton tonight):
+- Step 6 registration: tx **PENDING — fill in after the run**, block **PENDING**.
+- Step 7.1 decline, verbatim UI text: **PENDING — fill in after the run**.
+- Step 7.3 approval + queue: tx **PENDING — fill in after the run**, block **PENDING**.
+- Step 9's landing time: queue tx block **PENDING**, block timestamp **PENDING**, lands at **PENDING** (block
+  timestamp + 259200).
 
 This becomes the recorded run `/change`'s hosted page replays, the same way `apps/web/src/features/x402`
 replays a real settled run today.
