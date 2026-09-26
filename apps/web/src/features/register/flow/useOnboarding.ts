@@ -148,18 +148,32 @@ function writePrevious(state: OnboardingState | null): void {
   }
 }
 
-/** Start over, keeping an unsubmitted registration aside; and pick that registration up again. */
+/** A registration worth setting aside: one the verifier may still hold open (not submitted yet). */
+const openRegistration = (state: OnboardingState) => (state.registration && !state.submission ? state : null)
+
+interface ResetOptions {
+  /** False when the verifier no longer has the draft (expired, not found): nothing worth going back to. */
+  readonly keepAside?: boolean
+}
+
+/**
+ * Start over, setting an open registration aside; and pick that one up again. Picking up swaps: the registration on
+ * screen goes aside in its place, so neither open draft is ever lost from this tab.
+ */
 function useRestart(state: OnboardingState, setState: (state: OnboardingState) => void, clear: () => void) {
-  const reset = useCallback(() => {
-    if (state.registration && !state.submission) writePrevious(state)
-    clear()
-  }, [state, clear])
+  const reset = useCallback(
+    ({ keepAside = true }: ResetOptions = {}) => {
+      if (keepAside && openRegistration(state)) writePrevious(state)
+      clear()
+    },
+    [state, clear],
+  )
   const resume = useCallback(() => {
     const previous = readPrevious()
     if (!previous) return
-    writePrevious(null)
+    writePrevious(openRegistration(state))
     setState(previous)
-  }, [setState])
+  }, [state, setState])
   return { reset, resume, previous: readPrevious }
 }
 

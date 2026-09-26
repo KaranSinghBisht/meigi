@@ -13,7 +13,7 @@ export function StartOver({ onReset, finished = false, className }: StartOverPro
   const [asking, setAsking] = useState(false)
   if (finished || !asking) {
     return (
-      <Button variant="quiet" size="sm" className={className} onClick={finished ? onReset : () => setAsking(true)}>
+      <Button variant="quiet" size="sm" className={className} onClick={finished ? () => onReset() : () => setAsking(true)}>
         {finished ? 'Register another company' : 'Start over'}
       </Button>
     )
@@ -21,7 +21,7 @@ export function StartOver({ onReset, finished = false, className }: StartOverPro
   return (
     <div className="start-over" role="group" aria-label="Start over">
       <span className="start-over__text">Clear every step?</span>
-      <Button variant="ghost" size="sm" onClick={onReset}>
+      <Button variant="ghost" size="sm" onClick={() => onReset()}>
         Clear
       </Button>
       <Button variant="quiet" size="sm" onClick={() => setAsking(false)}>

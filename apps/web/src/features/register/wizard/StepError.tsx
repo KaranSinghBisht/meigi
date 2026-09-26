@@ -39,7 +39,7 @@ function OtherRegistration({ onboarding }: { readonly onboarding: Onboarding }) 
 function actionsFor(code: string | undefined, onboarding: Onboarding): ReactNode {
   const tNumber = onboarding.state.company?.tNumber
   if (!code) return null
-  if (GONE.has(code)) return <StartOver onReset={onboarding.reset} />
+  if (GONE.has(code)) return <StartOver onReset={() => onboarding.reset({ keepAside: false })} />
   if (DONE.has(code) && tNumber) return <RegistryLink tNumber={tNumber} />
   if (code === 'duplicate_open_registration') return <OtherRegistration onboarding={onboarding} />
   return null
