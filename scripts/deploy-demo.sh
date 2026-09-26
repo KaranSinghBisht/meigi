@@ -4,11 +4,13 @@
 # (apps/web/wrangler.jsonc). Every VITE_ value is compiled into a public bundle, so before deploying, the script
 # checks that no secret from the git-ignored .env appears in the build. apps/landing is no longer deployed.
 #
-#   scripts/deploy-demo.sh              # build, check, deploy
+# It always builds the committed HEAD in a temporary git worktree, so uncommitted work in progress never ships.
+#
+#   scripts/deploy-demo.sh              # build HEAD, check, deploy
 #   DRY_RUN=1 scripts/deploy-demo.sh    # build and check only
 #
 # Needs `npx wrangler login`. Optional: WORKERS_SUBDOMAIN (the account's workers.dev subdomain), GITHUB_URL
-# (adds the dock's GitHub pill), PUBLIC_RPC_URL.
+# (adds the dock's GitHub pill), CONTACT_EMAIL (the business page's "Talk to us"), PUBLIC_RPC_URL.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -18,12 +20,22 @@ WORKERS_SUBDOMAIN="${WORKERS_SUBDOMAIN:-karanbishttt}"
 LANDING_URL="https://meigi.${WORKERS_SUBDOMAIN}.workers.dev"
 APP_URL="https://meigi-app.${WORKERS_SUBDOMAIN}.workers.dev"
 PUBLIC_RPC_URL="${PUBLIC_RPC_URL:-https://ethereum-sepolia-rpc.publicnode.com}"
+CONTACT_EMAIL="${CONTACT_EMAIL:-karanbishttt@gmail.com}"
+WORKTREE="$(mktemp -d)/meigi-deploy"
 REGISTRY_FROM_BLOCK=11781105 # block of the v2 registry deployment (docs/runbook.md)
 
+# A clean checkout of HEAD with its own install (pnpm hard-links from the shared store, so this is quick).
+checkout_head() {
+  git worktree add --detach --quiet "$WORKTREE" HEAD
+  trap 'git worktree remove --force "$WORKTREE"' EXIT
+  (cd "$WORKTREE" && pnpm install --frozen-lockfile --prefer-offline --filter "@meigi/web..." >/dev/null)
+  echo "building $(git rev-parse --short HEAD) in a clean worktree"
+}
+
 build_app() {
-  VITE_HOSTED=1 VITE_GITHUB_URL="${GITHUB_URL:-}" VITE_RPC_URL="$PUBLIC_RPC_URL" \
-    VITE_REGISTRY_FROM_BLOCK="$REGISTRY_FROM_BLOCK" \
-    pnpm --filter @meigi/web build
+  (cd "$WORKTREE" && VITE_HOSTED=1 VITE_GITHUB_URL="${GITHUB_URL:-}" VITE_CONTACT_EMAIL="$CONTACT_EMAIL" \
+    VITE_RPC_URL="$PUBLIC_RPC_URL" VITE_REGISTRY_FROM_BLOCK="$REGISTRY_FROM_BLOCK" \
+    pnpm --filter @meigi/web build)
 }
 
 # Fails if any secret-looking .env value (keys, tokens, the private RPC URL) occurs in a build directory.
@@ -51,11 +63,12 @@ check_no_secrets() {
 # Runs from apps/web: wrangler refuses to auto-detect at a workspace root, and each config names its Worker and
 # points at the same dist/.
 deploy() {
-  (cd apps/web && npx wrangler deploy --config "$1")
+  (cd "$WORKTREE/apps/web" && npx wrangler deploy --config "$1")
 }
 
+checkout_head
 build_app
-check_no_secrets apps/web/dist
+check_no_secrets "$WORKTREE/apps/web/dist"
 echo "build is clean: ${LANDING_URL} and ${APP_URL} will serve it"
 
 if [[ "${DRY_RUN:-}" == "1" ]]; then
