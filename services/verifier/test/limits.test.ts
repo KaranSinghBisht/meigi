@@ -8,7 +8,7 @@ import type { Corporation } from "../src/nta/corporations.js";
 import { enrollmentSignal } from "../src/routes/registrations.js";
 import { hasCorporateCheckDigit } from "../src/tnumber.js";
 import { officerIdFor } from "../src/world/session.js";
-import { CONTROLLER, FakeChain, PAYOUT, curvegrid, fakeDeps, proof, sessionId } from "./fakes.js";
+import { CONTROLLER, CURVEGRID_LEI, FakeChain, PAYOUT, curvegrid, fakeDeps, proof, sessionId } from "./fakes.js";
 
 /** Five real-looking corporations (fictional numbers outside office 9999), each with its NTA name. */
 const COMPANIES: Corporation[] = ["1010001000001", "1010001000002", "1010001000003", "1010001000004", "1010001000005"].map(
@@ -46,6 +46,12 @@ function setup(overrides: Partial<AppDeps> = {}) {
 async function post(path: string, body: unknown, ip?: string) {
   const headers: Record<string, string> = { "content-type": "application/json", ...(ip ? { "x-client-ip": ip } : {}) };
   const res = await app.request(path, { method: "POST", body: JSON.stringify(body), headers });
+  return { status: res.status, headers: res.headers, body: (await res.json()) as Record<string, any> };
+}
+
+async function get(path: string, ip?: string) {
+  const headers: Record<string, string> = ip ? { "x-client-ip": ip } : {};
+  const res = await app.request(path, { headers });
   return { status: res.status, headers: res.headers, body: (await res.json()) as Record<string, any> };
 }
 
@@ -235,5 +241,66 @@ describe("rate limits per client IP", () => {
     expect(ipKey("2001:DB8:1:2::99")).toBe(ipKey("2001:db8:1:2:ffff::1"));
     expect(ipKey("2001:db8::1")).toBe("2001:db8:0:0::/64");
     expect(ipKey("1:2:3:4:5:6:7:8::9")).toBe("invalid");
+  });
+});
+
+describe("rate limits on the domain re-check and the public lookups", () => {
+  it("limits POST /registrations/:id/domain per IP: it makes a real outbound fetch on every call, even after it succeeds", async () => {
+    setup({ policy: { ratePerHour: { domain: 2 } } });
+    const created = await post("/registrations", {
+      tNumber: `T${COMPANIES[0]!.number}`,
+      legalName: COMPANIES[0]!.name,
+      domain: "example.co.jp",
+      controller: CONTROLLER,
+      payout: PAYOUT,
+    });
+    const id = created.body.id as string;
+    expect((await post(`/registrations/${id}/domain`, {})).status).toBe(200);
+    expect((await post(`/registrations/${id}/domain`, {})).status).toBe(200); // re-checking an already-verified domain still counts
+    const limited = await post(`/registrations/${id}/domain`, {});
+    expect(limited).toMatchObject({ status: 429, body: { code: "rate_limited" } });
+  });
+
+  it("doesn't limit the domain re-check for fictional fixtures, since they never make the real outbound call", async () => {
+    setup({ fixtures: true, policy: { ratePerHour: { domain: 1 } } });
+    const created = await post("/registrations", {
+      tNumber: fixtureNumber(2),
+      legalName: "株式会社メイギ試験",
+      domain: "meigi.example",
+      controller: CONTROLLER,
+      payout: PAYOUT,
+    });
+    const id = created.body.id as string;
+    for (let i = 0; i < 5; i++) expect((await post(`/registrations/${id}/domain`, {})).status).toBe(200);
+  });
+
+  it("limits the public lookup GETs per IP: NTA, payees, LEI (which proxies GLEIF), and the rp_context signer", async () => {
+    setup({ policy: { ratePerHour: { nta: 2, payees: 2, lei: 2, rpContext: 2 } } });
+    const tNumber = `T${COMPANIES[0]!.number}`;
+
+    expect((await get(`/nta/${tNumber}`)).status).toBe(200);
+    expect((await get(`/nta/${tNumber}`)).status).toBe(200);
+    expect(await get(`/nta/${tNumber}`)).toMatchObject({ status: 429, body: { code: "rate_limited" } });
+
+    expect((await get(`/payees/${tNumber}`)).status).toBe(200);
+    expect((await get(`/payees/${tNumber}`)).status).toBe(200);
+    expect(await get(`/payees/${tNumber}`)).toMatchObject({ status: 429, body: { code: "rate_limited" } });
+
+    expect((await get(`/lei/${CURVEGRID_LEI}`)).status).toBe(200);
+    expect((await get(`/lei/${CURVEGRID_LEI}`)).status).toBe(200);
+    expect(await get(`/lei/${CURVEGRID_LEI}`)).toMatchObject({ status: 429, body: { code: "rate_limited" } });
+
+    expect((await get("/world/rp-context")).status).toBe(200);
+    expect((await get("/world/rp-context")).status).toBe(200);
+    expect(await get("/world/rp-context")).toMatchObject({ status: 429, body: { code: "rate_limited" } });
+  });
+
+  it("keys each lookup route under its own budget, per client IP", async () => {
+    setup({ policy: { ratePerHour: { nta: 1 } } });
+    const tNumber = `T${COMPANIES[0]!.number}`;
+    expect((await get(`/nta/${tNumber}`, "198.51.100.9")).status).toBe(200);
+    expect(await get(`/nta/${tNumber}`, "198.51.100.9")).toMatchObject({ status: 429, body: { code: "rate_limited" } });
+    expect((await get(`/nta/${tNumber}`, "198.51.100.10")).status).toBe(200); // a different client, its own budget
+    expect((await get(`/payees/${tNumber}`, "198.51.100.9")).status).toBe(200); // a different route, its own budget
   });
 });

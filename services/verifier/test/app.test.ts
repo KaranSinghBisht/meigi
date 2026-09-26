@@ -4,8 +4,8 @@ import { createApp } from "../src/app.js";
 import type { AppDeps } from "../src/deps.js";
 import { addressTarget, approvalTypedData } from "../src/registry/approvals.js";
 import { enrollmentSignal } from "../src/routes/registrations.js";
-import { officerIdFor } from "../src/world/session.js";
-import { ATTESTER, CONTROLLER, FakeChain, PAYOUT, REGISTRY, fakeDeps, orbProof, proof, selfieProof, sessionId } from "./fakes.js";
+import { officerIdFor, requireCredential, requireSignal, verifySessionProof } from "../src/world/session.js";
+import { ATTESTER, CONTROLLER, FakeChain, PAYOUT, REGISTRY, deviceProof, fakeDeps, orbProof, proof, selfieProof, sessionId } from "./fakes.js";
 
 const T = 1010601051968n;
 const NEW_PAYOUT = "0x3333333333333333333333333333333333333333";
@@ -71,6 +71,24 @@ describe("registration", () => {
 
     const submitted = await post(`/registrations/${id}/submit`, { threshold: 1 });
     expect(submitted.body).toMatchObject({ outcome: "registered", tNumber: "T1010601051968" });
+  });
+
+  it("refuses a device-level credential over real HTTP, through the real gate, not the fakeDeps stub", async () => {
+    // fakeDeps' own world.verify (see ./fakes.ts) only checks the signal - it never calls requireCredential, so a
+    // regression there wouldn't show up in the tests above. Wire the exact composition server.ts uses instead.
+    const allowed = new Set(["proof_of_human", "selfie"]);
+    deps.world.verify = async (result, signal) => {
+      requireCredential(result, allowed);
+      if (signal) requireSignal(result, signal);
+      // Unreached here: a device credential is refused above, before any network call to World is ever made.
+      return verifySessionProof("rp_test", result, "staging");
+    };
+    const id = (await startRegistration()).body.id as string;
+    await post(`/registrations/${id}/domain`, {});
+    const refused = await post(`/registrations/${id}/officers`, {
+      result: deviceProof(sessionId("device-only"), "0x0d", enrollmentSignal(id)),
+    });
+    expect(refused).toMatchObject({ status: 401, body: { code: "world_credential_not_allowed" } });
   });
 
   it("never accepts a fuzzy name", async () => {

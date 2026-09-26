@@ -36,6 +36,12 @@ const schema = z.object({
   VERIFIER_RATE_REGISTRATIONS_PER_HOUR: z.coerce.number().int().min(0).default(10),
   VERIFIER_RATE_DISPUTES_PER_HOUR: z.coerce.number().int().min(0).default(3),
   VERIFIER_RATE_OBJECTIONS_PER_HOUR: z.coerce.number().int().min(0).default(10),
+  // Same, for the domain-proof re-check (a real outbound fetch to a caller-chosen host) and the public lookups.
+  VERIFIER_RATE_DOMAIN_PER_HOUR: z.coerce.number().int().min(0).default(20),
+  VERIFIER_RATE_NTA_PER_HOUR: z.coerce.number().int().min(0).default(120),
+  VERIFIER_RATE_PAYEES_PER_HOUR: z.coerce.number().int().min(0).default(60),
+  VERIFIER_RATE_LEI_PER_HOUR: z.coerce.number().int().min(0).default(30),
+  VERIFIER_RATE_RP_CONTEXT_PER_HOUR: z.coerce.number().int().min(0).default(120),
   // "1" only behind a reverse proxy you run: the client IP then comes from CF-Connecting-IP or X-Forwarded-For.
   VERIFIER_TRUST_PROXY: z.enum(["0", "1"]).default("0"),
 });

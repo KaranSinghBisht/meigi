@@ -136,6 +136,9 @@ export function registrationRoutes(deps: AppDeps, limiter: RateLimiter) {
       deps.store.setDomainVerified(registration.id, "fixture");
       return c.json({ ok: true, method: "fixture" });
     }
+    // Every attempt counts: this is a real outbound DNS/HTTPS fetch to a host the registration's own domain field
+    // named, and the same registration can be re-checked any number of times, so the fan-out is otherwise unbounded.
+    limiter.hit("domain", client(c), policy.ratePerHour.domain, nowSeconds(deps));
     const result = await deps.domain.verify({
       domain: registration.domain,
       tNumber: formatTNumber(registration.tNumber),

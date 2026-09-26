@@ -12,14 +12,34 @@ export interface Policy {
   /** Hours a non-fixture registration waits in the public window before the attester submits it (0 = at once). */
   pendingHours: number;
   /** Per-client-IP requests per hour; 0 turns a limit off. */
-  ratePerHour: { registrations: number; disputes: number; objections: number };
+  ratePerHour: {
+    registrations: number;
+    disputes: number;
+    objections: number;
+    /** POST /registrations/:id/domain: triggers a real outbound DNS/HTTPS fetch to the registration's own domain. */
+    domain: number;
+    nta: number;
+    payees: number;
+    /** GET /lei/:lei: proxies GLEIF, a third party we don't want to hammer on a caller's behalf either. */
+    lei: number;
+    rpContext: number;
+  };
 }
 
 export const DEFAULT_POLICY: Policy = {
   officerCompanyLimit: 3,
   openRegistrationHours: 24,
   pendingHours: 0,
-  ratePerHour: { registrations: 10, disputes: 3, objections: 10 },
+  ratePerHour: {
+    registrations: 10,
+    disputes: 3,
+    objections: 10,
+    domain: 20,
+    nta: 120,
+    payees: 60,
+    lei: 30,
+    rpContext: 120,
+  },
 };
 
 export function policyOf(deps: AppDeps): Policy {

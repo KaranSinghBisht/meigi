@@ -82,7 +82,14 @@ all of this, so demos repeat.
 - **Per client IP, per hour** (429 `rate_limited` with `Retry-After`; 0 turns a limit off):
   - `VERIFIER_RATE_REGISTRATIONS_PER_HOUR` (10) counts new registrations, including failed NTA matches;
   - `VERIFIER_RATE_DISPUTES_PER_HOUR` (3) counts disputes filed;
-  - `VERIFIER_RATE_OBJECTIONS_PER_HOUR` (10) counts objections.
+  - `VERIFIER_RATE_OBJECTIONS_PER_HOUR` (10) counts objections;
+  - `VERIFIER_RATE_DOMAIN_PER_HOUR` (20) counts `POST /registrations/:id/domain`: a real outbound DNS/HTTPS fetch
+    to the registration's own domain, on every call, even once it's already verified. Fixtures are exempt (no
+    real fetch is ever made for them);
+  - `VERIFIER_RATE_NTA_PER_HOUR` (120), `VERIFIER_RATE_PAYEES_PER_HOUR` (60) and `VERIFIER_RATE_RP_CONTEXT_PER_HOUR`
+    (120) cover the public read-only lookups (`GET /nta/:tNumber`, `/payees/:tNumber`, `/world/rp-context`);
+  - `VERIFIER_RATE_LEI_PER_HOUR` (30) covers `GET /lei/:lei`, which proxies GLEIF - a third party we don't want
+    to hammer on a caller's behalf either.
   Behind exactly one reverse proxy of ours (e.g. cloudflared or nginx), set `VERIFIER_TRUST_PROXY=1`: the IP is
   then the rightmost `X-Forwarded-For` entry, the one our proxy appended.
 - **Public pending window:** `VERIFIER_PENDING_HOURS` defaults to 0, so the demo submits at once. Use 24-72 in

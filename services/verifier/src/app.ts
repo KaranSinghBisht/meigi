@@ -16,9 +16,9 @@ export function createApp(deps: AppDeps) {
   app.use("*", bodyLimit({ maxSize: 64 * 1024 }));
   app.onError(handleError);
   app.get("/health", (c) => c.json({ ok: true }));
-  app.route("/", lookupRoutes(deps));
-  app.route("/", leiRoutes(deps));
   const limiter = new RateLimiter(); // per app: rate-limit state never leaks between instances (or tests)
+  app.route("/", lookupRoutes(deps, limiter));
+  app.route("/", leiRoutes(deps, limiter));
   app.route("/registrations", pendingRoutes(deps, limiter)); // before /:id, so /registrations/pending matches here
   app.route("/registrations", registrationRoutes(deps, limiter));
   app.route("/intents", intentRoutes(deps));

@@ -77,6 +77,15 @@ export function orbProof(session: string, nullifier: string, signal: string) {
   };
 }
 
+/** The same, but proved on-device only - the weakest real World ID credential, never accepted for officers. */
+export function deviceProof(session: string, nullifier: string, signal: string) {
+  return {
+    session_id: session,
+    signal,
+    responses: [{ identifier: "device", session_nullifier: [nullifier, "0x0"] }],
+  };
+}
+
 export class FakeChain implements ChainPort {
   chainId = 11155111;
   registry = REGISTRY;

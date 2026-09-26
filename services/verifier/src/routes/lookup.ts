@@ -1,6 +1,8 @@
-import { Hono } from "hono";
-import type { AppDeps } from "../deps.js";
+import { Hono, type Context } from "hono";
+import { nowSeconds, type AppDeps } from "../deps.js";
 import { HttpError } from "../http.js";
+import { policyOf } from "../limits/policy.js";
+import type { RateLimiter } from "../limits/rate.js";
 import { formatTNumber, hasCorporateCheckDigit, isUnassignableOffice, parseTNumber, toChainId } from "../tnumber.js";
 
 const STATUS = ["unregistered", "active", "disputed"] as const;
@@ -11,13 +13,19 @@ export function requireDigits(input: string): string {
   return digits;
 }
 
-export function lookupRoutes(deps: AppDeps) {
+export function lookupRoutes(deps: AppDeps, limiter: RateLimiter) {
   const app = new Hono();
+  const policy = policyOf(deps);
+  const client = (c: Context) => (deps.clientIp ? deps.clientIp(c) : "unknown");
 
-  app.get("/world/rp-context", (c) => c.json(deps.world.rpContext()));
+  app.get("/world/rp-context", (c) => {
+    limiter.hit("rpContext", client(c), policy.ratePerHour.rpContext, nowSeconds(deps));
+    return c.json(deps.world.rpContext());
+  });
 
   /** Public NTA data for a T-number: what a business must match exactly to register. */
   app.get("/nta/:tNumber", (c) => {
+    limiter.hit("nta", client(c), policy.ratePerHour.nta, nowSeconds(deps));
     const digits = requireDigits(c.req.param("tNumber"));
     const corporation = deps.corporations.byNumber(digits);
     return c.json({
@@ -40,6 +48,7 @@ export function lookupRoutes(deps: AppDeps) {
    * payee is named: a disputed record's name may be the claim under dispute (like the resolver and the agent).
    */
   app.get("/payees/:tNumber", async (c) => {
+    limiter.hit("payees", client(c), policy.ratePerHour.payees, nowSeconds(deps));
     const digits = requireDigits(c.req.param("tNumber"));
     const payee = await deps.chain.payee(toChainId(digits));
     const active = payee.status === 1;
