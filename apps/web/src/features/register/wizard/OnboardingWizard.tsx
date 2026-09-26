@@ -65,7 +65,35 @@ function useStepFocus(step: number) {
   return window_
 }
 
-function RailFooter({ onboarding }: { readonly onboarding: Onboarding }) {
+/** Starting over throws away every answer (and a wallet made here), so it asks once before it does. */
+function StartOver({ onboarding, finished }: { readonly onboarding: Onboarding; readonly finished: boolean }) {
+  const [asking, setAsking] = useState(false)
+  if (finished || !asking) {
+    return (
+      <Button
+        variant="quiet"
+        size="sm"
+        className="rail__restart"
+        onClick={finished ? onboarding.reset : () => setAsking(true)}
+      >
+        {finished ? 'Register another company' : 'Start over'}
+      </Button>
+    )
+  }
+  return (
+    <div className="rail__confirm" role="group" aria-label="Start over">
+      <span className="rail__confirm-text">Clear every step?</span>
+      <Button variant="ghost" size="sm" onClick={onboarding.reset}>
+        Clear
+      </Button>
+      <Button variant="quiet" size="sm" onClick={() => setAsking(false)}>
+        Keep
+      </Button>
+    </div>
+  )
+}
+
+function RailFooter({ onboarding, finished }: { readonly onboarding: Onboarding; readonly finished: boolean }) {
   const started = onboarding.state.drafts.query !== '' || onboarding.state.company !== null
   return (
     <>
@@ -78,11 +106,7 @@ function RailFooter({ onboarding }: { readonly onboarding: Onboarding }) {
           <li>World App for each officer</li>
         </ul>
       </div>
-      {started ? (
-        <Button variant="quiet" size="sm" className="rail__restart" onClick={onboarding.reset}>
-          Start over
-        </Button>
-      ) : null}
+      {started ? <StartOver onboarding={onboarding} finished={finished} /> : null}
     </>
   )
 }
@@ -101,7 +125,7 @@ export function OnboardingWizard() {
         finished={step === 5}
         canVisit={(target) => canRevisit({ ...state, step }, target)}
         onVisit={onboarding.goTo}
-        footer={<RailFooter onboarding={onboarding} />}
+        footer={<RailFooter onboarding={onboarding} finished={step === 5} />}
       />
       <div className="onboard__stage">
         <div key={screen} className={`onboard__screen onboard__screen--${direction}`}>

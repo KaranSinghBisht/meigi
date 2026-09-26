@@ -3,7 +3,6 @@ import type { Submission } from '../../../lib/api/verifier'
 import { parseTNumber } from '../../../lib/chain/tNumber'
 import type { HexAddress } from '../../../lib/env/env'
 import { TxLink } from '../../../ui/components/Address'
-import { Badge } from '../../../ui/components/Badge'
 import { Button, LinkButton } from '../../../ui/components/Button'
 import { Notice } from '../../../ui/components/Notice'
 import { Spinner } from '../../../ui/components/Spinner'
@@ -19,7 +18,9 @@ function EnsCheck({ ens, payout }: { readonly ens: string; readonly payout: HexA
   if (state.status === 'match') {
     return (
       <p className="ens-check" role="status">
-        <Badge tone="active">✓ Resolves in any ENS client</Badge>
+        <span className="ens-check__ok">
+          <span aria-hidden="true">✓</span> Resolves in any ENS client
+        </span>
         <span className="ens-check__detail">Checked live on Sepolia with a stock ENS lookup.</span>
       </p>
     )
@@ -60,18 +61,23 @@ function ShareButton({ payee }: { readonly payee: PayeeShare }) {
 
 function Disputed({ submission }: { readonly submission: Submission }) {
   return (
-    <StepFrame step={5} title="This number was already claimed">
+    <StepFrame
+      step={5}
+      title="This number was already claimed"
+      actions={
+        <StepActions>
+          <LinkButton to={`/registry/${submission.tNumber}`} size="lg">
+            View in the registry
+          </LinkButton>
+        </StepActions>
+      }
+    >
       <Notice tone="denied" title="Nothing was overwritten.">
         <p>
           Your claim froze the payee as disputed until governance resolves it, behind the same public delay. Transaction{' '}
           <TxLink hash={submission.txHash} />
         </p>
       </Notice>
-      <StepActions>
-        <LinkButton to={`/registry/${submission.tNumber}`} size="lg">
-          View in the registry
-        </LinkButton>
-      </StepActions>
     </StepFrame>
   )
 }

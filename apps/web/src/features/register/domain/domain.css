@@ -22,13 +22,14 @@
   font-weight: var(--weight-strong);
 }
 
-/* A signature is a blob to copy, not a word to read: it wraps anywhere. */
-.dns-record__value {
+/* A signature is a blob to copy, not a word to read: it wraps anywhere, evenly, never at its own hyphens. */
+.dns-record__value,
+.onboard-code {
   min-width: 0;
   font-size: var(--text-sm);
   line-height: 1.55;
   white-space: pre-wrap;
-  overflow-wrap: anywhere;
+  word-break: break-all;
 }
 
 .dns-alt {

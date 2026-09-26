@@ -152,6 +152,20 @@
   margin-left: -8px;
 }
 
+.rail__confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  animation: onboard-appear 0.25s var(--ease-out) both;
+}
+
+.rail__confirm-text {
+  flex-basis: 100%;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-strong);
+}
+
 /* The stage: the current screen slides in from the side it came from. */
 .onboard__stage {
   min-width: 0;
@@ -337,6 +351,17 @@
 
   .rail__restart {
     margin: 0;
+  }
+
+  /* Asking before starting over takes a row of its own under the bar. */
+  .rail__foot:has(.rail__confirm) {
+    grid-area: auto;
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+
+  .rail__confirm-text {
+    flex-basis: auto;
   }
 
   .rail__bar {

@@ -119,10 +119,12 @@ function LeiStatus({ lookup, onPick }: Pick<CompanyRecordProps, 'lookup' | 'onPi
       </Notice>
     )
   }
+  const latin = [lei.record.legalName, ...lei.record.otherNames].find((name) => /^[\x20-\x7e]+$/.test(name))
   return (
     <div className="company-lei">
       <p className="company-lei__line">
-        LEI <span className="mono">{lei.lei}</span> links to <span className="mono">{lookup.tNumber}</span>
+        {latin ? <span className="company-lei__name">{latin} · </span> : null}
+        LEI <span className="mono">{lei.lei}</span> → <span className="mono">{lookup.tNumber}</span>
       </p>
       <LeiLinks matches={lookup.matches} picked={lookup.tNumber} onPick={onPick} />
     </div>

@@ -59,7 +59,7 @@ export function SignChallenge({ onboarding, registration, controller, domain }: 
         </StepActions>
       }
     >
-      <pre className="codeblock">{registration.domainProof.message}</pre>
+      <pre className="codeblock onboard-code">{registration.domainProof.message}</pre>
       {signer.wrongAccount ? (
         <Notice tone="warn" title="Switch accounts in your wallet.">
           <p>

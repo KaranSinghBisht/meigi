@@ -96,6 +96,11 @@
   color: var(--ink-soft);
 }
 
+.company-lei__name {
+  color: var(--ink);
+  font-weight: var(--weight-strong);
+}
+
 .company-picks {
   display: flex;
   flex-wrap: wrap;

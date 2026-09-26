@@ -1,4 +1,4 @@
-import type { FormEvent, ReactNode } from 'react'
+import { useId, type FormEvent, type ReactNode } from 'react'
 import { Button } from '../../../ui/components/Button'
 import { STEP_COUNT, type StepIndex } from '../flow/steps'
 
@@ -14,12 +14,13 @@ interface StepFrameProps {
 
 /** One screen of the onboarding: which step, the one question it asks, then its answer and actions. */
 export function StepFrame({ step, title, lede, children, actions, onSubmit }: StepFrameProps) {
+  const titleId = useId()
   const head = (
     <header className="onboard-step__head">
       <p className="eyebrow">
         Step {step + 1} of {STEP_COUNT}
       </p>
-      <h2 className="onboard-step__title" tabIndex={-1}>
+      <h2 id={titleId} className="onboard-step__title" tabIndex={-1}>
         {title}
       </h2>
       {lede ? <p className="onboard-step__lede">{lede}</p> : null}
@@ -28,7 +29,7 @@ export function StepFrame({ step, title, lede, children, actions, onSubmit }: St
   const body = children ? <div className="onboard-step__body">{children}</div> : null
   if (!onSubmit) {
     return (
-      <section className="onboard-step" aria-label={`Step ${step + 1}`}>
+      <section className="onboard-step" aria-labelledby={titleId}>
         {head}
         {body}
         {actions}
@@ -40,7 +41,7 @@ export function StepFrame({ step, title, lede, children, actions, onSubmit }: St
     onSubmit()
   }
   return (
-    <form className="onboard-step" aria-label={`Step ${step + 1}`} onSubmit={submit} noValidate>
+    <form className="onboard-step" aria-labelledby={titleId} onSubmit={submit} noValidate>
       {head}
       {body}
       {actions}

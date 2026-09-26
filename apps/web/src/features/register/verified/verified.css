@@ -40,14 +40,19 @@
 
 .payee-card__facts {
   display: grid;
-  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, max-content));
+  gap: 12px 32px;
 }
 
 .payee-card__facts div {
   display: grid;
-  grid-template-columns: 104px minmax(0, 1fr);
-  gap: 12px;
-  align-items: baseline;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* The payout gets the whole width: it is the one value a payer checks end to end. */
+.payee-card__facts div:last-child {
+  grid-column: 1 / -1;
 }
 
 .payee-card__facts dt {
@@ -97,6 +102,20 @@
   color: var(--ink-soft);
 }
 
+/* The one check that matters here: a tick and a label on a jade tint (no status dot: the tick is the status). */
+.ens-check__ok {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--control-chip);
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--jade-tint);
+  color: var(--jade-deep);
+  font-weight: var(--weight-strong);
+  animation: onboard-appear 0.35s var(--ease-out) both;
+}
+
 .ens-check__detail {
   font-size: var(--text-sm);
 }
@@ -112,9 +131,8 @@
     padding: 20px;
   }
 
-  .payee-card__facts div {
+  .payee-card__facts {
     grid-template-columns: minmax(0, 1fr);
-    gap: 2px;
   }
 
   .payee-card__qr {
