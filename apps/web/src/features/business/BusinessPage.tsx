@@ -2,6 +2,7 @@ import { env } from '../../lib/env/env'
 import { HankoMark } from '../../ui/brand/HankoMark'
 import { ExternalLinkButton } from '../../ui/components/Button'
 import '../../ui/layout/layout.css'
+import { Exchanges } from './Exchanges'
 import { LeiWidget } from './LeiWidget'
 import { Pricing, Products, Roadmap, WhyNow } from './Sections'
 import './business.css'
@@ -44,6 +45,7 @@ export default function BusinessPage() {
         <p className="page-head__lede">Japan first, global by design.</p>
       </header>
       <Products />
+      <Exchanges />
       <WhyNow />
       <Roadmap />
       <LeiWidget />

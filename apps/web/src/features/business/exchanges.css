@@ -1,0 +1,54 @@
+/* The exchanges use case: one window, the three checks in a numbered column beside what it fits and what it isn't. */
+.biz-exchange__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px 32px;
+  padding: 24px;
+}
+
+.biz-exchange__steps {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  counter-reset: exchange-step;
+}
+
+.biz-exchange__steps > li {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 12px;
+  align-items: baseline;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-strong);
+  counter-increment: exchange-step;
+}
+
+.biz-exchange__steps > li::before {
+  display: inline-grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--lg-ink);
+  color: #fff;
+  font-size: var(--text-sm);
+  content: counter(exchange-step);
+}
+
+.biz-exchange__text {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  color: var(--ink-soft);
+}
+
+.biz-exchange__limits {
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 899px) {
+  .biz-exchange__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
