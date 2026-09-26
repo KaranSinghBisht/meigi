@@ -10,7 +10,7 @@ const PAUSE = 0.25
 /** A real refresh-rate change moves the median by far more than frame-time jitter does. */
 const RETUNE = 0.04
 /** Common display refresh rates (Hz). A measured interval within SNAP of one is taken as exact. */
-const REFRESH_RATES = [240, 165, 144, 120, 100, 90, 75, 72, 60, 50, 30]
+const REFRESH_RATES = [240, 165, 144, 120, 100, 90, 85, 75, 72, 70, 60, 50, 48, 30]
 const SNAP = 0.05
 
 function snapToRefresh(seconds: number): number {

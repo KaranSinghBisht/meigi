@@ -8,10 +8,17 @@ import { sightlinePoint } from './stations'
 // of the gate instead of sliding past a pillar.
 
 /** The sightline is joined at most this far in front of the gate. */
-const JOIN = 12
-/** Bézier handle length, as a share of the distance to the join. */
-const HANDLE = 0.35
-/** Height the hero glide skims down to over the water. */
+const JOIN = 2
+/**
+ * Both handles lie on the sightline (as shares of the distance to the join),
+ * so the curve meets it with zero curvature and the bend is spread over the
+ * middle of the approach. In the glide on 16:9 the direction of travel turns
+ * at most about half a degree per frame, and eases out to nothing over the
+ * last ~15 frames before the join instead of stopping dead.
+ */
+const LEAD = 0.6
+const SETTLE = 0.2
+/** Height the hero glide skims down to over the water, on long approaches. */
 const SKIM = 1.15
 
 /** Distance in front of the torii, along the way it faces (negative = past it). */
@@ -22,10 +29,11 @@ function aheadOfGate(torii: ToriiPlacement, point: Vector3): number {
 /** From `near` (lake side) onto the sightline at `join`, arriving along it towards `far`. */
 function joinCurve(near: Vector3, join: Vector3, far: Vector3, skim: boolean): CubicBezierCurve3 {
   const span = near.distanceTo(join)
-  const lead = near.clone().addScaledVector(new Vector3().subVectors(join, near).normalize(), span * HANDLE)
-  if (skim) lead.y = SKIM
   const along = new Vector3().subVectors(far, join).normalize()
-  const settle = join.clone().addScaledVector(along, -span * HANDLE)
+  const lead = join.clone().addScaledVector(along, -span * LEAD)
+  // Dip over the water only when there is room for it (not for a start right by the gate).
+  if (skim) lead.y += (SKIM - lead.y) * Math.min(Math.max((span - 4) / 8, 0), 1)
+  const settle = join.clone().addScaledVector(along, -span * SETTLE)
   return new CubicBezierCurve3(near.clone(), lead, settle, join.clone())
 }
 

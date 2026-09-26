@@ -1,4 +1,4 @@
-import { LineCurve3, Quaternion, Vector3, type Curve } from 'three'
+import { LineCurve3, Quaternion, Vector3, type Curve, type CurvePath } from 'three'
 import type { ToriiPlacement } from '../shared/world'
 import { GLIDE_SECONDS, STATION_SECONDS } from '../timing'
 import type { Station } from '../types'
@@ -29,13 +29,6 @@ export interface CameraMove {
   elapsed: number
 }
 
-/**
- * The glide's single turn is done by here. The camera reaches the gate's
- * sightline at about 0.6 and passes the torii after 0.74 (at any aspect), so
- * it flies through without turning.
- */
-const GLIDE_TURN_DONE = 0.6
-
 export function createBasePose(): BasePose {
   return { position: new Vector3(), quaternion: new Quaternion(), fov: 34 }
 }
@@ -57,8 +50,18 @@ function smoothstep(a: number, b: number, x: number): number {
 
 const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
 const power2InOut = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2)
-const glideTurn = (e: number) => smoothstep(0, GLIDE_TURN_DONE, e)
 const evenTurn = (e: number) => e
+
+/**
+ * The glide's single turn ends where the path joins the gate's sightline
+ * (about 0.7–0.8 of the way, just before the torii), so the view and the
+ * direction of travel line up together and nothing turns at the gate.
+ */
+function glideTurn(path: CurvePath<Vector3>): (e: number) => number {
+  const [approach = 0, total = 1] = path.getCurveLengths()
+  const joined = approach / total
+  return (e) => smoothstep(0, joined, e)
+}
 
 /**
  * A move starts from `start`, the pose actually on screen, so its first frame
@@ -70,7 +73,7 @@ export function startMove(fromStation: Station, toStation: Station, start: BaseP
   const skim = fromStation === 'hero' || toStation === 'hero'
   const through = pathThroughGate(torii, start.position, to.position, skim)
   if (through && fromStation === 'hero' && toStation === 'gate') {
-    return { path: through, from, to, duration: GLIDE_SECONDS, ease: power2InOut, turn: glideTurn, elapsed: 0 }
+    return { path: through, from, to, duration: GLIDE_SECONDS, ease: power2InOut, turn: glideTurn(through), elapsed: 0 }
   }
   const path = through ?? new LineCurve3(start.position.clone(), to.position.clone())
   return { path, from, to, duration: STATION_SECONDS, ease: easeInOutCubic, turn: evenTurn, elapsed: 0 }
@@ -83,7 +86,9 @@ export function startMove(fromStation: Station, toStation: Station, start: BaseP
 export function poseAt(move: CameraMove, t: number, out: BasePose): void {
   const e = move.ease(t)
   move.path.getPointAt(e, out.position)
-  out.quaternion.slerpQuaternions(move.from.quaternion, move.to.quaternion, move.turn(e))
+  const turn = move.turn(e)
+  if (turn >= 1) out.quaternion.copy(move.to.quaternion)
+  else out.quaternion.slerpQuaternions(move.from.quaternion, move.to.quaternion, turn)
   out.fov = move.from.fov + (move.to.fov - move.from.fov) * e
 }
 
