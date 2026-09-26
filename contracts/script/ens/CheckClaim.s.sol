@@ -50,6 +50,13 @@ contract CheckClaim is Script {
         uint64 tNumber = SafeCast.toUint64(vm.envOr("T_NUMBER", uint256(2011001234567)));
         address company = registry.payeeOf(tNumber).controller;
         IPermissionedResolver profile = _checkClaim(claims, resolver, tNumber, company);
+        // A claim inherits payee.eth's expiry when it is minted, and Meigi renews it.
+        uint64 expiry = claims.getExpiry(EnsV2Lib.labelId(_label(tNumber)));
+        require(
+            expiry == ens.ethRegistry.getExpiry(EnsV2Lib.labelId("payee")),
+            "the claim's expiry isn't payee.eth's"
+        );
+        console.log("  expires with payee.eth: %s", uint256(expiry));
         _checkProfile(ens, tNumber);
         _checkCompanyLimits(ens, claims, profile, registry, tNumber, company);
         _checkResolution(ens, registry);
@@ -152,17 +159,20 @@ contract CheckClaim is Script {
         }
     }
 
-    /// @dev Transfers need ROLE_CAN_TRANSFER_ADMIN on the token, and a claim is minted with no roles.
+    /// @dev Transfers need ROLE_CAN_TRANSFER_ADMIN on the token, and a claim is minted with no roles. Both transfer
+    ///      paths are tried: the plain one must revert TransferDisallowed, and the ERC-1155 safe one must revert too.
     function _expectTransferDisallowed(IUserRegistry claims, uint256 id, address company) private {
         uint256 tokenId = claims.getTokenId(id);
         vm.prank(company);
         (bool ok, bytes memory err) =
             address(claims).call(abi.encodeCall(IUserRegistry.unsafeTransfer, (address(0xdead), tokenId, "")));
         // forge-lint: disable-next-line(unsafe-typecast)
-        require(
-            !ok && err.length >= 4 && bytes4(err) == TRANSFER_DISALLOWED,
-            "the company could transfer its name"
-        );
+        bytes4 selector = err.length >= 4 ? bytes4(err) : bytes4(0);
+        require(!ok && selector == TRANSFER_DISALLOWED, "the company could transfer its name");
+        vm.prank(company);
+        (ok,) = address(claims)
+            .call(abi.encodeCall(IUserRegistry.safeTransferFrom, (company, address(0xdead), tokenId, 1, "")));
+        require(!ok, "the company could safeTransferFrom its name");
     }
 
     function _expectDenied(address target, address account, bytes memory call) private {

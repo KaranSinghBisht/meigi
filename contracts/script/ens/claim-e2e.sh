@@ -103,7 +103,7 @@ jq -e --arg u "$URL" --arg d "$DESCRIPTION" --arg r "$CLAIMS_RESOLVER" \
 step "CheckClaim (read-only): wiring, what the company cannot do, and registry truth for every reference name"
 out="$( (cd "$MEIGI/contracts" && EXPECT_URL="$URL" EXPECT_DESCRIPTION="$DESCRIPTION" \
   forge script script/ens/CheckClaim.s.sol) 2>&1)" || fail "CheckClaim failed: $out"
-grep -E "token owned by|url =|cannot|->" <<<"$out" || fail "CheckClaim printed nothing: $out"
+grep -E "token owned by|url =|cannot|expires with|non-transferable|->" <<<"$out" || fail "CheckClaim printed nothing: $out"
 
 step "CheckName (the standing payee check) with the claims registry attached"
 out="$( (cd "$MEIGI/contracts" && forge script script/ens/CheckName.s.sol) 2>&1)" || fail "CheckName failed: $out"

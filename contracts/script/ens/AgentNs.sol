@@ -46,6 +46,8 @@ interface IUserRegistry {
     function getTokenId(uint256 anyId) external view returns (uint256);
     /// @dev Reverts TransferDisallowed unless the owner holds ROLE_CAN_TRANSFER_ADMIN on the token.
     function unsafeTransfer(address to, uint256 tokenId, bytes calldata data) external;
+    function safeTransferFrom(address from, address to, uint256 id, uint256 amount, bytes calldata data)
+        external;
 }
 
 /// @dev Setters take the DNS-encoded name; records are keyed by its namehash. A setter with an argument
@@ -153,6 +155,17 @@ library AgentConfig {
     function profile() internal view returns (string[4] memory keys, string[4] memory values) {
         keys = ["name", "description", "url", "avatar"];
         values = [DISPLAY_NAME, DESCRIPTION, endpoint(), VM.envOr("AGENT_AVATAR", string(DEFAULT_AVATAR))];
+    }
+
+    /// @notice The namespace root's own profile (meigi.eth), so the parent of the agent's name isn't a blank page.
+    function parentProfile() internal view returns (string[4] memory keys, string[4] memory values) {
+        keys = ["name", "description", "url", "avatar"];
+        values = [
+            "Meigi",
+            "Meigi's namespace for agents. ap.meigi.eth is its accounts-payable agent. Companies are named under payee.eth, from their T-numbers.",
+            "https://meigi.karanbishttt.workers.dev",
+            VM.envOr("AGENT_AVATAR", string(DEFAULT_AVATAR))
+        ];
     }
 
     /// @notice The owner-set records, as setter calldata for the resolver's initializer.

@@ -3,7 +3,7 @@
 # Usage: script/ens/ens.sh <command>
 #   payee.eth:     deploy | seed | register | set-resolver | check
 #   ap.meigi.eth:  agent-deploy | agent-setup | agent-status | agent-endpoint | agent-profile | agent-rotate |
-#                  agent-ensip25 | agent-check | vault-name
+#                  agent-ensip25 | agent-parent-profile (meigi.eth) | agent-check | vault-name
 #   claimed names: claim-deploy | claim-attach | claim | claim-profile | claim-check | claim-revoke |
 #                  claim-detach (rollback)
 #   payout wallets: payout-name (the payee's name as the wallet's primary name)
@@ -246,7 +246,7 @@ main() {
   case "$cmd" in
     deploy | seed | register | set-resolver | check) ;;
     agent-deploy | agent-setup | agent-status | agent-endpoint | agent-profile | agent-rotate | agent-check) ;;
-    agent-ensip25) ;;
+    agent-ensip25 | agent-parent-profile) ;;
     vault-name) ;;
     claim-deploy | claim-attach | claim-detach | claim | claim-profile | claim-check | claim-revoke) ;;
     payout-name) ;;
@@ -275,6 +275,7 @@ main() {
     agent-endpoint) forge_script script/ens/AgentNamespace.s.sol --sig "setEndpoint()" ;;
     agent-profile) forge_script script/ens/AgentNamespace.s.sol --sig "setProfile()" ;;
     agent-ensip25) cmd_ensip25 ;;
+    agent-parent-profile) forge_script script/ens/AgentNamespace.s.sol --sig "setParentProfile()" ;;
     agent-rotate)
       # Each step sees only the key it signs with.
       (unset VAULT_OWNER_PRIVATE_KEY && forge_script script/ens/AgentNamespace.s.sol --sig "rotate()")

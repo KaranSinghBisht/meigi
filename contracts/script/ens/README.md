@@ -109,6 +109,7 @@ BROADCAST=1 script/ens/ens.sh agent-setup           # canonical parent, then ap.
 AGENT_STATUS=online BROADCAST=1 script/ens/ens.sh agent-status   # signed by AGENT_PRIVATE_KEY
 BROADCAST=1 script/ens/ens.sh agent-endpoint        # agent-endpoint[web] = AGENT_ENDPOINT (default: the app's /agent)
 BROADCAST=1 script/ens/ens.sh agent-profile         # name, description, url and avatar, which the ENS app shows
+BROADCAST=1 script/ens/ens.sh agent-parent-profile  # meigi.eth's own resolver and profile (ap.meigi.eth keeps its own)
 AGENT_ADDRESS=<new> AGENT_PREVIOUS_ADDRESS=<old> BROADCAST=1 script/ens/ens.sh agent-rotate   # a new agent key
 BROADCAST=1 script/ens/ens.sh agent-ensip25         # ERC-8004 registration + ENSIP-25 record (AGENT_8004_ID to relink)
 script/ens/ens.sh agent-check                       # read-only
@@ -202,8 +203,10 @@ script/ens/claim-e2e.sh                        # fork proof: impersonates payee.
 - The fork proof resolves four reference names with stock viem after every step (two active payees, a disputed
   one and an unknown T-number), and the output must stay byte-identical to the baseline.
 - Claims are **non-transferable**: ENSv2 lets a token move only if its owner holds `ROLE_CAN_TRANSFER_ADMIN` on it,
-  and a claim is minted with no roles. `claim-check` simulates the company's transfer, which reverts
-  `TransferDisallowed`.
+  and a claim is minted with no roles. `claim-check` simulates the company's transfers: `unsafeTransfer` reverts
+  `TransferDisallowed`, and `safeTransferFrom` reverts too.
+- Claims **expire** with `payee.eth`: they are minted with its expiry, which `claim-check` asserts, and Meigi can
+  `renew` them.
 - Claims are **revocable**: `claim-revoke` unregisters one (it needs `ROLE_UNREGISTER`, which Meigi holds as root) and
   unlinks its profile. Use it for a disputed or retired company, or for a listing the company never accepted. The
   name keeps resolving through the wildcard, to the same payout.

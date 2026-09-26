@@ -130,6 +130,35 @@ contract AgentNamespace is Script {
         console.log("%s profile: %s | %s", AgentConfig.name(), values[0], values[3]);
     }
 
+    /// @notice Signed by the deployer: gives the namespace root (meigi.eth) its own PermissionedResolver with a profile.
+    ///         ap.meigi.eth keeps its own resolver, and the UniversalResolver uses the deepest one, so the agent's name
+    ///         resolves exactly as before.
+    function setParentProfile() external {
+        EnsV2 memory ens = EnsV2Lib.load();
+        string memory parent = AgentConfig.parent();
+        require(
+            ens.ethRegistry.getResolver(parent) == address(0), "the namespace root already has a resolver"
+        );
+        address deployer = EnsV2Lib.signer("DEPLOYER_PRIVATE_KEY", "DEPLOYER_ADDRESS");
+        bytes memory name = EnsV2Lib.dnsEncode(string.concat(parent, ".eth"));
+        (string[4] memory keys, string[4] memory values) = AgentConfig.parentProfile();
+        bytes[] memory calls = new bytes[](keys.length);
+        for (uint256 i; i < keys.length; i++) {
+            calls[i] = abi.encodeCall(IPermissionedResolver.setText, (name, keys[i], values[i]));
+        }
+        bytes memory init = abi.encodeCall(IPermissionedResolver.initialize, (_ownerGrant(deployer), calls));
+        uint256 salt = uint256(keccak256(abi.encode(deployer, parent, "namespace-profile")));
+        IVerifiableFactory factory = IVerifiableFactory(_code("ENS_VERIFIABLE_FACTORY"));
+
+        EnsV2Lib.startBroadcast("DEPLOYER_PRIVATE_KEY", "DEPLOYER_ADDRESS");
+        address resolver = factory.deployProxy(vm.envAddress("ENS_PERMISSIONED_RESOLVER_IMPL"), salt, init);
+        ens.ethRegistry.setResolver(EnsV2Lib.labelId(parent), resolver);
+        vm.stopBroadcast();
+
+        require(ens.ethRegistry.getResolver(parent) == resolver, "the namespace root's resolver was not set");
+        console.log("%s.eth resolver %s, profile: %s", parent, resolver, values[0]);
+    }
+
     /// @notice Key rotation, part 1, signed by the deployer: grants `agent-status` to the new key (AGENT_ADDRESS) and
     ///         revokes it from the old one (AGENT_PREVIOUS_ADDRESS). The name, its records and the vault's primary name
     ///         stay as they are: the identity survives the key. `rotateVault()` then moves the vault's agent slot.
