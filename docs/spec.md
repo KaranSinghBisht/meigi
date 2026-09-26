@@ -74,7 +74,7 @@ added last, went through two review rounds of its own with fork PoCs, see `docs/
 
 1. "This is our AI accountant. It holds a JPYC stand-in, reads every invoice, and only pays registered payees."
 2. A judge writes a fake invoice or a bank-change email, or hides a prompt injection. The agent's LLM agrees
-   to pay; the vault reverts `PayeeMismatch` and names the registered company.
+   to pay; the vault reverts `PayeeMismatch` with the registered payout, and the agent names the company.
 3. Redirecting money properly: the business key + the same World ID human + 72h public timelock. A different
    human is denied.
 4. x402: a merchant whose server was compromised to swap `payTo` gets refused before signing.

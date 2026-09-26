@@ -59,7 +59,8 @@ flowchart LR
 
 **"This is our AI accountant. It holds a JPYC stand-in, reads every invoice, and only pays registered payees."**
 Write it a fake invoice or a bank-change email, or hide a prompt injection. Its LLM may well agree to pay the
-scammer. Then the vault reverts `PayeeMismatch` and names the registered company.
+scammer. Then the vault reverts `PayeeMismatch` with the T-number's registered payout, and the agent names the
+company it belongs to.
 
 ## Try it without installing anything
 
