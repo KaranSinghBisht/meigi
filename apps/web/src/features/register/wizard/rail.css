@@ -96,6 +96,16 @@
   color: #fff;
 }
 
+/* Passed without being done: a dash on a neutral disc, never a green tick. */
+.rail__item--skipped {
+  color: var(--ink-soft);
+}
+
+.rail__item--skipped .rail__marker {
+  background: rgba(42, 39, 48, 0.12);
+  color: var(--ink-soft);
+}
+
 .rail__foot {
   display: grid;
   gap: 16px;

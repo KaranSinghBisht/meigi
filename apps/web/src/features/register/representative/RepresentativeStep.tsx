@@ -1,6 +1,7 @@
 import { Badge } from '../../../ui/components/Badge'
 import { Button } from '../../../ui/components/Button'
 import { Notice } from '../../../ui/components/Notice'
+import { COPY } from '../flow/copy'
 import { STEP } from '../flow/steps'
 import type { Onboarding } from '../flow/useOnboarding'
 import { StepActions, StepFrame } from '../wizard/StepFrame'
@@ -42,25 +43,10 @@ function Methods() {
   )
 }
 
-/**
- * Proof that the registrant represents the company. It isn't built: nothing here signs or pretends to. The step says
- * so plainly, and what registration proves today, then moves on.
- */
-export function RepresentativeStep({ onboarding }: { readonly onboarding: Onboarding }) {
-  const fixture = onboarding.state.company?.fixture === true
+/** The step's content, shared by the live wizard and the hosted replay: the methods, and what's proven today. */
+export function RepresentativeBody({ fixture }: { readonly fixture: boolean }) {
   return (
-    <StepFrame
-      step={STEP.representative}
-      title="Prove you represent the company"
-      lede="Controlling a domain doesn't make someone the company. Its registered representative will sign for it."
-      actions={
-        <StepActions onBack={() => onboarding.goTo(STEP.domain)}>
-          <Button size="lg" onClick={() => onboarding.goTo(STEP.officers)}>
-            Continue
-          </Button>
-        </StepActions>
-      }
-    >
+    <>
       {fixture ? (
         <p className="rep-skip">
           <Badge tone="info">Demo companies skip this step</Badge>
@@ -78,6 +64,29 @@ export function RepresentativeStep({ onboarding }: { readonly onboarding: Onboar
       >
         <p>In production it also proves the signer represents the company.</p>
       </Notice>
+    </>
+  )
+}
+
+/**
+ * Proof that the registrant represents the company. It isn't built: nothing here signs or pretends to. The step says
+ * so plainly, and what registration proves today, then moves on.
+ */
+export function RepresentativeStep({ onboarding }: { readonly onboarding: Onboarding }) {
+  return (
+    <StepFrame
+      step={STEP.representative}
+      title={COPY.representative.title}
+      lede={COPY.representative.lede}
+      actions={
+        <StepActions onBack={() => onboarding.goTo(STEP.domain)}>
+          <Button size="lg" onClick={() => onboarding.goTo(STEP.officers)}>
+            Continue
+          </Button>
+        </StepActions>
+      }
+    >
+      <RepresentativeBody fixture={onboarding.state.company?.fixture === true} />
     </StepFrame>
   )
 }

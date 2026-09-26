@@ -5,6 +5,7 @@ import type { HexAddress } from '../../../lib/env/env'
 import { Address } from '../../../ui/components/Address'
 import { Button } from '../../../ui/components/Button'
 import { TextField } from '../../../ui/components/Field'
+import { COPY } from '../flow/copy'
 import { STEP } from '../flow/steps'
 import type { Drafts, Onboarding } from '../flow/useOnboarding'
 import { StepActions, StepFrame } from '../wizard/StepFrame'
@@ -104,8 +105,8 @@ export function WalletsStep({ onboarding }: { readonly onboarding: Onboarding })
   return (
     <StepFrame
       step={STEP.wallets}
-      title="Which wallets will it use?"
-      lede="A business key that approves changes, and the one address every payment goes to."
+      title={COPY.wallets.title}
+      lede={COPY.wallets.lede}
       onSubmit={submit}
       actions={
         <StepActions onBack={() => onboarding.goTo(STEP.company)}>

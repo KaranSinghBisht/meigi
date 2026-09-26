@@ -90,6 +90,10 @@
   box-shadow: none;
 }
 
+.threshold:disabled .threshold__option {
+  cursor: default;
+}
+
 .threshold__option:has(input:focus-visible) {
   outline: 2px solid var(--vermilion);
   outline-offset: 2px;

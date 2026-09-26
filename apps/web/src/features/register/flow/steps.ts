@@ -23,3 +23,18 @@ export const STEP = {
 } as const
 
 export type StepIndex = (typeof STEP)[keyof typeof STEP]
+
+interface Skips {
+  /** A demo company: no domain to prove. */
+  readonly fixture: boolean
+  /** Officers that aren't World ID sessions (a seeded demo company's placeholder). */
+  readonly placeholderOfficers?: boolean
+}
+
+/** Steps passed without being done: representation isn't built yet, and a demo company has no domain to prove. */
+export function skippedSteps({ fixture, placeholderOfficers = false }: Skips): number[] {
+  const skipped: number[] = [STEP.representative]
+  if (fixture) skipped.push(STEP.domain)
+  if (placeholderOfficers) skipped.push(STEP.officers)
+  return skipped
+}

@@ -45,6 +45,16 @@
   box-shadow: var(--lg-shadow-control);
 }
 
+/* A replayed choice: shown as it was made, not pickable. */
+.payout-choice:disabled .payout-option,
+.payout-choice:disabled .payout-option input {
+  cursor: default;
+}
+
+.payout-choice:disabled .payout-option:not(:has(input:checked)):hover {
+  background: var(--lg-cell);
+}
+
 .payout-option:has(input:focus-visible) {
   outline: 2px solid var(--vermilion);
   outline-offset: 2px;

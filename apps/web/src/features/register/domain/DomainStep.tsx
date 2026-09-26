@@ -1,6 +1,7 @@
 import { Button } from '../../../ui/components/Button'
 import { TextField } from '../../../ui/components/Field'
 import { Notice } from '../../../ui/components/Notice'
+import { COPY } from '../flow/copy'
 import { STEP } from '../flow/steps'
 import type { Onboarding } from '../flow/useOnboarding'
 import { StepError } from '../wizard/StepError'
@@ -32,8 +33,8 @@ function DomainEntry({ onboarding, calls }: { readonly onboarding: Onboarding; r
   return (
     <StepFrame
       step={STEP.domain}
-      title="Which domain does the company use?"
-      lede="The one on its website and email. You'll add one DNS record to prove it's yours."
+      title={COPY.domain.title}
+      lede={COPY.domain.lede}
       onSubmit={() => void (valid && calls.create(domain))}
       actions={
         <StepActions onBack={calls.busy ? undefined : () => onboarding.goTo(STEP.wallets)}>
@@ -69,8 +70,8 @@ function FictionalDomain({ onboarding, calls }: { readonly onboarding: Onboardin
   return (
     <StepFrame
       step={STEP.domain}
-      title="No domain to prove"
-      lede="A fictional company has no real domain, so Meigi skips this step and records it as fictional."
+      title={COPY.domainFictional.title}
+      lede={COPY.domainFictional.lede}
       actions={
         <StepActions onBack={registration || calls.busy ? undefined : () => onboarding.goTo(STEP.wallets)}>
           <Button size="lg" busy={calls.busy} onClick={() => void proceed()}>
@@ -124,7 +125,7 @@ function Proven({ onboarding }: { readonly onboarding: Onboarding }) {
   return (
     <StepFrame
       step={STEP.domain}
-      title={fixture ? 'No domain to prove' : 'Your domain is proven'}
+      title={fixture ? COPY.domainFictional.title : 'Your domain is proven'}
       actions={
         <StepActions>
           <Button size="lg" onClick={() => onboarding.goTo(STEP.representative)}>

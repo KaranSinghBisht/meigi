@@ -1,48 +1,16 @@
 import { useEffect, useState } from 'react'
 import type { Submission } from '../../../lib/api/verifier'
 import { parseTNumber } from '../../../lib/chain/tNumber'
-import type { HexAddress } from '../../../lib/env/env'
 import { TxLink } from '../../../ui/components/Address'
 import { Button, LinkButton } from '../../../ui/components/Button'
 import { Notice } from '../../../ui/components/Notice'
-import { Spinner } from '../../../ui/components/Spinner'
+import { COPY } from '../flow/copy'
 import { STEP } from '../flow/steps'
 import type { Onboarding } from '../flow/useOnboarding'
 import { StepActions, StepFrame } from '../wizard/StepFrame'
-import { PayeeCard } from './PayeeCard'
+import { RegisteredView } from './RegisteredView'
 import { sharePayee, type PayeeShare, type ShareOutcome } from './sharePayee'
-import { useEnsResolves } from './useEnsResolves'
 import './registered.css'
-
-function EnsCheck({ ens, payout }: { readonly ens: string; readonly payout: HexAddress }) {
-  const { state, retry } = useEnsResolves(ens, payout)
-  if (state.status === 'match') {
-    return (
-      <p className="ens-check" role="status">
-        <span className="ens-check__ok">
-          <span aria-hidden="true">✓</span> Resolves in any ENS client
-        </span>
-        <span className="ens-check__detail">Checked live on Sepolia with a stock ENS lookup.</span>
-      </p>
-    )
-  }
-  if (state.status === 'checking' || state.status === 'pending') {
-    return (
-      <p className="ens-check" role="status">
-        <Spinner /> {state.status === 'checking' ? 'Resolving it through ENS…' : 'Waiting for the next block to resolve…'}
-      </p>
-    )
-  }
-  const title =
-    state.status === 'other'
-      ? 'ENS answers with a different address.'
-      : state.status === 'timeout'
-        ? "ENS doesn't answer for this name yet."
-        : "Couldn't reach Sepolia to check."
-  return (
-    <Notice tone="warn" title={title} action={<Button size="sm" variant="ghost" onClick={retry}>Check again</Button>} />
-  )
-}
 
 const SHARE_LABEL: Record<ShareOutcome, string> = {
   shared: 'Shared',
@@ -98,8 +66,8 @@ export function RegisteredStep({ onboarding }: { readonly onboarding: Onboarding
   return (
     <StepFrame
       step={STEP.registered}
-      title="You're registered."
-      lede={`Payers who check ${parsed.ens} will only ever pay the address below. Changing it takes your business key, your officers and 72 hours in public.`}
+      title={COPY.registered.title}
+      lede={COPY.registered.lede(parsed.ens)}
       actions={
         <StepActions>
           <ShareButton payee={{ legalName, tNumber: parsed.display, ens: parsed.ens, url }} />
@@ -109,11 +77,14 @@ export function RegisteredStep({ onboarding }: { readonly onboarding: Onboarding
         </StepActions>
       }
     >
-      <PayeeCard legalName={legalName} tNumber={parsed.display} ens={parsed.ens} payout={payout} fixture={company.fixture} />
-      <EnsCheck ens={parsed.ens} payout={payout} />
-      <p className="registered-tx">
-        Registered on Sepolia in <TxLink hash={submission.txHash} />
-      </p>
+      <RegisteredView
+        legalName={legalName}
+        tNumber={parsed.display}
+        ens={parsed.ens}
+        payout={payout}
+        fixture={company.fixture}
+        txHash={submission.txHash}
+      />
     </StepFrame>
   )
 }

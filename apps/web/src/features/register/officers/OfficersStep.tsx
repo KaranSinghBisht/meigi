@@ -2,38 +2,21 @@ import type { IDKitResultSession } from '@worldcoin/idkit'
 import { useState } from 'react'
 import type { Explained } from '../../../lib/api/messages'
 import { enrollOfficer, type Registration } from '../../../lib/api/verifier'
-import { shortHash } from '../../../lib/chain/format'
-import { Badge } from '../../../ui/components/Badge'
 import { Button } from '../../../ui/components/Button'
 import { Notice } from '../../../ui/components/Notice'
 import { CredentialNote } from '../../../ui/world/CredentialNote'
 import { WorldIdProof } from '../../../ui/world/WorldIdProof'
+import { COPY } from '../flow/copy'
 import { explainStep } from '../flow/errors'
 import { STEP } from '../flow/steps'
 import type { Onboarding } from '../flow/useOnboarding'
 import { StepError } from '../wizard/StepError'
 import { StepActions, StepFrame } from '../wizard/StepFrame'
+import { OfficerList } from './OfficerList'
 import './officers.css'
 
 /** The registry's cap on officers per company (the verifier refuses a ninth with too_many_officers). */
 const MAX_OFFICERS = 8
-
-function OfficerList({ officers }: { readonly officers: readonly string[] }) {
-  if (officers.length === 0) return null
-  return (
-    <ol className="officer-list" aria-label="Enrolled officers">
-      {officers.map((officerId, index) => (
-        <li key={officerId} className="officer-list__item">
-          <span className="officer-list__name">Officer {index + 1}</span>
-          <span className="mono" title={officerId}>
-            {shortHash(officerId)}
-          </span>
-          <Badge tone="active">Verified human</Badge>
-        </li>
-      ))}
-    </ol>
-  )
-}
 
 /** Sends one officer's World ID session proof; a refusal is shown here and fails the widget. */
 function useEnroll(registration: Registration, onEnrolled: Onboarding['officerAdded']) {
@@ -70,8 +53,8 @@ function Officers({ onboarding, registration, officers }: OfficersProps) {
   return (
     <StepFrame
       step={STEP.officers}
-      title="Who approves changes?"
-      lede="Every future payout change needs one of these same people."
+      title={COPY.officers.title}
+      lede={COPY.officers.lede}
       actions={
         <StepActions onBack={() => onboarding.goTo(STEP.representative)}>
           <Button size="lg" disabled={none} onClick={() => onboarding.goTo(STEP.review)}>
@@ -81,7 +64,7 @@ function Officers({ onboarding, registration, officers }: OfficersProps) {
       }
     >
       <CredentialNote />
-      <OfficerList officers={officers} />
+      <OfficerList officers={officers.map((id) => ({ id, proof: 'world-id' as const }))} />
       {enrolled ? <Notice tone="success" title="Officer added." /> : null}
       {error ? <StepError error={error} onboarding={onboarding} /> : null}
       {officers.length >= MAX_OFFICERS ? (

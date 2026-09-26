@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { prefersReducedMotion } from '../../../lib/hooks/motion'
 import { CompanyStep } from '../company/CompanyStep'
 import { DomainStep } from '../domain/DomainStep'
-import { STEP, type StepIndex } from '../flow/steps'
+import { skippedSteps, STEP, type StepIndex } from '../flow/steps'
 import { canRevisit, useOnboarding, type Onboarding, type OnboardingState } from '../flow/useOnboarding'
 import { OfficersStep } from '../officers/OfficersStep'
 import { RegisteredStep } from '../registered/RegisteredStep'
@@ -10,7 +10,9 @@ import { RepresentativeStep } from '../representative/RepresentativeStep'
 import { ReviewStep } from '../review/ReviewStep'
 import { WalletsStep } from '../wallets/WalletsStep'
 import { ProgressRail } from './ProgressRail'
+import { RailNeeds } from './RailNeeds'
 import { StartOver } from './StartOver'
+import { useDirection } from './useDirection'
 
 /** The furthest screen the saved state can back up: a step never shows before what it needs exists. */
 function visibleStep(state: OnboardingState): StepIndex {
@@ -44,17 +46,6 @@ function CurrentStep({ onboarding, step }: { readonly onboarding: Onboarding; re
   return <Screen onboarding={onboarding} />
 }
 
-type Direction = 'none' | 'forward' | 'back'
-
-/** Which way the last screen change went, so the new screen slides in from that side. None on first paint. */
-function useDirection(screen: number): Direction {
-  const [seen, setSeen] = useState<{ screen: number; direction: Direction }>({ screen, direction: 'none' })
-  if (seen.screen === screen) return seen.direction
-  const direction: Direction = screen > seen.screen ? 'forward' : 'back'
-  setSeen({ screen, direction })
-  return direction
-}
-
 /**
  * A new screen takes focus at its question, and the window scrolls back into view if its top is hidden. It compares
  * with the screen it last saw, so a first paint (or StrictMode's second effect run) never moves focus.
@@ -78,15 +69,7 @@ function RailFooter({ onboarding, finished }: { readonly onboarding: Onboarding;
   const started = onboarding.state.drafts.query !== '' || onboarding.state.company !== null
   return (
     <>
-      <div className="rail__needs">
-        <p className="rail__needs-title">You'll need</p>
-        <ul className="rail__needs-list">
-          <li>Your T-number or LEI</li>
-          <li>A browser wallet</li>
-          <li>Access to your domain's DNS</li>
-          <li>World App for each officer</li>
-        </ul>
-      </div>
+      <RailNeeds />
       {started ? <StartOver onReset={onboarding.reset} finished={finished} className="rail__restart" /> : null}
     </>
   )
@@ -105,6 +88,7 @@ export function OnboardingWizard() {
       <ProgressRail
         current={step}
         finished={step === STEP.registered && !disputed}
+        skipped={skippedSteps({ fixture: state.company?.fixture === true })}
         outcome={disputed ? 'Claim disputed' : undefined}
         canVisit={(target) => canRevisit({ ...state, step }, target)}
         onVisit={onboarding.goTo}

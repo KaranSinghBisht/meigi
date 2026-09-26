@@ -8,13 +8,15 @@ const OPTIONS: readonly { mode: PayoutMode; title: string; body: string }[] = [
 
 interface PayoutChoiceProps {
   readonly mode: PayoutMode
-  readonly onMode: (mode: PayoutMode) => void
+  readonly onMode?: (mode: PayoutMode) => void
+  /** A replay shows the choice that was made, without letting it be changed. */
+  readonly disabled?: boolean
 }
 
 /** Where payments go: three ways to name the one payout address. */
-export function PayoutChoice({ mode, onMode }: PayoutChoiceProps) {
+export function PayoutChoice({ mode, onMode, disabled = false }: PayoutChoiceProps) {
   return (
-    <fieldset className="payout-choice">
+    <fieldset className="payout-choice" disabled={disabled}>
       <legend className="sr-only">How to set the payout address</legend>
       {OPTIONS.map((option) => (
         <label key={option.mode} className="payout-option">
@@ -23,7 +25,7 @@ export function PayoutChoice({ mode, onMode }: PayoutChoiceProps) {
             name="payout-mode"
             value={option.mode}
             checked={mode === option.mode}
-            onChange={() => onMode(option.mode)}
+            onChange={() => onMode?.(option.mode)}
           />
           <span className="payout-option__text">
             <span className="payout-option__title">{option.title}</span>
