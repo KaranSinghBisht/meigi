@@ -287,13 +287,15 @@ Run these from the repo root.
 pnpm install --filter "@meigi/agent..." --filter "@meigi/signer..."
 SIGNER_VERIFY_APPROVAL=1 scripts/ap-stack.sh   # the booth: the signer verifies approvals itself (Phase 2)
 scripts/ap-stack.sh --stop                     # stops both
+scripts/ap-stack.sh --pause-signer             # stops the signer alone: the agent stays up, with no key to pay
+scripts/ap-stack.sh --resume-signer            # starts the signer again
 ```
 
 `scripts/ap-stack.sh` is how the booth runs it: the signer (`.env` + `.env.signer`), then the agent (`.env` only),
 both supervised. By hand, it's `pnpm --filter @meigi/signer start`, then `pnpm --filter @meigi/agent start`.
 
-- **After a signer (re)start,** a human approval must come at least 60 s later. The signer refuses approvals made
-  before it started, so a restart can't bring back one it has already spent.
+- **After a signer (re)start or resume,** a human approval must come at least 60 s later. The signer refuses
+  approvals made before it started, so a restart can't bring back one it has already spent.
 - **Kill switch at the booth.** If a real World ID for Agents approval (invoice 07) fails in Phase 2 and the reason
   is the signer's check, fall back to Phase 1:
   `scripts/ap-stack.sh --stop && SIGNER_VERIFY_APPROVAL=0 scripts/ap-stack.sh`. The signer's `/health` then says

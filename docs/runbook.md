@@ -93,7 +93,7 @@ Only after Karan's video, and only on the lead's word. The demo must never depen
 |---|---|---|
 | 8787 | verifier (attester) | `pnpm --filter @meigi/verifier start` |
 | 8796 | Signer: the only process with the agent key (`.env.signer`); signs `payInvoice` only | started by `scripts/ap-stack.sh` |
-| 8788 | AP agent: no key; pays through the signer | `scripts/ap-stack.sh` starts and supervises the signer, then the agent; `--stop` stops both |
+| 8788 | AP agent: no key; pays through the signer | `scripts/ap-stack.sh` starts and supervises the signer, then the agent; `--stop` stops both; `--pause-signer` and `--resume-signer` stop and restart the signer alone (demo check 10) |
 | 8790 | x402 demo (merchant + facilitator + guarded buyer) | `pnpm --filter @meigi/x402-demo start` |
 | 8102 | System-1 triage: our fine-tuned payee-0.8b (`kev.serve`) | see `bench/README.md` |
 | 11434 | Agent LLM: Ollama with `gemma4:e4b` (`LLM_PROVIDER=local`) | `ollama serve` (the model is pulled once with `ollama pull gemma4:e4b`) |
@@ -215,3 +215,20 @@ a trusted single-user machine; the ENS scripts and forge scripts read keys from 
    `pnpm --filter @meigi/agent demo:renumber` once (`--dry-run` to preview): it moves a spent number to the next one
    no document uses and the vault hasn't paid, and the console picks it up without a restart. The 30-day cap for
    the fixture vendor fits four full runs (checked on-chain on 2026-09-26).
+10. **The agent holds no key: stop the signer and it can't pay.** Stop the signer alone; the agent stays up.
+    - `scripts/ap-stack.sh --pause-signer` takes about a second. The signer process exits and its supervisor keeps it
+      down, so nothing listens on :8796. `curl localhost:8788/health` then shows `"signer":"unreachable"`.
+    - Press Pay on an invoice that auto-clears, or run
+      `curl -s -X POST -H 'content-type: application/json' -d '{}' localhost:8788/invoices/<id>/pay`. The agent
+      answers at once: 503 `signer_unavailable`, "The signer isn't answering, and the agent holds no key of its own:
+      nothing was signed or sent." The console shows that sentence. The call fails at the simulation, before any
+      `/pay`, so the key's nonce doesn't move and the audit log gets no `signer.*` entry.
+    - `scripts/ap-stack.sh --resume-signer` takes a few seconds: the signer starts with the same checks as at boot,
+      and Pay now pays. That payment spends the invoice's number like any live one (item 9).
+    - Only a pair started by this version of the script can pause (it writes `.omc/state/ap-stack.signer`). On an
+      older pair, `--pause-signer` refuses and stops nothing: restart the pair first. `--stop` also clears a pause.
+    - Don't pause during a payment, and don't spend a World ID approval while paused: the Pay fails and the approval
+      is used up. After a resume, make any approval at least a minute later: with `SIGNER_VERIFY_APPROVAL=1`, the
+      signer refuses approvals made before, or within 60 s of, its start.
+    - Not `kill -STOP`: a stopped signer still accepts connections, so Pay hangs for 30 s. If the stop lands
+      mid-payment, the queued `/pay` goes through after `kill -CONT`, after the agent has reported a failure.
