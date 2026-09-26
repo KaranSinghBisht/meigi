@@ -105,9 +105,10 @@ export class DemoClock {
     this.publish()
   }
 
+  /** Playing, a chapter starts from its first moment; paused, it shows its opening frame (ChapterDef.opening). */
   jumpToChapter(index: number): void {
     const chapter = this.script.chapters[index]
-    if (chapter) this.seek(chapter.start)
+    if (chapter) this.seek(chapter.start + (this.playing ? 0 : (chapter.opening ?? 0)))
   }
 
   /** Reduced motion: shows the beat the playhead is in, fully drawn. */

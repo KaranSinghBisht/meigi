@@ -98,6 +98,8 @@ export const chapter4: ChapterDef = {
   id: 'human',
   title: 'Human approves',
   duration: 24,
+  /** The 至急 mail open and its Read card in: before it, the frame is still chapter 3's reply draft and seal. */
+  opening: 3.4,
   captions: [
     { at: 0, text: 'A real invoice, but it pushes for speed (至急).' },
     { at: 9.4, text: 'The agent asks a human to approve with World ID for Agents, on World’s sandbox.' },

@@ -97,9 +97,11 @@ function purchase(c: BuildCtx, beat: Beat, first: boolean): void {
   for (const index of [1, 2, 3, 4, 5, 6]) stepDone(c, 'x402', index, at + 0.1)
 }
 
+/** How long the last purchase's verdict stays on screen before the outro. */
+const HOLD = 3.6
 /** The last purchase has settled, then the stage clears for the end card, so chapter 6 opens on the card. */
 const OUTRO = 1.2
-const DURATION = Math.max(20, (BEATS.at(-1)?.end ?? 18) + 1.6) + OUTRO
+const DURATION = Math.max(20, (BEATS.at(-1)?.end ?? 18) + HOLD) + OUTRO
 
 function outro(c: BuildCtx): void {
   const at = DURATION - OUTRO
@@ -112,6 +114,8 @@ export const chapter5: ChapterDef = {
   id: 'agents',
   title: 'Agents pay agents',
   duration: DURATION,
+  /** The terminal tab and the first purchase's card in: before it, the frame is still chapter 4's paid invoice. */
+  opening: 1.6,
   captions: captions(),
   build(c) {
     switchTab(c)

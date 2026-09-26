@@ -48,6 +48,8 @@ export const chapter2: ChapterDef = {
   id: 'believe',
   title: 'Agent vs chain',
   duration: 27,
+  /** The browser dimmed and the triage card in: before it, the frame is still chapter 1's. */
+  opening: 1.0,
   captions: [
     { at: 0, text: `Our fine-tuned 0.8B triage model flags it in ${triageMs()} ms.` },
     { at: 6, text: 'The LLM believes the email. That’s expected: it only proposes.' },

@@ -24,6 +24,12 @@ export interface ChapterDef {
   readonly title: string
   readonly duration: number
   readonly captions: readonly CaptionDef[]
+  /**
+   * Seconds from the start to the chapter's opening frame, for a chapter whose first moments clear the previous
+   * chapter's picture: a chip pressed while paused lands here, so a still frame never shows the last beat's picture
+   * under this chapter's caption. Playing, a chip still starts the chapter from 0.
+   */
+  readonly opening?: number
   readonly build: (ctx: BuildCtx) => void
 }
 
