@@ -4,3 +4,4 @@ export { payeeResolverAbi } from "./PayeeResolver.js";
 export { agentVaultAbi } from "./AgentVault.js";
 export { payRouterAbi } from "./PayRouter.js";
 export { mockJPYCAbi } from "./MockJPYC.js";
+export { mandateGateAbi } from "./MandateGate.js";
