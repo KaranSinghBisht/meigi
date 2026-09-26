@@ -1,12 +1,18 @@
 import { useState, type FormEvent } from 'react'
 import { Button } from '../../ui/components/Button'
 import { TextField } from '../../ui/components/Field'
+import { usePendingExample } from './usePendingExample'
 import { useWithdrawalCheck, type CheckState, type WithdrawalInput } from './useWithdrawalCheck'
 import { VerdictView } from './VerdictView'
 import './withdrawal-check.css'
 
+interface Example {
+  readonly label: string
+  readonly input: WithdrawalInput
+}
+
 /** One tap fills both fields and runs the check. Each answer is read live from Sepolia, never canned. */
-const EXAMPLES: readonly { readonly label: string; readonly input: WithdrawalInput }[] = [
+const EXAMPLES: readonly Example[] = [
   {
     label: "Meigi Shoji's payout",
     input: { destination: '0x9B4fc8994FcF2d5FE08a82A9454B61AA14D647e4', tNumber: 'T2011001234567' },
@@ -17,7 +23,7 @@ const EXAMPLES: readonly { readonly label: string; readonly input: WithdrawalInp
   },
   {
     label: 'Unregistered T-number',
-    input: { destination: '0xdCa52b5FA181a3307eCa852935BD40e3E0096d5b', tNumber: 'T7999900000002' },
+    input: { destination: '0xdCa52b5FA181a3307eCa852935BD40e3E0096d5b', tNumber: 'T5999900000004' },
   },
   {
     label: 'Disputed payee',
@@ -45,6 +51,8 @@ function Result({ state }: { readonly state: CheckState }) {
  */
 export function WithdrawalCheck() {
   const { state, check } = useWithdrawalCheck()
+  const pending = usePendingExample()
+  const examples = pending ? [...EXAMPLES, { label: 'Payout change pending', input: pending }] : EXAMPLES
   const [input, setInput] = useState<WithdrawalInput>({ destination: '', tNumber: '' })
   const invalid = state.status === 'invalid' ? state : null
   const run = (next: WithdrawalInput) => {
@@ -91,7 +99,7 @@ export function WithdrawalCheck() {
       </div>
       <div className="withdrawal__examples" role="group" aria-label="Examples">
         <span className="withdrawal__examples-label">Try</span>
-        {EXAMPLES.map((example) => (
+        {examples.map((example) => (
           <button key={example.label} type="button" className="withdrawal__example" onClick={() => run(example.input)}>
             {example.label}
           </button>
