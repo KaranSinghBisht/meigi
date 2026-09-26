@@ -20,6 +20,8 @@ interface IPayeeResolverRegistry {
 ///           ever holds ROLE_SET_ADDRESS) and mints `t<T>` in S to the company's registry controller. The token
 ///           has no roles, so the company can't redirect its name.
 ///         - `profile()`: signed by the company, sets its url, description and/or avatar.
+///         - `revoke()`: Meigi burns one claim (a disputed or retired company, or a listing the company never
+///           accepted). The name falls back to payee.eth's wildcard resolver: same payout, no profile.
 ///         - `detach()`: rolls back to the pure-data setup in one transaction.
 /// @dev Env: DEPLOYER_PRIVATE_KEY (or, on a fork, the unlocked DEPLOYER_ADDRESS), plus deployments/beta.env. After
 ///      deploy: CLAIMS_REGISTRY and CLAIMS_RESOLVER. Optional: T_NUMBER (2011001234567), COMPANY_FUND_WEI (tops up the
@@ -108,6 +110,31 @@ contract ClaimName is Script {
         require(claims.getResolver(label) == address(resolver), "claimed name uses another resolver");
         console.log("%s.payee.eth claimed by %s", label, company);
         console.log("PROFILE_RESOLVER=%s", address(resolver.profileOf(tNumber)));
+    }
+
+    /// @notice Revokes one claim, signed by the deployer (root of the claims registry). T_NUMBER is required.
+    function revoke() external {
+        EnsV2 memory ens = EnsV2Lib.load();
+        IUserRegistry claims = IUserRegistry(vm.envAddress("CLAIMS_REGISTRY"));
+        ClaimedPayeeResolver resolver = ClaimedPayeeResolver(vm.envAddress("CLAIMS_RESOLVER"));
+        uint64 tNumber = SafeCast.toUint64(vm.envUint("T_NUMBER"));
+        string memory label = string.concat("t", vm.toString(uint256(tNumber)));
+        uint256 id = EnsV2Lib.labelId(label);
+        require(claims.getOwner(id) != address(0), "no live claim for this T-number");
+
+        EnsV2Lib.startBroadcast("DEPLOYER_PRIVATE_KEY", "DEPLOYER_ADDRESS");
+        claims.unregister(id);
+        if (address(resolver.profileOf(tNumber)) != address(0)) {
+            resolver.setProfile(tNumber, IExtendedResolver(address(0)), address(0));
+        }
+        vm.stopBroadcast();
+
+        require(claims.getOwner(id) == address(0), "the claim is still registered");
+        require(
+            EnsV2Lib.payeeResolverFor(ens.ethRegistry, PARENT, label) == ens.ethRegistry.getResolver(PARENT),
+            "the name does not fall back to payee.eth's resolver"
+        );
+        console.log("%s.payee.eth: claim revoked; it resolves through payee.eth's wildcard again", label);
     }
 
     /// @notice Signed by the company: its own profile records.

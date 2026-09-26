@@ -3,8 +3,9 @@
 # Usage: script/ens/ens.sh <command>
 #   payee.eth:     deploy | seed | register | set-resolver | check
 #   ap.meigi.eth:  agent-deploy | agent-setup | agent-status | agent-endpoint | agent-profile | agent-rotate |
-#                  agent-check | vault-name
-#   claimed names: claim-deploy | claim-attach | claim | claim-profile | claim-check | claim-detach (rollback)
+#                  agent-ensip25 | agent-check | vault-name
+#   claimed names: claim-deploy | claim-attach | claim | claim-profile | claim-check | claim-revoke |
+#                  claim-detach (rollback)
 #   payout wallets: payout-name (the payee's name as the wallet's primary name)
 # Transactions are only simulated unless BROADCAST=1. Keys and the RPC URL come from the environment or
 # meigi/.env and never appear on a command line; tool output is redacted. See README.md.
@@ -215,6 +216,27 @@ cmd_register() {
   if [[ -n ${PAYEE_RESOLVER:-} ]]; then cmd_check; fi
 }
 
+# ERC-8004 registration of the agent, then the ENSIP-25 record on its name. The agent id comes from the Registered
+# event in the real receipt (a simulation can't know it), or from AGENT_8004_ID to link an existing registration.
+cmd_ensip25() {
+  local receipt registered
+  if [[ -z ${AGENT_8004_ID:-} ]]; then
+    forge_script script/ens/AgentIdentity.s.sol --sig "register()"
+    if [[ ${BROADCAST:-0} != 1 ]]; then
+      echo "Dry run only. With BROADCAST=1 the agent id is read from the receipt and linked to the name."
+      return
+    fi
+    receipt="${FOUNDRY_BROADCAST:-$CONTRACTS/broadcast}/AgentIdentity.s.sol/$SEPOLIA/register-latest.json"
+    registered="$(cast keccak 'Registered(uint256,string,address)')"
+    AGENT_8004_ID="$(jq -r --arg t "$registered" '[.receipts[].logs[] | select(.topics[0] == $t)][0].topics[1]' "$receipt")"
+    [[ $AGENT_8004_ID =~ ^0x[0-9a-fA-F]{64}$ ]] || die "no Registered event in $receipt"
+    AGENT_8004_ID="$(cast to-dec "$AGENT_8004_ID")"
+    export AGENT_8004_ID
+    echo "AGENT_8004_ID=$AGENT_8004_ID"
+  fi
+  forge_script script/ens/AgentIdentity.s.sol --sig "link()"
+}
+
 cmd_check() {
   (cd "$CONTRACTS" && forge script script/ens/CheckName.s.sol) 2>&1 | redact
 }
@@ -224,8 +246,10 @@ main() {
   case "$cmd" in
     deploy | seed | register | set-resolver | check) ;;
     agent-deploy | agent-setup | agent-status | agent-endpoint | agent-profile | agent-rotate | agent-check) ;;
+    agent-ensip25) ;;
     vault-name) ;;
-    claim-deploy | claim-attach | claim-detach | claim | claim-profile | claim-check | payout-name) ;;
+    claim-deploy | claim-attach | claim-detach | claim | claim-profile | claim-check | claim-revoke) ;;
+    payout-name) ;;
     *) die "usage: ens.sh <command>; see the header of this file" ;;
   esac
   setup
@@ -250,6 +274,7 @@ main() {
     agent-status) forge_script script/ens/AgentNamespace.s.sol --sig "setStatus()" ;;
     agent-endpoint) forge_script script/ens/AgentNamespace.s.sol --sig "setEndpoint()" ;;
     agent-profile) forge_script script/ens/AgentNamespace.s.sol --sig "setProfile()" ;;
+    agent-ensip25) cmd_ensip25 ;;
     agent-rotate)
       # Each step sees only the key it signs with.
       (unset VAULT_OWNER_PRIVATE_KEY && forge_script script/ens/AgentNamespace.s.sol --sig "rotate()")
@@ -262,6 +287,7 @@ main() {
     claim-detach) forge_script script/ens/ClaimName.s.sol --sig "detach()" ;;
     claim) forge_script script/ens/ClaimName.s.sol --sig "claim()" ;;
     claim-profile) forge_script script/ens/ClaimName.s.sol --sig "profile()" ;;
+    claim-revoke) forge_script script/ens/ClaimName.s.sol --sig "revoke()" ;;
     claim-check) (cd "$CONTRACTS" && forge script script/ens/CheckClaim.s.sol) 2>&1 | redact ;;
     payout-name)
       (unset PAYOUT_PRIVATE_KEY && forge_script script/ens/PayoutName.s.sol --sig "fund()")

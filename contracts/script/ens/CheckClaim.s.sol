@@ -26,6 +26,7 @@ contract CheckClaim is Script {
     bytes4 private constant ADDR = 0x3b3b57de; // addr(bytes32)
     bytes4 private constant TEXT = 0x59d1d43c; // text(bytes32,string)
     bytes4 private constant EAC_UNAUTHORIZED = 0x4b27a133; // EACUnauthorizedAccountRoles(uint256,uint256,address)
+    bytes4 private constant TRANSFER_DISALLOWED = bytes4(keccak256("TransferDisallowed(uint256,address)"));
 
     function run() external {
         EnsV2 memory ens = EnsV2Lib.load();
@@ -123,8 +124,10 @@ contract CheckClaim is Script {
         require(
             _eq(_text(ens, name, "meigi.status"), _status(registry, tNumber)), "the company masked its status"
         );
+        _expectTransferDisallowed(claims, EnsV2Lib.labelId(_label(tNumber)), company);
         vm.revertToState(snapshot);
         console.log("  the company cannot set an address, re-point its name, or override name / meigi.status");
+        console.log("  the claimed name is non-transferable: the token carries no ROLE_CAN_TRANSFER_ADMIN");
     }
 
     /// @dev Stock resolution equals registry truth for every listed T-number, claimed or not.
@@ -147,6 +150,19 @@ contract CheckClaim is Script {
             );
             console.log("  %s -> %s [%s]", name, resolved, _status(registry, t));
         }
+    }
+
+    /// @dev Transfers need ROLE_CAN_TRANSFER_ADMIN on the token, and a claim is minted with no roles.
+    function _expectTransferDisallowed(IUserRegistry claims, uint256 id, address company) private {
+        uint256 tokenId = claims.getTokenId(id);
+        vm.prank(company);
+        (bool ok, bytes memory err) =
+            address(claims).call(abi.encodeCall(IUserRegistry.unsafeTransfer, (address(0xdead), tokenId, "")));
+        // forge-lint: disable-next-line(unsafe-typecast)
+        require(
+            !ok && err.length >= 4 && bytes4(err) == TRANSFER_DISALLOWED,
+            "the company could transfer its name"
+        );
     }
 
     function _expectDenied(address target, address account, bytes memory call) private {

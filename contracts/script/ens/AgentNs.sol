@@ -41,6 +41,11 @@ interface IUserRegistry {
     function getExpiry(uint256 anyId) external view returns (uint64);
     function hasRoles(uint256 anyId, uint256 roleBitmap, address account) external view returns (bool);
     function setResolver(uint256 anyId, address resolver) external;
+    /// @dev Burns the token (needs ROLE_UNREGISTER): the label is free again and resolves through the parent.
+    function unregister(uint256 anyId) external;
+    function getTokenId(uint256 anyId) external view returns (uint256);
+    /// @dev Reverts TransferDisallowed unless the owner holds ROLE_CAN_TRANSFER_ADMIN on the token.
+    function unsafeTransfer(address to, uint256 tokenId, bytes calldata data) external;
 }
 
 /// @dev Setters take the DNS-encoded name; records are keyed by its namehash. A setter with an argument

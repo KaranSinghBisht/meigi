@@ -5,7 +5,8 @@
 #   2. attaches the registry as payee.eth's subregistry;
 #   3. claims T2011001234567 for its registry controller;
 #   4. has the company set its own url and description;
-#   5. detaches the registry again (the rollback).
+#   5. revokes the claim (the name falls back to the wildcard);
+#   6. detaches the registry again (the rollback).
 # After every step, stock viem must resolve the reference names byte for byte as before, and before the rollback
 # CheckClaim and the standing CheckName must pass with the claims registry attached. Nothing is sent to a real network.
 set -euo pipefail
@@ -107,6 +108,14 @@ grep -E "token owned by|url =|cannot|->" <<<"$out" || fail "CheckClaim printed n
 step "CheckName (the standing payee check) with the claims registry attached"
 out="$( (cd "$MEIGI/contracts" && forge script script/ens/CheckName.s.sol) 2>&1)" || fail "CheckName failed: $out"
 grep -E "addr\(60\)|text\(name\)|-> " <<<"$out" || fail "CheckName printed nothing: $out"
+
+step "Revoke: Meigi burns the claim, and the name falls back to payee.eth's wildcard"
+out="$(T_NUMBER="$CLAIM" claims "revoke()" "$DEPLOYER_ADDRESS")" || fail "revoke failed: $out"
+grep -E "claim revoked" <<<"$out" || fail "revoke printed nothing: $out"
+unchanged "revoke"
+out="$(viem "$CLAIM" url,description)" || fail "viem failed: $out"
+jq -e --arg r "$PAYEE_RESOLVER" '.texts.url == null and (.resolver | ascii_downcase) == ($r | ascii_downcase)' \
+  <<<"$out" >/dev/null || fail "after revoke the name should be back on payee.eth's resolver, with no profile"
 
 step "Rollback: detach restores the pure-data setup"
 out="$(claims "detach()" "$DEPLOYER_ADDRESS")" || fail "detach failed: $out"

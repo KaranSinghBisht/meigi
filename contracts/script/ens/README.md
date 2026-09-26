@@ -22,6 +22,7 @@ Its money records still come only from `PayeeResolver`.
 | `CheckAgent.s.sol` | Read-only proof of the namespace, the agent's one scoped role (simulated allowed and denied writes) and an unchanged `payee.eth` |
 | `agent-e2e.sh`, `check-agent-viem.mjs` | The namespace flow on an anvil fork, and stock viem resolving `ap.meigi.eth` |
 | `agent-rotate-e2e.sh` | Agent key rotation on a fork of the live `ap.meigi.eth` and AgentVault |
+| `AgentIdentity.s.sol`, `agent-ensip25-e2e.sh`, `check-agent-8004-viem.mjs` | The agent's ERC-8004 registration, linked to `ap.meigi.eth` per ENSIP-25; its fork proof; the ENSIP-25 check with stock viem |
 | `PayoutName.s.sol`, `payout-name-e2e.sh`, `Reverse.sol` | A payout wallet's primary name (its payee's `t<T>.payee.eth`), its fork proof, and the shared reverse-name interfaces |
 | `VaultName.s.sol`, `vault-e2e.sh`, `check-primary-viem.mjs` | The AgentVault's primary name `ap.meigi.eth` (ENSIP-19), its fork proof, and stock viem `getEnsName` |
 | `ClaimName.s.sol`, `CheckClaim.s.sol`, `claim-e2e.sh` | Claimed payee names: `deploy()`, `attach()`, `claim()`, `profile()`, `detach()`, the read-only proof, and the fork proof |
@@ -109,6 +110,7 @@ AGENT_STATUS=online BROADCAST=1 script/ens/ens.sh agent-status   # signed by AGE
 BROADCAST=1 script/ens/ens.sh agent-endpoint        # agent-endpoint[web] = AGENT_ENDPOINT (default: the app's /agent)
 BROADCAST=1 script/ens/ens.sh agent-profile         # name, description, url and avatar, which the ENS app shows
 AGENT_ADDRESS=<new> AGENT_PREVIOUS_ADDRESS=<old> BROADCAST=1 script/ens/ens.sh agent-rotate   # a new agent key
+BROADCAST=1 script/ens/ens.sh agent-ensip25         # ERC-8004 registration + ENSIP-25 record (AGENT_8004_ID to relink)
 script/ens/ens.sh agent-check                       # read-only
 script/ens/agent-e2e.sh                             # the whole flow on a fork, plus eth_call denials and stock viem
 script/ens/agent-rotate-e2e.sh                      # key rotation on a fork of the live name and vault
@@ -133,7 +135,14 @@ script/ens/agent-rotate-e2e.sh                      # key rotation on a fork of 
   scoped roles go through `grantSetterRoles`.
 - A text key's scope is `keccak256(key)`. It holds on every name the resolver serves, and this one serves only
   `ap.meigi.eth`.
-- ENSIP-25 and ENSIP-26 are drafts. `agent-status` is our own key.
+- ENSIP-26: `agent-context` and `agent-endpoint[web]` follow the spec. `agent-status` is our own key.
+- ENSIP-25: `agent-ensip25` registers the agent in the ERC-8004 IdentityRegistry on Sepolia
+  (`0x8004A818BFB912233c491871b3d84c89A494BD9e`, v2.0.0). The agent's registration file, stored on-chain as a data: URI,
+  lists `ap.meigi.eth` as its ENS service. `ap.meigi.eth` carries
+  `agent-registration[0x0001000003aa36a7148004a818bfb912233c491871b3d84c89a494bd9e][<agentId>]` = `1`, where the
+  bracketed value is the registry as an ERC-7930 address. The registry sets the registering account as the agent
+  wallet, and `register()` clears it, since the agent pays from the AgentVault. `check-agent-8004-viem.mjs` runs the
+  check from the registry's side.
 
 ## AgentVault primary name (ENSIP-19, Beta only)
 
@@ -178,6 +187,7 @@ COMPANY_FUND_WEI=5000000000000000 BROADCAST=1 script/ens/ens.sh claim    # T_NUM
 PROFILE_URL=https://shoji.example PROFILE_DESCRIPTION="…" PROFILE_AVATAR="data:image/svg+xml;base64,…" \
   BROADCAST=1 script/ens/ens.sh claim-profile    # the company signs; each PROFILE_* is optional
 script/ens/ens.sh claim-check                  # read-only
+T_NUMBER=<t> BROADCAST=1 script/ens/ens.sh claim-revoke   # Meigi burns one claim; the name falls back to the wildcard
 BROADCAST=1 script/ens/ens.sh claim-detach     # rollback: payee.eth back to no subregistry, in one transaction
 script/ens/claim-e2e.sh                        # fork proof: impersonates payee.eth's owner and the company
 ```
@@ -191,6 +201,12 @@ script/ens/claim-e2e.sh                        # fork proof: impersonates payee.
   `ClaimedPayeeResolver` that forwards to `payee.eth`'s resolver.
 - The fork proof resolves four reference names with stock viem after every step (two active payees, a disputed
   one and an unknown T-number), and the output must stay byte-identical to the baseline.
+- Claims are **non-transferable**: ENSv2 lets a token move only if its owner holds `ROLE_CAN_TRANSFER_ADMIN` on it,
+  and a claim is minted with no roles. `claim-check` simulates the company's transfer, which reverts
+  `TransferDisallowed`.
+- Claims are **revocable**: `claim-revoke` unregisters one (it needs `ROLE_UNREGISTER`, which Meigi holds as root) and
+  unlinks its profile. Use it for a disputed or retired company, or for a listing the company never accepted. The
+  name keeps resolving through the wildcard, to the same payout.
 - `claim-detach` leaves the registry, tokens and profiles deployed but unreachable, and `claim-attach` restores
   them. Meigi, not the company, can re-point or revoke a claim, and `setProfile(t, 0, 0)` hides a profile.
 - `ClaimedPayeeResolver` pins `payee.eth`'s resolver and its registry when it is deployed. If `payee.eth` ever gets
