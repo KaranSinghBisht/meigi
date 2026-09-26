@@ -19,8 +19,8 @@ import {EnsV2, EnsV2Lib} from "./EnsV2.sol";
 /// @dev Order (ens.sh): agent-deploy → register (ENS_LABEL=meigi, ENS_SUBREGISTRY) → agent-setup → agent-status.
 ///      Env: DEPLOYER_PRIVATE_KEY, AGENT_ADDRESS, and the ENS_* factory and implementations from
 ///      deployments/beta.env. After agent-deploy, also AGENT_SUBREGISTRY and AGENT_RESOLVER. See AgentConfig for
-///      the optional names and records, AGENT_STATUS for setStatus(), and AGENT_PREVIOUS_ADDRESS to revoke a
-///      rotated-out agent key in setup().
+///      the optional names and records, AGENT_STATUS for setStatus(), AGENT_PREVIOUS_ADDRESS to revoke a
+///      rotated-out agent key in setup(), and AGENT_ENDPOINT for setEndpoint().
 contract AgentNamespace is Script {
     /// @notice Deploys the subregistry and the resolver as VerifiableFactory proxies. The resolver's records are
     ///         written by its initializer, which skips permission checks. Skips a proxy whose env var is set.
@@ -97,18 +97,24 @@ contract AgentNamespace is Script {
         console.log("%s is set up; %s may set agent-status only", AgentConfig.name(), agent);
     }
 
+    /// @notice Signed by the deployer: points `agent-endpoint[web]` at AgentConfig.endpoint() (AGENT_ENDPOINT).
+    function setEndpoint() external {
+        uint256 pk = _deployerKey();
+        IPermissionedResolver resolver = _agentResolver();
+        string memory endpoint = AgentConfig.endpoint();
+
+        vm.startBroadcast(pk);
+        resolver.setText(AgentConfig.dnsName(), "agent-endpoint[web]", endpoint);
+        vm.stopBroadcast();
+        console.log("%s agent-endpoint[web] = %s", AgentConfig.name(), endpoint);
+    }
+
     /// @notice Signed by the agent key: writes the one record it is allowed to write.
     function setStatus() external {
         uint256 pk = vm.envUint("AGENT_PRIVATE_KEY");
         address agent = vm.addr(pk);
         require(vm.envOr("AGENT_ADDRESS", agent) == agent, "AGENT_ADDRESS does not match AGENT_PRIVATE_KEY");
-        IPermissionedResolver resolver = IPermissionedResolver(vm.envAddress("AGENT_RESOLVER"));
-        address subregistry = EnsV2Lib.load().ethRegistry.getSubregistry(AgentConfig.parent());
-        require(
-            subregistry != address(0)
-                && IUserRegistry(subregistry).getResolver(AgentConfig.label()) == address(resolver),
-            "AGENT_RESOLVER is not the resolver of the agent's name"
-        );
+        IPermissionedResolver resolver = _agentResolver();
         require(
             resolver.hasRoles(_statusResource(), AgentNsLib.ROLE_SET_TEXT, agent), "run agent-setup first"
         );
@@ -140,6 +146,17 @@ contract AgentNamespace is Script {
         (address parent, string memory label) = subregistry.getParent();
         return parent == address(ens.ethRegistry)
             && keccak256(bytes(label)) == keccak256(bytes(AgentConfig.parent()));
+    }
+
+    /// @dev AGENT_RESOLVER, checked to be the resolver of the live agent name.
+    function _agentResolver() private view returns (IPermissionedResolver resolver) {
+        resolver = IPermissionedResolver(vm.envAddress("AGENT_RESOLVER"));
+        address subregistry = EnsV2Lib.load().ethRegistry.getSubregistry(AgentConfig.parent());
+        require(
+            subregistry != address(0)
+                && IUserRegistry(subregistry).getResolver(AgentConfig.label()) == address(resolver),
+            "AGENT_RESOLVER is not the resolver of the agent's name"
+        );
     }
 
     function _ownerGrant(address owner) private pure returns (Grant[] memory grants) {

@@ -104,6 +104,7 @@ export AGENT_SUBREGISTRY=0x… AGENT_RESOLVER=0x…    # AGENT_ADDRESS comes fro
 ENS_LABEL=meigi ENS_SUBREGISTRY=$AGENT_SUBREGISTRY BROADCAST=1 script/ens/ens.sh register   # PAYEE_RESOLVER unset
 BROADCAST=1 script/ens/ens.sh agent-setup           # canonical parent, then ap.meigi.eth, then the agent's scoped role
 AGENT_STATUS=online BROADCAST=1 script/ens/ens.sh agent-status   # signed by AGENT_PRIVATE_KEY
+BROADCAST=1 script/ens/ens.sh agent-endpoint        # agent-endpoint[web] = AGENT_ENDPOINT (default: the app's /agent)
 script/ens/ens.sh agent-check                       # read-only
 script/ens/agent-e2e.sh                             # the whole flow on a fork, plus eth_call denials and stock viem
 ```

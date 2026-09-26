@@ -98,7 +98,7 @@ library AgentNsLib {
 ///      AGENT_PAYEE_REGISTRY (default: deployments/11155111.json, written by script/Deploy.s.sol).
 library AgentConfig {
     Vm private constant VM = Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
-    string internal constant DEFAULT_ENDPOINT = "https://meigi-app.karanbishttt.workers.dev/agent";
+    string internal constant DEFAULT_ENDPOINT = "https://meigi.karanbishttt.workers.dev/agent";
 
     function parent() internal view returns (string memory) {
         return VM.envOr("AGENT_PARENT", string("meigi"));
