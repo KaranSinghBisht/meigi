@@ -1,4 +1,5 @@
 import {
+  ensResolver,
   interceptaScreen,
   meigiPayeeExtension,
   registryReader,
@@ -34,6 +35,9 @@ export function guardedBuyer(config: Config) {
   const guardDeps = {
     network: NETWORK,
     payee: registryReader(publicClient, config.REGISTRY_ADDRESS as Address),
+    // An independent check alongside the registry: the merchant's declared ens (if any) must resolve to the
+    // same payout. Stock viem, the same public client as the registry read: the default Sepolia UR, no override.
+    resolveEns: ensResolver(publicClient),
     screen: config.INTERCEPTA_API_KEY ? interceptaScreen({ apiKey: config.INTERCEPTA_API_KEY }) : undefined,
   };
 
