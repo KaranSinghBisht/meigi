@@ -17,17 +17,18 @@ production step (roadmap, item 1).
 **First-claim squatting.**
 - A company's T-number and exact name are public; they're on its invoices.
 - The DNS proof accepts any domain the registrant controls, and any unique human can enroll as an officer.
-- `register` takes effect at once, so ENS, `PayRouter` and the x402 guard would all point at a squatter.
-- *What covers it:* a later claim freezes the number rather than overwriting it, and a vault owner who checks the
-  pinned payout independently would notice.
-- *What doesn't:* a company that never registers, payments made before the freeze, or disputes (governance resolves
-  those by hand).
+- On-chain, `register` takes effect at once, so ENS, `PayRouter` and the x402 guard would all point at a squatter.
+- *What covers it:* a later claim freezes the number instead of overwriting it, and a vault owner who checks the
+  pinned payout independently would notice. The verifier also caps each World ID officer at 3 companies, and can
+  hold new registrations in a public window where anyone can object (0h in the demo, 24–72h in production).
+- *What doesn't:* a company that never looks, a squatter with several humans, or payments made before a freeze.
+  The limits are the attester's off-chain policy; the contract doesn't enforce them.
 
 **Freeze griefing.**
-- Any claim that passes the same checks freezes the incumbent, and payments to it fail closed until governance
-  dismisses the claim.
-- One human can repeat this across numbers, and nothing rate-limits it.
-- It never misdirects money, but it costs availability.
+- Any claim that passes the same checks freezes the incumbent. Payments to it fail closed, so no money is
+  misdirected, until governance dismisses the claim.
+- Each World ID officer can claim at most 3 companies, and each client IP can file 3 disputes an hour. An attacker
+  with several humans or IPs can still freeze payees, and the caps are off-chain.
 
 **The hot attester key.**
 - One attester signs with a key held in the verifier's environment. A thief could:
@@ -52,10 +53,8 @@ production step (roadmap, item 1).
 ## Our posture
 
 **Non-custodial by design.**
-- Meigi never holds keys or funds:
-  - the registry is public information;
-  - each payer deploys and owns its AgentVault;
-  - the AP agent runs on the payer's machine with a local LLM.
+- Meigi never holds keys or funds. The registry is public information, each payer deploys and owns its AgentVault,
+  and the AP agent runs on the payer's machine with a local LLM.
 - We don't trade, intermediate or manage electronic payment instruments (EPIs) for others. Those activities make up
   電子決済手段等取引業 (PSA Art. 2(10)) [2]. Holding customers' agent keys could count as managing EPIs, so we won't.
 - The 2025 amendment created a registered intermediary business (Art. 2(18)) [2][3], so we take no JPYC referral
@@ -72,12 +71,10 @@ production step (roadmap, item 1).
   weaker than the APTCP's own remote KYB for companies [5]; roadmap item 1 closes that gap.
 
 **Sanctions.**
-- Under FEFTA Art. 16 measures, paying a designated party needs a permit [6].
-- Banks and fund-transfer, EPI and crypto providers must confirm that (Arts. 17, 17-3, 17-4) [6]. A payment between
-  self-hosted wallets has no intermediary to check.
-- Today we screen addresses only, with Intercepta. Without a key, the x402 buyer refuses unregistered merchants and
-  the AP agent reports "screening not configured". We don't screen legal names against the Ministry of Finance's
-  list.
+- Under FEFTA Art. 16 measures, paying a designated party needs a permit. Banks and fund-transfer, EPI and crypto
+  providers must check this (Arts. 17, 17-3, 17-4) [6], but a payment between self-hosted wallets has no
+  intermediary to do it.
+- Today we screen addresses only, with Intercepta, not legal names against the Ministry of Finance's list.
 
 **Personal data (APPI).**
 - Corporations aren't personal information (Art. 2(1)) [7], and the verifier only accepts numbers in the 法人番号
@@ -97,15 +94,14 @@ production step (roadmap, item 1).
   faith and without negligence [9]. Whether relying on Meigi meets that bar is untested.
 - Either way, a wrong entry would likely come back to us, in tort (Art. 709) or contract [9]. Production needs B2B
   terms with liability caps, and insurance.
-- The EU's Verification of Payee (VoP) is comparable: a PSP that fails to verify refunds the payer, and the party at
-  fault compensates (Reg. (EU) 2024/886, Art. 5c(8)) [10].
+- Under the EU's Verification of Payee (VoP), a PSP that fails to verify refunds the payer (Reg. (EU) 2024/886,
+  Art. 5c(8)) [10].
 
 **Advisory mode or hard revert.**
-- EU VoP has been mandatory for euro-area PSPs since 9 Oct 2025, but it doesn't cover stablecoins.
-  - For a legal person, it may match "a fiscal number… or an LEI" (Art. 5c(1)(b)) [10].
-  - It must not "prevent payers from authorising" (Art. 5c(5)) [10].
-- An AI agent can't weigh a warning, so the AgentVault and the x402 guard hard-fail.
-- People paying from a wallet should get a VoP-style advisory mode: warn, and allow an override.
+- EU VoP, mandatory for euro-area PSPs since 9 Oct 2025, must not "prevent payers from authorising" (Art. 5c(5))
+  [10]. It doesn't cover stablecoins.
+- An AI agent can't weigh a warning, so the AgentVault and the x402 guard hard-fail. People paying from a wallet
+  should get a VoP-style advisory mode: warn, and allow an override.
 
 ## Production roadmap
 
@@ -121,26 +117,24 @@ production step (roadmap, item 1).
    - *Officers other than the representative* have their authority checked per Art. 12(5): a registered officer, a
      power of attorney, or a call-back to the head office [5].
 2. **gBizINFO URL cross-check.**
-   - METI's gBizINFO has a 企業ホームページ field (`company_url`, with per-field source metadata). Its API needs an
-     application and a token [15].
+   - METI's gBizINFO has a 企業ホームページ field (`company_url`, with per-field source metadata); its API needs a
+     token [15].
    - Our 26 Sep 2026 spot check found it filled for 3 of 8 companies (each from MHLW's 職場情報総合サイト) and empty
      for 5, including Sony Group.
-   - METI doesn't guarantee its accuracy [16]. So a match is supporting evidence, and a missing URL counts for
-     nothing.
-3. **A public pending window for new registrations**, 72h like payout changes. The number resolves to nothing until
-   the window ends, and an objection opens a dispute.
+   - METI doesn't guarantee accuracy [16], so a match supports a registration and a missing URL counts for nothing.
+3. **An on-chain pending window.** The verifier's objection window (above) moves into the registry, so a new number
+   resolves to nothing until its window ends.
 4. **Keys.**
    - k-of-n attesters with HSM or MPC custody.
    - The registry owner and `payee.eth` on a multisig behind a 72h timelock.
    - DNSSEC validation from several vantage points.
 5. **Assurance.**
    - Planned: an independent audit, formal verification of the timelock invariant, and a public bug bounty.
-   - Today: three AI-assisted review rounds with proof-of-concept exploits, mutation testing of every fix, and 95
-     Foundry tests with fuzzing. That is not a professional audit.
-6. **Rate limits.**
-   - One open claim per human per number, and caps per human.
-   - On-chain registration caps.
-   - Representative binding required before anyone can freeze an incumbent.
+   - So far: three AI-assisted review rounds with proof-of-concept exploits, mutation-tested fixes, and 95 fuzzed
+     Foundry tests. That is not a professional audit.
+6. **Limits on-chain.** The verifier already caps each World ID officer (3 companies, 1 open claim per number) and
+   each client IP per hour. Production adds on-chain registration caps, and requires representative binding before
+   anyone can freeze an incumbent.
 7. **Screening and status.**
    - Screen legal names against MOF's FEFTA list at registration and on each list update.
    - Read the qualified-invoice status from NTA data.
