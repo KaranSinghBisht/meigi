@@ -16,7 +16,7 @@ Its money records still come only from `PayeeResolver`.
 | `DeployPayeeStack.s.sol` | Registry and resolver for fork runs, or only a resolver when `PAYEE_REGISTRY` is set (resolver redeploys) |
 | `SeedDemoPayee.s.sol` | Attester registers the demo payee `T2011001234567` (test-fixture data) |
 | `EnsV2.sol` | ENSv2 interfaces (from the verified source), DNS encoding, and deployment wiring checks |
-| `deployments/*.env` | ENSv2 address tables: `beta` (default) and `hackathon` |
+| `deployments/*.env` | ENSv2 address tables: `beta` (default) and `hackathon`. `beta.env` also records Meigi's claims registry and `ClaimedPayeeResolver` |
 | `check-viem.mjs` | viem `getEnsAddress` / `getEnsText`, called the way a wallet calls them |
 | `AgentNamespace.s.sol`, `AgentNs.sol` | The AP agent's namespace `ap.meigi.eth`: `deploy()`, `setup()`, `setStatus()` (see below) |
 | `CheckAgent.s.sol` | Read-only proof of the namespace, the agent's one scoped role (simulated allowed and denied writes) and an unchanged `payee.eth` |
