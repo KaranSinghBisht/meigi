@@ -3,8 +3,9 @@
 **Confirmation of Payee for stablecoins and AI agents. Pay companies, not addresses.**
 
 **In one sentence:** Meigi binds a Japanese company's invoice registration number (T-number) to one on-chain
-payout, verified against the National Tax Agency and by World ID officers, so that people, wallets and AI agents
-paying in stablecoins can refuse a swapped address before any money moves.
+payout. The number and exact name are matched to the NTA corporate registry (法人番号), the registrant proves control
+of a domain, and World ID officers enroll. People, wallets and AI agents paying in stablecoins can then refuse a
+swapped address before any money moves.
 
 - **Live:** [meigi.karanbishttt.workers.dev](https://meigi.karanbishttt.workers.dev) is one site: the landing,
   and "enter" glides into the app. The registry explorer, ENS check and event feed read Sepolia live. Steps that need our services show recorded real
@@ -26,11 +27,15 @@ have nothing like it.
 Every Japanese company that issues qualified invoices prints a public, government-issued **T-number** on
 them. Japan comes first, but the design is global: any official business identifier works the same way, and the
 verifier already checks the global **LEI**. Meigi binds a T-number to **one payout address**:
-- **registered** only after an exact match against the National Tax Agency's corporate registry, a DNS proof,
-  and World ID officers;
+- **registered** only after an exact name match against the NTA corporate registry (法人番号), a DNS proof on a
+  domain the registrant controls, and World ID officers;
 - **changed** only with the business key plus the same verified humans, after **72 hours in public**, where it
   can be cancelled;
 - **enforced** on-chain when money moves.
+
+Registration doesn't yet prove that the registrant *represents* the company. That binding, through the
+商業登記電子証明書, is the production step. The threat model, our compliance posture and the roadmap are in
+[`docs/trust-and-compliance.md`](docs/trust-and-compliance.md).
 
 ```mermaid
 flowchart LR
@@ -45,7 +50,7 @@ flowchart LR
 
 **"This is our AI accountant. It holds JPYC and pays our suppliers. Please try to rob it."** Write it a fake
 invoice or a bank-change email, or hide a prompt injection. Its LLM may well agree to pay the scammer. Then
-the vault reverts `PayeeMismatch` and names the real company.
+the vault reverts `PayeeMismatch` and names the registered company.
 
 ## Try it without installing anything
 
@@ -170,8 +175,11 @@ The contracts went through three review rounds by separate AI reviewers, with pr
 - round 3 mutation-tested every fix;
 - 95 Foundry tests, including fuzzing of the core guarantee.
 
+These reviews were AI-assisted, not a professional audit.
+
 Roles, delays and the trust model are in [`contracts/README.md`](contracts/README.md). The agent is untrusted
-by design: its worst case is overpaying an approved vendor, up to that vendor's caps.
+by design: its worst case is overpaying an approved vendor, up to that vendor's caps. The threat model, audit plan
+and production roadmap are in [`docs/trust-and-compliance.md`](docs/trust-and-compliance.md).
 
 ## Run it locally
 
@@ -196,6 +204,8 @@ Service ports, re-seeding and demo checks: [`docs/runbook.md`](docs/runbook.md).
 
 - [`docs/spec.md`](docs/spec.md): product and architecture.
 - [`docs/runbook.md`](docs/runbook.md): live addresses, services, governance rules.
+- [`docs/trust-and-compliance.md`](docs/trust-and-compliance.md): threat model, compliance posture, production
+  roadmap.
 - [`docs/world-agents-spec.md`](docs/world-agents-spec.md): human approval of held agent payments.
 - [`AI_USAGE.md`](AI_USAGE.md) and [`docs/ai`](docs/ai): how AI was used, with every sub-agent brief.
 
