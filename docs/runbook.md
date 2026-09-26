@@ -18,6 +18,9 @@ The resolver was redeployed on 2026-09-26 so that disputed payees publish only t
 name. `payee.eth` points at it on both ENSv2 deployments; the previous resolver `0xe3Fa…25dA` is unused.
 All are verified on Sourcify. Timelocks: 72h for payout changes, rotations and dispute resolutions; 1h for new vendors.
 
+**Mizuhiki (Awaji testnet, chain 6497):** not deployed yet - a first attempt was blocked on the PoW faucet
+(one session per IP, no reconnect) before the deployer address got any gas. See `docs/mizuhiki.md`.
+
 Demo fixtures, fictional companies marked as such in their on-chain evidence:
 - `T2011001234567` 株式会社メイギ商事: the AP-agent vendor. The vault approves it with caps of ¥500k per invoice and ¥1M per 30 days.
 - `T8999900000001` 株式会社フジデータ: the x402 demo's dataset merchant (invoice-OCR training data). Registry
