@@ -95,8 +95,8 @@ the vault reverts `PayeeMismatch` and names the real company.
     [`services/verifier/src/routes/intents.ts`](services/verifier/src/routes/intents.ts),
     [`apps/web/src/ui/world`](apps/web/src/ui/world),
     [`contracts/src/registry/OfficerQuorum.sol`](contracts/src/registry/OfficerQuorum.sol).
-- **Curvegrid MultiBaas.** Settlement history for the AP agent and the dashboards comes from MultiBaas's event
-  index on Ethereum Sepolia (see [below](#how-we-use-curvegrid-multibaas)).
+- **Curvegrid MultiBaas.** Meigi on Mizuhiki, indexed and queried through MultiBaas, like Curvegrid's Matsuri
+  sample (see [below](#how-we-use-curvegrid-multibaas)).
 - **Intercepta** (screening; not a prize target). The quick-scan runs before signing, and without a key it fails
   closed. Code: [`packages/x402-guard/src/intercepta.ts`](packages/x402-guard/src/intercepta.ts) (the call);
   `checkPayee` and `checkUndeclared` in [`check.ts`](packages/x402-guard/src/check.ts) (the decisions);
@@ -104,33 +104,48 @@ the vault reverts `PayeeMismatch` and names the real company.
 
 ### How we use Curvegrid MultiBaas
 
-- **What it indexes.** Our deployment (Ethereum Sepolia) links PayeeRegistry, AgentVault and MockJPYC, with
-  event indexing from the v2 block (11781105).
-- **Queries.** Three event queries, in the format of Curvegrid's Matsuri sample:
-  - every `InvoicePaid` the vault emitted;
-  - `InvoicePaid` summed per T-number;
-  - mJPYC `Transfer` summed per recipient: what each company received, vault payments and x402 sales alike.
-- **What reads it.**
-  - The AP agent's `GET /payments` feeds the dashboards (what was paid, what each payee received, what the agent
-    refused).
-  - `GET /invoices/:id/settlement` confirms each payment from its indexed `InvoicePaid`.
-  - Without MultiBaas, the same facts come from RPC logs, and each answer says which source it used.
+Meigi on Mizuhiki, indexed and queried through MultiBaas, like Curvegrid's Matsuri sample.
+
+- **What it indexes.** Meigi's contracts on MIZUHIKI's Awaji testnet (chain 6497), addresses in
+  [`contracts/deployments/6497.json`](contracts/deployments/6497.json). Our MultiBaas deployment there links
+  PayeeRegistry, AgentVault, PayRouter and the JPY token, indexing events from their deploy block.
+- **Queries.** Six saved event queries, in the format of Curvegrid's Matsuri sample:
+  - `meigi_invoices_paid`: every `InvoicePaid` the vault emitted;
+  - `meigi_invoices_by_payee`: `InvoicePaid` summed per T-number;
+  - `meigi_payees_registered`: every company the registry recorded, with its exact registered name;
+  - `meigi_router_paid`: every pay-by-T-number `Paid` through the PayRouter;
+  - `meigi_mjpy_balances`: net MJPY per account, the way the Matsuri sample computes balances (`add` for the
+    recipient, `subtract` for the sender);
+  - `meigi_mjpy_received`: MJPY summed per recipient.
+- **What reads it.** The AP agent's `GET /payments` has a `mizuhiki` section, labelled "Mizuhiki · via
+  MultiBaas", and the dashboards read it:
+  - payments by the vault and the router;
+  - registered payees;
+  - what each payee received;
+  - the token's decimals, read through the contract call API.
+
+  Sepolia payments stay on RPC logs, read with viem: a free plan backfills about 100 blocks, and our Sepolia
+  history is older.
 - **Setup:**
-  1. Put `MULTIBAAS_URL` and `MULTIBAAS_API_KEY` in `.env`.
-  2. Run `pnpm --filter @meigi/agent multibaas:setup`. It is idempotent: it imports the ABIs through MultiBaas's
-     explorer lookup, aliases and links the contracts, and saves the queries.
-  3. Restart the agent; `/health` shows `"multibaas": true`.
-- **Tests:** `pnpm --filter @meigi/agent test` runs them against a stub MultiBaas, and
-  `pnpm --filter @meigi/agent test:integration` runs the RPC fallback on anvil.
+  1. Put `MULTIBAAS_AWAJI_URL` and `MULTIBAAS_AWAJI_API_KEY` in `.env`.
+  2. Before deploying, run `pnpm --filter @meigi/agent multibaas:setup --awaji --library-only`. It adds the ABIs
+     and saves the queries.
+  3. Right after the forge broadcast, run `pnpm --filter @meigi/agent multibaas:setup --awaji`. It aliases and
+     links the contracts from the broadcast's first block, well inside the 100-block backfill (about 10 minutes
+     at Awaji's 6-second blocks).
+  4. Restart the agent; `/health` shows `"mizuhiki": true`.
+- **Tests:** `pnpm --filter @meigi/agent test` runs them against a stub MultiBaas, including a deployment on the
+  wrong chain, which is never read or written. `pnpm --filter @meigi/agent test:integration` runs the RPC path on
+  anvil.
 - **Code:** [`services/agent/src/multibaas`](services/agent/src/multibaas),
   [`services/agent/src/history`](services/agent/src/history),
-  [`services/agent/src/routes/payments.ts`](services/agent/src/routes/payments.ts).
+  [`services/agent/src/routes/payments-mizuhiki.ts`](services/agent/src/routes/payments-mizuhiki.ts).
 - **Our experience with MultiBaas:** PENDING, filled in after the live run (time to the first indexed event,
   what went well, friction, one improvement).
 - **Next steps:**
   - build `payInvoice` with the contract-call API and sign locally;
   - add an `event.emitted` webhook behind a public relay;
-  - deploy to MIZUHIKI's Awaji testnet, as in the Matsuri sample.
+  - move the AP agent itself to Awaji once ENS and World ID are reachable from there.
 
 ## Deployed on Sepolia (all [Sourcify](https://sourcify.dev) exact matches)
 
@@ -168,7 +183,7 @@ pnpm install
 cd contracts && forge test && cd ..                    # 95 tests
 pnpm --filter @meigi/verifier start                    # :8787 (needs the NTA index: services/verifier/scripts/build_nta_index.py)
 pnpm --filter @meigi/agent start                       # :8788
-pnpm --filter @meigi/agent multibaas:setup             # optional: index the contracts in Curvegrid MultiBaas
+pnpm --filter @meigi/agent multibaas:setup --awaji     # optional: index the Awaji contracts in Curvegrid MultiBaas
 pnpm --filter @meigi/x402-demo start                   # :8790
 pnpm --filter @meigi/web dev                           # :5173
 pnpm dev:landing
