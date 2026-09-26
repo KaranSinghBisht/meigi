@@ -61,8 +61,11 @@ settings:
 **No aliases, on purpose.** Money records aren't stored in any resolver: PayeeResolver computes them from the
 registry, and ENSv2 links can't cross resolver instances. We keep one payable name per company, the one printed on
 the invoice. Namespace aliasing fails closed, because [CompanyNamespace](#companies-issue-names-to-their-own-agents-live-on-the-beta-since-2026-09-26)
-answers only the canonical `<label>.t<13 digits>.payee.eth`. The safe alias is one-way, a company's DNSSEC domain
-pointing at its canonical name through ENSv2's DNSAliasResolver: that's a next step.
+answers only the canonical `<label>.t<13 digits>.payee.eth`. A fork test mounts a company's registry under a second
+name, `ap.shoji.payee.eth` and another company's `ap.t8999900000001.payee.eth`, and the UniversalResolver gets
+nothing there ([`test_ForkARegistryMountedUnderAnotherNameAnswersNothing`](../contracts/test/ens/CompanyNamespaceFork.t.sol)).
+The safe alias is one-way, a company's DNSSEC domain pointing at its canonical name through ENSv2's
+DNSAliasResolver: that's a next step.
 
 **Payout wallets carry their company's name.**
 - A payout wallet can take its payee's name as its primary name (ENSIP-19), so an app that reads primary names can
@@ -190,7 +193,7 @@ touched; the only registry write was the buyer's new registration. Gas: 0.0098 S
 
 Tests behind it:
 - 25 unit tests against the real PayeeRegistry, so rotations and disputes are the registry's own flows.
-- 6 fork tests on the live Beta through the canonical UniversalResolver, in
+- 7 fork tests on the live Beta through the canonical UniversalResolver, in
   [`CompanyNamespaceFork.t.sol`](../contracts/test/ens/CompanyNamespaceFork.t.sol).
 - [`names-e2e.sh`](../contracts/script/ens/names-e2e.sh) on an anvil fork with stock viem.
 - contracts-review passed it after two rounds whose findings shaped this design, with no open findings. Its harness

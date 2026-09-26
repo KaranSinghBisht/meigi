@@ -10,6 +10,14 @@ import {OfficerQuorum} from "../../src/registry/OfficerQuorum.sol";
 import {PayeeRegistry} from "../../src/registry/PayeeRegistry.sol";
 
 interface IClaimsRegistry {
+    function register(
+        string calldata label,
+        address owner,
+        address registry,
+        address resolver,
+        uint256 roleBitmap,
+        uint64 expiry
+    ) external returns (uint256);
     function setSubregistry(uint256 anyId, address registry) external;
 }
 
@@ -205,6 +213,33 @@ contract CompanyNamespaceForkTest is Test {
         assertEq(
             _text("keiri.t2011001234567.payee.eth", "description").v,
             "Accounts department (fictional demo company)"
+        );
+    }
+
+    /// @dev ENSv2 can mount one registry under two names. Mounted anywhere but its own claimed name, the company's
+    ///      registry answers nothing: the gate answers only the canonical `<label>.t<13 digits>.payee.eth` of the
+    ///      namespace attached there.
+    function test_ForkARegistryMountedUnderAnotherNameAnswersNothing() public {
+        address ns = _openAttachIssue();
+        uint64 expiry = IEnsV2Registry(CLAIMS).getExpiry(uint256(keccak256("t2011001234567")));
+        vm.startPrank(MEIGI);
+        IClaimsRegistry(CLAIMS).register("shoji", MEIGI, ns, address(0), 0, expiry); // an alias label
+        IClaimsRegistry(CLAIMS).setSubregistry(uint256(keccak256("t8999900000001")), ns); // another company's name
+        vm.stopPrank();
+
+        string[2] memory aliases = ["ap.shoji.payee.eth", "ap.t8999900000001.payee.eth"];
+        for (uint256 i; i < aliases.length; ++i) {
+            Text memory t = _text(aliases[i], "description");
+            assertEq(
+                t.used, address(gate), "the UniversalResolver reaches the gate through the mounted registry"
+            );
+            assertEq(t.v, "", "and the gate answers nothing there");
+            assertEq(_addr(aliases[i]), address(0));
+        }
+        assertEq(
+            _text(AP, "description").v,
+            unicode"AP agent of 株式会社メイギ商事 (fictional demo company)",
+            "the canonical name still answers"
         );
     }
 
