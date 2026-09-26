@@ -5,8 +5,12 @@
 # separate web dev server on a spare port, so it never touches whatever web server is already running
 # on :5173/:4173 for day-to-day work.
 #
-#   scripts/world-live.sh              # verifier + rehearsal web -> production, Selfie Check
+#   scripts/world-live.sh --yes        # verifier + rehearsal web -> production, Selfie Check
 #   scripts/world-live.sh --staging    # both back to today's default (staging, proof_of_human)
+#   scripts/world-live.sh --stop       # stop both
+#
+# It only stops servers it started itself (tracked in .omc/state/world-live.pids). Replacing a verifier
+# that was started some other way, like the shared one on :8787, needs --yes.
 #
 # Everything else in the root .env (WORLD_APP_ID, WORLD_RP_ID, WORLD_RP_SIGNING_KEY, the NTA/registry
 # data, VERIFIER_FIXTURES) is untouched either way; VERIFIER_FIXTURES is forced to "1" in production
@@ -28,25 +32,49 @@ VERIFIER_LOG="$ROOT/world-live-verifier.log"
 WEB_LOG="$ROOT/world-live-web.log"
 
 MODE="production"
-case "${1:-}" in
---staging) MODE="staging" ;;
---stop) MODE="stop" ;;
-"") ;;
-*)
-  echo "usage: $0 [--staging|--stop]" >&2
-  exit 1
-  ;;
-esac
+CONFIRMED=0
+for arg in "$@"; do
+  case "$arg" in
+  --staging) MODE="staging" ;;
+  --stop) MODE="stop" ;;
+  --yes) CONFIRMED=1 ;;
+  *)
+    echo "usage: $0 [--staging|--stop] [--yes]" >&2
+    exit 1
+    ;;
+  esac
+done
 
 pid_on_port() { lsof -tiTCP:"$1" -sTCP:LISTEN 2>/dev/null || true; }
+
+# Listeners this script started, one "port pid" line each, so it never stops a server it didn't start
+# unless told to with --yes (the first switch replaces the shared verifier, which was started by hand).
+PIDFILE="$ROOT/.omc/state/world-live.pids"
+started_here() { [[ -f "$PIDFILE" ]] && grep -qx "$1 $2" "$PIDFILE"; }
+remember_listener() {
+  local pid
+  pid="$(pid_on_port "$1")"
+  mkdir -p "$(dirname "$PIDFILE")"
+  [[ -n "$pid" ]] && echo "$1 $pid" >>"$PIDFILE"
+}
+forget_listener() {
+  [[ -f "$PIDFILE" ]] || return 0
+  grep -v "^$1 " "$PIDFILE" >"$PIDFILE.tmp" || true
+  mv "$PIDFILE.tmp" "$PIDFILE"
+}
 
 # Idempotent: does nothing if the port is already free. Escalates to SIGKILL after 5s.
 stop_on_port() {
   local port="$1" pid
   pid="$(pid_on_port "$port")"
   [[ -z "$pid" ]] && return 0
+  if ! started_here "$port" "$pid" && [[ "$CONFIRMED" != "1" ]]; then
+    echo "refusing to stop pid $pid on :$port: this script didn't start it. Re-run with --yes to replace it." >&2
+    exit 1
+  fi
   echo "stopping the process on :$port (pid $pid)"
   kill "$pid" 2>/dev/null || true
+  forget_listener "$port"
   for _ in $(seq 1 10); do
     [[ -z "$(pid_on_port "$port")" ]] && return 0
     sleep 0.5
@@ -85,6 +113,7 @@ start_verifier() {
     echo "verifier did not come up in time; see $VERIFIER_LOG" >&2
     exit 1
   }
+  remember_listener "$VERIFIER_PORT"
   echo "verifier up: http://localhost:$VERIFIER_PORT"
 }
 
@@ -103,6 +132,7 @@ start_web() {
     echo "web dev server did not come up in time; see $WEB_LOG" >&2
     exit 1
   }
+  remember_listener "$WEB_PORT"
   echo "web up: http://localhost:$WEB_PORT/register"
 }
 
