@@ -55,11 +55,13 @@ export function useEnterTransition({ stillOnly, overlay }: EnterOptions) {
       event.preventDefault()
       if (timeline.current) return
       let entered = false
+      // The camera stays held at 'gate' until this page unmounts (the cleanup above releases it), by which time the
+      // route's own station is 'gate' too. Releasing it here would let the stage see '/' again before /start commits,
+      // and glide back through the torii and forward again.
       const go = () => {
         if (entered) return
         entered = true
         navigate(START_PATH, { state: { entered: true } })
-        stage.hold(null)
       }
       const seconds = stillOnly ? CROSSFADE_SECONDS : GLIDE_SECONDS
       const tl = gsap.timeline()
