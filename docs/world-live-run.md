@@ -33,7 +33,13 @@ Never share the QR code or session link from a screenshot: whoever completes it 
 3. **"Prove your domain":** skip it.
 4. **"Prove you represent the company":** skip it too (production's real check is the 商業登記電子証明書, which
    this run isn't built to carry).
-5. **"Your officers":** tap enroll, scan the QR with the **World ID** app, complete Selfie Check on the phone.
+5. **"Your officers":** tap enroll, open the QR/session, then **decline or cancel from inside the World ID app
+   itself** once, before completing it for real — an alternative path Karan can do alone, no second phone
+   needed (the IDKit prize wants a success path plus one alternative path).
+   - **We check:** the panel closes and shows a plain, calm line — "Declined. Nothing was added." (declined in
+     the app) or "Cancelled. Nothing was added." (backed out, or cancelled from our own Cancel button) — not a
+     red error. Tap the same button again immediately: it starts a fresh request with no leftover state.
+   Then tap enroll again, scan the QR with the **World ID** app for real, complete Selfie Check on the phone.
 6. **"Review and register":** confirm it shows "1 of 1 officers", then tap **Register company**.
    - **We check, right after:**
      - `cast call $REGISTRY "officersOf(uint64)(bytes32[])" 7999900000002 --rpc-url $SEPOLIA_RPC_URL` returns
@@ -45,10 +51,11 @@ Never share the QR code or session link from a screenshot: whoever completes it 
 7. On `/change/T7999900000002`, pick **payout change** and request a new address. Then, in this order:
    1. **The cancelled proof (alternative path a — cheapest, no second human needed).** Tap "Approve with World
       ID," open the QR/session, then **cancel from inside the World ID app itself** (decline, or back out) once.
-      - **We check:** the panel closes and shows a plain, calm line — "Cancelled. Nothing changed — try again
-        when you're ready." — not a red error. This is `apps/web/src/lib/world/rpContext.ts`'s `widgetOutcome()`
-        (fixed for this run in `44424ea`: `user_rejected`/`cancelled` now render as a muted status line, not an
-        alert).
+      - **We check:** the panel closes and shows a plain, calm line — "Declined. Nothing was approved." or
+        "Cancelled. Nothing was approved." — not a red error. This is `apps/web/src/lib/world/rpContext.ts`'s
+        `widgetOutcome()`: every client-side World ID code (declined, cancelled - including our own Cancel
+        button, and a genuine SDK timeout) renders as a muted status line naming what didn't happen, not an
+        alert.
       - Tap the same button again immediately: it must start a fresh request with no leftover state.
    2. **The wrong human (alternative path b) — deferred.** Adithya is out until tonight, so this happens later as
       its own mini-step (not blocking the rest of this run): from the "someone who isn't an enrolled officer"
@@ -88,8 +95,8 @@ No private keys, no World ID session tokens beyond their public session id, no p
   signal string, nonce, deadline, threshold/approvals count);
 - every transaction hash (registration, both payout-change queues, the controller's cancel) and the block each
   landed in;
-- the exact UI copy at each stage ("1 of 1 officers", "Cancelled. Nothing changed...", "Quorum reached...",
-  "Queued on-chain...", "Cancelled by the controller...");
+- the exact UI copy at each stage ("1 of 1 officers", "Declined/Cancelled. Nothing was added/approved.",
+  "Quorum reached...", "Queued on-chain...", "Cancelled by the controller...");
 - the wrong-human refusal message, verbatim, once Adithya's deferred mini-step happens;
 - **step 9's landing time:** queue tx block `TODO`, block timestamp `TODO`, lands at `TODO` (timestamp + 259200).
 

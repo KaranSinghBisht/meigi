@@ -14,6 +14,9 @@ interface WorldIdProofProps {
   readonly sessionId?: string
   /** A signed context the caller already has (e.g. from an intent). Used once while fresh. */
   readonly initialContext?: RpContextWire
+  /** What this proof would do if completed, e.g. "added" or "approved" - named in the decline/cancel/timeout
+   * message ("Declined. Nothing was {consequence}."), so it reads correctly wherever this is used. */
+  readonly consequence: string
   /** Sends the proof to the verifier. Throw to report failure; the caller shows its own message. */
   readonly onProof: (result: IDKitResultSession) => Promise<void>
   readonly variant?: ButtonVariant
@@ -27,7 +30,7 @@ interface WorldIdProofProps {
  * (lib/world/credentials.ts), e.g. `{ type: 'proof_of_human', signal }`, the session form of `proofOfHuman`.
  */
 export function WorldIdProof(props: WorldIdProofProps) {
-  const { label, signal, sessionId, initialContext, onProof, variant = 'primary', size = 'md', disabled } = props
+  const { label, signal, sessionId, initialContext, consequence, onProof, variant = 'primary', size = 'md', disabled } = props
   const flow = useWorldIdFlow(sessionId, initialContext)
   return (
     <div className={flow.context ? 'world-proof is-active' : 'world-proof'}>
@@ -36,6 +39,7 @@ export function WorldIdProof(props: WorldIdProofProps) {
           context={flow.context}
           signal={signal}
           sessionId={flow.existing}
+          consequence={consequence}
           onProof={onProof}
           onFinish={flow.finish}
         />

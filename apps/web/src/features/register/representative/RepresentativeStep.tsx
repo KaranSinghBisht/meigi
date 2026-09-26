@@ -43,14 +43,14 @@ function Methods() {
   )
 }
 
-/** What registration proves for a real company today, and what production adds. */
-function ProvenToday() {
+/** What registration proves for a real company, and what production adds. */
+function WhatRegistrationProves() {
   return (
     <Notice
       tone="info"
       title={
         <span>
-          Today, registration proves an exact NTA name match, domain control and <span className="nowrap">World ID</span>{' '}
+          Registration proves an exact NTA name match, domain control and <span className="nowrap">World ID</span>{' '}
           officers.
         </span>
       }
@@ -66,14 +66,14 @@ function DemoProvesNothing() {
     <Notice tone="info" title="A demo company is fictional: it has no NTA record and no domain to prove.">
       <p>
         A real company's registration proves an exact NTA name match, domain control and{' '}
-        <span className="nowrap">World ID</span> officers today. In production it also proves the signer represents
+        <span className="nowrap">World ID</span> officers. In production it also proves the signer represents
         the company.
       </p>
     </Notice>
   )
 }
 
-/** The step's content, shared by the live wizard and the hosted replay: the methods, and what's proven today. */
+/** The step's content, shared by the live wizard and the hosted replay: the methods, and what registration proves. */
 export function RepresentativeBody({ fixture }: { readonly fixture: boolean }) {
   return (
     <>
@@ -83,14 +83,14 @@ export function RepresentativeBody({ fixture }: { readonly fixture: boolean }) {
         </p>
       ) : null}
       <Methods />
-      {fixture ? <DemoProvesNothing /> : <ProvenToday />}
+      {fixture ? <DemoProvesNothing /> : <WhatRegistrationProves />}
     </>
   )
 }
 
 /**
  * Proof that the registrant represents the company. It isn't built: nothing here signs or pretends to. The step says
- * so plainly, and what registration proves today, then moves on.
+ * so plainly, and what registration proves, then moves on.
  */
 export function RepresentativeStep({ onboarding }: { readonly onboarding: Onboarding }) {
   return (

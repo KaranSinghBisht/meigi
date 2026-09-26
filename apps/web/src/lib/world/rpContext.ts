@@ -48,7 +48,6 @@ export interface WidgetOutcome {
 const WIDGET_ERRORS: Record<string, string> = {
   verification_rejected: 'World ID rejected the verification.',
   connection_failed: "Couldn't connect to World ID. Try again.",
-  timeout: 'World ID timed out. Try again.',
   max_verifications_reached: 'This World ID has reached its verification limit for this app.',
   invalid_rp_signature: "World ID didn't accept the verifier's signature. Check the RP id and signing key.",
   unknown_rp: "World ID doesn't know this RP id. Check VITE_WORLD_RP_ID.",
@@ -68,22 +67,29 @@ const WIDGET_ERRORS: Record<string, string> = {
   inclusion_proof_failed: "World couldn't confirm this identity is included yet. Try again shortly.",
 }
 
-/** Choosing not to prove, not holding a requested credential, or a transient hiccup on World's own side while
- * completing the check, is the person's situation right now, not something broken here: shown calmly, not as
- * an alert. */
-const WIDGET_CALM: Record<string, string> = {
-  user_rejected: 'Declined in World ID. Nothing changed — try again when you\'re ready.',
-  credential_unavailable: "This credential isn't available on your World ID. Nothing changed.",
-  feature_unavailable: "This isn't available on your World ID right now. Nothing changed.",
-  cancelled: 'Cancelled. Nothing changed — try again when you\'re ready.',
-  user_presence_failed: "The check didn't complete. Nothing changed — try again.",
-  failed_by_host_app: "World ID couldn't complete this. Nothing changed — try again in a moment.",
-  unexpected_response: "World ID gave an answer we didn't expect. Nothing changed — try again.",
-  generic_error: "Something didn't complete on World's side. Nothing changed — try again in a moment.",
-  inclusion_proof_pending: "World is still confirming this identity. Nothing changed — try again shortly.",
+/** Choosing not to prove, not holding a requested credential, a transient hiccup on World's own side while
+ * completing the check, or simply not answering in time, is the person's situation right now, not something
+ * broken here: shown calmly, not as an alert. `timeout` and `cancelled` are World's own client-side codes (its
+ * SDK's doc comment: "client-side codes ... not from World App"), not a report of anything wrong on either side.
+ * Each lead is a short, complete clause; `widgetOutcome` names what didn't happen next to it, so the same code
+ * reads correctly in every flow that can hit it (declining an officer enrollment vs. an approval, say). */
+const WIDGET_CALM_LEAD: Record<string, string> = {
+  user_rejected: 'Declined.',
+  cancelled: 'Cancelled.',
+  timeout: "World ID didn't answer in time.",
+  credential_unavailable: "This credential isn't available on your World ID.",
+  feature_unavailable: "This isn't available on your World ID right now.",
+  user_presence_failed: "The check didn't complete.",
+  failed_by_host_app: "World ID couldn't complete this.",
+  unexpected_response: "World ID gave an answer we didn't expect.",
+  generic_error: "Something didn't complete on World's side.",
+  inclusion_proof_pending: "World is still confirming this identity.",
 }
 
-export function widgetOutcome(code: string): WidgetOutcome {
-  if (code in WIDGET_CALM) return { message: WIDGET_CALM[code]!, calm: true }
+/** `consequence` is a plain past participle for "Nothing was ___": e.g. "added" for an officer enrollment,
+ * "approved" for an approval attempt - whatever this proof would otherwise have done. */
+export function widgetOutcome(code: string, consequence: string): WidgetOutcome {
+  const lead = WIDGET_CALM_LEAD[code]
+  if (lead) return { message: `${lead} Nothing was ${consequence}.`, calm: true }
   return { message: WIDGET_ERRORS[code] ?? `World ID failed (${code}).`, calm: false }
 }

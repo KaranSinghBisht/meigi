@@ -81,6 +81,7 @@ function Officers({ onboarding, registration, officers }: OfficersProps) {
           <WorldIdProof
             label={none ? 'Add an officer with World ID' : 'Add another officer'}
             signal={registration.enrollmentSignal}
+            consequence="added"
             onProof={enroll}
             variant={none ? 'primary' : 'ghost'}
             size="lg"

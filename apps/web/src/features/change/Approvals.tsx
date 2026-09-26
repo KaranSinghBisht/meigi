@@ -50,6 +50,7 @@ function OfficerRows({ flow }: { readonly flow: IntentFlow }) {
                 signal={intent.signal}
                 sessionId={session.sessionId}
                 initialContext={index === 0 ? intent.rpContext : undefined}
+                consequence="approved"
                 onProof={(result) => flow.approve(result, session.officerId)}
               />
             )}
@@ -93,6 +94,7 @@ export function Approvals({ flow }: { readonly flow: IntentFlow }) {
         <WorldIdProof
           label="Someone else tries to approve"
           signal={intent.signal}
+          consequence="approved"
           onProof={(result) => flow.approve(result, null)}
           variant="ghost"
         />

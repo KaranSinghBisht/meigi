@@ -24,6 +24,9 @@ interface WorldIdSessionProps {
   readonly context: RpContext
   readonly signal: string
   readonly sessionId?: `session_${string}`
+  /** What this proof would do if completed, e.g. "added" (an officer) or "approved" (a change) - named in the
+   * decline/cancel/timeout message, so it reads correctly wherever this component is used. */
+  readonly consequence: string
   readonly onProof: (result: IDKitResultSession) => Promise<void>
   readonly onFinish: (problem: WidgetOutcome | null) => void
 }
@@ -44,8 +47,8 @@ function useHandoff(flow: UseIDKitSessionHookResult, props: WorldIdSessionProps)
     )
   }, [flow.isSuccess, flow.result, onProof, onFinish])
   useEffect(() => {
-    if (flow.isError && flow.errorCode) onFinish(widgetOutcome(flow.errorCode))
-  }, [flow.isError, flow.errorCode, onFinish])
+    if (flow.isError && flow.errorCode) onFinish(widgetOutcome(flow.errorCode, props.consequence))
+  }, [flow.isError, flow.errorCode, onFinish, props.consequence])
   return verifying
 }
 
@@ -112,7 +115,7 @@ export function WorldIdSession(props: WorldIdSessionProps) {
         ) : null}
         <WorldIdLinks
           uri={flow.connectorURI}
-          onCancel={() => props.onFinish(null)}
+          onCancel={() => props.onFinish(widgetOutcome('cancelled', props.consequence))}
           onRetry={stale && !resolved ? open : undefined}
         />
         {env.worldEnvironment === 'staging' ? (

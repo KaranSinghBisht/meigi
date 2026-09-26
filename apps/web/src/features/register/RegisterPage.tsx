@@ -6,7 +6,7 @@ import { OnboardingWizard } from './wizard/OnboardingWizard'
 import './register.css'
 
 /**
- * The live wizard when the verifier can be reached (localhost, the booth); otherwise a replay of a real registration
+ * The live wizard when the verifier can be reached (a machine that runs it); otherwise a replay of a real registration
  * in the same window. The same check ServiceGate makes, with no wording of its own. `?replay` shows the replay anyway.
  */
 function RegisterGate() {
