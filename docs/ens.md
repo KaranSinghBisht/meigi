@@ -46,18 +46,23 @@ reach.[^deployments]
 - The company holds only `ROLE_SET_TEXT` on its own profile resolver, and no account holds the address role there.
 - The profile shows only while the registry lists the company as active under the key that claimed it.
 
-**A claimed name is non-transferable, expiring and revocable.** These are ENSv2 registry properties, not our code:
+**A claimed name is non-transferable, expiring and revocable.** The ENSv2 registry enforces these; Meigi chose the
+settings:
 - Transfers need `ROLE_CAN_TRANSFER_ADMIN` on the token, and a claim is minted with no roles, so a company can't sell or
   move its name.
-- A claim expires with `payee.eth`'s registration. Meigi can renew it.
+- A claim is set to expire with `payee.eth` (both at 1821898512). ENSv2 doesn't tie a child's expiry to its parent's,
+  so Meigi renews them together; if `payee.eth` lapsed, the subtree would stop resolving anyway.
 - Meigi can revoke a claim (`unregister`), for a disputed or retired company or a listing the company never accepted.
   The name keeps resolving through the wildcard, to the same payout.
 - `t6999900000003.payee.eth` went through this. Meigi listed it, the company never accepted it, and Meigi revoked it.
   It still resolves through the wildcard, as stock viem and ethers 6.17 show. The ENS app no longer lists it, because
   a revoked label has no registry entry and the app lists only names that do.
 
-**No aliases.** An alias would be a second name for the same payout, and look-alike names are the attack Meigi exists
-to stop. The T-number name stays the only one.
+**No aliases, on purpose.** Money records aren't stored in any resolver: PayeeResolver computes them from the
+registry, and ENSv2 links can't cross resolver instances. We keep one payable name per company, the one printed on
+the invoice. Namespace aliasing fails closed, because [CompanyNamespace](#companies-issue-names-to-their-own-agents-live-on-the-beta-since-2026-09-26)
+answers only the canonical `<label>.t<13 digits>.payee.eth`. The safe alias is one-way, a company's DNSSEC domain
+pointing at its canonical name through ENSv2's DNSAliasResolver: that's a next step.
 
 **Payout wallets carry their company's name.**
 - A payout wallet can take its payee's name as its primary name (ENSIP-19), so an app that reads primary names can
@@ -112,7 +117,7 @@ are fictional fixtures, and their texts say so. Live now:
 | `ap.t2011001234567.payee.eth` | `0xaBd2…6ac1` | Agent | 株式会社メイギ商事's AP agent: ENSIP-26 records, `agent-status` set by its holder, and an ENSIP-25 link to ERC-8004 agent 10526, which the company owns |
 | `keiri.t2011001234567.payee.eth` | `0x81CA…1ee9` | Workgroup | its accounts department (経理部) |
 | `zeirishi.t2011001234567.payee.eth` | `0x8A7b…9150` | Person | an outside tax accountant (税理士), for 30 days (expires 2026-10-26) |
-| `ap.t4999900000005.payee.eth` | `0xa73b…BA68` | Agent | the AP agent of the buyer 株式会社ハルカ製作所 (T4999900000005): its mandate, until 2026-12-31 (see below) |
+| `ap.t4999900000005.payee.eth` | `0xa73b…BA68` | Agent | the AP agent of the buyer 株式会社ハルカ製作所 (T4999900000005): its mandate until the end of 2026 (UTC); see below |
 
 Stock viem resolves every one of them to their texts and to no address. The AP agent's key `0xaBd2…6ac1` has no
 primary name. ENS's explorer shows each namespace as an ENSv2 permissioned subregistry:
@@ -175,7 +180,7 @@ and [t4999900000005.payee.eth](https://explorer.ens.dev/t4999900000005.payee.eth
 | Claim `t4999900000005.payee.eth`: gas, its profile resolver, the profile link, the claim | Meigi | [`0xa343…b952`](https://sepolia.etherscan.io/tx/0xa343a2b2589c16056de7a73c28398f00862e291f090f1a107b752cb3faa2b952), [`0xa041…1f02`](https://sepolia.etherscan.io/tx/0xa041f5eff16a44b5952fd93c831192f33399e241e17d8905e1ad0f22dc951f02), [`0xf8e3…8a6d`](https://sepolia.etherscan.io/tx/0xf8e3f5b3bd27e174cc943ef7bf9ee993e440e7f3aefd2edad40b04bf36ea8a6d), [`0xda99…04b1`](https://sepolia.etherscan.io/tx/0xda9969f10dc3cdf6d91bb8556450caa337f77904bd38f43ff3715d9fb90904b1) |
 | Open its namespace ([`0x0f58…E434`](https://sepolia.etherscan.io/address/0x0f58aC107C5CbFfcFB2b9a02C036C187589CE434)) | 株式会社ハルカ製作所 | [`0x353c…0236`](https://sepolia.etherscan.io/tx/0x353ca1dd0b46deea3584d73273c1c0acc0e23a18db42fff48ad11065a7f90236) |
 | Attach it | Meigi | [`0x140b…baa0`](https://sepolia.etherscan.io/tx/0x140b8682d7b088ada7bfd7e110d85c145159b02c64e818d36a949db19440baa0) |
-| Issue the mandate `ap` to the AP agent's key, until 2026-12-31 | 株式会社ハルカ製作所 | [`0x68c1…0d4b`](https://sepolia.etherscan.io/tx/0x68c11a16c380fb8742f7573adde269b85760189980e92a033e0b9a0b643c0d4b) |
+| Issue the mandate `ap` to the AP agent's key, until the end of 2026 (UTC) | 株式会社ハルカ製作所 | [`0x68c1…0d4b`](https://sepolia.etherscan.io/tx/0x68c11a16c380fb8742f7573adde269b85760189980e92a033e0b9a0b643c0d4b) |
 
 Before the first transaction and after the last, a stock-viem snapshot
 ([`snapshot-viem.mjs`](../contracts/script/ens/snapshot-viem.mjs)) of the seven reference names (each resolver, address
@@ -185,21 +190,22 @@ touched; the only registry write was the buyer's new registration. Gas: 0.0098 S
 
 Tests behind it:
 - 25 unit tests against the real PayeeRegistry, so rotations and disputes are the registry's own flows.
-- 6 fork tests on the live Beta through the canonical UniversalResolver.
+- 6 fork tests on the live Beta through the canonical UniversalResolver, in
+  [`CompanyNamespaceFork.t.sol`](../contracts/test/ens/CompanyNamespaceFork.t.sol).
 - [`names-e2e.sh`](../contracts/script/ens/names-e2e.sh) on an anvil fork with stock viem.
-- contracts-review passed it after two rounds whose findings shaped this design: 48 of 48, no open findings. Those
-  counts come from contracts-review's own fork harness, which is kept outside the repo. The fork tests in the repo
-  are [`CompanyNamespaceFork.t.sol`](../contracts/test/ens/CompanyNamespaceFork.t.sol) and the unit tests above.
+- contracts-review passed it after two rounds whose findings shaped this design, with no open findings. Its harness
+  stays outside the repo, so the tests anyone can rerun are the ones above.
 
 **The mandate: an ENS name the vault obeys** (live since 2026-09-26).
 [`MandateGate`](../contracts/src/payments/MandateGate.sol) at
 [`0x591d…83BF`](https://sepolia.etherscan.io/address/0x591dd2b2716b46740C665749A60209B7b22e83BF) is the AgentVault's
 agent. It passes `payInvoice` on only while `ap.t4999900000005.payee.eth` answers and the caller is its holder. In the
-rehearsal below, the buyer revoked the name and the contract refused the agent's next payment with `MandateNotLive`
-(checked in simulation against the live vault; nothing was sent). The buyer issued the name again, and payments
-continued. The vault still checks every payment itself. contracts-review passed the gate: 30 of 30 on a
-fork in front of the live vault and against the live names, in its own harness kept outside the repo. The repo's
-fork test is [`MandateGateFork.t.sol`](../contracts/test/payments/MandateGateFork.t.sol).
+rehearsal below, the buyer revoked the name, and the gate refused the agent's next payment (`MandateNotLive`) before
+anything was sent. The buyer issued the name again, and payments continued. The vault still checks every payment
+itself. The revert is in the repo's fork test,
+[`MandateGateFork.t.sol`](../contracts/test/payments/MandateGateFork.t.sol): against the live vault and the live names,
+the agent pays, the buyer revokes, the gate reverts `MandateNotLive`, the buyer re-issues, and the agent pays again.
+contracts-review passed the gate after its own fork review.
 
 The live rehearsal (Sepolia, 2026-09-26, ¥1,100 invoices to 株式会社メイギ商事; every transaction status 1):
 
@@ -209,7 +215,7 @@ The live rehearsal (Sepolia, 2026-09-26, ¥1,100 invoices to 株式会社メイ�
 | The vault's owner makes the gate its agent | [`0x7c61…31fe`](https://sepolia.etherscan.io/tx/0x7c61fe3bfaa38cda0025241ff88ee79b9911159b79c10c386a01e582939431fe) | `vault.agent()` = the gate |
 | A. The agent pays MS-2026-7201 through the gate | [`0xd1cc…db90`](https://sepolia.etherscan.io/tx/0xd1ccd8b78d90696732c288ecca07285fec019ae29bd5551bf70d3744f35adb90) | the vault's `InvoicePaid` to `0x9B4f…47e4` (agent audit #46) |
 | B. 株式会社ハルカ製作所 revokes `ap.t4999900000005.payee.eth` | [`0x5d0b…645e`](https://sepolia.etherscan.io/tx/0x5d0b277c4550950d405b497ed73d99566e9aa93f8f2fe6090f573ecdee5c645e) | `answers()` false, `holder()` 0x0 |
-| The agent tries MS-2026-7202 and 7203 | none | refused: the signer's simulation against the live vault reverts `MandateNotLive` (agent audit #50, #51), and analysis holds `mandate_not_live`; the key's nonce stays at 6 and nothing is broadcast |
+| The agent tries MS-2026-7202 and 7203 | none | the gate refused both (`MandateNotLive`) before anything was sent: the signer's pre-send simulation reverted (agent audit #50, #51), and analysis holds `mandate_not_live`. The key's nonce stays at 6, so no reverted transaction exists; the revert is in [`MandateGateFork.t.sol`](../contracts/test/payments/MandateGateFork.t.sol) |
 | C. The company issues `ap` to the agent's key again | [`0xfcf3…4216`](https://sepolia.etherscan.io/tx/0xfcf386a05eb2c9910fa0b841b465ec1fffc672a5db326e28f2d71268a04e4216) | `answers()` true, `holder()` the key |
 | D. The agent pays MS-2026-7204 | [`0xb49d…6a77`](https://sepolia.etherscan.io/tx/0xb49d32fe9341f062715988d66928f631bd7f5e23b8b8eb8e39a717c3a56e6a77) | the vault's `InvoicePaid` again, with no signer restart (agent audit #55) |
 
@@ -292,9 +298,11 @@ the agent's status.
 **Token IDs change when roles change. Does that break anything?** No. Everything we do looks a name up by its label
 (`getOwner(labelId)`, `getResolver(label)`), and resolution goes by name. Nothing stores a token ID.
 
-**Why not aliases, or "forever" names?** An alias is a second name for the same payout, which is the look-alike attack.
-A claim expires with `payee.eth`, which Meigi renews, so a claimed name can't outlive the namespace that vouches for
-it.
+**Why not aliases, or "forever" names?** Aliases: one payable name per company, the one printed on the invoice, and
+namespace aliasing fails closed ([No aliases](#companies-payeeeth)). Forever names: a claim is set to expire with
+`payee.eth`, and Meigi renews them together. ENSv2 doesn't tie a child's expiry to its parent's, but if `payee.eth`
+lapsed, the whole subtree would stop resolving, so a claimed name never resolves beyond the namespace that vouches
+for it.
 
 ## Evidence
 
@@ -309,7 +317,7 @@ Live on Sepolia. ENS app: [app.ens.dev](https://app.ens.dev). Explorer: [explore
 | A claimed company publishes its own profile | [app: t2011001234567.payee.eth](https://app.ens.dev/t2011001234567.payee.eth) (claim [`0xb60e…77e1`](https://sepolia.etherscan.io/tx/0xb60e778bd1355c662f2fbe18cd13a34d7b013005c8c7bb85a3472e14a9e077e1), url [`0xcbe9…3ccf`](https://sepolia.etherscan.io/tx/0xcbe90c90e03e07b0f2c4f58b13596f0904b1038db140cf1be4099c4e38b43ccf), avatar [`0x877c…0baa`](https://sepolia.etherscan.io/tx/0x877cafe13cd902dc10d400a81f34c9a8196e9633e401b160b7d7441db8dd0baa)) · [app: t8999900000001.payee.eth](https://app.ens.dev/t8999900000001.payee.eth) (claim [`0xe03d…612b`](https://sepolia.etherscan.io/tx/0xe03d70436822a74b9b69ce9b086ed9d6419ed95d15f3a23881c17e591870612b), profile [`0xcc8d…330b`](https://sepolia.etherscan.io/tx/0xcc8d1aa24780bcf540e7f50b50d13b6cae24c0ad0b76f6802daaa47c58de330b)) |
 | A claimed company issues names in its own ENSv2 subregistry | [explorer: t2011001234567.payee.eth](https://explorer.ens.dev/t2011001234567.payee.eth): permissioned registry `0x5063…9f95`, 3 subnames (`ap`, `keiri`, `zeirishi`) · [explorer: t4999900000005.payee.eth](https://explorer.ens.dev/t4999900000005.payee.eth): 1 subname, the mandate `ap` · transactions: [Companies issue names to their own agents](#companies-issue-names-to-their-own-agents-live-on-the-beta-since-2026-09-26) |
 | A claim can be revoked, and the name still resolves | `t6999900000003.payee.eth`: listed in [`0xf24f…5878`](https://sepolia.etherscan.io/tx/0xf24fa19c056654fe07f7d93d43ad5ebfc44ce5d3ecdb6814335cdcd9708d5878), revoked in [`0x0f3c…64bd`](https://sepolia.etherscan.io/tx/0x0f3c5d72bda2b2a894c97e779570eae8cfa44b11516465532754f4ea914364bd). Stock viem still returns 株式会社ミナトGPUクラウド and `0x4d6D…FD30`, through payee.eth's resolver |
-| A claim inherits `payee.eth`'s expiry | `ens.sh claim-check` prints and asserts it: all three live claims (t2011001234567, t8999900000001 and t4999900000005) expire at 1821898512, the same second as `payee.eth` |
+| A claim is set to expire with `payee.eth` | `ens.sh claim-check` prints and asserts it: all three live claims (t2011001234567, t8999900000001 and t4999900000005) expire at 1821898512, the same second as `payee.eth`. ENSv2 doesn't tie a child's expiry to its parent's, so Meigi renews them together |
 | A claimed name can't be transferred | `ens.sh claim-check`: the company's `unsafeTransfer` reverts `TransferDisallowed`, and its `safeTransferFrom` reverts too (ENSv2 requires `ROLE_CAN_TRANSFER_ADMIN`, and claims carry no roles) |
 | A claim never changes the address | [ClaimedPayeeResolver](https://sepolia.etherscan.io/address/0xe4679507c08c61BE0328EDC72c91D62Bd6f03ebd) and its [22 tests](../contracts/test/ens/ClaimedPayeeResolver.t.sol). `ens.sh claim-check` simulates the company setting an address (reverts), re-pointing its name (reverts) and overriding `name` or `meigi.status` (no effect). After each claim, stock viem resolved seven reference names byte for byte as before |
 | Payout wallets carry their company's name | `getEnsName(0x9B4f…47e4)` = `t2011001234567.payee.eth` ([`0x98a1…8f1f`](https://sepolia.etherscan.io/tx/0x98a15959ee452dbd8b09d7c81e5d6ab0702d20dfb35787fed8ff512c222dfb1f)) · `getEnsName(0x0C1d…578D)` = `t8999900000001.payee.eth` ([`0x3b5e…cdc7`](https://sepolia.etherscan.io/tx/0x3b5e1fe3e08defb1ea434d40cd68f59212ef76482b04db4ee364552583afcdc7)) |
@@ -330,6 +338,8 @@ Live on Sepolia. ENS app: [app.ens.dev](https://app.ens.dev). Explorer: [explore
   `(cd apps/landing && RPC_URL=https://ethereum-sepolia-rpc.publicnode.com ENS_NAME=t6999900000003.payee.eth node --input-type=module) < contracts/script/ens/check-viem.mjs`
 - **Meigi holds the root roles.** One key owns `payee.eth` and `meigi.eth` and administers the claims registry.
   In production, those roles move to a timelocked multisig with the same 72-hour delay as payouts.
+- **Meigi also keeps text and upgrade roles on each claimed profile's resolver, never the address role:** it could
+  overwrite a profile, not a payout. Production gives them up with the root roles.
 - **Unclaimed names have no profile.** Records like description and avatar come only with a claim. Serving them for
   every name needs a new resolver behind `payee.eth`.
 - **The demo companies are fictional.** Their names were checked against the NTA's nationwide data, and their

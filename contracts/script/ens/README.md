@@ -205,8 +205,9 @@ script/ens/claim-e2e.sh                        # fork proof: impersonates payee.
 - Claims are **non-transferable**: ENSv2 lets a token move only if its owner holds `ROLE_CAN_TRANSFER_ADMIN` on it,
   and a claim is minted with no roles. `claim-check` simulates the company's transfers: `unsafeTransfer` reverts
   `TransferDisallowed`, and `safeTransferFrom` reverts too.
-- Claims **expire** with `payee.eth`: they are minted with its expiry, which `claim-check` asserts, and Meigi can
-  `renew` them.
+- Claims are set to **expire** with `payee.eth`: Meigi mints them with its expiry, which `claim-check` asserts. ENSv2
+  doesn't tie a child's expiry to its parent's, so Meigi `renew`s them together; if `payee.eth` lapsed, the subtree
+  would stop resolving anyway. The ENSv2 registry enforces transfer, expiry and revocation; Meigi chose the settings.
 - Claims are **revocable**: `claim-revoke` unregisters one (it needs `ROLE_UNREGISTER`, which Meigi holds as root) and
   unlinks its profile. Use it for a disputed or retired company, or for a listing the company never accepted. The
   name keeps resolving through the wildcard, to the same payout.
@@ -214,8 +215,8 @@ script/ens/claim-e2e.sh                        # fork proof: impersonates payee.
   them. Meigi, not the company, can re-point or revoke a claim, and `setProfile(t, 0, 0)` hides a profile.
 - `ClaimedPayeeResolver` pins `payee.eth`'s resolver and its registry when it is deployed. If `payee.eth` ever gets
   a new resolver, run `claim-detach` (or redeploy and re-point the claims); `check` fails until then.
-- A claim expires with `payee.eth`'s expiry at claim time. An expired claim falls back to the wildcard: the money
-  records stay the same and only the profile disappears.
+- A claim takes `payee.eth`'s expiry at claim time, and doesn't follow later renewals of `payee.eth` by itself. An
+  expired claim falls back to the wildcard: the money records stay the same and only the profile disappears.
 
 ## Payout wallets' primary names (ENSIP-19, Beta only)
 
