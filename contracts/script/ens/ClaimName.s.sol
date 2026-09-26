@@ -19,11 +19,12 @@ interface IPayeeResolverRegistry {
 ///         - `claim()`: gives the company its own PermissionedResolver (ROLE_SET_TEXT for the company; no account
 ///           ever holds ROLE_SET_ADDRESS) and mints `t<T>` in S to the company's registry controller. The token
 ///           has no roles, so the company can't redirect its name.
-///         - `profile()`: signed by the company, sets its url and description.
+///         - `profile()`: signed by the company, sets its url, description and/or avatar.
 ///         - `detach()`: rolls back to the pure-data setup in one transaction.
 /// @dev Env: DEPLOYER_PRIVATE_KEY (or, on a fork, the unlocked DEPLOYER_ADDRESS), plus deployments/beta.env. After
 ///      deploy: CLAIMS_REGISTRY and CLAIMS_RESOLVER. Optional: T_NUMBER (2011001234567), COMPANY_FUND_WEI (tops up the
-///      company key), COMPANY_PRIVATE_KEY or COMPANY_ADDRESS, PROFILE_URL and PROFILE_DESCRIPTION.
+///      company key), COMPANY_PRIVATE_KEY or COMPANY_ADDRESS, and PROFILE_URL, PROFILE_DESCRIPTION and PROFILE_AVATAR
+///      (each optional; at least one).
 contract ClaimName is Script {
     string private constant PARENT = "payee";
 
@@ -118,11 +119,18 @@ contract ClaimName is Script {
         bytes memory name =
             EnsV2Lib.dnsEncode(string.concat("t", vm.toString(uint256(tNumber)), ".payee.eth"));
 
+        string[3] memory keys = ["url", "description", "avatar"];
+        string[3] memory vars = ["PROFILE_URL", "PROFILE_DESCRIPTION", "PROFILE_AVATAR"];
+        uint256 set;
         EnsV2Lib.startBroadcast("COMPANY_PRIVATE_KEY", "COMPANY_ADDRESS");
-        own.setText(name, "url", vm.envOr("PROFILE_URL", string("https://shoji.example")));
-        own.setText(name, "description", vm.envOr("PROFILE_DESCRIPTION", string("Fictional demo supplier")));
+        for (uint256 i; i < keys.length; i++) {
+            if (!vm.envExists(vars[i])) continue;
+            own.setText(name, keys[i], vm.envString(vars[i]));
+            set++;
+        }
         vm.stopBroadcast();
-        console.log("Profile set by the company on %s", address(own));
+        require(set > 0, "set PROFILE_URL, PROFILE_DESCRIPTION and/or PROFILE_AVATAR");
+        console.log("Profile set by the company on %s (%s records)", address(own), set);
     }
 
     /// @dev The company's own PermissionedResolver: the company may set text; the deployer keeps every other role

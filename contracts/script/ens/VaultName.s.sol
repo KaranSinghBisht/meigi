@@ -3,35 +3,15 @@ pragma solidity ^0.8.24;
 
 import {Script, console} from "forge-std/Script.sol";
 import {EnsV2, EnsV2Lib} from "./EnsV2.sol";
+import {
+    IDefaultReverseRegistrarAdapter,
+    INameSetter,
+    IReverseRegistrarAdapter,
+    IReverseUniversalResolver
+} from "./Reverse.sol";
 
 interface IOwnable {
     function owner() external view returns (address);
-}
-
-/// @dev v2 adapters that let a contract's Ownable owner (or its IContractNamer) name the contract. See the
-///      reverse-resolution docs, "Contract Account Adapters". Source verified on Blockscout for the Beta.
-interface IReverseRegistrarAdapter {
-    function REVERSE_REGISTRAR() external view returns (IReverseRegistrar);
-    function claim(address account, address resolver) external returns (bytes32 node);
-}
-
-interface IDefaultReverseRegistrarAdapter {
-    function setName(address account, string calldata name) external;
-}
-
-interface IReverseRegistrar {
-    function defaultResolver() external view returns (address);
-}
-
-interface INameSetter {
-    function setName(bytes32 node, string calldata name) external;
-}
-
-interface IReverseUniversalResolver {
-    function reverse(bytes calldata lookupAddress, uint256 coinType)
-        external
-        view
-        returns (string memory name, address resolver, address reverseResolver);
 }
 
 /// @notice Gives the AgentVault the primary name `ap.meigi.eth` (ENSIP-19), signed by the vault's Ownable owner, so

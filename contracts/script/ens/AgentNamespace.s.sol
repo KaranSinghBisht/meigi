@@ -115,6 +115,21 @@ contract AgentNamespace is Script {
         console.log("%s agent-endpoint[web] = %s", AgentConfig.name(), endpoint);
     }
 
+    /// @notice Signed by the deployer: the standard profile records (name, description, url, avatar) that wallets and
+    ///         the ENS app show, next to the ENSIP-26 records they don't.
+    function setProfile() external {
+        uint256 pk = _deployerKey();
+        IPermissionedResolver resolver = _agentResolver();
+        (string[4] memory keys, string[4] memory values) = AgentConfig.profile();
+
+        vm.startBroadcast(pk);
+        for (uint256 i; i < keys.length; i++) {
+            resolver.setText(AgentConfig.dnsName(), keys[i], values[i]);
+        }
+        vm.stopBroadcast();
+        console.log("%s profile: %s | %s", AgentConfig.name(), values[0], values[3]);
+    }
+
     /// @notice Key rotation, part 1, signed by the deployer: grants `agent-status` to the new key (AGENT_ADDRESS) and
     ///         revokes it from the old one (AGENT_PREVIOUS_ADDRESS). The name, its records and the vault's primary name
     ///         stay as they are: the identity survives the key. `rotateVault()` then moves the vault's agent slot.

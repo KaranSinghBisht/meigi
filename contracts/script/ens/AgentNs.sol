@@ -94,11 +94,16 @@ library AgentNsLib {
 }
 
 /// @notice The agent namespace's names and records, read from the environment and the live Meigi deployment.
-/// @dev Env (all optional): AGENT_PARENT (meigi), AGENT_LABEL (ap), AGENT_ENDPOINT, and AGENT_VAULT /
+/// @dev Env (all optional): AGENT_PARENT (meigi), AGENT_LABEL (ap), AGENT_ENDPOINT, AGENT_AVATAR, and AGENT_VAULT /
 ///      AGENT_PAYEE_REGISTRY (default: deployments/11155111.json, written by script/Deploy.s.sol).
 library AgentConfig {
     Vm private constant VM = Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
     string internal constant DEFAULT_ENDPOINT = "https://meigi.karanbishttt.workers.dev/agent";
+    /// @dev Meigi's 名義 seal, served by the app.
+    string internal constant DEFAULT_AVATAR = "https://meigi.karanbishttt.workers.dev/favicon.svg";
+    string internal constant DISPLAY_NAME = "Meigi AP agent";
+    string internal constant DESCRIPTION =
+        "Accounts-payable agent for Meigi. It pays a supplier only to the payout registered for its T-number, within caps its owner sets.";
 
     function parent() internal view returns (string memory) {
         return VM.envOr("AGENT_PARENT", string("meigi"));
@@ -139,11 +144,21 @@ library AgentConfig {
         );
     }
 
+    /// @notice The standard profile records wallets and the ENS app show: name, description, url and avatar.
+    function profile() internal view returns (string[4] memory keys, string[4] memory values) {
+        keys = ["name", "description", "url", "avatar"];
+        values = [DISPLAY_NAME, DESCRIPTION, endpoint(), VM.envOr("AGENT_AVATAR", string(DEFAULT_AVATAR))];
+    }
+
     /// @notice The owner-set records, as setter calldata for the resolver's initializer.
     function records() internal view returns (bytes[] memory calls) {
         (address vault, address payees) = meigi();
         bytes memory n = dnsName();
-        calls = new bytes[](6);
+        (string[4] memory keys, string[4] memory values) = profile();
+        calls = new bytes[](10);
+        for (uint256 i; i < 4; i++) {
+            calls[6 + i] = abi.encodeCall(IPermissionedResolver.setText, (n, keys[i], values[i]));
+        }
         calls[0] = abi.encodeCall(
             IPermissionedResolver.setAddress, (n, AgentNsLib.COIN_TYPE_ETH, abi.encodePacked(vault))
         );

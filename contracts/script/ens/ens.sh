@@ -2,8 +2,10 @@
 # payee.eth and the AP agent's namespace (ap.meigi.eth) on ENSv2 (Sepolia).
 # Usage: script/ens/ens.sh <command>
 #   payee.eth:     deploy | seed | register | set-resolver | check
-#   ap.meigi.eth:  agent-deploy | agent-setup | agent-status | agent-endpoint | agent-rotate | agent-check | vault-name
+#   ap.meigi.eth:  agent-deploy | agent-setup | agent-status | agent-endpoint | agent-profile | agent-rotate |
+#                  agent-check | vault-name
 #   claimed names: claim-deploy | claim-attach | claim | claim-profile | claim-check | claim-detach (rollback)
+#   payout wallets: payout-name (the payee's name as the wallet's primary name)
 # Transactions are only simulated unless BROADCAST=1. Keys and the RPC URL come from the environment or
 # meigi/.env and never appear on a command line; tool output is redacted. See README.md.
 set -euo pipefail
@@ -33,7 +35,7 @@ load_dotenv() {
     key="${BASH_REMATCH[2]}"
     value="${BASH_REMATCH[3]}"
     [[ $key =~ ^(SEPOLIA_RPC_URL|(DEPLOYER|ATTESTER|PAYEE|ENS)_[A-Z0-9_]+|VAULT_OWNER_(PRIVATE_KEY|ADDRESS))$ ||
-      $key == DEMO_VENDOR_CONTROLLER_PRIVATE_KEY ||
+      $key == DEMO_VENDOR_CONTROLLER_PRIVATE_KEY || $key =~ ^DEMO_[A-Z]+_PAYOUT_PRIVATE_KEY$ ||
       $key =~ $agent_vars ]] || continue
     if [[ -n ${!key:-} ]]; then continue; fi
     if [[ $value =~ $quoted ]]; then
@@ -130,6 +132,16 @@ scope_keys() {
       require_key VAULT_OWNER_PRIVATE_KEY
       unset DEPLOYER_PRIVATE_KEY ATTESTER_PRIVATE_KEY AGENT_PRIVATE_KEY
       ;;
+    payout-name)
+      # Two signers: the deployer funds the wallet for gas, then the wallet names itself. PAYOUT_KEY names the
+      # .env variable holding the wallet's key (e.g. DEMO_VENDOR_PAYOUT_PRIVATE_KEY).
+      if [[ -z ${PAYOUT_PRIVATE_KEY:-} && ${PAYOUT_KEY:-} =~ ^DEMO_[A-Z]+_PAYOUT_PRIVATE_KEY$ ]]; then
+        export PAYOUT_PRIVATE_KEY="${!PAYOUT_KEY:-}"
+      fi
+      require_key DEPLOYER_PRIVATE_KEY
+      require_key PAYOUT_PRIVATE_KEY
+      unset ATTESTER_PRIVATE_KEY AGENT_PRIVATE_KEY VAULT_OWNER_PRIVATE_KEY
+      ;;
     agent-rotate)
       # Two signers: the deployer moves the ENS role, then the vault's owner moves the vault's agent slot.
       require_key DEPLOYER_PRIVATE_KEY
@@ -142,7 +154,10 @@ scope_keys() {
       ;;
   esac
   if [[ $1 != claim-profile ]]; then unset COMPANY_PRIVATE_KEY; fi
+  if [[ $1 != payout-name ]]; then unset PAYOUT_PRIVATE_KEY; fi
   unset DEMO_VENDOR_CONTROLLER_PRIVATE_KEY
+  local demo
+  for demo in $(compgen -v | grep -E '^DEMO_[A-Z]+_PAYOUT_PRIVATE_KEY$' || true); do unset "$demo"; done
 }
 
 # Runs a forge script from contracts/, adding --broadcast only when BROADCAST=1.
@@ -208,12 +223,13 @@ main() {
   local cmd="${1:-}"
   case "$cmd" in
     deploy | seed | register | set-resolver | check) ;;
-    agent-deploy | agent-setup | agent-status | agent-endpoint | agent-rotate | agent-check | vault-name) ;;
-    claim-deploy | claim-attach | claim-detach | claim | claim-profile | claim-check) ;;
+    agent-deploy | agent-setup | agent-status | agent-endpoint | agent-profile | agent-rotate | agent-check) ;;
+    vault-name) ;;
+    claim-deploy | claim-attach | claim-detach | claim | claim-profile | claim-check | payout-name) ;;
     *) die "usage: ens.sh <command>; see the header of this file" ;;
   esac
   setup
-  if [[ ($cmd == agent-* || $cmd == vault-name || $cmd == claim*) && $ENS_DEPLOYMENT != beta ]]; then
+  if [[ ($cmd == agent-* || $cmd == vault-name || $cmd == claim* || $cmd == payout-name) && $ENS_DEPLOYMENT != beta ]]; then
     die "$cmd targets the Beta (ENS_DEPLOYMENT=beta)"
   fi
   scope_keys "$cmd"
@@ -233,6 +249,7 @@ main() {
     agent-setup) forge_script script/ens/AgentNamespace.s.sol --sig "setup()" ;;
     agent-status) forge_script script/ens/AgentNamespace.s.sol --sig "setStatus()" ;;
     agent-endpoint) forge_script script/ens/AgentNamespace.s.sol --sig "setEndpoint()" ;;
+    agent-profile) forge_script script/ens/AgentNamespace.s.sol --sig "setProfile()" ;;
     agent-rotate)
       # Each step sees only the key it signs with.
       (unset VAULT_OWNER_PRIVATE_KEY && forge_script script/ens/AgentNamespace.s.sol --sig "rotate()")
@@ -246,6 +263,10 @@ main() {
     claim) forge_script script/ens/ClaimName.s.sol --sig "claim()" ;;
     claim-profile) forge_script script/ens/ClaimName.s.sol --sig "profile()" ;;
     claim-check) (cd "$CONTRACTS" && forge script script/ens/CheckClaim.s.sol) 2>&1 | redact ;;
+    payout-name)
+      (unset PAYOUT_PRIVATE_KEY && forge_script script/ens/PayoutName.s.sol --sig "fund()")
+      (unset DEPLOYER_PRIVATE_KEY && forge_script script/ens/PayoutName.s.sol --sig "name()")
+      ;;
   esac
 }
 

@@ -22,6 +22,7 @@ Its money records still come only from `PayeeResolver`.
 | `CheckAgent.s.sol` | Read-only proof of the namespace, the agent's one scoped role (simulated allowed and denied writes) and an unchanged `payee.eth` |
 | `agent-e2e.sh`, `check-agent-viem.mjs` | The namespace flow on an anvil fork, and stock viem resolving `ap.meigi.eth` |
 | `agent-rotate-e2e.sh` | Agent key rotation on a fork of the live `ap.meigi.eth` and AgentVault |
+| `PayoutName.s.sol`, `payout-name-e2e.sh`, `Reverse.sol` | A payout wallet's primary name (its payee's `t<T>.payee.eth`), its fork proof, and the shared reverse-name interfaces |
 | `VaultName.s.sol`, `vault-e2e.sh`, `check-primary-viem.mjs` | The AgentVault's primary name `ap.meigi.eth` (ENSIP-19), its fork proof, and stock viem `getEnsName` |
 | `ClaimName.s.sol`, `CheckClaim.s.sol`, `claim-e2e.sh` | Claimed payee names: `deploy()`, `attach()`, `claim()`, `profile()`, `detach()`, the read-only proof, and the fork proof |
 
@@ -106,6 +107,7 @@ ENS_LABEL=meigi ENS_SUBREGISTRY=$AGENT_SUBREGISTRY BROADCAST=1 script/ens/ens.sh
 BROADCAST=1 script/ens/ens.sh agent-setup           # canonical parent, then ap.meigi.eth, then the agent's scoped role
 AGENT_STATUS=online BROADCAST=1 script/ens/ens.sh agent-status   # signed by AGENT_PRIVATE_KEY
 BROADCAST=1 script/ens/ens.sh agent-endpoint        # agent-endpoint[web] = AGENT_ENDPOINT (default: the app's /agent)
+BROADCAST=1 script/ens/ens.sh agent-profile         # name, description, url and avatar, which the ENS app shows
 AGENT_ADDRESS=<new> AGENT_PREVIOUS_ADDRESS=<old> BROADCAST=1 script/ens/ens.sh agent-rotate   # a new agent key
 script/ens/ens.sh agent-check                       # read-only
 script/ens/agent-e2e.sh                             # the whole flow on a fork, plus eth_call denials and stock viem
@@ -173,7 +175,8 @@ BROADCAST=1 script/ens/ens.sh claim-deploy     # prints CLAIMS_REGISTRY=… and 
 export CLAIMS_REGISTRY=0x… CLAIMS_RESOLVER=0x…
 BROADCAST=1 script/ens/ens.sh claim-attach     # payee.eth's subregistry = CLAIMS_REGISTRY
 COMPANY_FUND_WEI=5000000000000000 BROADCAST=1 script/ens/ens.sh claim    # T_NUMBER defaults to 2011001234567
-PROFILE_URL=https://shoji.example PROFILE_DESCRIPTION="…" BROADCAST=1 script/ens/ens.sh claim-profile
+PROFILE_URL=https://shoji.example PROFILE_DESCRIPTION="…" PROFILE_AVATAR="data:image/svg+xml;base64,…" \
+  BROADCAST=1 script/ens/ens.sh claim-profile    # the company signs; each PROFILE_* is optional
 script/ens/ens.sh claim-check                  # read-only
 BROADCAST=1 script/ens/ens.sh claim-detach     # rollback: payee.eth back to no subregistry, in one transaction
 script/ens/claim-e2e.sh                        # fork proof: impersonates payee.eth's owner and the company
@@ -194,6 +197,22 @@ script/ens/claim-e2e.sh                        # fork proof: impersonates payee.
   a new resolver, run `claim-detach` (or redeploy and re-point the claims); `check` fails until then.
 - A claim expires with `payee.eth`'s expiry at claim time. An expired claim falls back to the wildcard: the money
   records stay the same and only the profile disappears.
+
+## Payout wallets' primary names (ENSIP-19, Beta only)
+
+A payout wallet can carry its payee's name as its primary name, so a wallet shows 株式会社メイギ商事's name next to
+`0x9B4f…47e4`. The name must round-trip, so `PayoutName.s.sol` only runs while the registry lists the wallet as the
+payee's active payout. After a payout change the old wallet's reverse record stops round-tripping, and clients stop
+showing it.
+
+```sh
+T_NUMBER=2011001234567 PAYOUT_KEY=DEMO_VENDOR_PAYOUT_PRIVATE_KEY BROADCAST=1 script/ens/ens.sh payout-name
+script/ens/payout-name-e2e.sh                 # fork proof: impersonates the deployer and the payout wallet
+```
+
+`payout-name` has two signers. First the deployer tops the wallet up for gas (`fund()`, `PAYOUT_FUND_WEI`, default
+0.003 ETH). Then the wallet claims its own `<addr>.addr.reverse` node and sets the name (`name()`), the same path the
+vault used. `PAYOUT_KEY` names the `.env` variable that holds the wallet's key.
 
 ## Verified ENSv2 facts
 
