@@ -28,8 +28,9 @@
    Each glass surface fades itself; opacity on an ancestor would make that ancestor the backdrop root and switch
    the blur off until the fade ended. */
 .shell--entered .topbar__inner,
+.shell--entered .sidebar,
 .shell--entered .shell__vlabel,
-.shell--entered .footer,
+.shell--entered .footer__inner,
 .shell--entered .shell__main :is(.page-head, .on-scene, .panel, .home__feature, .flow-card) {
   animation: shell-fade 0.8s var(--ease-out) both;
 }
@@ -93,6 +94,27 @@
   pointer-events: auto;
 }
 
+/* How far down a sticky part of a page has to sit to clear the navigation: the compact bar and its gap. */
+:root {
+  --shell-top: 88px;
+}
+
+/* From 1280 px the sidebar (nav.css) holds the left edge: the page and its footer move beside it, the compact bar
+   gives way and nothing covers the top but the inset. */
+@media (min-width: 1280px) {
+  :root {
+    --shell-top: var(--sidebar-inset);
+  }
+
+  .shell--app {
+    padding-left: calc(var(--sidebar) + 2 * var(--sidebar-inset));
+  }
+
+  .topbar {
+    display: none;
+  }
+}
+
 /* 名義, set vertically at the right edge as on the landing. */
 .shell__vlabel {
   position: fixed;
@@ -114,55 +136,6 @@
   font-weight: var(--weight-regular);
   letter-spacing: -0.06em;
   line-height: 1;
-}
-
-.nav {
-  flex: 1;
-  min-width: 0;
-}
-
-.nav__list {
-  display: flex;
-  gap: 4px;
-}
-
-/* The nav is a segmented control: the current page is a solid white segment. */
-.nav__link {
-  display: inline-flex;
-  align-items: center;
-  height: var(--control-md);
-  padding: 0 16px;
-  border-radius: 999px;
-  color: var(--ink-soft);
-  font-size: var(--text-md);
-  font-weight: var(--weight-regular);
-  text-decoration: none;
-  white-space: nowrap;
-  transition:
-    background-color 0.2s var(--ease-out),
-    color 0.2s var(--ease-out);
-}
-
-.nav__link:hover {
-  background: var(--lg-cell);
-  color: var(--ink);
-}
-
-.nav__link:focus-visible {
-  border-radius: 999px;
-}
-
-.nav__link[aria-current='page'] {
-  background: var(--lg-sheen-bright), var(--lg-cell-strong);
-  color: var(--ink);
-  font-weight: var(--weight-strong);
-  box-shadow: var(--lg-shadow-control);
-}
-
-.topbar__end {
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 .chain-pill,
@@ -201,20 +174,22 @@
   color: var(--amber-deep);
 }
 
-/* Small print: denser glass. */
+/* Small print: a denser glass window at the foot of the page, in the page's column. */
 .footer {
-  background: var(--lg-window-dense);
-  -webkit-backdrop-filter: var(--lg-blur);
-  backdrop-filter: var(--lg-blur);
-  box-shadow: var(--lg-highlight);
+  padding: 0 var(--gutter) var(--sidebar-inset);
 }
 
 .footer__inner {
   display: grid;
   gap: 8px;
-  max-width: calc(var(--content) + 2 * var(--gutter));
+  max-width: var(--content);
   margin: 0 auto;
-  padding: 16px var(--gutter) 24px;
+  padding: 16px 24px 20px;
+  border-radius: var(--radius-lg);
+  background: var(--lg-sheen-window), var(--lg-window-dense);
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+  box-shadow: var(--lg-shadow);
   color: var(--ink-soft);
   font-size: var(--text-sm);
 }
@@ -269,31 +244,10 @@
   line-height: 1.55;
 }
 
-@media (max-width: 1260px) {
+/* 名義 needs a clear margin right of the page; beside the sidebar only the widest screens have one. */
+@media (max-width: 1739px) {
   .shell__vlabel {
     display: none;
   }
 }
 
-@media (max-width: 980px) {
-  .topbar__inner {
-    flex-wrap: wrap;
-    gap: 8px 16px;
-    border-radius: var(--radius-lg);
-  }
-
-  .nav {
-    order: 3;
-    flex-basis: 100%;
-  }
-
-  .topbar__end {
-    margin-left: auto;
-  }
-}
-
-@media (max-width: 480px) {
-  .chain-pill {
-    display: none;
-  }
-}

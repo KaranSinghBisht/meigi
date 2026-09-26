@@ -7,26 +7,17 @@ import { SceneLayer } from '../stage/SceneLayer'
 import { GlassFilters } from '../styles/GlassFilters'
 import { Footer } from './Footer'
 import { Header } from './Header'
+import { navItemFor } from './navItems'
+import { Sidebar } from './Sidebar'
 import './layout.css'
 
-const TITLES: Record<string, string> = {
-  '/': 'Meigi · Pay companies, not addresses.',
-  '/start': 'Start · Meigi',
-  '/agent': 'Agent console · Meigi',
-  '/registry': 'Registry · Meigi',
-  '/register': 'Register a business · Meigi',
-  '/change': 'Company changes · Meigi',
-  '/x402': 'x402 guard · Meigi',
-  '/business': 'For business · Meigi',
-}
-
-/** Keeps the document title in step with the route and moves focus to the page on navigation. */
+/** Names the tab after the sidebar entry for the route and moves focus to the page on navigation. */
 function useRouteAnnouncements() {
   const { pathname } = useLocation()
   const firstRender = useRef(true)
   useEffect(() => {
-    const root = `/${pathname.split('/')[1] ?? ''}`
-    document.title = TITLES[root] ?? 'Meigi'
+    const item = navItemFor(pathname)
+    document.title = pathname === '/' ? 'Meigi · Pay companies, not addresses.' : item ? `${item.label} · Meigi` : 'Meigi'
     if (firstRender.current) {
       firstRender.current = false
       return
@@ -44,12 +35,15 @@ export function RouteFallback() {
   )
 }
 
-/** "/" is the landing hero: only the world and its overlay. Entering from it, the app's chrome fades in. */
+/**
+ * "/" is the landing hero: only the world and its overlay. Every other page is the app: the glass sidebar (or, below
+ * 1280 px, the compact bar) beside the page. Entering from the hero, the app's chrome fades in.
+ */
 function useShellMode() {
   const { pathname, state } = useLocation()
   const hero = pathname === '/'
   const entered = !hero && (state as { entered?: boolean } | null)?.entered === true
-  return { hero, className: hero ? 'shell shell--hero' : entered ? 'shell shell--entered' : 'shell' }
+  return { hero, className: hero ? 'shell shell--hero' : entered ? 'shell shell--app shell--entered' : 'shell shell--app' }
 }
 
 export function AppShell() {
@@ -62,6 +56,7 @@ export function AppShell() {
       </a>
       <SceneLayer />
       <GlassFilters />
+      {hero ? null : <Sidebar />}
       {hero ? null : <Header />}
       {hero ? null : (
         <div className="shell__vlabel" aria-hidden="true">

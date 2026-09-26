@@ -65,6 +65,8 @@
   --weight-regular: 400;
   --weight-strong: 600;
   --gutter: clamp(16px, 3vw, 40px);
+  --sidebar: 240px;
+  --sidebar-inset: 16px;
   --content: 1200px;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 
