@@ -13,11 +13,17 @@ export interface IndexedPayment {
   readonly amount: bigint
 }
 
+/** A PayRouter Paid row: meigi_router_paid also selects the token paid in. */
+export interface RoutedPayment extends IndexedPayment {
+  readonly token: string // lowercase
+}
+
 /** An mJPYC Transfer row (meigi_mjpy_transfers). */
 export interface IndexedTransfer {
   readonly txHash: string
   readonly blockNumber: number
   readonly at: string | null
+  readonly sender: string // lowercase
   readonly recipient: string
   readonly amount: bigint
 }
@@ -71,8 +77,19 @@ export function paymentRow(row: Record<string, unknown>): IndexedPayment {
   }
 }
 
+export function routerRow(row: Record<string, unknown>): RoutedPayment {
+  return { ...paymentRow(row), token: address(row.token).toLowerCase() }
+}
+
 export function transferRow(row: Record<string, unknown>): IndexedTransfer {
-  return { txHash: hash(row.txhash), blockNumber: block(row.block), at: time(row.at), recipient: address(row.recipient), amount: uint(row.amount, 'amount') }
+  return {
+    txHash: hash(row.txhash),
+    blockNumber: block(row.block),
+    at: time(row.at),
+    sender: address(row.sender).toLowerCase(),
+    recipient: address(row.recipient),
+    amount: uint(row.amount, 'amount'),
+  }
 }
 
 /** Token units as yen: "¥1,234", with a fraction only when there is one. */

@@ -16,8 +16,10 @@
     "run_worker_first": ["/api/*"]
   },
   "vars": {
-    // Registered payees whose direct mJPYC receipts (x402 sales) count as settlements: Meigi Shoji, Minato GPU
-    // Cloud, Fuji Data, Bayside Advisory. The vault's and the router's payments count for any T-number.
-    "SETTLEMENT_PAYEES": "T2011001234567,T6999900000003,T8999900000001,T3999905000001"
+    // Registered payees listed even before the vault or router pays them (the x402 sellers): Meigi Shoji, Minato
+    // GPU Cloud, Fuji Data, Bayside Advisory. Anyone the vault or router pays is listed too.
+    "SETTLEMENT_PAYEES": "T2011001234567,T6999900000003,T8999900000001,T3999905000001",
+    // The x402 research agent's wallet (services/x402-demo): mJPYC is mintable, so only its transfers count.
+    "X402_BUYER": "0x708106dcdee19be75ffcd5df20cbb1b6b3089882"
   }
 }

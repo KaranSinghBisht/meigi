@@ -5,24 +5,30 @@ import { describe, it } from 'node:test'
 import worker from './index'
 import { createMemo } from './memo'
 import { createReader, Upstream, type MultiBaasReader, type Payee, type QueryName } from './multibaas'
-import { createSettlements, settlementsResponse } from './settlements'
+import { createSettlements, settlementsResponse, type Snapshot, type SnapshotStore } from './settlements'
 
 const MEIGI = '0x9b4fc8994fcf2d5fe08a82a9454b61aa14d647e4'
 const MINATO = '0x4d6d5528f4a4c9e404130fab23f5fa5ddcaffd30'
 const BUYER = '0x708106dcdee19be75ffcd5df20cbb1b6b3089882'
+const MJPYC = '0xeca2b093682a46b14b143474d188a120ba2d0ec2'
+const FAKE_TOKEN = '0x2222222222222222222222222222222222222222'
 const tx = (n: number) => `0x${n.toString(16).padStart(64, '0')}`
 const units = (yen: number) => (BigInt(yen) * 10n ** 18n).toString()
 
-/** A MultiBaas with one vault payment (and its Transfer), one router payment and two x402 sales. */
+/** A MultiBaas with one vault payment (and its Transfer), router payments in mJPYC and a fake token, and transfers. */
 function scripted(overrides: Partial<MultiBaasReader> = {}): MultiBaasReader & { calls: string[] } {
   const calls: string[] = []
   const rows: Record<QueryName, Record<string, unknown>[]> = {
-    meigi_invoices_paid: [{ tnumber: '2011001234567', payout: MEIGI, amount: units(55_000), invoiceref: tx(9), block: '11784200', at: '2026-09-26 06:00:00+00', txhash: tx(1) }],
-    meigi_router_paid: [{ tnumber: '6999900000003', payout: MINATO, amount: units(500), invoiceref: tx(8), block: 11784100, at: null, txhash: tx(2) }],
+    meigi_invoices_paid: [{ tnumber: '2011001234567', payout: MEIGI, amount: units(55_000), invoiceref: '[1, 2]', block: '11784200', at: '2026-09-26 06:00:00+00', txhash: tx(1) }],
+    meigi_router_paid: [
+      { tnumber: '6999900000003', payout: MINATO, token: MJPYC, amount: units(500), invoiceref: '[3]', block: 11784100, at: null, txhash: tx(2) },
+      { tnumber: '2011001234567', payout: MEIGI, token: FAKE_TOKEN, amount: units(999_999_999), invoiceref: '[4]', block: 11790000, at: null, txhash: tx(5) },
+    ],
     meigi_mjpy_transfers: [
-      { sender: '0x87a798cd92de1340b1b761dd45196ac82bef793b', recipient: MEIGI, amount: units(55_000), block: '11784200', at: '2026-09-26 06:00:00+00', txhash: tx(1) },
+      { sender: BUYER, recipient: MEIGI, amount: units(55_000), block: '11784200', at: null, txhash: tx(1) }, // inside the vault payment
       { sender: BUYER, recipient: MINATO, amount: units(15), block: '11784165', at: '2026-09-26 05:31:48+00', txhash: tx(3) },
-      { sender: BUYER, recipient: '0x1111111111111111111111111111111111111111', amount: units(1), block: '11784300', at: null, txhash: tx(4) },
+      { sender: '0x0000000000000000000000000000000000000000', recipient: MINATO, amount: units(1_000_000), block: '11784300', at: null, txhash: tx(4) }, // a mint
+      { sender: BUYER, recipient: '0x1111111111111111111111111111111111111111', amount: units(1), block: '11784301', at: null, txhash: tx(6) }, // not a payee
     ],
   }
   const payees: Record<string, Payee> = {
@@ -30,48 +36,47 @@ function scripted(overrides: Partial<MultiBaasReader> = {}): MultiBaasReader & {
     '6999900000003': { legalName: '株式会社ミナトGPUクラウド', payout: '0x4d6D5528f4a4c9E404130Fab23F5FA5DDcaffD30' },
     '8999900000001': { legalName: null, payout: null }, // disputed: withheld
   }
+  const count = <T>(name: string, value: T) => (calls.push(name), Promise.resolve(value))
   return {
     calls,
-    async rows(query) {
-      calls.push(query)
-      return rows[query]
-    },
-    async payee(digits) {
-      calls.push(`payee:${digits}`)
-      return payees[digits] ?? { legalName: null, payout: null }
-    },
-    async decimals() {
-      calls.push('decimals')
-      return 18
-    },
-    async indexedFrom() {
-      calls.push('indexedFrom')
-      return 11783796
-    },
+    rows: (query) => count(query, rows[query]),
+    payee: (digits) => count(`payee:${digits}`, payees[digits] ?? { legalName: null, payout: null }),
+    decimals: () => count('decimals', 18),
+    indexedFrom: () => count('indexedFrom', 11783796),
+    tokenAddress: () => count('token', MJPYC),
     ...overrides,
   }
 }
 
-const PAYEES = ['T2011001234567', 'T6999900000003', 'T8999900000001']
+const OPTIONS = { payees: ['T2011001234567', 'T6999900000003', 'T8999900000001'], x402Buyer: BUYER }
 const get = async (api: ReturnType<typeof createSettlements>, query = '') => {
   const response = await settlementsResponse(new URL(`https://meigi.example/api/settlements${query}`), api)
   return { status: response.status, cache: response.headers.get('cache-control'), body: (await response.json()) as Record<string, any> }
 }
+const quietly = async <T>(run: () => Promise<T>): Promise<T> => {
+  const log = console.error
+  console.error = () => {}
+  try {
+    return await run()
+  } finally {
+    console.error = log
+  }
+}
 
 describe('GET /api/settlements', () => {
-  it('lists vault, router and direct payments to registered payees, newest first, each once', async () => {
-    const { status, cache, body } = await get(createSettlements(scripted(), PAYEES))
+  it('lists vault, mJPYC router and x402 payments to registered payees, newest first, each once', async () => {
+    const { status, cache, body } = await get(createSettlements(scripted(), OPTIONS))
     assert.equal(status, 200)
-    assert.equal(cache, 'public, max-age=30')
+    assert.equal(cache, 'public, max-age=60')
     assert.equal(body.indexer, 'Curvegrid MultiBaas')
     assert.equal(body.indexedFrom, 11783796)
     assert.deepEqual(
       body.settlements.map((s: Record<string, unknown>) => [s.kind, s.txHash, s.tNumber, s.amount]),
       [
         ['invoice', tx(1), 'T2011001234567', { units: units(55_000), display: '¥55,000' }], // its Transfer isn't listed again
-        ['transfer', tx(3), 'T6999900000003', { units: units(15), display: '¥15' }], // block 11784165
+        ['x402', tx(3), 'T6999900000003', { units: units(15), display: '¥15' }], // block 11784165
         ['router', tx(2), 'T6999900000003', { units: units(500), display: '¥500' }], // block 11784100
-      ], // the transfer to an unregistered address (tx 4) is not a settlement
+      ], // not listed: the fake-token Paid (tx 5), the mint to Minato (tx 4), the transfer to a non-payee (tx 6)
     )
     assert.deepEqual(body.settlements[0], {
       kind: 'invoice',
@@ -86,58 +91,60 @@ describe('GET /api/settlements', () => {
     })
   })
 
+  it('lists no x402 purchases without a configured buyer', async () => {
+    const { body } = await get(createSettlements(scripted(), { ...OPTIONS, x402Buyer: null }))
+    assert.deepEqual(body.settlements.map((s: Record<string, unknown>) => s.kind), ['invoice', 'router'])
+  })
+
   it('narrows to one payee, and validates the T-number', async () => {
-    const api = createSettlements(scripted(), PAYEES)
+    const api = createSettlements(scripted(), OPTIONS)
     const one = await get(api, '?tNumber=T6999900000003')
     assert.equal(one.body.tNumber, 'T6999900000003')
-    assert.deepEqual(one.body.settlements.map((s: Record<string, unknown>) => s.kind), ['transfer', 'router'])
+    assert.deepEqual(one.body.settlements.map((s: Record<string, unknown>) => s.kind), ['x402', 'router'])
     const bad = await get(api, '?tNumber=12345')
     assert.equal(bad.status, 400)
     assert.equal(bad.body.code, 'invalid_t_number')
   })
 
-  it('reads MultiBaas once per cache window, whatever the requests', async () => {
+  it('answers any T-number outside the scope with nothing, at no cost to MultiBaas', async () => {
+    const reader = scripted()
+    const api = createSettlements(reader, OPTIONS)
+    await get(api)
+    const before = reader.calls.length
+    for (let i = 0; i < 100; i++) {
+      const { status, body } = await get(api, `?tNumber=T${9_000_000_000_000 + i}`)
+      assert.equal(status, 200)
+      assert.deepEqual(body.settlements, [])
+    }
+    assert.equal(reader.calls.length, before)
+  })
+
+  it('reads MultiBaas once per snapshot window, and shares the snapshot between isolates', async () => {
     const reader = scripted()
     let clock = 0
-    const api = createSettlements(reader, PAYEES, createMemo(() => clock))
-    await get(api)
-    await get(api, '?tNumber=T2011001234567')
+    let shared: Snapshot | null = null
+    const store: SnapshotStore = { get: async () => shared, put: async (s) => void (shared = s) }
+    const first = createSettlements(reader, { ...OPTIONS, store, memo: createMemo(() => clock), now: () => clock })
+    await get(first)
+    await get(first, '?tNumber=T2011001234567')
     assert.equal(reader.calls.filter((c) => c.startsWith('meigi_')).length, 3)
-    clock += 46_000
-    await get(api)
-    assert.equal(reader.calls.filter((c) => c.startsWith('meigi_')).length, 6)
-    assert.equal(reader.calls.filter((c) => c === 'payee:2011001234567').length, 1) // registry records last 10 min
+    const second = createSettlements(reader, { ...OPTIONS, store, memo: createMemo(() => clock), now: () => clock }) // another isolate
+    assert.equal((await get(second)).body.settlements.length, 3)
+    assert.equal(reader.calls.filter((c) => c.startsWith('meigi_')).length, 3)
+    assert.equal(reader.calls.filter((c) => c.startsWith('payee:')).length, 3) // the scope, once
   })
 
   it('answers a generic 503 when MultiBaas fails, never its message', async () => {
-    const failing = scripted({
-      rows: async () => {
-        throw new Upstream('MultiBaas answered 401')
-      },
-    })
-    const errors: unknown[] = []
-    const log = console.error
-    console.error = (...args: unknown[]) => void errors.push(args)
-    try {
-      const { status, cache, body } = await get(createSettlements(failing, PAYEES))
-      assert.equal(status, 503)
-      assert.equal(cache, 'no-store')
-      assert.deepEqual(body, { code: 'settlements_unavailable', message: 'Settlements are unavailable right now.' })
-    } finally {
-      console.error = log
-    }
-    assert.equal(errors.length, 1)
+    const failing = scripted({ rows: () => Promise.reject(new Upstream('MultiBaas answered 401')) })
+    const { status, cache, body } = await quietly(() => get(createSettlements(failing, OPTIONS)))
+    assert.equal(status, 503)
+    assert.equal(cache, 'no-store')
+    assert.deepEqual(body, { code: 'settlements_unavailable', message: 'Settlements are unavailable right now.' })
   })
 
   it('fails the answer on a malformed row instead of showing half a payment', async () => {
     const odd = scripted({ rows: async () => [{ tnumber: '2011001234567', payout: 'not an address', amount: '1', block: '1', txhash: tx(1) }] })
-    const log = console.error
-    console.error = () => {}
-    try {
-      assert.equal((await get(createSettlements(odd, PAYEES))).status, 503)
-    } finally {
-      console.error = log
-    }
+    assert.equal((await quietly(() => get(createSettlements(odd, OPTIONS)))).status, 503)
   })
 })
 
@@ -175,8 +182,12 @@ describe('the Worker', () => {
     assert.equal(await (await worker.fetch(new Request('https://meigi.example/registry/T2011001234567'), env)).text(), 'asset')
   })
 
-  it('answers only GET /api/settlements', async () => {
-    assert.equal((await worker.fetch(new Request('https://meigi.example/api/other'), env)).status, 404)
-    assert.equal((await worker.fetch(new Request('https://meigi.example/api/settlements', { method: 'POST' }), env)).status, 405)
+  it('answers only GET /api/settlements, with nosniff and an Allow header on 405', async () => {
+    const missing = await worker.fetch(new Request('https://meigi.example/api/other'), env)
+    assert.equal(missing.status, 404)
+    assert.equal(missing.headers.get('x-content-type-options'), 'nosniff')
+    const post = await worker.fetch(new Request('https://meigi.example/api/settlements', { method: 'POST' }), env)
+    assert.equal(post.status, 405)
+    assert.equal(post.headers.get('allow'), 'GET, HEAD')
   })
 })

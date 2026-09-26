@@ -1,6 +1,6 @@
 // A read-only MultiBaas (Curvegrid) client for the settlements API. It makes exactly these requests, all built here
-// from constants: three saved event queries, two contract reads (payeeOf, decimals) and the vault's indexing
-// status. Nothing from an incoming request becomes part of a path; a T-number only travels as a validated method
+// from constants: three saved event queries, two contract reads (payeeOf, decimals), the vault's indexing status
+// and the token alias's address. Nothing from an incoming request becomes part of a path; a T-number only travels as a validated method
 // argument. The names mirror services/agent/src/multibaas/labels.ts, which the setup script creates in MultiBaas.
 
 import type { Env } from './env'
@@ -13,6 +13,7 @@ const PATHS = {
   payeeOf: '/chains/ethereum/addresses/meigi_registry/contracts/meigi_payee_registry/methods/payeeOf',
   decimals: '/chains/ethereum/addresses/meigi_mjpy/contracts/meigi_jpy_token/methods/decimals',
   vaultStatus: '/chains/ethereum/addresses/meigi_vault/contracts/meigi_agent_vault/status',
+  token: '/chains/ethereum/addresses/meigi_mjpy',
 } as const
 
 const TIMEOUT_MS = 8_000
@@ -34,6 +35,8 @@ export interface MultiBaasReader {
   payee(digits: string): Promise<Payee>
   decimals(): Promise<number>
   indexedFrom(): Promise<number>
+  /** The mJPYC contract (lowercase), to check the router rows' token column. */
+  tokenAddress(): Promise<string>
 }
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
@@ -111,6 +114,13 @@ export function createReader(env: Env, fetcher: typeof fetch = fetch): MultiBaas
       const status = await call(PATHS.vaultStatus)
       if (!isRecord(status) || typeof status.startBlockNumber !== 'number') throw new Upstream('MultiBaas returned its indexing status in an unexpected shape')
       return status.startBlockNumber
+    },
+    async tokenAddress() {
+      const alias = await call(PATHS.token)
+      if (!isRecord(alias) || typeof alias.address !== 'string' || !/^0x[0-9a-fA-F]{40}$/.test(alias.address)) {
+        throw new Upstream('MultiBaas returned the token alias in an unexpected shape')
+      }
+      return alias.address.toLowerCase()
     },
   }
 }

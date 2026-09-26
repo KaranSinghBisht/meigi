@@ -9,7 +9,7 @@ import './settlements.css'
 const KIND: Record<SettlementKind, string> = {
   invoice: 'Invoice paid by the AgentVault',
   router: 'Paid by T-number (PayRouter)',
-  transfer: 'Direct transfer (x402)',
+  x402: 'x402 purchase by the research agent',
 }
 
 const FIRST_ROWS = 6
@@ -80,8 +80,8 @@ export function SettlementsPanel({ tNumber, title = 'Settlements · indexed by C
       </header>
       {load.kind === 'ready' ? (
         <p className="settlements__sub muted">
-          {load.data.network} · MultiBaas indexes from block {blockNumber(load.data.indexedFrom)} · checked{' '}
-          {formatJst(load.checkedAt)}
+          {load.data.network} · MultiBaas indexes from block {blockNumber(load.data.indexedFrom)} · as of{' '}
+          {formatJst(load.data.asOf)}
         </p>
       ) : null}
       {load.kind === 'loading' ? <p className="settlements__note muted">Reading MultiBaas…</p> : null}

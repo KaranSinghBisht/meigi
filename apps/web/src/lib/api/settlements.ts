@@ -5,7 +5,7 @@ import { getAddress } from 'viem'
 import { requestJson } from './http'
 import { bad, hex, num, optStr, record, str, type Json } from './parse'
 
-export type SettlementKind = 'invoice' | 'router' | 'transfer'
+export type SettlementKind = 'invoice' | 'router' | 'x402'
 
 export interface Settlement {
   readonly kind: SettlementKind
@@ -23,13 +23,15 @@ export interface Settlement {
 export interface Settlements {
   readonly indexer: string
   readonly network: string
+  /** When the site's Worker last read MultiBaas (it shares one read for up to 3 min). */
+  readonly asOf: Date
   /** MultiBaas indexes from this block; older payments aren't in its index. */
   readonly indexedFrom: number
   readonly tNumber: string | null
   readonly settlements: readonly Settlement[]
 }
 
-const KINDS: readonly SettlementKind[] = ['invoice', 'router', 'transfer']
+const KINDS: readonly SettlementKind[] = ['invoice', 'router', 'x402']
 const WHAT = 'settlements answer'
 
 function settlement(value: unknown): Settlement {
@@ -67,9 +69,12 @@ function settlement(value: unknown): Settlement {
 export function parseSettlements(value: unknown): Settlements {
   const body: Json = record(value, WHAT)
   if (!Array.isArray(body.settlements)) throw bad(WHAT)
+  const asOf = new Date(str(body, 'asOf', WHAT))
+  if (Number.isNaN(asOf.getTime())) throw bad(WHAT)
   return {
     indexer: str(body, 'indexer', WHAT),
     network: str(body, 'network', WHAT),
+    asOf,
     indexedFrom: num(body, 'indexedFrom', WHAT),
     tNumber: optStr(body, 'tNumber'),
     settlements: body.settlements.map(settlement),

@@ -5,6 +5,8 @@ export interface Env {
   readonly ASSETS: { fetch(request: Request): Promise<Response> }
   readonly MULTIBAAS_URL?: string
   readonly MULTIBAAS_API_KEY?: string
-  /** T-numbers whose payouts' direct mJPYC transfers (x402 sales) count as settlements, comma-separated. */
+  /** The registered payees listed even before the vault or router pays them (x402 sellers), comma-separated. */
   readonly SETTLEMENT_PAYEES?: string
+  /** The x402 research agent's wallet: only its mJPYC transfers count as x402 purchases (mJPYC is mintable). */
+  readonly X402_BUYER?: string
 }
