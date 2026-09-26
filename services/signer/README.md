@@ -11,8 +11,10 @@ This small process holds the AgentVault's agent key and signs one call for it: `
   for Agents approval: an Orb-level ID token, at most `SIGNER_APPROVAL_MAX_AGE_S` (10 minutes) old, from the
   configured issuer and client. The agent forwards the approving token once, when a verified human has released the
   hold.
-  - Phase 1 (`SIGNER_VERIFY_APPROVAL=0`, the default) reads the token's claims, above the ceiling only, and trusts
-    the agent to have checked the rest.
+  - Who verifies what: the agent always verifies the approval (signature, issuer, audience, Orb level, freshness,
+    approver; see its README). The signer verifies it again, independently, once Phase 2 is on.
+  - Phase 1 (`SIGNER_VERIFY_APPROVAL=0`, the default) only decodes the token's claims (jose `decodeJwt`), above the
+    ceiling only, and trusts the agent's verification for the rest.
   - Phase 2 (`SIGNER_VERIFY_APPROVAL=1`; needs `WORLD_AGENTS_ISSUER` and `WORLD_AGENTS_CLIENT_ID`) verifies every
     approval the agent presents, whatever the amount, so the booth's ¥55,000 release is checked here too. Above the
     ceiling one is required. It refuses on the first failure:
@@ -26,7 +28,8 @@ This small process holds the AgentVault's agent key and signs one call for it: `
       keys it, in one step with the check, so concurrent requests can't share it. The reservation is released only
       when the chain's simulation refuses the payment and nothing was broadcast.
   - Keys that can't be fetched fail closed. A local mock IdP (http on loopback) is accepted only on chain 31337.
-  - `/health` says which phase is on (`verifiesApproval`). The kill switch is the variable, plus a restart:
+  - `/health` always says which phase is on (`verifiesApproval: true` or `false`). The kill switch is the variable,
+    plus a restart:
     `SIGNER_VERIFY_APPROVAL=1 scripts/ap-stack.sh`.
   - **Limit.** World ID for Agents' device grant carries nothing about the payment. The signer knows the approval is
     genuine, fresh, unspent and from an approver, but not which payment the human was shown: the agent binds that.

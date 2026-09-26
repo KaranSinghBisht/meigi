@@ -18,7 +18,6 @@ export interface SignerInfo {
   vault: Address;
   chainId: number;
   humanAboveYen: number;
-  verifiesApproval?: boolean; // Phase 2 is on
 }
 
 export interface SignerDeps {
@@ -73,7 +72,8 @@ function authorized(header: string | undefined, token: string): boolean {
 export function createSignerApp(deps: SignerDeps) {
   const app = new Hono();
   app.use("*", bodyLimit({ maxSize: 32 * 1024, onError: (c) => c.json({ code: "too_large", message: "The request body is too large." }, 413) }));
-  app.get("/health", (c) => c.json({ ok: true, ...deps.info }));
+  // verifiesApproval: whether this signer checks approvals itself (Phase 2), so anyone can see which phase is on.
+  app.get("/health", (c) => c.json({ ok: true, ...deps.info, verifiesApproval: deps.verifier !== undefined }));
   app.use("*", async (c, next) => {
     if (!authorized(c.req.header("authorization"), deps.token)) return c.json({ code: "unauthorized", message: "A valid signer token is required." }, 401);
     return next();

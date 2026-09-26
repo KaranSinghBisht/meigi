@@ -83,7 +83,7 @@ export async function startSigner(config: Config, options: StartOptions = {}): P
       issuer: config.WORLD_AGENTS_ISSUER,
       clientId: config.WORLD_AGENTS_CLIENT_ID,
     },
-    info: { agent: account.address, vault: vault.address, chainId: config.CHAIN_ID, humanAboveYen: config.SIGNER_HUMAN_ABOVE_YEN, verifiesApproval: verifier !== undefined },
+    info: { agent: account.address, vault: vault.address, chainId: config.CHAIN_ID, humanAboveYen: config.SIGNER_HUMAN_ABOVE_YEN },
     verifier,
   });
   return { app, agent: account.address, verifiesApproval: verifier !== undefined };

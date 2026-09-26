@@ -114,6 +114,9 @@ grant: the agent is the device, and the human approves in World App. It is off u
   else; `exp`, `iat`, `sub` and `auth_time` present; an unexpired `exp`; `acr = https://world.org/oidc/acr/orb-v3`;
   and `auth_time` no earlier than the attempt's start − 30 s and no later than now + 30 s. The approver is the
   pairwise `sub`.
+- **Two checks.** The agent verifies the approval as above, always. The signer, which holds the key, verifies it
+  again independently once its Phase 2 is on (`SIGNER_VERIFY_APPROVAL=1`; its `/health` says `verifiesApproval`).
+  In Phase 1 it only decodes the token's claims and relies on the agent's check.
 - **Discovery is pinned:** the device, token and key-set endpoints must be on the issuer's own origin, and no IdP
   request follows a redirect. A key set that can't be fetched or read makes the attempt `unavailable`.
 - **Approvers:** the `sub` values in `WORLD_AGENTS_APPROVERS` (matched exactly), plus the one enrolled in

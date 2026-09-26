@@ -201,7 +201,7 @@ describe("/pay in each phase", () => {
       send: send ?? (async (call) => (sent.push(call), { ok: true, txHash: TX, payout: MEIGI })),
       receipt: async () => null,
     };
-    const app = createSignerApp({ payer, policy, token: "t".repeat(64), info: { ...info, verifiesApproval: phase2 }, verifier: phase2 ? verifier().v : undefined });
+    const app = createSignerApp({ payer, policy, token: "t".repeat(64), info, verifier: phase2 ? verifier().v : undefined });
     const pay = async (yen: bigint, idToken: string | null, invoice: Invoice = INVOICE_A) => {
       const body = { tNumber: invoice.tNumber.toString(), payout: MEIGI, amount: (yen * 10n ** 18n).toString(), invoiceRef: invoice.invoiceRef, ...(idToken ? { approval: { idToken } } : {}) };
       const res = await app.request("/pay", { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${"t".repeat(64)}` }, body: JSON.stringify(body) });

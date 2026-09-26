@@ -67,7 +67,7 @@ const payment = (yen: number) => ({ tNumber: "2011001234567", payout: MEIGI, amo
 describe("the signer", () => {
   it("answers /health openly, and everything else only with the token", async () => {
     const { app, post } = setup();
-    expect(await (await app.request("/health")).json()).toMatchObject({ ok: true, humanAboveYen: 150_000 });
+    expect(await (await app.request("/health")).json()).toEqual({ ok: true, agent: AGENT, vault: "0x87A798CD92dE1340B1b761dd45196AC82bEF793B", chainId: 11155111, humanAboveYen: 150_000, verifiesApproval: false });
     expect((await post("/simulate", payment(1000), "wrong-token")).status).toBe(401);
     expect((await app.request("/receipt/0x00", { headers: {} })).status).toBe(401);
   });

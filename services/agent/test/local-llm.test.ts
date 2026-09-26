@@ -84,4 +84,13 @@ describe("local LLM provider (OpenAI-compatible, e.g. Ollama)", () => {
     expect(() => loadConfig({ ...env, LOCAL_LLM_URL: "http://192.168.1.20:11434/v1" })).toThrow("LOCAL_LLM_URL");
     expect(() => loadConfig({ ...env, LOCAL_LLM_URL: "not a url" })).toThrow("LOCAL_LLM_URL");
   });
+
+  it("holds every model URL that can carry a token or a document to https, or http on loopback", () => {
+    const env = { SEPOLIA_RPC_URL: "http://127.0.0.1:8547", AGENT_ADDRESS: `0x${"11".repeat(20)}`, SIGNER_TOKEN: "s".repeat(64), REGISTRY_ADDRESS: `0x${"22".repeat(20)}`, VAULT_ADDRESS: `0x${"33".repeat(20)}` };
+    expect(loadConfig(env)).toMatchObject({ TRIAGE_BACKENDS: "systemone", SYSTEMONE_URL: "http://127.0.0.1:8102/v1/systemone" }); // local only by default
+    for (const name of ["SYSTEMONE_URL", "AI_PROXY_URL", "WORKERS_AI_URL"]) {
+      expect(() => loadConfig({ ...env, [name]: "http://proxy.example.com/v1" })).toThrow(name);
+      expect(() => loadConfig({ ...env, [name]: "https://proxy.example.com" })).not.toThrow();
+    }
+  });
 });

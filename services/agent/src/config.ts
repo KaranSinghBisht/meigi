@@ -35,13 +35,13 @@ const schema = z
     TRIAGE_BACKENDS: z.string().default("systemone"),
     TRIAGE_REQUIRED: flag.default(true),
     TRIAGE_MIN_P_SAFE: probability.default(0.9),
-    SYSTEMONE_URL: z.url().default("http://127.0.0.1:8102/v1/systemone"), // the fine-tuned payee-0.8b (kev.serve)
+    SYSTEMONE_URL: z.url().refine(secureOrLoopback, "must be https, or http on loopback").default("http://127.0.0.1:8102/v1/systemone"), // the fine-tuned payee-0.8b (kev.serve)
     SYSTEMONE_API_KEY: optional(z.string()),
     SYSTEMONE_MODEL: z.string().default("kev-latest"),
     CLOUDFLARE_ACCOUNT_ID: optional(z.string().regex(/^[0-9a-f]{32}$/u, "must be a 32-character account id")),
     CLOUDFLARE_API_TOKEN: optional(z.string()),
     // The team's Cloudflare Worker (workers/ai-proxy): /v1/systemone (Jev) and /v1/chat (Workers AI Llama)
-    AI_PROXY_URL: optional(z.url()),
+    AI_PROXY_URL: optional(z.url().refine(secureOrLoopback, "must be https, or http on loopback")), // carries AI_PROXY_TOKEN
     AI_PROXY_TOKEN: optional(z.string()),
     // System-2 LLM
     LLM_PROVIDER: z.enum(["local", "proxy", "anthropic", "workers-ai", "none"]).default("local"),
@@ -56,7 +56,7 @@ const schema = z
     ANTHROPIC_API_KEY: optional(z.string()),
     ANTHROPIC_MODEL: z.string().default("claude-haiku-4-5"),
     WORKERS_AI_MODEL: z.string().default("@cf/meta/llama-3.3-70b-instruct-fp8-fast"),
-    WORKERS_AI_URL: optional(z.url()),
+    WORKERS_AI_URL: optional(z.url().refine(secureOrLoopback, "must be https, or http on loopback")), // carries a token
     WORKERS_AI_TOKEN: optional(z.string()),
     // Intercepta screening
     INTERCEPTA_API_KEY: optional(z.string()),
