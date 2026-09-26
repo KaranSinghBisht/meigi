@@ -80,4 +80,13 @@ describe("checkPayee: ens (independent of the registry check)", () => {
     expect(verdict).toMatchObject({ ok: true, tNumber: T_NUMBER });
     expect(resolveEns).not.toHaveBeenCalled();
   });
+
+  it("declares no ens on a chain without ENS, where the registry alone still refuses a swapped payTo", async () => {
+    const resolveEns = vi.fn(async () => REGISTERED);
+    const declared = meigiPayeeDeclaration(T_NUMBER.slice(1), { ens: false })["meigi-payee"];
+    expect(declared).toEqual({ tNumber: T_NUMBER });
+    const verdict = await checkPayee(deps(resolveEns), declared, { payTo: SWAPPED, network: NETWORK });
+    expect(verdict).toMatchObject({ ok: false, code: "payto_mismatch" });
+    expect(resolveEns).not.toHaveBeenCalled();
+  });
 });

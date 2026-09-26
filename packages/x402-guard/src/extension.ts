@@ -65,8 +65,12 @@ export function screenUndeclaredPayee(policy: UnverifiedPolicy, options: GuardOp
   };
 }
 
-/** For merchants: the extension entry to add to `PaymentRequired.extensions`. */
-export function meigiPayeeDeclaration(tNumber: string): Record<string, unknown> {
+/**
+ * For merchants: the extension entry to add to `PaymentRequired.extensions`. It names the payee's ENS name too,
+ * unless `ens: false`, for a chain without ENS: buyers there can check the registry alone.
+ */
+export function meigiPayeeDeclaration(tNumber: string, options: { ens?: boolean } = {}): Record<string, unknown> {
   const digits = tNumber.replace(/^T/iu, "");
-  return { [MEIGI_PAYEE_KEY]: { tNumber: `T${digits}`, ens: `t${digits}.payee.eth` } };
+  const ens = options.ens === false ? {} : { ens: `t${digits}.payee.eth` };
+  return { [MEIGI_PAYEE_KEY]: { tNumber: `T${digits}`, ...ens } };
 }
