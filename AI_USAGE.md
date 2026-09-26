@@ -8,11 +8,11 @@ area.
 - **Claude Code** (Anthropic, Claude Opus 5.5) was the main pair programmer and orchestrator. One lead
   session wrote the core and ran parallel sub-agents for the landing page, ENS scripts, security reviews, the
   benchmark and fine-tuning, the AP agent service and the web app.
-- Every brief and every later instruction the lead session gave to the agents that built, reviewed or documented the
-  project is committed verbatim in [`docs/ai/briefs`](docs/ai/briefs). Real people's names are redacted, marked
-  `[redacted: name]`. Eight agents that only prepared private notes for the team (a briefing, a judge critique,
-  judge and speaker research, live event notes, talk transcripts, a Q&A sheet, a pitch document, and drafts of this
-  disclosure) are listed there by name, but their briefs aren't published. The specs are in `docs/`.
+- Every project-building sub-agent's brief and every later instruction is committed verbatim in
+  [`docs/ai/briefs`](docs/ai/briefs), except 15 of the 43 sub-agents, whose work was the team's private
+  preparation (pitch, presentation and Q&A) or tooling rather than project work; each is named in
+  [`docs/ai/README.md`](docs/ai/README.md). Real people's names are redacted as `[redacted: name]`, and a few
+  private-preparation sentences as `[redacted: private preparation]`. The specs are in `docs/`.
 - AI-assisted commits carry a `Co-Authored-By: Claude` trailer, except 32 made between 13:50 and 16:14 JST on
   Sep 26.
 - **OpenAI Codex** made one revision to the landing's garden (`packages/scene` planting and materials), run by
@@ -32,7 +32,7 @@ section).
 | `services/agent/` | AI (`apagent` sub-agent) |
 | `services/signer/` | AI (`apagent` sub-agent) |
 | `apps/web/` | AI (`webapp` sub-agent) |
-| `apps/landing/` | AI (`landing` sub-agent), from our art direction: a Tokyo / Mt Fuji take inspired by, not copied from, an existing landing page |
+| `apps/landing/` | AI (`landing` sub-agent), from our art direction: a Tokyo / Mt Fuji take, written from scratch |
 | `bench/` (PayeeBench-JA, fine-tuning runs) | AI (`bench` sub-agent) |
 | Docs (`README.md`, `docs/`) | AI |
 
