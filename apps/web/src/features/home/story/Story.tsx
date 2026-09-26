@@ -58,11 +58,11 @@ export function Story() {
         <AgentGate />
       </StorySection>
       <StorySection
-        id="story-verified"
-        headline="Verified once. Checked on every payment."
-        body="A company registers once: its name matched against the National Tax Agency, a signed proof on its own domain, and World ID for each officer. Every payment is then checked against that record, and a new payout waits 72 hours in public."
+        id="story-registered"
+        headline="Registered once. Checked on every payment."
+        body="A company registers once: its name matched against the National Tax Agency, a signed proof on a domain it controls, and World ID for each officer. Every payment is then checked against that record, and a new payout waits 72 hours in public."
         tag="REGISTRY"
-        bracket="名義 · VERIFY ONCE"
+        bracket="名義 · REGISTER ONCE"
       >
         <FieldReveal />
       </StorySection>

@@ -5,7 +5,7 @@ interface StorySectionProps {
   readonly id: string
   readonly headline: string
   readonly body: ReactNode
-  /** The mono tag under the text, e.g. REGISTRY [ 名義 · VERIFY ONCE ]. */
+  /** The mono tag under the text, e.g. REGISTRY [ 名義 · REGISTER ONCE ]. */
   readonly tag: string
   readonly bracket: string
   /** Art on the left and text on the right. */

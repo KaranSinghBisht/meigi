@@ -32,7 +32,7 @@ function layoutOf(g: AsciiGrid): Layout {
   return { c0, top: Math.max(0, Math.floor(g.rows / 2) - 7), bar, value, check: value + 26 }
 }
 
-/** One field: its label, a bar that fills as it is verified, then the value and a check. */
+/** One field: its label, a bar that fills as it is checked, then the value and a check mark. */
 function drawField(g: AsciiGrid, L: Layout, i: number, t: number, lit: number, alpha: number): void {
   const [label, value] = FIELDS[i] ?? ['', '']
   const start = 0.4 + i * 0.55
@@ -71,7 +71,7 @@ function drawFieldReveal(g: AsciiGrid): void {
   for (let i = 0; i < FIELDS.length; i++) drawField(g, L, i, t, i === lit ? 1 : 0, alpha)
 }
 
-/** "Verified once. Checked on every payment.": the record fills in field by field, then every payment re-reads it. */
+/** "Registered once. Checked on every payment.": the record fills in field by field, then every payment re-reads it. */
 export function FieldReveal() {
   const ref = useAsciiCanvas(drawFieldReveal, PIECE)
   return <canvas ref={ref} className="ascii" aria-hidden="true" />
