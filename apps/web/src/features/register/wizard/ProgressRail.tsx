@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { STEP_COUNT, STEPS, type StepIndex } from '../flow/steps'
+import './rail.css'
 
 type ItemState = 'done' | 'current' | 'upcoming'
 

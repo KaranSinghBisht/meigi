@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { getAddress, isAddress, zeroAddress } from 'viem'
 import { useWallet } from '../../../lib/chain/WalletContext'
 import type { HexAddress } from '../../../lib/env/env'
@@ -10,6 +10,7 @@ import { StepActions, StepFrame } from '../wizard/StepFrame'
 import { ControllerField } from './ControllerField'
 import { NewPayoutWallet } from './NewPayoutWallet'
 import { PayoutChoice } from './PayoutChoice'
+import { useNewPayoutWallet, type NewPayoutWallet as NewWallet } from './useNewPayoutWallet'
 import './wallets.css'
 
 /** A pasted payout address, checksummed; null (with a reason) when it isn't one. */
@@ -61,14 +62,21 @@ function ConnectedPayout({ account }: { readonly account: HexAddress | null }) {
   )
 }
 
-function PayoutDetail({ onboarding, account }: { readonly onboarding: Onboarding; readonly account: HexAddress | null }) {
+interface PayoutDetailProps {
+  readonly onboarding: Onboarding
+  readonly account: HexAddress | null
+  readonly newWallet: NewWallet
+}
+
+function PayoutDetail({ onboarding, account, newWallet }: PayoutDetailProps) {
   const { drafts } = onboarding.state
   if (drafts.payoutMode === 'paste') return <PastedPayout onboarding={onboarding} />
   if (drafts.payoutMode === 'connected') return <ConnectedPayout account={account} />
   return (
     <NewPayoutWallet
+      wallet={newWallet}
       saved={drafts.createdPayout}
-      onSaved={(address) => onboarding.setDrafts({ createdPayout: address })}
+      onDiscard={() => onboarding.setDrafts({ createdPayout: null })}
     />
   )
 }
@@ -76,6 +84,9 @@ function PayoutDetail({ onboarding, account }: { readonly onboarding: Onboarding
 export function WalletsStep({ onboarding }: { readonly onboarding: Onboarding }) {
   const wallet = useWallet()
   const { drafts } = onboarding.state
+  // Held here, not in the payout choice, so switching choices never drops a key whose backup isn't saved yet.
+  const { setDrafts } = onboarding
+  const newWallet = useNewPayoutWallet(useCallback((address) => setDrafts({ createdPayout: address }), [setDrafts]))
   const payout = resolvePayout(drafts, wallet.account)
   const submit = () => {
     if (wallet.account && payout) onboarding.confirmWallets(wallet.account, payout)
@@ -107,7 +118,7 @@ export function WalletsStep({ onboarding }: { readonly onboarding: Onboarding })
         </h3>
         <p className="onboard-section__lede">The only address payers who check Meigi will send money to.</p>
         <PayoutChoice mode={drafts.payoutMode} onMode={(payoutMode) => onboarding.setDrafts({ payoutMode })} />
-        <PayoutDetail onboarding={onboarding} account={wallet.account} />
+        <PayoutDetail onboarding={onboarding} account={wallet.account} newWallet={newWallet} />
       </section>
     </StepFrame>
   )

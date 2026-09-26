@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { explainError, type Explained } from '../../../lib/api/messages'
+import type { Explained } from '../../../lib/api/messages'
 import { checkDomainProof, createRegistration, type Registration } from '../../../lib/api/verifier'
+import { explainStep } from '../flow/errors'
 import type { Onboarding } from '../flow/useOnboarding'
 
 /** A fictional company has no real domain: it is recorded under its own name in the reserved .example TLD. */
@@ -10,7 +11,8 @@ export function fictionalDomain(tNumber: string): string {
 
 /**
  * The verifier's first two calls, unchanged from the registration flow: create the registration (the exact NTA
- * match, and the challenge the business key signs), then check the published domain proof.
+ * match, and the challenge the business key signs), then check the published domain proof. Each answer is applied
+ * only to the answers it was asked for (see useOnboarding), so a slow reply never lands on a changed form.
  */
 export function useRegistrationCalls(onboarding: Onboarding) {
   const [busy, setBusy] = useState(false)
@@ -22,7 +24,7 @@ export function useRegistrationCalls(onboarding: Onboarding) {
     try {
       return await call()
     } catch (reason) {
-      setError(explainError(reason, 'verifier'))
+      setError(explainStep(reason))
       return null
     } finally {
       setBusy(false)
@@ -35,14 +37,14 @@ export function useRegistrationCalls(onboarding: Onboarding) {
       if (!company || !controller || !payout) return null
       const input = { tNumber: company.tNumber, legalName: company.legalName, domain, controller, payout }
       const registration = await createRegistration(input)
-      onboarding.created(registration)
+      onboarding.created(registration, { company, controller, payout })
       return registration
     })
 
   const check = (id: string) =>
     run(async () => {
       const { method } = await checkDomainProof(id)
-      onboarding.domainVerified(method)
+      onboarding.domainVerified(id, method)
       return method
     })
 

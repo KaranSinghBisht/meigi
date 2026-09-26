@@ -34,6 +34,18 @@
   overflow-wrap: anywhere;
 }
 
+.review-company {
+  display: grid;
+  gap: 2px;
+}
+
+.review-company__address {
+  color: var(--ink-soft);
+  font-family: var(--font-jp);
+  font-size: var(--text-sm);
+  word-break: auto-phrase;
+}
+
 .threshold {
   display: grid;
   gap: 8px;
@@ -85,7 +97,7 @@
   pointer-events: none;
 }
 
-@media (max-width: 560px) {
+@container onboard (max-width: 480px) {
   .review-row {
     grid-template-columns: minmax(0, 1fr);
     gap: 4px;

@@ -125,7 +125,7 @@
   font-size: var(--text-sm);
 }
 
-@media (max-width: 640px) {
+@container onboard (max-width: 600px) {
   .payee-card {
     grid-template-columns: minmax(0, 1fr);
     padding: 20px;

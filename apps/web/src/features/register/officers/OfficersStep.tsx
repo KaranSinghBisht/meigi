@@ -1,14 +1,16 @@
 import type { IDKitResultSession } from '@worldcoin/idkit'
 import { useState } from 'react'
-import { explainError, type Explained } from '../../../lib/api/messages'
+import type { Explained } from '../../../lib/api/messages'
 import { enrollOfficer, type Registration } from '../../../lib/api/verifier'
 import { shortHash } from '../../../lib/chain/format'
 import { Badge } from '../../../ui/components/Badge'
 import { Button } from '../../../ui/components/Button'
-import { ErrorNotice, Notice } from '../../../ui/components/Notice'
+import { Notice } from '../../../ui/components/Notice'
 import { CredentialNote } from '../../../ui/world/CredentialNote'
 import { WorldIdProof } from '../../../ui/world/WorldIdProof'
+import { explainStep } from '../flow/errors'
 import type { Onboarding } from '../flow/useOnboarding'
+import { StepError } from '../wizard/StartOver'
 import { StepActions, StepFrame } from '../wizard/StepFrame'
 import './officers.css'
 
@@ -30,16 +32,16 @@ function OfficerList({ officers }: { readonly officers: readonly string[] }) {
 }
 
 /** Sends one officer's World ID session proof; a refusal is shown here and fails the widget. */
-function useEnroll(registration: Registration, onEnrolled: (officerId: string) => void) {
+function useEnroll(registration: Registration, onEnrolled: Onboarding['officerAdded']) {
   const [error, setError] = useState<Explained | null>(null)
   const [enrolled, setEnrolled] = useState(false)
   const enroll = async (result: IDKitResultSession) => {
     setError(null)
     try {
-      onEnrolled((await enrollOfficer(registration.id, result)).officerId)
+      onEnrolled(registration.id, (await enrollOfficer(registration.id, result)).officerId)
       setEnrolled(true)
     } catch (reason) {
-      setError(explainError(reason, 'verifier'))
+      setError(explainStep(reason))
       throw reason
     }
   }
@@ -77,7 +79,7 @@ function Officers({ onboarding, registration, officers }: OfficersProps) {
       <CredentialNote />
       <OfficerList officers={officers} />
       {enrolled ? <Notice tone="success" title="Officer added." /> : null}
-      {error ? <ErrorNotice error={error} /> : null}
+      {error ? <StepError error={error} onReset={onboarding.reset} /> : null}
       <div className="officer-add">
         <WorldIdProof
           label={none ? 'Add an officer with World ID' : 'Add another officer'}

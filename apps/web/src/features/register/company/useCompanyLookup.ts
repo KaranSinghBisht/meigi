@@ -59,12 +59,19 @@ function useLeiLookup(lei: string | null): LeiLookup {
   return state
 }
 
+/** An answer about another LEI than the one on screen (for the render before the new lookup starts) is not one. */
+function current(lei: LeiLookup, code: string | null): LeiLookup {
+  if (lei.kind === 'none' || lei.lei === code) return lei
+  return code ? { kind: 'loading', lei: code } : { kind: 'none' }
+}
+
 /** Reads the first step's one field: a T-number goes straight to the NTA index, an LEI through GLEIF first. */
 export function useCompanyLookup(query: string, picked: string | null): CompanyLookup {
   const compact = normaliseTNumber(query)
   const kind = classify(compact)
-  const lei = useLeiLookup(kind === 'lei' ? parseLei(compact) : null)
-  const matches = kind === 'lei' && lei.kind === 'done' ? (lei.record.ntaMatches ?? []) : []
+  const code = kind === 'lei' ? parseLei(compact) : null
+  const lei = current(useLeiLookup(code), code)
+  const matches = lei.kind === 'done' ? (lei.record.ntaMatches ?? []) : []
   const linked = matches.find((match) => match.tNumber === picked) ?? matches[0] ?? null
   const tNumber = kind === 'tNumber' ? (parseTNumber(compact)?.display ?? null) : (linked?.tNumber ?? null)
   const nta = useNtaPreview(tNumber)

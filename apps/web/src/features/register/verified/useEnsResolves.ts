@@ -8,6 +8,8 @@ export type EnsResolution =
   /** Not answering yet: a registration a block old may not have reached every RPC node. */
   | { readonly status: 'pending' }
   | { readonly status: 'other'; readonly address: HexAddress }
+  /** Still nothing after every attempt (about a minute): the reader can check again. */
+  | { readonly status: 'timeout' }
   | { readonly status: 'error' }
 
 const RETRY_MS = 4_000
@@ -30,8 +32,9 @@ export function useEnsResolves(name: string, expected: HexAddress) {
           if (!live) return
           if (address && address.toLowerCase() === expected.toLowerCase()) return setState({ status: 'match' })
           if (address) return setState({ status: 'other', address })
+          if (left <= 1) return setState({ status: 'timeout' })
           setState({ status: 'pending' })
-          if (left > 1) timer = window.setTimeout(() => attempt(left - 1), RETRY_MS)
+          timer = window.setTimeout(() => attempt(left - 1), RETRY_MS)
         },
         () => {
           if (live) setState({ status: 'error' })

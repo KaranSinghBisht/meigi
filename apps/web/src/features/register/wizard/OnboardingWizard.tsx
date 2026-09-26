@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { prefersReducedMotion } from '../../../lib/hooks/motion'
-import { Button } from '../../../ui/components/Button'
 import { CompanyStep } from '../company/CompanyStep'
 import { DomainStep } from '../domain/DomainStep'
 import { canRevisit, useOnboarding, type Onboarding, type OnboardingState } from '../flow/useOnboarding'
@@ -10,6 +9,7 @@ import { ReviewStep } from '../review/ReviewStep'
 import { VerifiedStep } from '../verified/VerifiedStep'
 import { WalletsStep } from '../wallets/WalletsStep'
 import { ProgressRail } from './ProgressRail'
+import { StartOver } from './StartOver'
 
 /** The furthest screen the saved state can back up: a step never shows before what it needs exists. */
 function visibleStep(state: OnboardingState): StepIndex {
@@ -38,59 +38,32 @@ function CurrentStep({ onboarding, step }: { readonly onboarding: Onboarding; re
 
 type Direction = 'none' | 'forward' | 'back'
 
-/** Which way the last step change went, so the new screen slides in from that side. None on first paint. */
-function useDirection(step: number): Direction {
-  const [seen, setSeen] = useState<{ step: number; direction: Direction }>({ step, direction: 'none' })
-  if (seen.step === step) return seen.direction
-  const direction: Direction = step > seen.step ? 'forward' : 'back'
-  setSeen({ step, direction })
+/** Which way the last screen change went, so the new screen slides in from that side. None on first paint. */
+function useDirection(screen: number): Direction {
+  const [seen, setSeen] = useState<{ screen: number; direction: Direction }>({ screen, direction: 'none' })
+  if (seen.screen === screen) return seen.direction
+  const direction: Direction = screen > seen.screen ? 'forward' : 'back'
+  setSeen({ screen, direction })
   return direction
 }
 
-/** A new screen takes focus at its question, and the window scrolls back into view if its top is hidden. */
-function useStepFocus(step: number) {
-  const window_ = useRef<HTMLDivElement>(null)
-  const first = useRef(true)
+/**
+ * A new screen takes focus at its question, and the window scrolls back into view if its top is hidden. It compares
+ * with the screen it last saw, so a first paint (or StrictMode's second effect run) never moves focus.
+ */
+function useStepFocus(screen: number) {
+  const windowRef = useRef<HTMLDivElement>(null)
+  const seen = useRef(screen)
   useEffect(() => {
-    if (first.current) {
-      first.current = false
-      return
-    }
-    const node = window_.current
+    if (seen.current === screen) return
+    seen.current = screen
+    const node = windowRef.current
     node?.querySelector<HTMLElement>('.onboard-step__title')?.focus({ preventScroll: true })
     if (node && node.getBoundingClientRect().top < 0) {
       node.scrollIntoView({ behavior: prefersReducedMotion() ? 'auto' : 'smooth', block: 'start' })
     }
-  }, [step])
-  return window_
-}
-
-/** Starting over throws away every answer (and a wallet made here), so it asks once before it does. */
-function StartOver({ onboarding, finished }: { readonly onboarding: Onboarding; readonly finished: boolean }) {
-  const [asking, setAsking] = useState(false)
-  if (finished || !asking) {
-    return (
-      <Button
-        variant="quiet"
-        size="sm"
-        className="rail__restart"
-        onClick={finished ? onboarding.reset : () => setAsking(true)}
-      >
-        {finished ? 'Register another company' : 'Start over'}
-      </Button>
-    )
-  }
-  return (
-    <div className="rail__confirm" role="group" aria-label="Start over">
-      <span className="rail__confirm-text">Clear every step?</span>
-      <Button variant="ghost" size="sm" onClick={onboarding.reset}>
-        Clear
-      </Button>
-      <Button variant="quiet" size="sm" onClick={() => setAsking(false)}>
-        Keep
-      </Button>
-    </div>
-  )
+  }, [screen])
+  return windowRef
 }
 
 function RailFooter({ onboarding, finished }: { readonly onboarding: Onboarding; readonly finished: boolean }) {
@@ -106,7 +79,7 @@ function RailFooter({ onboarding, finished }: { readonly onboarding: Onboarding;
           <li>World App for each officer</li>
         </ul>
       </div>
-      {started ? <StartOver onboarding={onboarding} finished={finished} /> : null}
+      {started ? <StartOver onReset={onboarding.reset} finished={finished} className="rail__restart" /> : null}
     </>
   )
 }

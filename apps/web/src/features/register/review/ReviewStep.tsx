@@ -1,13 +1,14 @@
 import { useState, type ReactNode } from 'react'
-import { explainError, type Explained } from '../../../lib/api/messages'
+import type { Explained } from '../../../lib/api/messages'
 import { submitRegistration, type Registration } from '../../../lib/api/verifier'
 import { parseTNumber } from '../../../lib/chain/tNumber'
 import type { HexAddress } from '../../../lib/env/env'
 import { Address } from '../../../ui/components/Address'
-import { Badge } from '../../../ui/components/Badge'
+import { Badge, type BadgeTone } from '../../../ui/components/Badge'
 import { Button } from '../../../ui/components/Button'
-import { ErrorNotice } from '../../../ui/components/Notice'
+import { explainStep } from '../flow/errors'
 import type { Company, Onboarding } from '../flow/useOnboarding'
+import { StepError } from '../wizard/StartOver'
 import { StepActions, StepFrame } from '../wizard/StepFrame'
 import { ThresholdPicker } from './ThresholdPicker'
 import './review.css'
@@ -17,7 +18,15 @@ interface Summary {
   readonly registration: Registration
   readonly controller: HexAddress
   readonly payout: HexAddress
+  readonly domainMethod: string | null
   readonly officers: number
+}
+
+/** How the verifier accepted the domain, as the chip beside it says. */
+const PROOF: Record<string, { tone: BadgeTone; label: string }> = {
+  dns: { tone: 'active', label: 'Signed DNS record' },
+  'well-known': { tone: 'active', label: 'Signed .well-known file' },
+  fixture: { tone: 'neutral', label: 'Not proven' },
 }
 
 function Row({ label, children }: { readonly label: string; readonly children: ReactNode }) {
@@ -29,25 +38,45 @@ function Row({ label, children }: { readonly label: string; readonly children: R
   )
 }
 
-/** Everything that goes on-chain, as the registry and every ENS client will show it. */
-function SummaryCard({ summary }: { readonly summary: Summary }) {
-  const { company, registration, controller, payout, officers } = summary
-  const ens = parseTNumber(company.tNumber)?.ens ?? ''
-  const domain = registration.domainProof.txtName.replace(/^_meigi\./, '')
+function CompanyRows({ company, legalName }: { readonly company: Company; readonly legalName: string }) {
   return (
-    <dl className="review-card onboard-cell">
+    <>
       <Row label="Company">
-        <span className="jp" lang="ja">
-          {registration.legalName}
-        </span>{' '}
+        <span className="review-company">
+          <span className="jp" lang="ja">
+            {legalName}
+          </span>
+          {company.address ? (
+            <span className="review-company__address" lang="ja">
+              {company.address}
+            </span>
+          ) : null}
+        </span>
         {company.fixture ? <Badge tone="info">Fictional</Badge> : <Badge tone="active">NTA exact match</Badge>}
       </Row>
       <Row label="T-number">
         <span className="mono">{company.tNumber}</span>
       </Row>
+      {company.lei ? (
+        <Row label="LEI">
+          <span className="mono">{company.lei}</span>
+        </Row>
+      ) : null}
       <Row label="Payee name">
-        <span className="mono">{ens}</span>
+        <span className="mono">{parseTNumber(company.tNumber)?.ens ?? ''}</span>
       </Row>
+    </>
+  )
+}
+
+/** Everything that goes on-chain, as the registry and every ENS client will show it. */
+function SummaryCard({ summary }: { readonly summary: Summary }) {
+  const { company, registration, controller, payout, domainMethod, officers } = summary
+  const domain = registration.domainProof.txtName.replace(/^_meigi\./, '')
+  const proof = PROOF[domainMethod ?? '']
+  return (
+    <dl className="review-card onboard-cell">
+      <CompanyRows company={company} legalName={registration.legalName} />
       <Row label="Payout address">
         <Address value={payout} copy />
       </Row>
@@ -55,8 +84,8 @@ function SummaryCard({ summary }: { readonly summary: Summary }) {
         <Address value={controller} />
       </Row>
       <Row label="Domain">
-        <span className="review-domain">{domain}</span>{' '}
-        {company.fixture ? <Badge tone="neutral">Not proven</Badge> : <Badge tone="active">Signed DNS record</Badge>}
+        <span className="review-domain">{domain}</span>
+        {proof ? <Badge tone={proof.tone}>{proof.label}</Badge> : null}
       </Row>
       <Row label="Officers">
         {officers} verified {officers === 1 ? 'human' : 'humans'}
@@ -72,9 +101,9 @@ function useSubmit(onboarding: Onboarding, registration: Registration) {
     setBusy(true)
     setError(null)
     try {
-      onboarding.submitted(await submitRegistration(registration.id, threshold))
+      onboarding.submitted(registration.id, await submitRegistration(registration.id, threshold))
     } catch (reason) {
-      setError(explainError(reason, 'verifier'))
+      setError(explainStep(reason))
     } finally {
       setBusy(false)
     }
@@ -82,9 +111,14 @@ function useSubmit(onboarding: Onboarding, registration: Registration) {
   return { busy, error, submit }
 }
 
+/** The reader's choice, or 2 of n by default (1 with a single officer), as the registration flow always suggested. */
+function thresholdOf(chosen: number | null, officers: number): number {
+  return Math.min(Math.max(chosen ?? 2, 1), officers)
+}
+
 function Review({ onboarding, summary }: { readonly onboarding: Onboarding; readonly summary: Summary }) {
   const { busy, error, submit } = useSubmit(onboarding, summary.registration)
-  const threshold = Math.min(Math.max(onboarding.state.threshold, 1), summary.officers)
+  const threshold = thresholdOf(onboarding.state.threshold, summary.officers)
   return (
     <StepFrame
       step={4}
@@ -100,14 +134,14 @@ function Review({ onboarding, summary }: { readonly onboarding: Onboarding; read
     >
       <SummaryCard summary={summary} />
       <ThresholdPicker max={summary.officers} value={threshold} onChange={onboarding.setThreshold} />
-      {error ? <ErrorNotice error={error} /> : null}
+      {error ? <StepError error={error} onReset={onboarding.reset} /> : null}
     </StepFrame>
   )
 }
 
 export function ReviewStep({ onboarding }: { readonly onboarding: Onboarding }) {
-  const { company, registration, controller, payout, officers } = onboarding.state
+  const { company, registration, controller, payout, domainMethod, officers } = onboarding.state
   if (!company || !registration || !controller || !payout) return null
-  const summary = { company, registration, controller, payout, officers: officers.length }
+  const summary = { company, registration, controller, payout, domainMethod, officers: officers.length }
   return <Review onboarding={onboarding} summary={summary} />
 }

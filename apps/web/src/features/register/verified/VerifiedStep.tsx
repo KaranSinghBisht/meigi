@@ -32,7 +32,12 @@ function EnsCheck({ ens, payout }: { readonly ens: string; readonly payout: HexA
       </p>
     )
   }
-  const title = state.status === 'other' ? 'ENS answers with a different address.' : "Couldn't reach Sepolia to check."
+  const title =
+    state.status === 'other'
+      ? 'ENS answers with a different address.'
+      : state.status === 'timeout'
+        ? "ENS doesn't answer for this name yet."
+        : "Couldn't reach Sepolia to check."
   return (
     <Notice tone="warn" title={title} action={<Button size="sm" variant="ghost" onClick={retry}>Check again</Button>} />
   )

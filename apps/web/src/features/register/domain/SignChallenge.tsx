@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
+import type { Hex } from 'viem'
 import { describeChainError } from '../../../lib/chain/errors'
 import { useWallet } from '../../../lib/chain/WalletContext'
 import { personalSign } from '../../../lib/chain/wallet'
@@ -18,7 +19,7 @@ interface SignChallengeProps {
 }
 
 /** The business key signs the verifier's challenge (personal_sign: free, no transaction). */
-function useSign(registration: Registration, controller: HexAddress, onSigned: Onboarding['signed']) {
+function useSign(registration: Registration, controller: HexAddress, onSigned: (signature: Hex) => void) {
   const wallet = useWallet()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -44,12 +45,35 @@ function useSign(registration: Registration, controller: HexAddress, onSigned: O
   return { busy, error, wrongAccount, connected: wallet.account !== null, sign }
 }
 
+/** `meigi-verify:<domain>:<T-number>:<nonce>`, breaking only after a colon; the T-number stays whole. */
+function ChallengeText({ message }: { readonly message: string }) {
+  const fields = message.split(':')
+  return (
+    <>
+      {fields.map((field, index) => (
+        <Fragment key={index}>
+          {/^T\d{13}$/.test(field) ? <span className="nowrap">{field}</span> : field}
+          {index < fields.length - 1 ? (
+            <>
+              :<wbr />
+            </>
+          ) : null}
+        </Fragment>
+      ))}
+    </>
+  )
+}
+
 export function SignChallenge({ onboarding, registration, controller, domain }: SignChallengeProps) {
-  const signer = useSign(registration, controller, onboarding.signed)
+  const signer = useSign(registration, controller, (signature) => onboarding.signed(registration.id, signature))
   return (
     <StepFrame
       step={2}
-      title={`Sign the proof for ${domain}`}
+      title={
+        <>
+          Sign the proof for <span className="onboard-break">{domain}</span>
+        </>
+      }
       lede="Your business key signs this line. It's a free signature, not a transaction."
       actions={
         <StepActions>
@@ -59,7 +83,9 @@ export function SignChallenge({ onboarding, registration, controller, domain }: 
         </StepActions>
       }
     >
-      <pre className="codeblock onboard-code">{registration.domainProof.message}</pre>
+      <pre className="codeblock onboard-code">
+        <ChallengeText message={registration.domainProof.message} />
+      </pre>
       {signer.wrongAccount ? (
         <Notice tone="warn" title="Switch accounts in your wallet.">
           <p>

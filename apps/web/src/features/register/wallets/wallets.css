@@ -109,7 +109,7 @@
   gap: 8px;
 }
 
-@media (max-width: 900px) {
+@container onboard (max-width: 620px) {
   .payout-choice {
     grid-template-columns: minmax(0, 1fr);
   }

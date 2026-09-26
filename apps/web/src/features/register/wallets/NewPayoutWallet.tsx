@@ -4,12 +4,13 @@ import { Badge } from '../../../ui/components/Badge'
 import { Button } from '../../../ui/components/Button'
 import { Notice } from '../../../ui/components/Notice'
 import { backupFileName } from './backup'
-import { useNewPayoutWallet } from './useNewPayoutWallet'
+import type { NewPayoutWallet as Wallet, UnsavedWallet } from './useNewPayoutWallet'
 
 interface NewPayoutWalletProps {
-  /** The wallet made earlier, whose backup was downloaded; null before that. */
+  readonly wallet: Wallet
+  /** The wallet made earlier whose backup was saved; null before that. */
   readonly saved: HexAddress | null
-  readonly onSaved: (address: HexAddress | null) => void
+  readonly onDiscard: () => void
 }
 
 function Saved({ address, onDiscard }: { readonly address: HexAddress; readonly onDiscard: () => void }) {
@@ -32,40 +33,67 @@ function Saved({ address, onDiscard }: { readonly address: HexAddress; readonly 
   )
 }
 
-/** Create a payout wallet here; the reader can't continue until its one backup file is downloaded. */
-export function NewPayoutWallet({ saved, onSaved }: NewPayoutWalletProps) {
-  const wallet = useNewPayoutWallet(onSaved)
-  if (saved && !wallet.pending) return <Saved address={saved} onDiscard={() => onSaved(null)} />
-  if (!wallet.pending) {
-    return (
-      <div className="onboard-cell new-wallet">
-        <p className="new-wallet__note">
-          The key is made in this browser and never leaves your device. You download it once, as a backup file.
-        </p>
-        <div className="new-wallet__actions">
-          <Button variant="ghost" onClick={wallet.create}>
-            Create wallet
-          </Button>
-        </div>
+/** Saved through a plain download, which a page can't see land: the reader says whether the file is there. */
+function ConfirmDownload({ wallet, unsaved }: { readonly wallet: Wallet; readonly unsaved: UnsavedWallet }) {
+  return (
+    <>
+      <Notice tone="info" title={`Check your downloads for ${backupFileName(unsaved.address)}.`}>
+        <p>Once the file is there, confirm it. This page then forgets the key for good.</p>
+      </Notice>
+      <div className="new-wallet__actions">
+        <Button onClick={wallet.confirm}>I have the file</Button>
+        <Button variant="quiet" busy={wallet.saving} onClick={() => void wallet.save()}>
+          Download again
+        </Button>
       </div>
-    )
-  }
+    </>
+  )
+}
+
+/** A wallet with a key in memory and no backup yet: its address is shown, but not offered for copying. */
+function Unsaved({ wallet, unsaved }: { readonly wallet: Wallet; readonly unsaved: UnsavedWallet }) {
   return (
     <div className="onboard-cell new-wallet">
       <p className="new-wallet__chips">
         <Badge tone="info">Testnet demo wallet</Badge>
       </p>
-      <Address value={wallet.pending} link={false} copy />
-      <Notice tone="warn" title="Download the backup to continue.">
-        <p>The key exists only in this tab and is never stored. You can download it once; without the file, nobody can move this wallet's funds.</p>
-      </Notice>
+      <Address value={unsaved.address} link={false} />
+      {unsaved.downloaded ? (
+        <ConfirmDownload wallet={wallet} unsaved={unsaved} />
+      ) : (
+        <>
+          <Notice tone="warn" title="Save the backup to continue.">
+            <p>The key exists only in this tab and is never stored. Without the file, nobody can move this wallet's funds.</p>
+          </Notice>
+          <div className="new-wallet__actions">
+            <Button busy={wallet.saving} onClick={() => void wallet.save()}>
+              Download backup
+            </Button>
+          </div>
+        </>
+      )}
       {wallet.error ? (
         <p className="field__error" role="alert">
           {wallet.error}
         </p>
       ) : null}
+    </div>
+  )
+}
+
+/** Create a payout wallet here; the reader can't continue until its one backup file is saved. */
+export function NewPayoutWallet({ wallet, saved, onDiscard }: NewPayoutWalletProps) {
+  if (wallet.unsaved) return <Unsaved wallet={wallet} unsaved={wallet.unsaved} />
+  if (saved) return <Saved address={saved} onDiscard={onDiscard} />
+  return (
+    <div className="onboard-cell new-wallet">
+      <p className="new-wallet__note">
+        The key is made in this browser and never leaves your device. You save it once, as a backup file.
+      </p>
       <div className="new-wallet__actions">
-        <Button onClick={wallet.download}>Download backup</Button>
+        <Button variant="ghost" onClick={wallet.create}>
+          Create wallet
+        </Button>
       </div>
     </div>
   )

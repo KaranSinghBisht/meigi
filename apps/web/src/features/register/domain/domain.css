@@ -23,13 +23,24 @@
 }
 
 /* A signature is a blob to copy, not a word to read: it wraps anywhere, evenly, never at its own hyphens. */
-.dns-record__value,
-.onboard-code {
+.dns-record__value {
   min-width: 0;
   font-size: var(--text-sm);
   line-height: 1.55;
   white-space: pre-wrap;
   word-break: break-all;
+}
+
+/* The challenge breaks after its colons (the markup marks them); a field too long for a line wraps anywhere. */
+.onboard-code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  hyphens: none;
+}
+
+/* A domain in a heading: one long word that may wrap anywhere rather than run out of the window. */
+.onboard-break {
+  overflow-wrap: anywhere;
 }
 
 .dns-alt {
@@ -49,7 +60,7 @@
   margin-bottom: 12px;
 }
 
-@media (max-width: 560px) {
+@container onboard (max-width: 520px) {
   .dns-record__row {
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 4px 12px;

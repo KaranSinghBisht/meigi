@@ -1,7 +1,8 @@
 import { Button } from '../../../ui/components/Button'
 import { TextField } from '../../../ui/components/Field'
-import { ErrorNotice, Notice } from '../../../ui/components/Notice'
+import { Notice } from '../../../ui/components/Notice'
 import type { Onboarding } from '../flow/useOnboarding'
+import { StepError } from '../wizard/StartOver'
 import { StepActions, StepFrame } from '../wizard/StepFrame'
 import { ProofRecords } from './ProofRecords'
 import { SignChallenge } from './SignChallenge'
@@ -22,14 +23,6 @@ function cleanDomain(input: string): string {
     .replace(/\.$/, '')
 }
 
-function StartOver({ onboarding }: { readonly onboarding: Onboarding }) {
-  return (
-    <Button size="sm" variant="ghost" onClick={onboarding.reset}>
-      Start over
-    </Button>
-  )
-}
-
 /** The question: which domain. Continuing creates the registration, so the verifier can issue the challenge. */
 function DomainEntry({ onboarding, calls }: { readonly onboarding: Onboarding; readonly calls: Calls }) {
   const value = onboarding.state.drafts.domain
@@ -42,7 +35,7 @@ function DomainEntry({ onboarding, calls }: { readonly onboarding: Onboarding; r
       lede="The one on its website and email. You'll add one DNS record to prove it's yours."
       onSubmit={() => void (valid && calls.create(domain))}
       actions={
-        <StepActions onBack={() => onboarding.goTo(1)}>
+        <StepActions onBack={calls.busy ? undefined : () => onboarding.goTo(1)}>
           <Button type="submit" size="lg" busy={calls.busy} disabled={!valid}>
             Continue
           </Button>
@@ -59,7 +52,7 @@ function DomainEntry({ onboarding, calls }: { readonly onboarding: Onboarding; r
         spellCheck={false}
         error={value.trim() !== '' && !valid && value.includes('.') ? 'Enter a public domain, like example.co.jp.' : null}
       />
-      {calls.error ? <ErrorNotice error={calls.error} action={<StartOver onboarding={onboarding} />} /> : null}
+      {calls.error ? <StepError error={calls.error} onReset={onboarding.reset} /> : null}
     </StepFrame>
   )
 }
@@ -78,7 +71,7 @@ function FictionalDomain({ onboarding, calls }: { readonly onboarding: Onboardin
       title="No domain to prove"
       lede="A fictional company has no real domain, so Meigi skips this step and records it as fictional."
       actions={
-        <StepActions onBack={registration ? undefined : () => onboarding.goTo(1)}>
+        <StepActions onBack={registration || calls.busy ? undefined : () => onboarding.goTo(1)}>
           <Button size="lg" busy={calls.busy} onClick={() => void proceed()}>
             Continue
           </Button>
@@ -88,7 +81,7 @@ function FictionalDomain({ onboarding, calls }: { readonly onboarding: Onboardin
       <Notice tone="info" title="Fictional demo company">
         <p>Registry office 9999 is never issued, so there's nothing to sign and no DNS record to add.</p>
       </Notice>
-      {calls.error ? <ErrorNotice error={calls.error} /> : null}
+      {calls.error ? <StepError error={calls.error} onReset={onboarding.reset} /> : null}
     </StepFrame>
   )
 }
@@ -103,7 +96,7 @@ function PublishRecord({ onboarding, calls }: { readonly onboarding: Onboarding;
       lede="Add it at your DNS provider, then check. New records can take a few minutes to appear."
       actions={
         <StepActions>
-          <Button variant="quiet" size="lg" onClick={() => onboarding.signed(null)}>
+          <Button variant="quiet" size="lg" onClick={() => onboarding.signed(registration.id, null)}>
             Sign again
           </Button>
           <Button size="lg" busy={calls.busy} onClick={() => void calls.check(registration.id)}>
@@ -113,13 +106,20 @@ function PublishRecord({ onboarding, calls }: { readonly onboarding: Onboarding;
       }
     >
       <ProofRecords challenge={registration.domainProof} signature={signature} />
-      {calls.error ? <ErrorNotice error={calls.error} /> : null}
+      {calls.error ? <StepError error={calls.error} onReset={onboarding.reset} /> : null}
     </StepFrame>
   )
 }
 
+const PROVEN: Record<string, string> = {
+  dns: 'The verifier found your signed DNS record.',
+  'well-known': 'The verifier found your signed file at /.well-known/meigi.json.',
+  fixture: 'Skipped for a fictional company.',
+}
+
 function Proven({ onboarding }: { readonly onboarding: Onboarding }) {
-  const fixture = onboarding.state.company?.fixture === true
+  const { company, domainMethod } = onboarding.state
+  const fixture = company?.fixture === true
   return (
     <StepFrame
       step={2}
@@ -132,7 +132,7 @@ function Proven({ onboarding }: { readonly onboarding: Onboarding }) {
         </StepActions>
       }
     >
-      <Notice tone="success" title={fixture ? 'Skipped for a fictional company.' : 'The verifier found your signed record.'} />
+      <Notice tone="success" title={PROVEN[domainMethod ?? ''] ?? 'The verifier accepted your domain proof.'} />
     </StepFrame>
   )
 }
