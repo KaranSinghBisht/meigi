@@ -197,11 +197,11 @@ The live rehearsal (Sepolia, 2026-09-26, ¥1,100 invoices to 株式会社メイ�
 |---|---|---|
 | Deploy the gate; its getters are asserted before broadcast | [`0x40bb…4367`](https://sepolia.etherscan.io/tx/0x40bb83aecdd79424646aea7814ddab1c9109c4811b092eef27efde784ab94367) | vault, names, registry, principal 4999900000005, label "ap" |
 | The vault's owner makes the gate its agent | [`0x7c61…31fe`](https://sepolia.etherscan.io/tx/0x7c61fe3bfaa38cda0025241ff88ee79b9911159b79c10c386a01e582939431fe) | `vault.agent()` = the gate |
-| A. The agent pays MS-2026-7201 through the gate | [`0xd1cc…db90`](https://sepolia.etherscan.io/tx/0xd1ccd8b78d90696732c288ecca07285fec019ae29bd5551bf70d3744f35adb90) | the vault's `InvoicePaid` to `0x9B4f…47e4` |
+| A. The agent pays MS-2026-7201 through the gate | [`0xd1cc…db90`](https://sepolia.etherscan.io/tx/0xd1ccd8b78d90696732c288ecca07285fec019ae29bd5551bf70d3744f35adb90) | the vault's `InvoicePaid` to `0x9B4f…47e4` (agent audit #46) |
 | B. 株式会社ハルカ製作所 revokes `ap.t4999900000005.payee.eth` | [`0x5d0b…645e`](https://sepolia.etherscan.io/tx/0x5d0b277c4550950d405b497ed73d99566e9aa93f8f2fe6090f573ecdee5c645e) | `answers()` false, `holder()` 0x0 |
 | The agent tries MS-2026-7202 and 7203 | none | refused: the signer's simulation reverts `MandateNotLive` (agent audit #50, #51), and analysis holds `mandate_not_live`; the key's nonce stays at 6 and nothing is broadcast |
 | C. The company issues `ap` to the agent's key again | [`0xfcf3…4216`](https://sepolia.etherscan.io/tx/0xfcf386a05eb2c9910fa0b841b465ec1fffc672a5db326e28f2d71268a04e4216) | `answers()` true, `holder()` the key |
-| D. The agent pays MS-2026-7204 | [`0xb49d…6a77`](https://sepolia.etherscan.io/tx/0xb49d32fe9341f062715988d66928f631bd7f5e23b8b8eb8e39a717c3a56e6a77) | the vault's `InvoicePaid` again, with no signer restart |
+| D. The agent pays MS-2026-7204 | [`0xb49d…6a77`](https://sepolia.etherscan.io/tx/0xb49d32fe9341f062715988d66928f631bd7f5e23b8b8eb8e39a717c3a56e6a77) | the vault's `InvoicePaid` again, with no signer restart (agent audit #55) |
 
 The agent's hash-chained audit log (57 entries) verifies. The signer reports `"via": "gate"`, and the agent reports the
 mandate as live. [`mandate-e2e.sh`](../contracts/script/ens/mandate-e2e.sh) proves the same flow on a fork.
