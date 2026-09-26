@@ -1,8 +1,7 @@
-// A glyph grid on a canvas, shared by the start page's ASCII pieces. The approach is ported from Karan's NightPool
-// landing (hackathons/old/midnight/ui/src/components/landing/ascii/useAsciiCanvas.ts): DPR scaling, resize, a pause
-// while the canvas is offscreen, and a single still frame when motion is reduced. Added here: the cell comes from
-// the font's own advance, strings draw in one call (Japanese is wider than a cell), a still frame is a chosen
-// moment of the loop rather than its first, and fonts that arrive late redraw it.
+// A glyph grid on a canvas, shared by the start page's ASCII pieces: DPR scaling, resize, a pause while the canvas
+// is offscreen, and a single still frame when motion is reduced. The cell comes from the font's own advance,
+// strings draw in one call (Japanese is wider than a cell), a still frame is a chosen moment of the loop rather
+// than its first, and fonts that arrive late redraw it.
 
 import { useEffect, useLayoutEffect, useRef } from 'react'
 import { usePrefersReducedMotion } from '../../../ui/stage/usePrefersReducedMotion'
