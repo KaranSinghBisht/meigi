@@ -1,0 +1,32 @@
+{
+  "name": "@meigi/signer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The only process that holds the AgentVault's agent key. It signs AgentVault.payInvoice and nothing else, after simulating it, for the AP agent on localhost.",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "start": "tsx --env-file=../../.env --env-file=../../.env.signer src/server.ts",
+    "dev:local": "tsx --env-file=.env.local src/server.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.1",
+    "@meigi/abi": "workspace:*",
+    "hono": "^4.13.9",
+    "jose": "^6.2.12",
+    "viem": "~2.56.8",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.0",
+    "tsx": "^4.21.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.2"
+  }
+}
