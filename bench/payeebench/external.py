@@ -1,8 +1,10 @@
-"""Answers produced outside the harness (frontier LLMs run as Claude Code agents): the label-free kit they work from, and
-the scorer that puts their answers through the same metrics as every other contender.
+"""Answers produced outside the harness (frontier LLMs run as Claude Code agents, and open models we fine-tuned with mlx-lm,
+scored by scripts/mlx_sft_answers.py): the label-free kit the agents work from, and the scorer that puts any answer
+file through the same metrics as every other contender.
 
     uv run python -m payeebench.external kit DIR
     uv run python -m payeebench.external score --name "claude-haiku-4.5 (agent)" --predictions FILE [--model claude-haiku-4-5] [--save]
+    uv run python -m payeebench.external score --name "gemma-4-e2b-payee (ours)" --predictions TEST --val-predictions VAL --source sft --save
 
 The condition is the Llama contender's (worker.WorkerLlama): the same system prompt, the item rendered as text, one JSON
 object with a probability for every option. Timing is not measured for agent runs; cost is a list-price estimate from
@@ -91,7 +93,8 @@ def token_proxy():
 
 
 def predictions(test, answers, model):
-    prices, proxy = USD_PER_M.get(model), token_proxy()
+    prices = USD_PER_M.get(model)
+    proxy = token_proxy() if prices else None       # token counts only matter for a list-price estimate
     cost = (proxy[0] * prices[0] + proxy[1] * prices[1]) / 1e6 if prices and proxy else None
     out = {}
     for r in test:
@@ -115,30 +118,37 @@ def paired_against_references(test, preds):
     return out
 
 
-def save(name, model, preds):
-    """Add the contender to results/: its predictions, a status entry, and a regenerated report and charts."""
+def save(name, model, preds, val_preds=None, source="agent"):
+    """Add the contender to results/: its predictions (validation too, when given, so it gets a deployed threshold),
+    a status entry, and a regenerated report and charts."""
     out = BENCH / "results"
-    path = out / "predictions" / f"{slug(name)}-test.jsonl"
-    path.write_text("".join(json.dumps(p, ensure_ascii=False) + "\n" for p in preds.values()), encoding="utf-8")
+    for split, rows in (("test", preds), ("val", val_preds)):
+        if rows:
+            path = out / "predictions" / f"{slug(name)}-{split}.jsonl"
+            path.write_text("".join(json.dumps(p, ensure_ascii=False) + "\n" for p in rows.values()), encoding="utf-8")
     status_path = out / "contenders.json"
     status = json.loads(status_path.read_text(encoding="utf-8"))
-    status[name] = {"slug": slug(name), "kind": "llm", "ran": True, "skipped_because": None, "source": "agent", "model": model}
+    status[name] = {"slug": slug(name), "kind": "llm", "ran": True, "skipped_because": None, "source": source, "model": model}
     status_path.write_text(json.dumps(status, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     report.build({"val": load_split("val"), "test": load_split("test")}, status, 0.01, out)
 
 
 def score(a):
-    test = load_split("test")
+    test, val = load_split("test"), load_split("val")
     answers, counts = load_answers(a.predictions, [r["_meta"]["id"] for r in test])
-    preds = predictions(test, answers, a.model)
-    summary = report.summarize(test, preds, None, load_split("val"), 0.01)
+    preds, val_preds = predictions(test, answers, a.model), None
+    if a.val_predictions:
+        val_answers, val_counts = load_answers(a.val_predictions, [r["_meta"]["id"] for r in val])
+        val_preds = predictions(val, val_answers, a.model)
+        log.info("validation answers: %s", json.dumps(val_counts))
+    summary = report.summarize(test, preds, val_preds, val, 0.01)
     log.info("answers: %s", json.dumps(counts))
     log.info("\n".join(report.HEADER + [report.row(a.name, summary)]))
     for ref, c in paired_against_references(test, preds).items():
         log.info("%s vs %s: accuracy %+.1f pts, 95%% CI [%+.1f, %+.1f], McNemar p=%.2g", a.name, ref, 100 * c["delta"],
                  100 * c["ci95"][0], 100 * c["ci95"][1], c["mcnemar_exact_p"])
     if a.save:
-        save(a.name, a.model, preds)
+        save(a.name, a.model, preds, val_preds, a.source)
 
 
 def main():
@@ -150,6 +160,8 @@ def main():
     s.add_argument("--name", required=True)
     s.add_argument("--predictions", required=True)
     s.add_argument("--model", default="", help=f"one of {sorted(USD_PER_M)}, for the list-price cost estimate")
+    s.add_argument("--val-predictions", default="", help="answers for the validation split, for a deployed auto-clear threshold")
+    s.add_argument("--source", default="agent", choices=["agent", "sft"], help="agent: a Claude Code agent's answers; sft: our fine-tune of an open model")
     s.add_argument("--save", action="store_true", help="add the contender to results/ (predictions, RESULTS.md, charts)")
     a = ap.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(message)s")

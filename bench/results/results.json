@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-26T14:19:49+00:00",
+  "generated": "2026-09-26T15:19:49+00:00",
   "n_items": 150,
   "budget": 0.01,
   "comparisons": {
@@ -120,6 +120,32 @@
       "items_worse": 3,
       "sign_test_p": 9.904811308210189e-25
     },
+    "llama-3.2-3b-payee (ours) vs kev-0.8b (base)": {
+      "delta": 0.135,
+      "ci95": [
+        0.09333333333333334,
+        0.17666666666666667
+      ],
+      "newly_right": 118,
+      "newly_wrong": 37,
+      "mcnemar_exact_p": 4.688383481085751e-11,
+      "items_better": 82,
+      "items_worse": 28,
+      "sign_test_p": 2.519412514630621e-07
+    },
+    "gemma-4-e2b-payee (ours) vs kev-0.8b (base)": {
+      "delta": 0.15166666666666667,
+      "ci95": [
+        0.10666666666666667,
+        0.195
+      ],
+      "newly_right": 132,
+      "newly_wrong": 41,
+      "mcnemar_exact_p": 2.3696530342934754e-12,
+      "items_better": 88,
+      "items_worse": 19,
+      "sign_test_p": 8.481335709263927e-12
+    },
     "kev-4b (base) vs kev-0.8b (base, val-fitted T)": {
       "delta": 0.04833333333333333,
       "ci95": [
@@ -224,6 +250,32 @@
       "items_worse": 3,
       "sign_test_p": 9.904811308210189e-25
     },
+    "llama-3.2-3b-payee (ours) vs kev-0.8b (base, val-fitted T)": {
+      "delta": 0.135,
+      "ci95": [
+        0.09333333333333334,
+        0.17666666666666667
+      ],
+      "newly_right": 118,
+      "newly_wrong": 37,
+      "mcnemar_exact_p": 4.688383481085751e-11,
+      "items_better": 82,
+      "items_worse": 28,
+      "sign_test_p": 2.519412514630621e-07
+    },
+    "gemma-4-e2b-payee (ours) vs kev-0.8b (base, val-fitted T)": {
+      "delta": 0.15166666666666667,
+      "ci95": [
+        0.10666666666666667,
+        0.195
+      ],
+      "newly_right": 132,
+      "newly_wrong": 41,
+      "mcnemar_exact_p": 2.3696530342934754e-12,
+      "items_better": 88,
+      "items_worse": 19,
+      "sign_test_p": 8.481335709263927e-12
+    },
     "payee-0.8b (ours) vs kev-4b (base)": {
       "delta": 0.12333333333333334,
       "ci95": [
@@ -315,6 +367,32 @@
       "items_worse": 3,
       "sign_test_p": 1.4128410298528223e-19
     },
+    "llama-3.2-3b-payee (ours) vs kev-4b (base)": {
+      "delta": 0.08666666666666667,
+      "ci95": [
+        0.043333333333333335,
+        0.13
+      ],
+      "newly_right": 92,
+      "newly_wrong": 40,
+      "mcnemar_exact_p": 6.974666252127661e-06,
+      "items_better": 59,
+      "items_worse": 30,
+      "sign_test_p": 0.0027852689963042145
+    },
+    "gemma-4-e2b-payee (ours) vs kev-4b (base)": {
+      "delta": 0.10333333333333333,
+      "ci95": [
+        0.058333333333333334,
+        0.14666666666666667
+      ],
+      "newly_right": 105,
+      "newly_wrong": 43,
+      "mcnemar_exact_p": 3.6393156195094663e-07,
+      "items_better": 61,
+      "items_worse": 13,
+      "sign_test_p": 1.3936467518320874e-08
+    },
     "payee-4b (ours, 1 epoch) vs payee-0.8b (ours)": {
       "delta": 0.02,
       "ci95": [
@@ -393,6 +471,32 @@
       "items_worse": 9,
       "sign_test_p": 0.0016580525261815637
     },
+    "llama-3.2-3b-payee (ours) vs payee-0.8b (ours)": {
+      "delta": -0.03666666666666667,
+      "ci95": [
+        -0.06666666666666667,
+        -0.006666666666666667
+      ],
+      "newly_right": 28,
+      "newly_wrong": 50,
+      "mcnemar_exact_p": 0.016853089894602595,
+      "items_better": 22,
+      "items_worse": 44,
+      "sign_test_p": 0.00921048969455458
+    },
+    "gemma-4-e2b-payee (ours) vs payee-0.8b (ours)": {
+      "delta": -0.02,
+      "ci95": [
+        -0.05333333333333334,
+        0.011666666666666667
+      ],
+      "newly_right": 33,
+      "newly_wrong": 45,
+      "mcnemar_exact_p": 0.21268281985080578,
+      "items_better": 28,
+      "items_worse": 33,
+      "sign_test_p": 0.6089207154048287
+    },
     "llama-3.3-70b (worker) vs payee-4b (ours, 1 epoch)": {
       "delta": -0.12333333333333334,
       "ci95": [
@@ -458,6 +562,32 @@
       "items_worse": 16,
       "sign_test_p": 0.12628947438543037
     },
+    "llama-3.2-3b-payee (ours) vs payee-4b (ours, 1 epoch)": {
+      "delta": -0.056666666666666664,
+      "ci95": [
+        -0.085,
+        -0.028333333333333332
+      ],
+      "newly_right": 22,
+      "newly_wrong": 56,
+      "mcnemar_exact_p": 0.00014948153872377523,
+      "items_better": 18,
+      "items_worse": 48,
+      "sign_test_p": 0.00028711844966164033
+    },
+    "gemma-4-e2b-payee (ours) vs payee-4b (ours, 1 epoch)": {
+      "delta": -0.04,
+      "ci95": [
+        -0.07,
+        -0.011666666666666667
+      ],
+      "newly_right": 22,
+      "newly_wrong": 46,
+      "mcnemar_exact_p": 0.004903382516355933,
+      "items_better": 17,
+      "items_worse": 29,
+      "sign_test_p": 0.10380535550410741
+    },
     "claude-haiku-4.5 (agent) vs llama-3.3-70b (worker)": {
       "delta": 0.04833333333333333,
       "ci95": [
@@ -510,6 +640,32 @@
       "items_worse": 6,
       "sign_test_p": 1.1641661378765454e-14
     },
+    "llama-3.2-3b-payee (ours) vs llama-3.3-70b (worker)": {
+      "delta": 0.06666666666666667,
+      "ci95": [
+        0.025,
+        0.11
+      ],
+      "newly_right": 78,
+      "newly_wrong": 38,
+      "mcnemar_exact_p": 0.000258261024055893,
+      "items_better": 50,
+      "items_worse": 28,
+      "sign_test_p": 0.016853089894602595
+    },
+    "gemma-4-e2b-payee (ours) vs llama-3.3-70b (worker)": {
+      "delta": 0.08333333333333333,
+      "ci95": [
+        0.03666666666666667,
+        0.13
+      ],
+      "newly_right": 96,
+      "newly_wrong": 46,
+      "mcnemar_exact_p": 3.293875658895233e-05,
+      "items_better": 56,
+      "items_worse": 20,
+      "sign_test_p": 4.36893220622444e-05
+    },
     "claude-sonnet-5 (agent) vs claude-haiku-4.5 (agent)": {
       "delta": 0.045,
       "ci95": [
@@ -549,6 +705,32 @@
       "items_worse": 9,
       "sign_test_p": 1.220851017613711e-06
     },
+    "llama-3.2-3b-payee (ours) vs claude-haiku-4.5 (agent)": {
+      "delta": 0.018333333333333333,
+      "ci95": [
+        -0.02,
+        0.058333333333333334
+      ],
+      "newly_right": 61,
+      "newly_wrong": 50,
+      "mcnemar_exact_p": 0.34258058257189816,
+      "items_better": 38,
+      "items_worse": 39,
+      "sign_test_p": 1.0
+    },
+    "gemma-4-e2b-payee (ours) vs claude-haiku-4.5 (agent)": {
+      "delta": 0.035,
+      "ci95": [
+        -0.008333333333333333,
+        0.07666666666666666
+      ],
+      "newly_right": 68,
+      "newly_wrong": 47,
+      "mcnemar_exact_p": 0.061708608239224014,
+      "items_better": 43,
+      "items_worse": 27,
+      "sign_test_p": 0.07223792719176259
+    },
     "claude-opus-5.5 (agent) vs claude-sonnet-5 (agent)": {
       "delta": 0.045,
       "ci95": [
@@ -575,6 +757,32 @@
       "items_worse": 4,
       "sign_test_p": 1.9301194697618484e-05
     },
+    "llama-3.2-3b-payee (ours) vs claude-sonnet-5 (agent)": {
+      "delta": -0.02666666666666667,
+      "ci95": [
+        -0.06666666666666667,
+        0.015
+      ],
+      "newly_right": 44,
+      "newly_wrong": 60,
+      "mcnemar_exact_p": 0.14095628821230846,
+      "items_better": 29,
+      "items_worse": 55,
+      "sign_test_p": 0.006037957632263206
+    },
+    "gemma-4-e2b-payee (ours) vs claude-sonnet-5 (agent)": {
+      "delta": -0.01,
+      "ci95": [
+        -0.051666666666666666,
+        0.03166666666666667
+      ],
+      "newly_right": 48,
+      "newly_wrong": 54,
+      "mcnemar_exact_p": 0.6207676687971156,
+      "items_better": 27,
+      "items_worse": 36,
+      "sign_test_p": 0.31350305329645284
+    },
     "claude-fable-5.1 (agent) vs claude-opus-5.5 (agent)": {
       "delta": -0.0033333333333333335,
       "ci95": [
@@ -587,6 +795,71 @@
       "items_better": 1,
       "items_worse": 3,
       "sign_test_p": 0.625
+    },
+    "llama-3.2-3b-payee (ours) vs claude-opus-5.5 (agent)": {
+      "delta": -0.07166666666666667,
+      "ci95": [
+        -0.10333333333333333,
+        -0.03833333333333333
+      ],
+      "newly_right": 21,
+      "newly_wrong": 64,
+      "mcnemar_exact_p": 3.2764703534411354e-06,
+      "items_better": 14,
+      "items_worse": 58,
+      "sign_test_p": 1.6464300115968573e-07
+    },
+    "gemma-4-e2b-payee (ours) vs claude-opus-5.5 (agent)": {
+      "delta": -0.055,
+      "ci95": [
+        -0.09,
+        -0.02
+      ],
+      "newly_right": 25,
+      "newly_wrong": 58,
+      "mcnemar_exact_p": 0.00037834276316077865,
+      "items_better": 18,
+      "items_worse": 45,
+      "sign_test_p": 0.0008980471786680215
+    },
+    "llama-3.2-3b-payee (ours) vs claude-fable-5.1 (agent)": {
+      "delta": -0.06833333333333333,
+      "ci95": [
+        -0.09833333333333333,
+        -0.035
+      ],
+      "newly_right": 21,
+      "newly_wrong": 62,
+      "mcnemar_exact_p": 7.50533232462072e-06,
+      "items_better": 14,
+      "items_worse": 56,
+      "sign_test_p": 4.3028401315359276e-07
+    },
+    "gemma-4-e2b-payee (ours) vs claude-fable-5.1 (agent)": {
+      "delta": -0.051666666666666666,
+      "ci95": [
+        -0.08666666666666667,
+        -0.018333333333333333
+      ],
+      "newly_right": 24,
+      "newly_wrong": 55,
+      "mcnemar_exact_p": 0.0006393977673643525,
+      "items_better": 18,
+      "items_worse": 43,
+      "sign_test_p": 0.0018681010309752506
+    },
+    "gemma-4-e2b-payee (ours) vs llama-3.2-3b-payee (ours)": {
+      "delta": 0.016666666666666666,
+      "ci95": [
+        -0.015,
+        0.04833333333333333
+      ],
+      "newly_right": 56,
+      "newly_wrong": 46,
+      "mcnemar_exact_p": 0.37294366808362966,
+      "items_better": 37,
+      "items_worse": 26,
+      "sign_test_p": 0.20736789985685422
     }
   },
   "skipped": {
@@ -2425,6 +2698,376 @@
         "ja": {
           "n": 109,
           "accuracy": 0.9541284403669725
+        }
+      }
+    },
+    "llama-3.2-3b-payee (ours)": {
+      "n_items": 150,
+      "questions": {
+        "request_type": {
+          "accuracy": 0.8866666666666667,
+          "macro_f1": 0.8543482024352242,
+          "ece": 0.09215508826653597
+        },
+        "new_destination": {
+          "accuracy": 0.9933333333333333,
+          "macro_f1": 0.9932659932659933,
+          "ece": 0.0441953544093181
+        },
+        "pressure": {
+          "accuracy": 0.9333333333333333,
+          "macro_f1": 0.9173280423280423,
+          "ece": 0.040173196481335785
+        },
+        "suspicion": {
+          "accuracy": 0.7133333333333334,
+          "macro_f1": 0.6043669126942812,
+          "ece": 0.07282133741687455,
+          "mae": 0.7518318298677152
+        }
+      },
+      "mean_accuracy": 0.8816666666666667,
+      "mean_macro_f1": 0.8423272876808853,
+      "ece": 0.03286028292428566,
+      "mean_confidence": 0.8696366374248834,
+      "reliability": [
+        {
+          "lo": 0.3,
+          "hi": 0.4,
+          "n": 3,
+          "accuracy": 0.3333333333333333,
+          "confidence": 0.3680207050307461
+        },
+        {
+          "lo": 0.4,
+          "hi": 0.5,
+          "n": 11,
+          "accuracy": 0.45454545454545453,
+          "confidence": 0.46449082152175714
+        },
+        {
+          "lo": 0.5,
+          "hi": 0.6,
+          "n": 43,
+          "accuracy": 0.5116279069767442,
+          "confidence": 0.5478975796522094
+        },
+        {
+          "lo": 0.6,
+          "hi": 0.7,
+          "n": 41,
+          "accuracy": 0.7804878048780488,
+          "confidence": 0.6519115693896179
+        },
+        {
+          "lo": 0.7,
+          "hi": 0.8,
+          "n": 55,
+          "accuracy": 0.7818181818181819,
+          "confidence": 0.7507217488186515
+        },
+        {
+          "lo": 0.8,
+          "hi": 0.9,
+          "n": 99,
+          "accuracy": 0.8080808080808081,
+          "confidence": 0.8532931214936781
+        },
+        {
+          "lo": 0.9,
+          "hi": 1.0,
+          "n": 348,
+          "accuracy": 0.9942528735632183,
+          "confidence": 0.9756173443108596
+        }
+      ],
+      "autoclear": {
+        "budget": 0.01,
+        "oracle": {
+          "threshold": 0.6310456303391424,
+          "auto_clear_rate": 0.06666666666666667,
+          "legit_cleared": 0.19607843137254902,
+          "cleared": 10,
+          "false_clears": 0,
+          "false_clear_rate": 0.0
+        },
+        "deployed": {
+          "threshold": 0.5343227211019751,
+          "auto_clear_rate": 0.12,
+          "legit_cleared": 0.27450980392156865,
+          "cleared": 18,
+          "false_clears": 4,
+          "false_clear_rate": 0.2222222222222222
+        }
+      },
+      "latency_ms": null,
+      "usd_per_1k": null,
+      "input_tokens_per_item": null,
+      "parse_errors": 0,
+      "cost_estimated": false,
+      "by_family": {
+        "bec_polite": {
+          "n": 12,
+          "accuracy": 0.9375
+        },
+        "bec_urgent": {
+          "n": 9,
+          "accuracy": 0.9166666666666666
+        },
+        "change_legit": {
+          "n": 12,
+          "accuracy": 0.75
+        },
+        "credit_note": {
+          "n": 12,
+          "accuracy": 0.8333333333333334
+        },
+        "exec_legit": {
+          "n": 7,
+          "accuracy": 1.0
+        },
+        "fake_exec": {
+          "n": 12,
+          "accuracy": 1.0
+        },
+        "injection_bypass": {
+          "n": 3,
+          "accuracy": 0.9166666666666666
+        },
+        "injection_redirect": {
+          "n": 6,
+          "accuracy": 0.8333333333333334
+        },
+        "invoice_routine": {
+          "n": 19,
+          "accuracy": 0.9210526315789473
+        },
+        "invoice_swap": {
+          "n": 7,
+          "accuracy": 0.8571428571428571
+        },
+        "notice": {
+          "n": 18,
+          "accuracy": 0.8472222222222222
+        },
+        "refund_scam": {
+          "n": 3,
+          "accuracy": 0.8333333333333334
+        },
+        "reminder_gentle": {
+          "n": 6,
+          "accuracy": 0.7916666666666666
+        },
+        "reminder_overdue": {
+          "n": 7,
+          "accuracy": 0.75
+        },
+        "x402_ok": {
+          "n": 7,
+          "accuracy": 1.0
+        },
+        "x402_overcharge": {
+          "n": 3,
+          "accuracy": 0.75
+        },
+        "x402_swap": {
+          "n": 7,
+          "accuracy": 0.9285714285714286
+        }
+      },
+      "by_language": {
+        "en": {
+          "n": 41,
+          "accuracy": 0.8902439024390244
+        },
+        "ja": {
+          "n": 109,
+          "accuracy": 0.8784403669724771
+        }
+      }
+    },
+    "gemma-4-e2b-payee (ours)": {
+      "n_items": 150,
+      "questions": {
+        "request_type": {
+          "accuracy": 0.88,
+          "macro_f1": 0.9136308136308136,
+          "ece": 0.05059064937851423
+        },
+        "new_destination": {
+          "accuracy": 0.9866666666666667,
+          "macro_f1": 0.9865494978479197,
+          "ece": 0.023939033843910766
+        },
+        "pressure": {
+          "accuracy": 0.92,
+          "macro_f1": 0.9116954474097332,
+          "ece": 0.07945665656545677
+        },
+        "suspicion": {
+          "accuracy": 0.8066666666666666,
+          "macro_f1": 0.7140579710144926,
+          "ece": 0.10165422026989264,
+          "mae": 0.2742092818352251
+        }
+      },
+      "mean_accuracy": 0.8983333333333333,
+      "mean_macro_f1": 0.8814834324757398,
+      "ece": 0.05002951442441253,
+      "mean_confidence": 0.9435682590051524,
+      "reliability": [
+        {
+          "lo": 0.3,
+          "hi": 0.4,
+          "n": 1,
+          "accuracy": 1.0,
+          "confidence": 0.37523748389043887
+        },
+        {
+          "lo": 0.4,
+          "hi": 0.5,
+          "n": 1,
+          "accuracy": 0.0,
+          "confidence": 0.47654280247652
+        },
+        {
+          "lo": 0.5,
+          "hi": 0.6,
+          "n": 23,
+          "accuracy": 0.4782608695652174,
+          "confidence": 0.5421003860139573
+        },
+        {
+          "lo": 0.6,
+          "hi": 0.7,
+          "n": 24,
+          "accuracy": 0.5833333333333334,
+          "confidence": 0.6474848804566097
+        },
+        {
+          "lo": 0.7,
+          "hi": 0.8,
+          "n": 22,
+          "accuracy": 0.5909090909090909,
+          "confidence": 0.7531813700131832
+        },
+        {
+          "lo": 0.8,
+          "hi": 0.9,
+          "n": 32,
+          "accuracy": 0.875,
+          "confidence": 0.8495745590728604
+        },
+        {
+          "lo": 0.9,
+          "hi": 1.0,
+          "n": 497,
+          "accuracy": 0.9496981891348089,
+          "confidence": 0.9930077526696646
+        }
+      ],
+      "autoclear": {
+        "budget": 0.01,
+        "oracle": {
+          "threshold": 0.9647013937208959,
+          "auto_clear_rate": 0.14,
+          "legit_cleared": 0.4117647058823529,
+          "cleared": 21,
+          "false_clears": 0,
+          "false_clear_rate": 0.0
+        },
+        "deployed": {
+          "threshold": 0.9274552953258418,
+          "auto_clear_rate": 0.21333333333333335,
+          "legit_cleared": 0.6078431372549019,
+          "cleared": 32,
+          "false_clears": 1,
+          "false_clear_rate": 0.03125
+        }
+      },
+      "latency_ms": null,
+      "usd_per_1k": null,
+      "input_tokens_per_item": null,
+      "parse_errors": 0,
+      "cost_estimated": false,
+      "by_family": {
+        "bec_polite": {
+          "n": 12,
+          "accuracy": 0.8541666666666666
+        },
+        "bec_urgent": {
+          "n": 9,
+          "accuracy": 0.8611111111111112
+        },
+        "change_legit": {
+          "n": 12,
+          "accuracy": 0.8541666666666666
+        },
+        "credit_note": {
+          "n": 12,
+          "accuracy": 1.0
+        },
+        "exec_legit": {
+          "n": 7,
+          "accuracy": 1.0
+        },
+        "fake_exec": {
+          "n": 12,
+          "accuracy": 1.0
+        },
+        "injection_bypass": {
+          "n": 3,
+          "accuracy": 0.8333333333333334
+        },
+        "injection_redirect": {
+          "n": 6,
+          "accuracy": 0.9583333333333334
+        },
+        "invoice_routine": {
+          "n": 19,
+          "accuracy": 0.7894736842105263
+        },
+        "invoice_swap": {
+          "n": 7,
+          "accuracy": 0.7857142857142857
+        },
+        "notice": {
+          "n": 18,
+          "accuracy": 0.9444444444444444
+        },
+        "refund_scam": {
+          "n": 3,
+          "accuracy": 1.0
+        },
+        "reminder_gentle": {
+          "n": 6,
+          "accuracy": 0.8333333333333334
+        },
+        "reminder_overdue": {
+          "n": 7,
+          "accuracy": 0.9642857142857143
+        },
+        "x402_ok": {
+          "n": 7,
+          "accuracy": 1.0
+        },
+        "x402_overcharge": {
+          "n": 3,
+          "accuracy": 0.75
+        },
+        "x402_swap": {
+          "n": 7,
+          "accuracy": 0.8214285714285714
+        }
+      },
+      "by_language": {
+        "en": {
+          "n": 41,
+          "accuracy": 0.9146341463414634
+        },
+        "ja": {
+          "n": 109,
+          "accuracy": 0.8922018348623854
         }
       }
     }

@@ -300,6 +300,16 @@ uv run python -m payeebench.evaluate --remote llama-worker              # option
 uv run --group dev pytest -q                                            # check digit, allocation, leakage, report
 ```
 
+Open generative models (LoRA SFT with mlx-lm on the same 600 items, answers scored by option likelihood, then put
+through the same metrics; `payee...` names are ours):
+
+```bash
+uv run python -m payeebench.sft_rows runs/sft-data                     # prompt/completion rows and item prompts
+scripts/train_mlx.sh llama-3.2-3b-payee mlx-community/Llama-3.2-3B-Instruct --grad-checkpoint
+uv run python -m payeebench.external score --name "llama-3.2-3b-payee (ours)" --source sft --save \
+    --predictions runs/llama-3.2-3b-payee/test_answers.jsonl --val-predictions runs/llama-3.2-3b-payee/val_answers.jsonl
+```
+
 The Kev repo must sit next to `meigi` (or set `KEV_DIR`) with `uv sync --extra serve` done. Weights and run directories
 go to `runs/` (git-ignored); predictions, `results.json`, `RESULTS.md` and the charts go to `results/`, and the training,
 calibration and forgetting summaries of each run are copied to `results/runs/`. `scripts/forgetting.sh <port> <name>`

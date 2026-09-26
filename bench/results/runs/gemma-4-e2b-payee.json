@@ -1,0 +1,44 @@
+{
+  "run": "gemma-4-e2b-payee",
+  "trainer": "mlx-lm LoRA SFT (scripts/train_mlx.sh)",
+  "recipe": {
+    "model": "google/gemma-4-E2B-it",
+    "fine_tune_type": "lora",
+    "num_layers": -1,
+    "batch_size": 2,
+    "grad_accumulation_steps": 2,
+    "iters": 300,
+    "learning_rate": 2e-05,
+    "lora_parameters": {
+      "rank": 8,
+      "dropout": 0.0,
+      "scale": 20.0
+    },
+    "mask_prompt": true,
+    "max_seq_length": 3072,
+    "seed": 0,
+    "save_every": 150,
+    "grad_checkpoint": true,
+    "optimizer": "adam"
+  },
+  "train_rows": 600,
+  "epochs": 1.0,
+  "wall_seconds": 246.0,
+  "peak_memory_gb": 14.924,
+  "train_loss_last": 0.006,
+  "val_loss": [
+    [
+      1,
+      1.705
+    ],
+    [
+      300,
+      0.004
+    ]
+  ],
+  "provenance": "runs/<run>/adapter_config.json and runs/logs/<run>.log (git-ignored); wall time from train_mlx.sh",
+  "notes": [
+    "mlx-lm 0.31.3 cannot load Gemma 4 E2B's KV-shared layers; scripts/mlx_compat.py drops those 60 unused tensors.",
+    "At batch 4 the run ran out of GPU memory with the live demo stack loaded; this run used batch 2 with 2-step gradient accumulation (effective batch 4) and gradient checkpointing, for one epoch to fit the overnight window."
+  ]
+}

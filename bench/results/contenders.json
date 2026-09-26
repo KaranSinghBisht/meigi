@@ -93,5 +93,21 @@
     "skipped_because": null,
     "source": "agent",
     "model": "claude-fable-5-1"
+  },
+  "llama-3.2-3b-payee (ours)": {
+    "slug": "llama-3-2-3b-payee-ours",
+    "kind": "llm",
+    "ran": true,
+    "skipped_because": null,
+    "source": "sft",
+    "model": ""
+  },
+  "gemma-4-e2b-payee (ours)": {
+    "slug": "gemma-4-e2b-payee-ours",
+    "kind": "llm",
+    "ran": true,
+    "skipped_because": null,
+    "source": "sft",
+    "model": ""
   }
 }

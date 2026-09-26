@@ -11,9 +11,12 @@ from .schema import QUESTION_IDS  # noqa: E402
 
 SURFACE, INK, INK2, MUTED, GRID, AXIS = "#fcfcfb", "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7"
 SLOTS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"]   # validated order
-FIXED = [("payee-0.8b", 0), ("kev-0.8b (base)", 1), ("val-fitted", 2), ("kev-4b", 3), ("payee-4b", 6), ("jev", 7), ("claude", 4), ("llama", 5)]
+FIXED = [("payee-0.8b", 0), ("kev-0.8b (base)", 1), ("val-fitted", 2), ("kev-4b", 3), ("payee-4b", 6), ("jev", 7), ("claude", 4),
+         ("-payee (ours)", 7), ("llama", 5)]
+SHARED = ("claude", "-payee (ours)")      # families that share one hue (the Claude tiers; our open-model fine-tunes)
 REFERENCE = "#b9b8b1"      # estimates that are not measured contenders
 CLAUDE_TIERS = ("haiku", "sonnet", "opus", "fable")      # one hue for every Claude tier; pattern and marker tell them apart
+OPEN_TIERS = ("llama", "gemma", "qwen")                   # the same for our open-model fine-tunes
 HATCHES, MARKERS = (None, "////", "xxxx", "...."), ("o", "s", "D", "^")
 MIN_BIN = 10               # reliability bins with fewer answers are noise, not signal
 QUESTION_LABELS = {"request_type": "Request type", "new_destination": "New destination", "pressure": "Pressure", "suspicion": "Suspicion"}
@@ -37,7 +40,7 @@ def colors_for(names):
     out, used = {}, set()
     for name in names:
         low = name.lower()
-        slot = next((s for pat, s in FIXED if pat in low and (s not in used or pat == "claude")), None)
+        slot = next((s for pat, s in FIXED if pat in low and (s not in used or pat in SHARED)), None)
         if slot is None:
             slot = next((s for s in range(len(SLOTS)) if s not in used | reserved), None)
         if slot is None:
@@ -48,7 +51,10 @@ def colors_for(names):
 
 def _tier(name):
     low = name.lower()
-    return next((i for i, t in enumerate(CLAUDE_TIERS) if t in low), 0) if "claude" in low else 0
+    for family, tiers in (("claude", CLAUDE_TIERS), ("-payee (ours)", OPEN_TIERS)):
+        if family in low:
+            return next((i for i, t in enumerate(tiers) if t in low), 0)
+    return 0
 
 
 def hatch_for(name):
