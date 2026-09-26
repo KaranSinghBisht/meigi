@@ -1,34 +1,27 @@
 #!/usr/bin/env bash
-# Builds the landing page and the web app for the public demo and deploys each as a static-assets Cloudflare
-# Worker (apps/*/wrangler.jsonc; both are single-page apps at the root of their host). Every VITE_ value is
-# compiled into a public bundle, so before deploying, the script checks that no secret from the git-ignored .env
-# appears in either build.
+# Builds the web app (whose "/" is the Sakasa Fuji landing hero) in hosted mode and deploys the same build as two
+# static-assets Cloudflare Workers: meigi (the landing URL, apps/web/wrangler.landing.jsonc) and meigi-app
+# (apps/web/wrangler.jsonc). Every VITE_ value is compiled into a public bundle, so before deploying, the script
+# checks that no secret from the git-ignored .env appears in the build. apps/landing is no longer deployed.
 #
 #   scripts/deploy-demo.sh              # build, check, deploy
 #   DRY_RUN=1 scripts/deploy-demo.sh    # build and check only
 #
-# Needs `npx wrangler login`. Optional: WORKERS_SUBDOMAIN (the account's workers.dev subdomain),
-# LANDING_URL / APP_URL, GITHUB_URL, PUBLIC_RPC_URL.
+# Needs `npx wrangler login`. Optional: WORKERS_SUBDOMAIN (the account's workers.dev subdomain), GITHUB_URL
+# (adds the dock's GitHub pill), PUBLIC_RPC_URL.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 WORKERS_SUBDOMAIN="${WORKERS_SUBDOMAIN:-karanbishttt}"
-LANDING_URL="${LANDING_URL:-https://meigi.${WORKERS_SUBDOMAIN}.workers.dev}"
-APP_URL="${APP_URL:-https://meigi-app.${WORKERS_SUBDOMAIN}.workers.dev}"
+LANDING_URL="https://meigi.${WORKERS_SUBDOMAIN}.workers.dev"
+APP_URL="https://meigi-app.${WORKERS_SUBDOMAIN}.workers.dev"
 PUBLIC_RPC_URL="${PUBLIC_RPC_URL:-https://ethereum-sepolia-rpc.publicnode.com}"
-REGISTRY="$(jq -er .registry contracts/deployments/11155111.json)"
 REGISTRY_FROM_BLOCK=11781105 # block of the v2 registry deployment (docs/runbook.md)
 
-build_landing() {
-  VITE_APP_URL="$APP_URL" VITE_GITHUB_URL="${GITHUB_URL:-}" VITE_RPC_URL="$PUBLIC_RPC_URL" \
-    VITE_REGISTRY_ADDRESS="$REGISTRY" VITE_REGISTRY_FROM_BLOCK="$REGISTRY_FROM_BLOCK" \
-    pnpm --filter @meigi/landing build
-}
-
 build_app() {
-  VITE_HOSTED=1 VITE_LANDING_URL="$LANDING_URL" VITE_RPC_URL="$PUBLIC_RPC_URL" \
+  VITE_HOSTED=1 VITE_GITHUB_URL="${GITHUB_URL:-}" VITE_RPC_URL="$PUBLIC_RPC_URL" \
     VITE_REGISTRY_FROM_BLOCK="$REGISTRY_FROM_BLOCK" \
     pnpm --filter @meigi/web build
 }
@@ -55,21 +48,20 @@ check_no_secrets() {
   return "$leaks"
 }
 
-# Runs from the app directory: wrangler refuses to auto-detect at a workspace root, and the app's
-# wrangler.jsonc names the Worker and points at its dist/.
+# Runs from apps/web: wrangler refuses to auto-detect at a workspace root, and each config names its Worker and
+# points at the same dist/.
 deploy() {
-  (cd "$1" && npx wrangler deploy)
+  (cd apps/web && npx wrangler deploy --config "$1")
 }
 
-build_landing
 build_app
-check_no_secrets apps/landing/dist apps/web/dist
-echo "builds are clean: landing → ${LANDING_URL}, app → ${APP_URL}"
+check_no_secrets apps/web/dist
+echo "build is clean: ${LANDING_URL} and ${APP_URL} will serve it"
 
 if [[ "${DRY_RUN:-}" == "1" ]]; then
   echo "DRY_RUN=1: not deploying"
   exit 0
 fi
 
-deploy apps/landing
-deploy apps/web
+deploy wrangler.landing.jsonc
+deploy wrangler.jsonc

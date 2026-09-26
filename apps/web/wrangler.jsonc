@@ -1,4 +1,4 @@
-// Public demo host for the web app (hosted mode): static assets only, no Worker code.
+// meigi-app.karanbishttt.workers.dev: the same build as the landing URL (see wrangler.landing.jsonc).
 // Deploy with scripts/deploy-demo.sh, which builds with VITE_HOSTED=1 first.
 {
   "name": "meigi-app",

@@ -1,0 +1,10 @@
+// The landing URL (meigi.karanbishttt.workers.dev) serves the same app build: its "/" is the Sakasa Fuji hero,
+// and enter glides into the app on one canvas. Deploy with scripts/deploy-demo.sh.
+{
+  "name": "meigi",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}
