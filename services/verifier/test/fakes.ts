@@ -68,6 +68,15 @@ export function selfieProof(session: string, nullifier: string, signal: string, 
   };
 }
 
+/** The same, but proved with Orb (proof_of_human) specifically - no sybil_score field at all. */
+export function orbProof(session: string, nullifier: string, signal: string) {
+  return {
+    session_id: session,
+    signal,
+    responses: [{ identifier: "proof_of_human", session_nullifier: [nullifier, "0x0"] }],
+  };
+}
+
 export class FakeChain implements ChainPort {
   chainId = 11155111;
   registry = REGISTRY;
