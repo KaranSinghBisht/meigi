@@ -131,6 +131,10 @@ a trusted single-user machine; the ENS scripts and forge scripts read keys from 
   the only attester. v2 has exactly one: `0x3D5F314C30E77CC6f3677C5409FdC91e83510493`.
 - If the business key is stolen *and* an officer is phished, only an attester or governance can cancel the
   thief's queued payout change. Watch `PayoutChangeRequested` and `ControllerRotationRequested`.
+- **Company-issued ENS names** (CompanyNamespace `0x7ECaD5Fd6892270F09D91aB296786186C5bC660A`, `docs/ens.md`): to take
+  one down, Meigi uses `setBlocked` or `setFrozen`, never a plain unregister, because the company can re-issue an
+  unregistered name at once. Any controller rotation, even a legitimate one, darkens that company's issued names
+  until the new key re-issues them.
 
 ## Demo checks (five minutes before judging)
 
