@@ -24,9 +24,10 @@ const INT = String.raw`\d[\d,]{0,24}`;
 const JP_NUM = String.raw`(?:${NUM}億)?(?:${NUM}万)?(?:${INT}千)?(?:${NUM})?`;
 
 // Negatives: ▲/△/マイナス (Japanese accounting, may be followed by a space), or a minus sign touching the
-// amount ("-¥22,000"). A free-standing dash ("保守費用 - ¥10,000") is a separator, not a sign.
+// amount ("-¥22,000"), in any dash spelling (‐ ‑ ‒ – — ﹣ −). A free-standing dash ("保守費用 - ¥10,000") is a
+// separator, not a sign.
 const AMOUNT = new RegExp(
-  String.raw`(?<neg>[▲△]\s?|マイナス\s?|[-−](?=[¥\dJ]))?(?:(?<cur>¥|JPYC|JPY)\s?(?<n1>(?=\d)${JP_NUM})|(?<n2>(?=\d)${JP_NUM})\s?(?<unit>円|JPYC|JPY))`,
+  String.raw`(?<neg>[▲△]\s?|マイナス\s?|[-‐‑‒–—﹣−](?=[¥\dJ]))?(?:(?<cur>¥|JPYC|JPY)\s?(?<n1>(?=\d)${JP_NUM})|(?<n2>(?=\d)${JP_NUM})\s?(?<unit>円|JPYC|JPY))`,
   "gu",
 );
 const COMPOUND = /^(?:([\d,.]+)億)?(?:([\d,.]+)万)?(?:([\d,]+)千)?([\d,.]+)?$/u;
