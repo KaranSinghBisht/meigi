@@ -158,3 +158,7 @@ a trusted single-user machine; the ENS scripts and forge scripts read keys from 
      approvable.
 8. Don't press Pay on the routine invoice before the demo: it auto-clears and pays for real, which uses up its
    invoice number.
+9. A live run spends the numbers of invoices 01 and 07. Between two live runs (judging, then the finalist stage), run
+   `pnpm --filter @meigi/agent demo:renumber` once (`--dry-run` to preview): it moves a spent number to the next one
+   no document uses and the vault hasn't paid, and the console picks it up without a restart. The 30-day cap for
+   the fixture vendor fits four full runs (checked on-chain on 2026-09-26).
