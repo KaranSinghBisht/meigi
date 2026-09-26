@@ -18,14 +18,18 @@ production step (roadmap, item 1).
 A payout changes only through a 72-hour public window: either the company's business key together with its World ID
 officers (each proof checked by our verifier, whose co-signature the registry verifies on-chain), or a governance
 ruling on a dispute. Nothing changes it instantly.
+- **The window.** `changeDelay` is set at deploy: 72 hours (259,200 s) on Sepolia and on Awaji. The contract
+  enforces at least 1 hour.
 - **The company's path.** The business key calls `requestPayoutChange` with an officer approval. The change lands
   after 72h, and the controller, an attester or governance can cancel it until then.
 - **What the chain checks.** An officer approval is one attester's EIP-712 signature naming enough enrolled officer
   ids. The verifier checks each officer's World ID proof off-chain; the contract can't (`OfficerQuorum.sol`).
 - **The dispute path.** An attester files a dispute, which freezes the payee at once: it pays nothing and resolves to
   nothing. Governance then queues a ruling that can name any controller and payout, with no business key or
-  officers, and anyone can apply it after 72h. Governance can instead dismiss the dispute, which restores the
-  incumbent at once.
+  officers, and anyone can apply it after 72h. Only governance can dismiss a queued ruling (restoring the
+  incumbent at once) or replace it; the controller and attesters can't cancel it the way they can a requested
+  change. A new claim would drop it and restart the freeze, but our verifier never files one against a payee that is
+  already disputed.
 - **A lost business key.** Officers can queue a new key, which waits 72h and which the current controller can cancel.
   The new key then follows the company's path, another 72h.
 
@@ -68,8 +72,8 @@ ruling on a dispute. Nothing changes it instantly.
   at once with no timelock.
 - The registry owner can add an attester, so on its own it could open a dispute and rule any payee over to a new
   controller and payout. The ruling waits 72h in public, and the payee is frozen until then.
-- The x402 guard fails closed, because the registry, ENS and `payTo` must agree. Wallets that trust ENS alone
-  wouldn't.
+- For a merchant that declares its payee, the x402 guard fails closed: the registry, its ENS name where it declares
+  one, and `payTo` must agree. Wallets that trust ENS alone wouldn't.
 
 **DNS.**
 - The verifier reads TXT records from one resolver without DNSSEC validation, so a hijacked zone would pass.
