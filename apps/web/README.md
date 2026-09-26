@@ -5,7 +5,8 @@ agent console and the x402 guard demo. Vite + React 19 + TypeScript, viem on Sep
 
 | Route | What | Talks to |
 |---|---|---|
-| `/` | Home: live fixture payee and the four flows | Sepolia |
+| `/` | The landing hero (wordmark, enter, resolve a T-number, live payee count); "enter" glides into the app | Sepolia |
+| `/start` | Home: live fixture payee and the four flows | Sepolia |
 | `/agent` | AP console: analyse an invoice, pay, have a verified human approve a held one (World ID for Agents), or force-pay to see the chain refuse | agent, Sepolia |
 | `/registry/:tNumber?` | Payee card, pending-change countdowns, ENS check, live event feed | Sepolia |
 | `/register` | NTA match → domain proof (personal_sign) → World ID officers → submit | verifier, wallet |
@@ -24,7 +25,11 @@ fixed canvas behind the shell (`src/ui/stage/SceneLayer.tsx`), with each flow at
 - Moments (`useSceneMood`): the chain refusing → `refused` plus a 拒否 stamp, a settled payment → `ok`, a disputed
   payee → `frozen`, an approval → a 承認 stamp; leaving returns to `calm`. `src/ui/stage/scene.ts` is the only
   seam to the package.
-- Arriving from the landing's enter glide (which ends in white), the app fades in from white.
+- `/` is the landing hero (`src/features/landing`, the landing's own UI with its styles scoped under `.landing`).
+  "enter" stays on the same canvas: the hero fades, the stage holds `gate` while the torii glide runs, then the
+  router moves to `/start` and the app's header and panels fade in. Browser back returns to the hero; with reduced
+  motion or without WebGL, enter is a quick crossfade. A timer finishes the move if the tab is hidden mid-glide.
+- Arriving from the old standalone landing (which ends its glide in white), the app fades in from white.
 
 ## Run
 

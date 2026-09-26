@@ -28,6 +28,10 @@
   opacity: 1;
 }
 
+.scene-layer[data-station='gate'] .scene-still {
+  transform: scale(1.04);
+}
+
 .scene-layer[data-station='fuji'] .scene-still {
   transform: scale(1.14);
 }

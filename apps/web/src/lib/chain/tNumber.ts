@@ -13,9 +13,12 @@ export interface ParsedTNumber {
   readonly ens: string
 }
 
-/** Drops spaces and hyphens and upper-cases a leading "t" before validating. */
+/**
+ * Normalises input before validating: NFKC folds full-width IME input (Ｔ２０１１…, －) to ASCII, then spaces and
+ * hyphens go and t becomes T.
+ */
 export function normaliseTNumber(input: string): string {
-  return input.replace(/[\s-]/g, '').toUpperCase()
+  return input.normalize('NFKC').replace(/[\s-]/g, '').toUpperCase()
 }
 
 export function parseTNumber(input: string): ParsedTNumber | null {

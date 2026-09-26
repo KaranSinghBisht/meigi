@@ -6,7 +6,8 @@ export type { Station }
 export type Mood = SceneMood
 
 const STATIONS: Readonly<Record<string, Station>> = {
-  '': 'gate', // where the landing's enter glide ends, just through the torii
+  '': 'hero', // the landing's own composition
+  start: 'gate', // where the enter glide through the torii ends
   registry: 'fuji',
   register: 'shore',
   change: 'torii',

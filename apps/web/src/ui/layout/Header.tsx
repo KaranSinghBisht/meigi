@@ -15,7 +15,7 @@ export function Header() {
   return (
     <header className="topbar">
       <div className="topbar__inner">
-        <Link to="/" className="brand" aria-label="Meigi home">
+        <Link to="/" className="brand" aria-label="Meigi home: back to the lake">
           <HankoMark size={34} />
           <span className="brand__word" aria-hidden="true">
             meigi.

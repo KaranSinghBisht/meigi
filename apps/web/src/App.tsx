@@ -5,7 +5,9 @@ import { HomePage } from './features/home/HomePage'
 import { NotFoundPage, RouteErrorPage } from './features/home/NotFoundPage'
 import { AppShell } from './ui/layout/AppShell'
 
-// Each flow is its own chunk; World ID (IDKit + WASM) only loads with /register and /change.
+// Each flow is its own chunk; World ID (IDKit + WASM) only loads with /register and /change, and the landing
+// hero (with gsap) only with "/".
+const LandingPage = lazy(() => import('./features/landing/LandingPage'))
 const AgentPage = lazy(() => import('./features/agent/AgentPage'))
 const RegistryPage = lazy(() => import('./features/registry/RegistryPage'))
 const RegisterPage = lazy(() => import('./features/register/RegisterPage'))
@@ -17,7 +19,8 @@ const router = createBrowserRouter([
     element: <AppShell />,
     errorElement: <RouteErrorPage />,
     children: [
-      { index: true, element: <HomePage /> },
+      { index: true, element: <LandingPage /> },
+      { path: 'start', element: <HomePage /> },
       { path: 'agent', element: <AgentPage /> },
       { path: 'registry', element: <RegistryPage /> },
       { path: 'registry/:tNumber', element: <RegistryPage /> },

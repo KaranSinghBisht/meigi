@@ -65,7 +65,10 @@ async function snap(page, name, fullPage = false) {
 }
 
 const SHOTS = [
-  { name: 'home', path: '/', ready: '.strip__text .jp' },
+  { name: 'landing-hero', path: '/', ready: '.hero__wordmark' },
+  // Mid-glide through the torii: the hero has faded and the camera is on its way to the app's gate station.
+  { name: 'enter-glide', path: '/', ready: '.hero__wordmark', act: enterGlide },
+  { name: 'home', path: '/start', ready: '.strip__text .jp' },
   { name: 'registry', path: '/registry/T2011001234567', ready: '.payee__name', after: '.feed__item' },
   { name: 'registry-empty', path: '/registry', ready: '.directory__chip' },
   { name: 'registry-pending', path: '/registry/T2011001234567', ready: '.pending', setup: pendingPayout },
@@ -84,6 +87,12 @@ const SHOTS = [
   { name: 'x402-honest', path: '/x402', ready: '.merchant', act: buyHonest, optIn: 'SHOTS_HONEST' },
   { name: 'x402-unverified-paid', path: '/x402', ready: '.merchant', act: buyUnverified, optIn: 'SHOTS_HONEST' },
 ]
+
+/** Enter, then wait until the camera is passing through the torii (the glide takes GLIDE_SECONDS, 2.2 s). */
+async function enterGlide(page) {
+  await page.getByRole('link', { name: /enter/ }).click()
+  await page.waitForTimeout(1500)
+}
 
 async function fillRegistration(page) {
   await page.getByLabel('T-number').fill(process.env.SHOTS_T_NUMBER ?? 'T1010601051968')
@@ -185,7 +194,8 @@ async function run(browser, shot) {
 
 /** Straight into each page of a hosted build: services that need the demo machine show their panels. */
 const HOSTED_SHOTS = [
-  { name: 'home', path: '/', ready: '.strip__text .jp' },
+  { name: 'landing-hero', path: '/', ready: '.hero__wordmark' },
+  { name: 'home', path: '/start', ready: '.strip__text .jp' },
   { name: 'registry', path: '/registry/T2011001234567', ready: '.payee__name', after: '.feed__item' },
   { name: 'agent', path: '/agent', ready: '.recorded .refusal' },
   { name: 'x402', path: '/x402', ready: '.recorded .merchant' },

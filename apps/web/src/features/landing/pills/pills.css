@@ -1,0 +1,113 @@
+.landing .pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42em;
+  height: 38px;
+  padding: 0 16px;
+  border: 1px solid var(--glass-edge);
+  border-radius: 999px;
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(14px) saturate(1.35);
+  backdrop-filter: blur(14px) saturate(1.35);
+  box-shadow:
+    var(--shadow-soft),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.25s var(--ease-out),
+    color 0.25s var(--ease-out),
+    transform 0.25s var(--ease-out);
+}
+
+.landing .pill:hover {
+  background: var(--glass-hover);
+}
+
+.landing .pill:active {
+  transform: translateY(1px);
+}
+
+.landing .pill__icon {
+  width: 0.82em;
+  height: 0.82em;
+  flex: none;
+}
+
+.landing .pill--enter {
+  height: 46px;
+  padding: 0 22px 0 24px;
+  border-color: rgba(255, 255, 255, 0.9);
+  background: #fff;
+  font-size: 16px;
+  box-shadow: 0 14px 34px -18px rgba(42, 39, 48, 0.55);
+}
+
+.landing .pill--enter:hover,
+.landing .pill--enter:focus-visible {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: #fff;
+}
+
+.landing .pill[aria-expanded='true'] {
+  background: var(--glass-hover);
+}
+
+.landing .dock {
+  position: absolute;
+  right: var(--gutter);
+  bottom: var(--gutter);
+  left: var(--gutter);
+  z-index: 10;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.landing .dock > * {
+  pointer-events: auto;
+}
+
+.landing .dock__pills {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.landing .dock__anchor {
+  position: relative;
+}
+
+@media (max-width: 640px) {
+  .landing .dock {
+    flex-direction: column-reverse;
+    align-items: center;
+  }
+
+  .landing .dock__pills {
+    justify-content: center;
+    margin-left: 0;
+  }
+
+  .landing .pill {
+    height: 36px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+
+  .landing .pill--enter {
+    height: 44px;
+    font-size: 15px;
+  }
+}

@@ -24,6 +24,25 @@
   outline: none;
 }
 
+/* Arriving from the hero's enter glide: the app's chrome and page fade in over the world. */
+.shell--entered .topbar,
+.shell--entered .shell__vlabel,
+.shell--entered .shell__main,
+.shell--entered .footer {
+  animation: shell-enter 0.8s var(--ease-out) both;
+}
+
+.shell--entered .shell__main {
+  animation-delay: 0.12s;
+}
+
+@keyframes shell-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
 .skip-link {
   position: absolute;
   top: 10px;

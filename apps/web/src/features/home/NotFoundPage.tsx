@@ -10,7 +10,7 @@ export function NotFoundPage() {
       <p className="eyebrow">404</p>
       <h1 className="page-head__title">No page here.</h1>
       <p className="page-head__lede">The mountain hasn't moved, but this address doesn't lead anywhere.</p>
-      <LinkButton to="/" variant="primary">
+      <LinkButton to="/start" variant="primary">
         Back to Meigi
       </LinkButton>
     </div>
@@ -29,7 +29,7 @@ export function RouteErrorPage() {
       <p className="page-head__lede">
         {notFound ? "This address doesn't lead anywhere." : 'Reload to try again. Nothing was signed or sent.'}
       </p>
-      <a className="btn btn--primary btn--md" href="/">
+      <a className="btn btn--primary btn--md" href="/start">
         Back to Meigi
       </a>
     </div>

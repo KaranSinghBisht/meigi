@@ -10,6 +10,7 @@ import './layout.css'
 
 const TITLES: Record<string, string> = {
   '/': 'Meigi · Pay companies, not addresses.',
+  '/start': 'Start · Meigi',
   '/agent': 'Agent console · Meigi',
   '/registry': 'Registry · Meigi',
   '/register': 'Register a business · Meigi',
@@ -41,24 +42,35 @@ export function RouteFallback() {
   )
 }
 
+/** "/" is the landing hero: only the world and its overlay. Entering from it, the app's chrome fades in. */
+function useShellMode() {
+  const { pathname, state } = useLocation()
+  const hero = pathname === '/'
+  const entered = !hero && (state as { entered?: boolean } | null)?.entered === true
+  return { hero, className: hero ? 'shell shell--hero' : entered ? 'shell shell--entered' : 'shell' }
+}
+
 export function AppShell() {
   useRouteAnnouncements()
+  const { hero, className } = useShellMode()
   return (
-    <div className="shell">
+    <div className={className}>
       <a className="skip-link" href="#main">
         Skip to content
       </a>
       <SceneLayer />
-      <Header />
-      <div className="shell__vlabel" aria-hidden="true">
-        <VerticalLabel />
-      </div>
+      {hero ? null : <Header />}
+      {hero ? null : (
+        <div className="shell__vlabel" aria-hidden="true">
+          <VerticalLabel />
+        </div>
+      )}
       <main id="main" className="shell__main" tabIndex={-1}>
         <Suspense fallback={<RouteFallback />}>
           <Outlet />
         </Suspense>
       </main>
-      <Footer />
+      {hero ? null : <Footer />}
       <Arrival />
     </div>
   )

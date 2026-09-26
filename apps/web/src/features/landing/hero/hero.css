@@ -1,0 +1,235 @@
+.landing .overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.landing .hero {
+  --wm: clamp(96px, 16vw, 240px);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Wordmark baseline sits just above the far shore; its descender dips into the reflection. */
+.landing .hero__top {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% - var(--horizon) + var(--wm) * 0.05);
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.landing .hero__bottom {
+  position: absolute;
+  top: calc(var(--horizon) + var(--wm) * 0.24);
+  right: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(18px, 2.4vh, 28px);
+}
+
+.landing .hero__byline {
+  margin: 0 0 clamp(2px, 0.5vw, 8px);
+  color: var(--ink-soft);
+  font-size: clamp(12px, 1vw, 14.5px);
+  letter-spacing: -0.005em;
+  text-align: center;
+  text-shadow: 0 1px 12px rgba(255, 244, 240, 0.7);
+}
+
+.landing .hero__name {
+  white-space: nowrap;
+}
+
+.landing .hero__wordmark {
+  margin: 0;
+  padding-right: 0.05em;
+  color: var(--ink);
+  font-size: var(--wm);
+  font-weight: 500;
+  letter-spacing: -0.065em;
+  line-height: 0.78;
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.landing .hero__subtitle {
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(16px, 1.4vw, 21px);
+  letter-spacing: -0.015em;
+  text-align: center;
+  text-shadow: 0 1px 14px rgba(255, 244, 240, 0.75);
+}
+
+.landing .hero__bottom .pill {
+  pointer-events: auto;
+}
+
+.landing .vlabel {
+  position: absolute;
+  top: calc(var(--horizon) * 0.46);
+  right: calc(var(--gutter) + 6px);
+  display: block;
+  color: var(--ink);
+  font-family: var(--font-jp);
+  writing-mode: vertical-rl;
+  transform: translateY(-50%);
+}
+
+.landing .vlabel__name {
+  display: block;
+  margin-left: 12px;
+  font-size: clamp(22px, 2vw, 30px);
+  font-weight: 600;
+  letter-spacing: 0.16em;
+}
+
+.landing .vlabel__line {
+  display: block;
+  padding-top: 0.5em;
+  color: var(--ink-soft);
+  font-size: clamp(12.5px, 1vw, 15px);
+  font-weight: 500;
+  letter-spacing: 0.4em;
+}
+
+.landing .vlabel__seal {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-inline-start: 0.7em;
+  border-radius: 1.5px;
+  background: var(--vermilion);
+  vertical-align: middle;
+}
+
+.landing .caption {
+  position: absolute;
+  bottom: calc(var(--gutter) + 70px);
+  left: 50%;
+  width: max-content;
+  max-width: calc(100vw - 2 * var(--gutter));
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(14px, 1.15vw, 16px);
+  font-style: italic;
+  letter-spacing: -0.005em;
+  text-align: center;
+  text-shadow: 0 1px 14px rgba(255, 244, 238, 0.9);
+  opacity: 0;
+  transform: translate(-50%, 6px);
+  transition:
+    opacity 0.9s var(--ease-out),
+    transform 0.9s var(--ease-out);
+}
+
+.landing .caption.is-visible {
+  opacity: 0.9;
+  transform: translate(-50%, 0);
+}
+
+.landing .branch {
+  position: absolute;
+  top: -22px;
+  left: -34px;
+  width: clamp(250px, 33vw, 580px);
+  height: auto;
+  opacity: 0.86;
+  filter: blur(3.2px);
+  pointer-events: none;
+}
+
+@media (max-aspect-ratio: 4/5) {
+  .landing .hero__top {
+    top: 15.5vh;
+    bottom: auto;
+  }
+
+  /* Below the reflection, but always ending above the two-row dock. */
+  .landing .hero__bottom {
+    top: min(calc(var(--horizon) + 17vh), calc(100% - var(--gutter) - 212px));
+  }
+
+  /* Symmetric inset keeps the centred byline clear of the vertical label;
+     on very narrow phones the names wrap at the separator, never mid-name. */
+  .landing .hero__byline {
+    max-width: calc(100vw - 2 * var(--gutter) - 112px);
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  .landing .hero__byline > span {
+    display: block;
+  }
+
+  .landing .hero__dash {
+    display: none;
+  }
+
+  .landing .vlabel {
+    top: calc(var(--gutter) + 4px);
+    right: var(--gutter);
+    transform: none;
+  }
+
+  .landing .vlabel__name {
+    margin-left: 6px;
+    font-size: 20px;
+  }
+
+  .landing .vlabel__line {
+    font-size: 11.5px;
+    letter-spacing: 0.26em;
+  }
+
+  .landing .caption__turn {
+    display: block;
+  }
+
+  .landing .caption {
+    bottom: calc(var(--gutter) + 118px);
+  }
+}
+
+@media (max-width: 359px) {
+  .landing .vlabel__line {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .landing .branch {
+    width: 58vw;
+    filter: blur(1.8px);
+  }
+
+  .landing .vlabel__line {
+    letter-spacing: 0.3em;
+  }
+}
+
+/* Short phones (iPhone SE class): lift the text clear of Fuji's summit. */
+@media (max-aspect-ratio: 4/5) and (max-height: 700px) {
+  .landing .hero__top {
+    top: 9vh;
+  }
+
+  .landing .branch {
+    width: 42vw;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing .caption {
+    transform: translate(-50%, 0);
+    transition-duration: 0.3s;
+  }
+}

@@ -21,6 +21,9 @@ export interface AppEnv {
   readonly worldEnvironment: WorldEnvironment
   readonly worldRpId: string | null
   readonly landingUrl: string | null
+  /** Optional links in the landing hero's dock. */
+  readonly githubUrl: string | null
+  readonly docsUrl: string | null
   /** The public site: the verifier, agent and x402 demo only run on the demo machine. */
   readonly hosted: boolean
   readonly demoVideoUrl: string | null
@@ -108,6 +111,8 @@ function readEnv(raw: ImportMetaEnv): AppEnv {
     worldEnvironment: pick('VITE_WORLD_ENVIRONMENT', raw.VITE_WORLD_ENVIRONMENT, DEFAULTS.worldEnvironment, worldEnv),
     worldRpId: pick<string | null>('VITE_WORLD_RP_ID', raw.VITE_WORLD_RP_ID, null, rpId),
     landingUrl: pick<string | null>('VITE_LANDING_URL', raw.VITE_LANDING_URL, null, link),
+    githubUrl: pick<string | null>('VITE_GITHUB_URL', raw.VITE_GITHUB_URL, null, link),
+    docsUrl: pick<string | null>('VITE_DOCS_URL', raw.VITE_DOCS_URL, null, link),
     hosted: pick('VITE_HOSTED', raw.VITE_HOSTED, false, flag),
     demoVideoUrl: pick<string | null>('VITE_DEMO_VIDEO_URL', raw.VITE_DEMO_VIDEO_URL, null, url),
   }

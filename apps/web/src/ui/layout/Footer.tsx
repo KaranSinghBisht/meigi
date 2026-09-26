@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import { configIssues, env } from '../../lib/env/env'
 import { Address } from '../components/Address'
 import './layout.css'
@@ -18,13 +19,10 @@ export function Footer() {
           </span>
         </p>
         <p className="footer__line footer__line--quiet">
-          <span className="jp">名義</span> Pay companies, not addresses. ETHGlobal Tokyo 2026 · From Scratch
-          {env.landingUrl ? (
-            <>
-              {' '}
-              · <a href={env.landingUrl}>About Meigi</a>
-            </>
-          ) : null}
+          <span className="jp">名義</span> Pay companies, not addresses. ETHGlobal Tokyo 2026 · From Scratch ·{' '}
+          <Link to="/" className="footer__lake">
+            Back to the lake
+          </Link>
         </p>
         {configIssues.length > 0 ? (
           <ul className="footer__issues" aria-label="Configuration problems">

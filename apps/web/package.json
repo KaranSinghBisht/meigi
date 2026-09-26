@@ -18,6 +18,7 @@
     "@react-three/fiber": "~9.8.0",
     "@react-three/postprocessing": "^3.1.2",
     "@worldcoin/idkit": "^4.3.0",
+    "gsap": "^3.15.0",
     "postprocessing": "^6.39.5",
     "qrcode": "^1.5.4",
     "react": "^19.3.0",
