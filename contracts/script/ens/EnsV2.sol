@@ -69,6 +69,11 @@ interface IParentBoundResolver {
     function parentNameHash() external view returns (bytes32);
 }
 
+/// @dev Implemented by ClaimedPayeeResolver: the payee resolver it takes money records from.
+interface IForwardingResolver {
+    function payees() external view returns (address);
+}
+
 /// @notice One ENSv2 deployment, as loaded from the environment (see deployments/*.env).
 struct EnsV2 {
     IETHRegistrar registrar;
@@ -166,6 +171,25 @@ library EnsV2Lib {
         } catch {
             return false;
         }
+    }
+
+    /// @notice The resolver the UniversalResolver must use for `<tLabel>.<label>.eth`. A name claimed in the parent's
+    ///         subregistry uses the claims resolver, which must forward to the parent's resolver. Any other name
+    ///         falls through to the parent's wildcard resolver.
+    function payeeResolverFor(IPermissionedRegistry ethRegistry, string memory label, string memory tLabel)
+        internal
+        view
+        returns (address)
+    {
+        address payees = ethRegistry.getResolver(label);
+        address claims = ethRegistry.getSubregistry(label);
+        address claimed =
+            claims == address(0) ? address(0) : IPermissionedRegistry(claims).getResolver(tLabel);
+        if (claimed == address(0)) return payees;
+        require(
+            IForwardingResolver(claimed).payees() == payees, "the claimed name's resolver forwards elsewhere"
+        );
+        return claimed;
     }
 
     /// @notice False when `resolver` is a PayeeResolver built for a parent other than `<label>.eth`.

@@ -142,7 +142,8 @@ contract CheckAgent is Script {
         );
     }
 
-    /// @dev payee.eth is untouched: t2011001234567.payee.eth still resolves to the registry's active payout.
+    /// @dev payee.eth is untouched: t2011001234567.payee.eth still resolves to the registry's active payout, through
+    ///      payee.eth's resolver or, once the company has claimed the name, a claims resolver that forwards to it.
     function _checkPayeeUnchanged(EnsV2 memory ens) private view {
         address payeeResolver = ens.ethRegistry.getResolver("payee");
         IPayeeRegistry registry = IPayeeResolverRegistry(payeeResolver).registry();
@@ -150,12 +151,15 @@ contract CheckAgent is Script {
         (bytes memory out, address answeredBy) = ens.universalResolver
             .resolve(EnsV2Lib.dnsEncode(name), abi.encodeWithSelector(ADDR, vm.ensNamehash(name)));
         address resolved = abi.decode(out, (address));
-        require(answeredBy == payeeResolver, "payee.eth answered by another resolver");
+        require(
+            answeredBy == EnsV2Lib.payeeResolverFor(ens.ethRegistry, "payee", "t2011001234567"),
+            "payee.eth answered by another resolver"
+        );
         require(
             resolved == registry.payoutOf(DEMO_T_NUMBER) && resolved != address(0),
             "payee.eth resolution changed"
         );
-        console.log("%s -> %s (resolver %s, unchanged)", name, resolved, payeeResolver);
+        console.log("%s -> %s (resolver %s, unchanged)", name, resolved, answeredBy);
     }
 
     function _expectText(EnsV2 memory ens, string memory key, string memory expected) private view {

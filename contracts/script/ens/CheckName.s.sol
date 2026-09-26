@@ -3,9 +3,8 @@ pragma solidity ^0.8.24;
 
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {Script, console} from "forge-std/Script.sol";
-import {ClaimedPayeeResolver} from "../../src/ens/ClaimedPayeeResolver.sol";
 import {IPayeeRegistry} from "../../src/registry/IPayeeRegistry.sol";
-import {EnsV2, EnsV2Lib, IPermissionedRegistry} from "./EnsV2.sol";
+import {EnsV2, EnsV2Lib} from "./EnsV2.sol";
 
 interface IPayeeResolverView {
     function registry() external view returns (IPayeeRegistry);
@@ -47,7 +46,8 @@ contract CheckName is Script {
         uint64 tNumber = SafeCast.toUint64(vm.envOr("T_NUMBER", uint256(2011001234567)));
         string memory parent = string.concat(label, ".eth");
         console.log("UniversalResolver %s, resolver %s", address(ens.universalResolver), resolver);
-        _checkPayee(ens, _answeringResolver(resolver, claims, tNumber), registry, tNumber, parent);
+        string memory tLabel = string.concat("t", vm.toString(uint256(tNumber)));
+        _checkPayee(ens, EnsV2Lib.payeeResolverFor(ens.ethRegistry, label, tLabel), registry, tNumber, parent);
         _checkFailsClosed(ens, registry, tNumber, parent);
     }
 
@@ -77,24 +77,6 @@ contract CheckName is Script {
         console.log("  addr(60)      %s (registry payoutOf: %s)", resolved, expected);
         console.log("  text(name)    %s", _checkLegalName(ens, name, registry, tNumber));
         console.log("  meigi.status  %s", _text(ens, name, "meigi.status"));
-    }
-
-    /// @dev A name claimed in the claims registry is answered by its ClaimedPayeeResolver, which must forward money
-    ///      records to the payee resolver. Any other name falls through to the payee resolver's wildcard.
-    function _answeringResolver(address payees, address claims, uint64 tNumber)
-        private
-        view
-        returns (address)
-    {
-        if (claims == address(0)) return payees;
-        address claimed =
-            IPermissionedRegistry(claims).getResolver(string.concat("t", vm.toString(uint256(tNumber))));
-        if (claimed == address(0)) return payees;
-        require(
-            address(ClaimedPayeeResolver(claimed).payees()) == payees,
-            "the claimed name's resolver forwards elsewhere"
-        );
-        return claimed;
     }
 
     /// @dev The resolver publishes the legal name of an active payee only; a disputed one shows just its status.
