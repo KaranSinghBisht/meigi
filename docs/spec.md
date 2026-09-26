@@ -31,12 +31,25 @@ An AI agent can be fooled into wanting to pay the wrong address. It still can't:
 | Layer | What | Where |
 |---|---|---|
 | Registry | T-number → payout. Registration by an attester. A payout changes only after 72h in public (set at deploy; the contract enforces at least 1h): the business key + a World ID officer quorum (on-chain, one attester signature naming the officers), cancellable; or a governance ruling on a dispute, which only governance can dismiss. A second claim → dispute (frozen), never overwrite. | `contracts/src/registry` |
-| ENS | `t<13 digits>.payee.eth` resolves through an ENSIP-10 wildcard resolver to the active payout only; disputed/unknown resolve to zero. | `contracts/src/ens` |
+| ENS | `t<13 digits>.payee.eth` resolves through an ENSIP-10 wildcard resolver to the active payout only; disputed/unknown resolve to zero. A claimed company issues text-only names under it (`CompanyNamespace`, below). | `contracts/src/ens` |
 | Enforcement | `AgentVault`: the agent key can only pay approved vendors, within caps, to the pinned registered payout. `PayRouter`: pay-by-T-number for any wallet. | `contracts/src/payments` |
 | Verifier | NTA exact-match (all 5.79M corporate-number records nationwide, 5.0M open, from the public bulk data), Keybase-style DNS proof, World ID 4.0 officer sessions, EIP-712 approvals whose World ID signal pins the exact change. | `services/verifier` |
 | AP agent | Invoice → deterministic extraction → System-1 triage (Jev / our fine-tuned Kev) → deterministic kernel → Intercepta screening → pay or hold, with an LLM-written explanation. Only the kernel can move money. | `services/agent` |
 | x402 guard | Before an agent signs an x402 payment: a declared merchant's `payTo` must match its registered payout (and its ENS name, when it declares one); an undeclared merchant gets at most a small screened allowance (¥50 by default), or nothing. | `packages/x402-guard` |
 | Benchmark | PayeeBench-JA: calibrated System-1 triage for payment-redirection attempts; fine-tuned on a MacBook (MPS). | `bench/` |
+
+**Company-issued names and agent mandates.** A company that claimed `t<T>.payee.eth` issues names under it to its
+own agents and departments (`ap.t<T>.payee.eth`, `keiri.…`) through `CompanyNamespace`. Each issued name is text-only
+(ENSIP-26 agent records, an ENSIP-25 link to an ERC-8004 registration, an ENSIP-27 class) and resolves no address, so
+it can never be paid: payers still pay only `t<T>.payee.eth`. The registry decides, live:
+- only the company's current registered controller can issue or change them;
+- they answer only while the company is active and still under the key that issued them, so a dispute or a recovery
+  rotation darkens them.
+
+Meigi can block a label, freeze a namespace or reset it after a dispute moves the number. A `MandateGate` can then
+make the AgentVault obey a name: it pays only while the buyer's `ap.t<T>.payee.eth` answers and the caller holds it,
+so revoking the name stops the agent on-chain. Where: `contracts/src/ens/CompanyNamespace.sol`,
+`contracts/src/payments/MandateGate.sol`; `docs/ens.md` has the design, the reviews and the live evidence.
 
 ## Security model
 
@@ -50,7 +63,8 @@ See `contracts/README.md` ("Who can change what" and "Trust model"). In short:
   requested change; only governance can dismiss a queued dispute ruling.
 
 The core contracts went through three independent review rounds, each by separate AI reviewers with
-proof-of-concept exploits (the ENS claim contracts, added later, have tests but no review round):
+proof-of-concept exploits (the ENS claim contracts, added later, have tests but no review round; CompanyNamespace,
+added last, went through two review rounds of its own with fork PoCs, see `docs/ens.md`):
 1. **Round 1** found 11 issues, three of them High (e.g. an officer alone could take over a payee). All 11 were fixed with regression tests.
 2. **Round 2** found that the fixes introduced one Medium (attester revocation could be undone or reach back in time) and four Lows. All five were fixed, and v2 was redeployed.
 3. **Round 3** confirmed all fixes with 39 PoCs and a mutation check: reverting any fix breaks its test (20/20).
