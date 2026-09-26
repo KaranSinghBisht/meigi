@@ -9,6 +9,7 @@ const LINKS = [
   { to: '/register', label: 'Register' },
   { to: '/change', label: 'Changes' },
   { to: '/x402', label: 'x402' },
+  { to: '/business', label: 'For business' },
 ] as const
 
 export function Header() {

@@ -15,6 +15,7 @@ interface ImportMetaEnv {
   readonly VITE_LANDING_URL?: string
   readonly VITE_GITHUB_URL?: string
   readonly VITE_DOCS_URL?: string
+  readonly VITE_CONTACT_EMAIL?: string
   readonly VITE_HOSTED?: string
   readonly VITE_DEMO_VIDEO_URL?: string
 }

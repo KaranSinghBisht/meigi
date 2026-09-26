@@ -82,6 +82,7 @@ const SHOTS = [
   { name: 'x402', path: '/x402', ready: '.merchant', act: buyCompromised },
   // The flagged merchant is refused before signing, so this one never settles anything.
   { name: 'x402-unverified', path: '/x402', ready: '.merchant', act: buyFlagged },
+  { name: 'business', path: '/business', ready: '.biz-product' },
   // These settle a real Sepolia payment (testnet gas + 10 mJPYC), so they only run with SHOTS_HONEST=1. The clean
   // unverified merchant settles once Intercepta is configured; without a key it is refused like the flagged one.
   { name: 'x402-honest', path: '/x402', ready: '.merchant', act: buyHonest, optIn: 'SHOTS_HONEST' },

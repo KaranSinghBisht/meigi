@@ -16,6 +16,7 @@ const TITLES: Record<string, string> = {
   '/register': 'Register a business · Meigi',
   '/change': 'Company changes · Meigi',
   '/x402': 'x402 guard · Meigi',
+  '/business': 'For business · Meigi',
 }
 
 /** Keeps the document title in step with the route and moves focus to the page on navigation. */

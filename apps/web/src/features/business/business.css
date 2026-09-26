@@ -1,0 +1,262 @@
+/* For business: static cards over the world at the shore. Every surface is frosted glass, as elsewhere. */
+
+.biz {
+  display: grid;
+  gap: clamp(28px, 4vw, 48px);
+}
+
+.biz__jp {
+  margin-right: 6px;
+  color: var(--seal);
+  font-size: 14px;
+  letter-spacing: 0.12em;
+}
+
+.biz-section {
+  display: grid;
+  gap: 16px;
+}
+
+.biz-section__title {
+  width: fit-content;
+  font-size: clamp(22px, 2.2vw, 28px);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+.biz-section__head {
+  display: grid;
+  gap: 4px;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.biz-section__head .biz-section__title {
+  padding: 0;
+  border: 0;
+  background: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.biz-section__title .badge {
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.biz-section__lede {
+  color: var(--ink-soft);
+}
+
+.biz-products,
+.biz-tiers,
+.biz-why {
+  display: grid;
+  gap: 16px;
+}
+
+.biz-products {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+}
+
+.biz-tiers,
+.biz-why {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.biz-product,
+.biz-tier,
+.biz-fact,
+.biz-step,
+.biz-cta {
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--radius-lg);
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  box-shadow: var(--shadow-panel);
+}
+
+.biz-product {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 22px;
+}
+
+.biz-product__kanji {
+  color: var(--seal);
+  font-size: 22px;
+  letter-spacing: 0.1em;
+}
+
+.biz-product__name {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.biz-product__index {
+  display: inline-grid;
+  width: 24px;
+  height: 24px;
+  margin-right: 4px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+  font-size: 13px;
+  vertical-align: 2px;
+}
+
+.biz-product__body {
+  flex: 1;
+  color: var(--ink-soft);
+}
+
+.biz-product__model {
+  width: fit-content;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--iris-tint);
+  color: var(--iris-deep);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.biz-product__demo {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.biz-tier,
+.biz-fact {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 22px;
+}
+
+.biz-tier__name {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.biz-tier__who,
+.biz-fact__body {
+  color: var(--ink-soft);
+}
+
+.biz-tier__items {
+  display: grid;
+  gap: 6px;
+  margin-top: 6px;
+  padding-left: 18px;
+  list-style: disc;
+}
+
+.biz-fact__title {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+/* Five stops, left to right, joined by a line through the status dots. */
+.biz-roadmap {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.biz-step {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  padding: 16px 18px;
+  border-top: 4px solid var(--line-strong);
+}
+
+.biz-step--now {
+  border-top-color: var(--jade);
+}
+
+.biz-step--in-progress {
+  border-top-color: #e0a030;
+}
+
+.biz-step__status {
+  color: var(--ink-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.biz-step--now .biz-step__status {
+  color: var(--jade-deep);
+}
+
+.biz-step--in-progress .biz-step__status {
+  color: var(--amber-deep);
+}
+
+.biz-step__name {
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.biz-step__detail {
+  color: var(--ink-soft);
+  font-size: 15px;
+}
+
+.biz-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px 28px;
+  padding: clamp(22px, 3vw, 34px);
+  background: radial-gradient(120% 140% at 100% 0%, rgba(224, 69, 43, 0.14), transparent 55%), var(--glass);
+}
+
+.biz-cta__text {
+  display: grid;
+  flex: 1;
+  gap: 6px;
+  min-width: min(100%, 320px);
+}
+
+.biz-cta__title {
+  font-size: clamp(24px, 2.6vw, 32px);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+}
+
+.biz-cta__body {
+  color: var(--ink-soft);
+}
+
+.biz-cta__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+@media (max-width: 980px) {
+  .biz-tiers,
+  .biz-why {
+    grid-template-columns: 1fr;
+  }
+
+  .biz-roadmap {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .biz-roadmap {
+    grid-template-columns: 1fr;
+  }
+}

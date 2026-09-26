@@ -13,6 +13,7 @@ const RegistryPage = lazy(() => import('./features/registry/RegistryPage'))
 const RegisterPage = lazy(() => import('./features/register/RegisterPage'))
 const ChangePage = lazy(() => import('./features/change/ChangePage'))
 const X402Page = lazy(() => import('./features/x402/X402Page'))
+const BusinessPage = lazy(() => import('./features/business/BusinessPage'))
 
 const router = createBrowserRouter([
   {
@@ -28,6 +29,7 @@ const router = createBrowserRouter([
       { path: 'change', element: <ChangePage /> },
       { path: 'change/:tNumber', element: <ChangePage /> },
       { path: 'x402', element: <X402Page /> },
+      { path: 'business', element: <BusinessPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

@@ -24,6 +24,8 @@ export interface AppEnv {
   /** Optional links in the landing hero's dock. */
   readonly githubUrl: string | null
   readonly docsUrl: string | null
+  /** Where "Talk to us" on /business writes to. The default is a placeholder on a reserved domain. */
+  readonly contactEmail: string
   /** The public site: the verifier, agent and x402 demo only run on the demo machine. */
   readonly hosted: boolean
   readonly demoVideoUrl: string | null
@@ -90,6 +92,7 @@ const worldEnv = (value: string) => WORLD_ENVIRONMENTS.find((item) => item === v
 const rpId = (value: string) => (value.startsWith('rp_') ? value : null)
 /** An absolute http(s) URL or a same-origin path such as "/" (never protocol-relative "//host"). */
 const link = (value: string) => (value.startsWith('/') && !value.startsWith('//') ? value : url(value))
+const email = (value: string) => (/^[^\s@/?#]+@[^\s@/?#]+\.[a-z]{2,}$/i.test(value) ? value : null)
 const flag = (value: string) => (['1', 'true'].includes(value) ? true : ['0', 'false'].includes(value) ? false : null)
 
 function readEnv(raw: ImportMetaEnv): AppEnv {
@@ -113,6 +116,7 @@ function readEnv(raw: ImportMetaEnv): AppEnv {
     landingUrl: pick<string | null>('VITE_LANDING_URL', raw.VITE_LANDING_URL, null, link),
     githubUrl: pick<string | null>('VITE_GITHUB_URL', raw.VITE_GITHUB_URL, null, link),
     docsUrl: pick<string | null>('VITE_DOCS_URL', raw.VITE_DOCS_URL, null, link),
+    contactEmail: pick('VITE_CONTACT_EMAIL', raw.VITE_CONTACT_EMAIL, 'hello@meigi.example', email),
     hosted: pick('VITE_HOSTED', raw.VITE_HOSTED, false, flag),
     demoVideoUrl: pick<string | null>('VITE_DEMO_VIDEO_URL', raw.VITE_DEMO_VIDEO_URL, null, url),
   }

@@ -12,6 +12,7 @@ agent console and the x402 guard demo. Vite + React 19 + TypeScript, viem on Sep
 | `/register` | NTA match → domain proof (personal_sign) → World ID officers → submit | verifier, wallet |
 | `/change/:tNumber?` | Approval request → officers prove their World ID session → controller queues it | verifier, wallet |
 | `/x402` | Guarded buyer vs honest / compromised merchant, and Intercepta-screened merchants with no Meigi record | x402 demo |
+| `/business` | For business: Meigi as a product (five products, why now, roadmap, illustrative pricing, contact) | none (static) |
 
 ## The world behind the pages
 

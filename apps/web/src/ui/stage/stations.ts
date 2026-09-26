@@ -13,6 +13,7 @@ const STATIONS: Readonly<Record<string, Station>> = {
   change: 'torii',
   agent: 'lake',
   x402: 'sky',
+  business: 'shore',
 }
 
 /** The camera station for a path; unknown routes stay at the gate. */
