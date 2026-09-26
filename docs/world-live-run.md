@@ -15,8 +15,8 @@ Two things below already happened tonight, ahead of T7999900000002's actual regi
 it — both are recorded in full in `docs/world-debrief.md`:
 
 - **Two real production World ID proofs, Orb, `createSession`** — the first time any of this ran against World
-  outside a fixture: officer `0x8b843464…fd8d90` at 19:41 JST, officer `0xdcf809aa…118b6f` at 20:39 JST. Neither
-  is registered on-chain yet; no company registration has happened.
+  outside a fixture: officer `0x8b843464…fd8d90` at 19:41 JST, officer `0xdcf809aa…118b6f` at 20:39 JST. Rehearsals,
+  neither ever registered on-chain: the actual run below enrolled a third, separate officer.
 - **A real `proveSession` request against production.** The pitched officer-approval mechanism (`proveSession`
   re-proving an enrolled session) had never run against World in any form before tonight. Using one of the two
   session ids above, the request built correctly and World returned a live connector URI — the first time this
@@ -118,13 +118,25 @@ No private keys, no World ID session tokens beyond their public session id, no p
   "Quorum reached...", "Queued on-chain...", "Cancelled by the controller...");
 - the wrong-human refusal message, verbatim, once Adithya's deferred mini-step happens.
 
-**Slots to fill once the run happens** (leave the label, replace only the value — this is the whole reason this
-file is a skeleton tonight):
-- Step 6 registration: tx **PENDING — fill in after the run**, block **PENDING**.
-- Step 7.1 decline, verbatim UI text: **PENDING — fill in after the run**.
-- Step 7.3 approval + queue: tx **PENDING — fill in after the run**, block **PENDING**.
-- Step 9's landing time: queue tx block **PENDING**, block timestamp **PENDING**, lands at **PENDING** (block
-  timestamp + 259200).
+**Filled in from the real run** (2026-09-27 JST; every tx confirmed directly via `cast receipt` against Sepolia
+and cross-checked against the verifier's database and `officersOf` on-chain — not copied from a report alone):
+- **Step 6 registration.** tx
+  [`0x0c297d9cf284e38d572e68ee8e25b4ce79b662247b405b125b41b63d33f0dd6f`](https://sepolia.etherscan.io/tx/0x0c297d9cf284e38d572e68ee8e25b4ce79b662247b405b125b41b63d33f0dd6f),
+  block 11,788,318, mined 04:40:24, sent by the attester (`0x3D5F…1049`), status success. Officer enrolled:
+  `officerId` `0xb02c5df1…98df0` (Orb) — confirmed alone via `officersOf(7999900000002)` on-chain, exactly one
+  officer, matching. Company 株式会社ソラノ精機; controller and initial payout `0x6eaFE9D8…146B57`.
+- **Step 7.1 decline.** Not confirmed as part of this take: the verifier's database shows exactly one
+  payout-change intent for this T-number, approved directly. **Ask team-lead:** whether the alternative path
+  here is instead covered by the separate "Replace a lost business key" decline they mentioned recording next
+  (no on-chain effect), or whether a decline-then-approve cycle on this same T-number's `/change` is still
+  wanted before judging.
+- **Step 7.3 approval + queue.** tx
+  [`0x9202080ada84f8f5671e72d84b72d45e510fe748fc636a47f2179b61875c26ea`](https://sepolia.etherscan.io/tx/0x9202080ada84f8f5671e72d84b72d45e510fe748fc636a47f2179b61875c26ea),
+  block 11,788,336, mined 04:44:00, sent by the controller wallet (`0x6eaFE9D8…146B57`), status success. Approved
+  by the same officer who registered, via `proveSession` (confirmed in the verifier's `intents.approvals`). New
+  payout `0x6eafe9d8…146b51`. The registry emitted its own confirming event in the same transaction.
+- **Landing time.** Queue tx block 11,788,336, block timestamp 04:44:00 (2026-09-27), lands **04:44:00,
+  2026-09-30** (block timestamp + 259200 = 72h) — unless cancelled first.
 
 This becomes the recorded run `/change`'s hosted page replays, the same way `apps/web/src/features/x402`
 replays a real settled run today.
@@ -132,6 +144,7 @@ replays a real settled run today.
 ## After
 
 `scripts/world-live.sh --staging` returns both services to today's default (staging, `proof_of_human`), or
-`--stop` to stop them once judging is over. Step 8 resolves step 7's pending change (cancelled on-chain,
-deliberately). Step 9's change is deliberately left running through judging — real, public, on the actual
-registry — and only gets cancelled or let land afterward, Karan's call.
+`--stop` to stop them once judging is over. The payout change recorded above is the one left running through
+judging — real, public, pending on the actual registry — and only gets cancelled or let land afterward, Karan's
+call. (The original script's steps 7.1/7.2/8 — a decline, a wrong-human refusal, and a cancel-then-requeue cycle
+— aren't confirmed as part of this specific take; see the note above before assuming they're covered elsewhere.)
