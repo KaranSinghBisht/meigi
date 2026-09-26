@@ -200,6 +200,16 @@ live vault on a fork. contracts-review passed MandateGate: 27 of 27 on a fork in
 - Issued names' texts are the company's own words. Only the parent's legal name comes from the registry.
 - Gating covers ENS resolution. Each name's record store, and its events, stay directly readable on-chain.
 
+**Next step: owned accounts (ENSIP-28).** Each issued name would list the accounts that act for it, as ENSIP-24 data
+records, and accept a listing only if the account's EIP-712 consent verifies on-chain. It isn't in the live contract:
+- the record stores grant the gate `ROLE_SET_TEXT` only, with no admin roles, so a data role can never be added;
+- the gate's resolver answers text only.
+
+So it needs a CompanyNamespace v4, a review round and a migration of the live names. Two uses:
+- **Confirmation of Payer:** an x402 merchant checks that the paying address is an owned account of a company's agent
+  name. Its receipt then names the buyer, as a qualified invoice must.
+- **Confirmation of Sender:** the AP agent checks an invoice's signature against a key that `keiri.t….payee.eth` lists.
+
 ## Resolver partitioning: no role crosses names
 
 A PermissionedResolver scopes a setter role by record key, not by name: the role's resource is `keccak256(key)`. So a
