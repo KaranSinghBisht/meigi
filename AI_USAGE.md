@@ -53,8 +53,10 @@ Every review was done by a separate AI reviewer, not by the author agent.
   accepted by design and documented: the fixed 30-day cap window, and trusting the attester to verify World
   ID off-chain. Round 3 mutation-tested the fixes.
 - **Contracts added later:** `CompanyNamespace` passed a review after two rounds (48 of 48 in the reviewer's fork
-  harness, no open findings), and `MandateGate` passed one (30 of 30 on a fork, in front of the live vault and against the live
-  names). See [`docs/ens.md`](docs/ens.md).
+  harness, no open findings), and `MandateGate` passed one (30 of 30 on a fork, in front of the live vault and against
+  the live names). The harness isn't in the repo; the 8 fork tests in
+  [`CompanyNamespaceFork.t.sol`](contracts/test/ens/CompanyNamespaceFork.t.sol) and
+  [`MandateGateFork.t.sol`](contracts/test/payments/MandateGateFork.t.sol) are. See [`docs/ens.md`](docs/ens.md).
 - **AP agent:** three review rounds and a final pass. Every bypass found is now a regression test: hidden
   content, markup, refund notices, ambiguous totals and bidi controls.
 

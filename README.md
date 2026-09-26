@@ -287,7 +287,7 @@ by separate AI reviewers, with proof-of-concept exploits:
 
 These reviews were AI-assisted, not a professional audit. Contract work after them (the ENS claim contract
 `ClaimedPayeeResolver`, and a resolver change that hides a disputed payee's name) has tests but no review round.
-`CompanyNamespace` and `MandateGate`, added last, each went through review rounds of their own; their fork tests,
+`CompanyNamespace` and `MandateGate`, added last, each went through review rounds of their own; their 8 fork tests,
 which run against the live Sepolia contracts, are in the repo ([`docs/ens.md`](docs/ens.md)).
 
 Roles, delays and the trust model are in [`contracts/README.md`](contracts/README.md). The agent is untrusted
