@@ -26,6 +26,8 @@ export interface Drafts {
   readonly pastedPayout: string
   /** A payout wallet made in this browser: only its address, and only once its backup was saved. */
   readonly createdPayout: HexAddress | null
+  /** Wallets made in this tab whose backup was never saved: their keys are gone, so they can't be the payout. */
+  readonly unbacked: readonly HexAddress[]
   readonly domain: string
 }
 
@@ -63,7 +65,15 @@ const UNREGISTERED = {
 
 const EMPTY: OnboardingState = {
   step: STEP.company,
-  drafts: { query: '', fictionalName: '', payoutMode: 'create', pastedPayout: '', createdPayout: null, domain: '' },
+  drafts: {
+    query: '',
+    fictionalName: '',
+    payoutMode: 'create',
+    pastedPayout: '',
+    createdPayout: null,
+    unbacked: [],
+    domain: '',
+  },
   company: null,
   controller: null,
   payout: null,
@@ -118,6 +128,12 @@ function useActions(update: (patch: Patch) => void) {
           })),
         ),
       setThreshold: (threshold: number) => update(() => ({ threshold })),
+      /** Marks a wallet made here as not backed up (just created) or backed up (its file was saved). */
+      setUnbacked: (address: HexAddress, unbacked: boolean) =>
+        update((prev) => {
+          const others = prev.drafts.unbacked.filter((item) => item.toLowerCase() !== address.toLowerCase())
+          return { drafts: { ...prev.drafts, unbacked: unbacked ? [...others, address] : others } }
+        }),
       goTo: (step: StepIndex) => update(() => ({ step })),
       submitted: (id: string, submission: Submission) =>
         update(forRegistration(id, () => ({ submission, step: STEP.registered }))),

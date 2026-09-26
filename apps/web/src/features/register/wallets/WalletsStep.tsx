@@ -19,7 +19,10 @@ import './wallets.css'
  * A pasted payout address, checksummed; null (with a reason) when it isn't one. The wallet made on this screen
  * whose backup isn't saved yet is refused: its key would be gone the moment the screen closes.
  */
-function parsePasted(value: string, unsaved: HexAddress | null): { address: HexAddress | null; problem: string | null } {
+function parsePasted(
+  value: string,
+  unbacked: readonly HexAddress[],
+): { address: HexAddress | null; problem: string | null } {
   const trimmed = value.trim()
   if (trimmed === '') return { address: null, problem: null }
   if (!isAddress(trimmed)) {
@@ -29,22 +32,22 @@ function parsePasted(value: string, unsaved: HexAddress | null): { address: HexA
   }
   const address = getAddress(trimmed)
   if (address === zeroAddress) return { address: null, problem: "That's the zero address." }
-  if (unsaved && address === getAddress(unsaved)) {
-    return { address: null, problem: "That's the new wallet, and its backup isn't saved yet. Save it first." }
+  if (unbacked.some((item) => getAddress(item) === address)) {
+    return { address: null, problem: "That wallet was made here and its backup isn't saved, so it can't be the payout." }
   }
   return { address, problem: null }
 }
 
-function resolvePayout(drafts: Drafts, account: HexAddress | null, unsaved: HexAddress | null): HexAddress | null {
+function resolvePayout(drafts: Drafts, account: HexAddress | null): HexAddress | null {
   if (drafts.payoutMode === 'connected') return account
-  if (drafts.payoutMode === 'paste') return parsePasted(drafts.pastedPayout, unsaved).address
+  if (drafts.payoutMode === 'paste') return parsePasted(drafts.pastedPayout, drafts.unbacked).address
   return drafts.createdPayout
 }
 
-function PastedPayout({ onboarding, unsaved }: { readonly onboarding: Onboarding; readonly unsaved: HexAddress | null }) {
-  const value = onboarding.state.drafts.pastedPayout
+function PastedPayout({ onboarding }: { readonly onboarding: Onboarding }) {
+  const { pastedPayout: value, unbacked } = onboarding.state.drafts
   const [touched, setTouched] = useState(false)
-  const { problem } = parsePasted(value, unsaved)
+  const { problem } = parsePasted(value, unbacked)
   return (
     <TextField
       label="Payout address"
@@ -79,9 +82,7 @@ interface PayoutDetailProps {
 
 function PayoutDetail({ onboarding, account, newWallet }: PayoutDetailProps) {
   const { drafts } = onboarding.state
-  if (drafts.payoutMode === 'paste') {
-    return <PastedPayout onboarding={onboarding} unsaved={newWallet.unsaved?.address ?? null} />
-  }
+  if (drafts.payoutMode === 'paste') return <PastedPayout onboarding={onboarding} />
   if (drafts.payoutMode === 'connected') return <ConnectedPayout account={account} />
   return (
     <NewPayoutWallet
@@ -92,13 +93,28 @@ function PayoutDetail({ onboarding, account, newWallet }: PayoutDetailProps) {
   )
 }
 
+/**
+ * The new-wallet maker, held here rather than in the payout choice so switching choices never drops a key whose
+ * backup isn't saved yet. A wallet counts as unbacked from the moment it is made until its file is saved.
+ */
+function useWalletMaker(onboarding: Onboarding) {
+  const { setDrafts, setUnbacked } = onboarding
+  const onCreated = useCallback((address: HexAddress) => setUnbacked(address, true), [setUnbacked])
+  const onSaved = useCallback(
+    (address: HexAddress) => {
+      setUnbacked(address, false)
+      setDrafts({ createdPayout: address })
+    },
+    [setDrafts, setUnbacked],
+  )
+  return useNewPayoutWallet({ onCreated, onSaved })
+}
+
 export function WalletsStep({ onboarding }: { readonly onboarding: Onboarding }) {
   const wallet = useWallet()
   const { drafts } = onboarding.state
-  // Held here, not in the payout choice, so switching choices never drops a key whose backup isn't saved yet.
-  const { setDrafts } = onboarding
-  const newWallet = useNewPayoutWallet(useCallback((address) => setDrafts({ createdPayout: address }), [setDrafts]))
-  const payout = resolvePayout(drafts, wallet.account, newWallet.unsaved?.address ?? null)
+  const newWallet = useWalletMaker(onboarding)
+  const payout = resolvePayout(drafts, wallet.account)
   const submit = () => {
     if (wallet.account && payout) onboarding.confirmWallets(wallet.account, payout)
   }

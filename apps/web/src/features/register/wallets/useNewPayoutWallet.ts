@@ -69,17 +69,25 @@ function useBackup({ key, unsaved, setUnsaved, setError, finish }: Backup) {
  * rendered, put in state or storage, sent or logged. Saving the backup is the one way out, and it happens once:
  * only when the file is known to exist is the key dropped and the address usable as the payout.
  */
-export function useNewPayoutWallet(onSaved: (address: HexAddress) => void) {
+interface Callbacks {
+  /** A wallet was made: its address (never its key) is noted as not backed up yet. */
+  readonly onCreated: (address: HexAddress) => void
+  readonly onSaved: (address: HexAddress) => void
+}
+
+export function useNewPayoutWallet({ onCreated, onSaved }: Callbacks) {
   const key = useKeyRef()
   const [unsaved, setUnsaved] = useState<UnsavedWallet | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const create = useCallback(() => {
     const privateKey = generatePrivateKey()
+    const address = privateKeyToAccount(privateKey).address
     key.current = privateKey
-    setUnsaved({ address: privateKeyToAccount(privateKey).address, downloaded: false })
+    setUnsaved({ address, downloaded: false })
     setError(null)
-  }, [key])
+    onCreated(address)
+  }, [key, onCreated])
 
   const finish = useCallback(
     (address: HexAddress) => {
